@@ -85,6 +85,33 @@ CREATE TABLE IF NOT EXISTS order_items (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Coupons table for discount codes
+CREATE TABLE IF NOT EXISTS coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    discount_type ENUM('percentage', 'fixed') NOT NULL,
+    discount_value DECIMAL(10, 2) NOT NULL,
+    minimum_purchase DECIMAL(10, 2) DEFAULT 0,
+    max_uses INT DEFAULT NULL,
+    times_used INT DEFAULT 0,
+    expires_at TIMESTAMP NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_code (code),
+    INDEX idx_is_active (is_active),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add sale_price column to products table if not exists
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_price DECIMAL(10, 2) NULL AFTER price;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_percentage INT NULL AFTER sale_price;
+
+-- Add discount_code and discount_amount to orders table
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50) NULL AFTER tax_amount;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 2) DEFAULT 0 AFTER discount_code;
+
 -- Sync log table for eBay synchronization
 CREATE TABLE IF NOT EXISTS ebay_sync_log (
     id INT AUTO_INCREMENT PRIMARY KEY,

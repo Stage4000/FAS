@@ -15,15 +15,17 @@
                         <li><a href="products.php?category=atv" class="text-white-50 text-decoration-none">ATV Parts</a></li>
                         <li><a href="about.php" class="text-white-50 text-decoration-none">About Us</a></li>
                         <li><a href="contact.php" class="text-white-50 text-decoration-none">Contact</a></li>
+                        <li><a href="cart.php" class="text-white-50 text-decoration-none">Shopping Cart</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-3">
                     <h6>Connect</h6>
                     <p><a href="https://flipandstrip.com" class="text-white-50 text-decoration-none"><i class="bi bi-globe"></i> flipandstrip.com</a></p>
-                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener" class="text-white-50 text-decoration-none"><i class="bi bi-shop"></i> eBay Store</a></p>
+                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="bi bi-shop"></i> eBay Store</a></p>
                     <div class="mt-3">
-                        <h6 class="small">Secure Payment</h6>
+                        <h6 class="small">Secure Payment & Shipping</h6>
                         <p class="text-white-50 small"><i class="bi bi-shield-check"></i> PayPal Checkout</p>
+                        <p class="text-white-50 small"><i class="bi bi-truck"></i> EasyShip Delivery</p>
                     </div>
                 </div>
             </div>
@@ -33,6 +35,40 @@
             </div>
         </div>
     </footer>
+
+    <?php
+    // Tawk.to Live Chat Integration
+    // Get from config or admin settings
+    $tawkPropertyId = 'YOUR_PROPERTY_ID'; // Configure in admin settings
+    $tawkWidgetId = 'YOUR_WIDGET_ID'; // Configure in admin settings
+    $tawkEnabled = false; // Configure in admin settings
+    
+    // Try to load from config
+    if (file_exists(__DIR__ . '/../src/config/config.php')) {
+        require_once __DIR__ . '/../src/config/config.php';
+        if (defined('TAWK_ENABLED') && TAWK_ENABLED && defined('TAWK_PROPERTY_ID') && defined('TAWK_WIDGET_ID')) {
+            $tawkPropertyId = TAWK_PROPERTY_ID;
+            $tawkWidgetId = TAWK_WIDGET_ID;
+            $tawkEnabled = true;
+        }
+    }
+    
+    if ($tawkEnabled && $tawkPropertyId !== 'YOUR_PROPERTY_ID'):
+    ?>
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/<?php echo htmlspecialchars($tawkPropertyId); ?>/<?php echo htmlspecialchars($tawkWidgetId); ?>';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
+    <?php endif; ?>
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
