@@ -1,0 +1,44 @@
+# Dependencies
+/vendor/
+node_modules/
+
+# Environment files
+.env
+.env.local
+src/config/config.php
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Uploaded files (keep structure, ignore content)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Cache
+/cache/
+*.cache
+
+# Composer
+composer.phar
+composer.lock
+
+# Database
+*.sql.backup
+*.sqlite
+*.db

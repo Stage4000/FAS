@@ -41,9 +41,9 @@ require_once __DIR__ . '/includes/header.php';
                         <strong id="cart-total" class="text-danger fs-4">$0.00</strong>
                     </div>
                     
-                    <button id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2" disabled>
+                    <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2" style="display: none;">
                         <i class="bi bi-credit-card"></i> Proceed to Checkout
-                    </button>
+                    </a>
                     <a href="products.php" class="btn btn-outline-dark w-100">Continue Shopping</a>
                     
                     <div class="mt-4 pt-3 border-top">
@@ -83,14 +83,14 @@ function displayCartItems() {
     if (window.cart.cart.length === 0) {
         cartItemsContainer.style.display = 'none';
         emptyCartMessage.style.display = 'block';
-        checkoutBtn.disabled = true;
+        checkoutBtn.style.display = 'none';
         updateCartSummary();
         return;
     }
     
     emptyCartMessage.style.display = 'none';
     cartItemsContainer.style.display = 'block';
-    checkoutBtn.disabled = false;
+    checkoutBtn.style.display = 'block';
     
     let html = '';
     window.cart.cart.forEach(item => {

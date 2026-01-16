@@ -52,8 +52,8 @@ Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
 
 ### Requirements
 
-- PHP 7.4 or higher
-- MySQL/MariaDB (for production)
+- PHP 7.4 or higher with extensions: PDO, JSON, cURL
+- MySQL/MariaDB 5.7+ (for production)
 - Composer (for PHP dependencies)
 - Web server (Apache/Nginx)
 
@@ -71,31 +71,76 @@ Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
    ```
 
 3. Configure database:
+   - Import database schema: `mysql -u root -p database_name < database/schema.sql`
    - Copy `src/config/config.example.php` to `src/config/config.php`
-   - Update database credentials
+   - Update database credentials in `src/config/config.php`
 
 4. Configure APIs:
-   - Add eBay API credentials in config
-   - Add PayPal API credentials in config
-   - Add EasyShip API key in config
+   - **eBay API**: Add your eBay App ID, Cert ID, Dev ID in `src/config/config.php`
+   - **PayPal API**: Add your PayPal Client ID and Secret in `src/config/config.php`
+   - **EasyShip API**: Add your EasyShip API key in `src/config/config.php`
 
 5. Set up web server to serve from the root directory
 
-## API Integration (To Be Implemented)
+6. Access admin panel at `/admin/` to sync products from eBay
 
-### eBay API
-- Use eBay Finding/Shopping API to fetch listings
-- Sync products from eBay store (https://www.ebay.com/str/moto800)
-- Update inventory and prices automatically
+### First Time Setup
 
-### PayPal Integration
-- Implement PayPal Checkout for payments
-- Handle payment success/failure callbacks
+1. Configure your API credentials in `src/config/config.php`
+2. Import the database schema from `database/schema.sql`
+3. Visit `/admin/` and click "Start eBay Sync" to import products
+4. Products will be automatically synced from your eBay store (moto800)
+
+## API Integration
+
+### eBay API ✅
+- **Integration**: Complete
+- **File**: `src/integrations/EbayAPI.php`
+- **Features**:
+  - Fetch items from eBay store (moto800)
+  - Get single item details
+  - Search items by keywords
+  - Automatic product synchronization
+- **Endpoint**: `/api/ebay-sync.php?key=fas_sync_key_2026`
+
+### PayPal Integration ✅
+- **Integration**: Complete
+- **File**: `src/integrations/PayPalAPI.php`
+- **Features**:
+  - Create PayPal orders
+  - Capture payments
+  - Handle callbacks
+- **Usage**: Integrated in checkout flow
 
 ### EasyShip Integration
-- Calculate shipping rates
-- Create shipment labels
-- Track packages
+- **Status**: Configuration ready
+- **Note**: Implement shipping rate calculation and label generation
+
+## Admin Panel ✅
+
+Access the admin panel at `/admin/` to:
+- View dashboard with statistics
+- Sync products from eBay
+- Monitor sync logs
+- Manage orders (coming soon)
+
+## Database Schema ✅
+
+Complete database schema includes:
+- `products` - Product catalog
+- `categories` - Product categories
+- `orders` - Customer orders
+- `order_items` - Order line items
+- `ebay_sync_log` - Synchronization logs
+- `admin_users` - Admin authentication
+
+See `database/schema.sql` for full schema.
+
+## API Endpoints
+
+- **GET** `/api/ebay-sync.php?key=KEY` - Sync products from eBay store
+- **POST** `/api/create-order.php` - Create PayPal order (to be implemented)
+- **POST** `/api/capture-payment.php` - Capture PayPal payment (to be implemented)
 
 ## Color Scheme
 
