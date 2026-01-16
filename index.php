@@ -62,7 +62,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/3899108118.jpg') center/cover no-repeat; min-height: 500px;">
+    <section class="hero-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat; min-height: 500px;">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 400px;">
             <h1 class="display-3 fw-bold mb-4">FLIP AND STRIP</h1>
             <p class="lead mb-4">Quality Motorcycle Parts, ATV Parts & Accessories</p>
