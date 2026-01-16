@@ -1,0 +1,190 @@
+<?php
+require_once __DIR__ . '/includes/header.php';
+
+// Get filter parameters
+$category = $_GET['category'] ?? null;
+$search = $_GET['search'] ?? null;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$perPage = 24;
+$offset = ($page - 1) * $perPage;
+
+// Sample products (will be replaced with database query)
+$sampleProducts = [
+    [
+        'id' => '1',
+        'name' => 'Yamaha YZF600R Thundercat Foot Peg Bracket',
+        'description' => 'High-quality foot peg bracket for YZF600R Thundercat models',
+        'price' => 23.45,
+        'image' => 'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 1.webp',
+        'sku' => '1325 FAS',
+        'category' => 'motorcycle'
+    ],
+    [
+        'id' => '2',
+        'name' => 'Harley Davidson Primary Case Saver',
+        'description' => 'Protect your primary case with this OEM quality part',
+        'price' => 45.99,
+        'image' => 'gallery/Harley Davidson-Primary Case Saver  1.webp',
+        'sku' => '2101 FAS',
+        'category' => 'motorcycle'
+    ],
+    [
+        'id' => '3',
+        'name' => 'BMW R1200 GS Left Tank Cover',
+        'description' => 'OEM BMW R1200 GS left side tank cover in excellent condition',
+        'price' => 89.99,
+        'image' => 'gallery/BMW-R1200 GS-Left Tank Cover-OEM  1.webp',
+        'sku' => '3045 FAS',
+        'category' => 'motorcycle'
+    ],
+    [
+        'id' => '4',
+        'name' => 'Kawasaki ZX6R Brake Caliper',
+        'description' => 'Front brake caliper for Kawasaki ZX6R models',
+        'price' => 67.50,
+        'image' => 'gallery/kawasaki-brake-caliper-front-left-zx6r-parts 1.webp',
+        'sku' => '4012 FAS',
+        'category' => 'motorcycle'
+    ],
+    [
+        'id' => '5',
+        'name' => 'Honda TRX 350 Fourtrax Throttle Cable',
+        'description' => 'Replacement throttle cable for Honda TRX 350 ATV',
+        'price' => 18.99,
+        'image' => 'gallery/honda-throttle-cable-trx350-parts 1.webp',
+        'sku' => '5201 FAS',
+        'category' => 'atv'
+    ],
+    [
+        'id' => '6',
+        'name' => 'Suzuki GSXR 1000 Fairing Stay Bracket',
+        'description' => 'Upper fairing stay bracket for GSX-R 1000',
+        'price' => 34.99,
+        'image' => 'gallery/suzuki-fairing-stay-bracket-upper-gsxr1000-parts 1.webp',
+        'sku' => '6045 FAS',
+        'category' => 'motorcycle'
+    ],
+];
+
+// Filter products based on search/category
+$products = $sampleProducts;
+if ($category) {
+    $products = array_filter($products, fn($p) => $p['category'] === $category);
+}
+if ($search) {
+    $products = array_filter($products, fn($p) => 
+        stripos($p['name'], $search) !== false || 
+        stripos($p['description'], $search) !== false
+    );
+}
+
+$totalProducts = count($products);
+$totalPages = ceil($totalProducts / $perPage);
+?>
+
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="fw-bold">
+                <?php if ($category): ?>
+                    <?php echo ucfirst($category); ?> Parts
+                <?php elseif ($search): ?>
+                    Search Results for "<?php echo htmlspecialchars($search); ?>"
+                <?php else: ?>
+                    All Products
+                <?php endif; ?>
+            </h1>
+            <p class="text-muted"><?php echo $totalProducts; ?> products found</p>
+        </div>
+        <div class="col-md-6">
+            <!-- Search Box -->
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search products..." id="product-search">
+                <button class="btn btn-danger" type="button">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="products.php" class="btn <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All</a>
+                <a href="products.php?category=motorcycle" class="btn <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
+                <a href="products.php?category=atv" class="btn <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV</a>
+                <a href="products.php?category=automotive" class="btn <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
+                <a href="products.php?category=gifts" class="btn <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row g-4">
+        <?php foreach ($products as $product): ?>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="card product-card h-100">
+                    <div class="position-relative">
+                        <?php if (file_exists($product['image'])): ?>
+                            <img src="<?php echo htmlspecialchars($product['image']); ?>" 
+                                 class="card-img-top product-image" 
+                                 alt="<?php echo htmlspecialchars($product['name']); ?>">
+                        <?php else: ?>
+                            <div class="product-image bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image text-muted display-4"></i>
+                            </div>
+                        <?php endif; ?>
+                        <span class="badge bg-success product-badge">In Stock</span>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title">
+                            <a href="product.php?id=<?php echo $product['id']; ?>" class="text-decoration-none text-dark">
+                                <?php echo htmlspecialchars($product['name']); ?>
+                            </a>
+                        </h6>
+                        <p class="card-text text-muted small flex-grow-1">
+                            <?php echo htmlspecialchars(substr($product['description'], 0, 80)) . '...'; ?>
+                        </p>
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="product-price">$<?php echo number_format($product['price'], 2); ?></span>
+                                <small class="text-muted">SKU: <?php echo htmlspecialchars($product['sku']); ?></small>
+                            </div>
+                            <button class="btn btn-danger w-100 add-to-cart" 
+                                    data-id="<?php echo $product['id']; ?>"
+                                    data-name="<?php echo htmlspecialchars($product['name']); ?>"
+                                    data-price="<?php echo $product['price']; ?>"
+                                    data-image="<?php echo htmlspecialchars($product['image']); ?>"
+                                    data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <!-- Pagination -->
+    <?php if ($totalPages > 1): ?>
+        <nav aria-label="Product pagination" class="mt-5">
+            <ul class="pagination justify-content-center">
+                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo $page - 1; ?><?php echo $category ? '&category=' . $category : ''; ?>">Previous</a>
+                </li>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="?page=<?php echo $i; ?><?php echo $category ? '&category=' . $category : ''; ?>"><?php echo $i; ?></a>
+                    </li>
+                <?php endfor; ?>
+                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo $page + 1; ?><?php echo $category ? '&category=' . $category : ''; ?>">Next</a>
+                </li>
+            </ul>
+        </nav>
+    <?php endif; ?>
+</div>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
