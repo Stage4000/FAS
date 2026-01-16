@@ -62,12 +62,14 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section bg-gradient py-5" style="background: linear-gradient(135deg, #db0335 0%, #242629 100%);">
-        <div class="container text-center text-white py-5">
+    <section class="hero-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/zulfahmi-khani-9gvFjMVS9A0-unsplash-ts1669129607.jpg') center/cover no-repeat; min-height: 500px;">
+        <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 400px;">
             <h1 class="display-3 fw-bold mb-4">FLIP AND STRIP</h1>
             <p class="lead mb-4">Quality Motorcycle Parts, ATV Parts & Accessories</p>
             <p class="fs-5 mb-5">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
-            <a href="products.php" class="btn btn-light btn-lg px-5 py-3">Shop Now</a>
+            <div>
+                <a href="products.php" class="btn btn-light btn-lg px-5 py-3">Shop Now</a>
+            </div>
         </div>
     </section>
 

@@ -88,9 +88,17 @@ Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
 
 1. Configure your API credentials in `src/config/config.php`
 2. Import the database schema from `database/schema.sql`
-3. Visit `/admin/` and click "Start eBay Sync" to import products
-4. Products will be automatically synced from your eBay store (moto800)
-5. Set up automated sync with cron job (see below)
+3. Initialize admin user:
+   ```bash
+   php admin/init-admin.php
+   ```
+   Default credentials: `admin` / `admin123` (change after first login)
+4. Visit `/admin/` and login with default credentials
+5. Change admin password immediately at `/admin/password.php`
+6. Configure API settings at `/admin/settings.php`
+7. Click "Start eBay Sync" to import products
+8. Products will be automatically synced from your eBay store (moto800)
+9. Set up automated sync with cron job (see below)
 
 ### Automated eBay Synchronization
 
@@ -147,11 +155,27 @@ See `cron/README.md` for detailed setup instructions.
 
 ## Admin Panel ✅
 
-Access the admin panel at `/admin/` to:
+Access the admin panel at `/admin/` with password protection:
+
+**Features:**
+- Password-protected access (default: admin/admin123)
+- Change password functionality
+- Full configuration management via web interface
 - View dashboard with statistics
-- Sync products from eBay
+- One-click eBay sync
 - Monitor sync logs
-- Manage orders (coming soon)
+
+**Initial Setup:**
+```bash
+php admin/init-admin.php
+```
+
+**Admin Pages:**
+- `/admin/` - Dashboard
+- `/admin/settings.php` - Configure all API credentials and settings
+- `/admin/password.php` - Change admin password
+- `/admin/login.php` - Login page
+- `/admin/logout.php` - Logout
 
 ## Database Schema ✅
 

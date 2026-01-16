@@ -1,3 +1,9 @@
+<?php
+require_once __DIR__ . '/auth.php';
+
+$auth = new AdminAuth();
+$auth->requireLogin();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,11 +19,17 @@
             <a class="navbar-brand" href="#">
                 <i class="bi bi-gear-fill me-2"></i>Flip and Strip Admin
             </a>
-            <span class="navbar-text text-white">
-                <a href="../index.php" class="text-white text-decoration-none">
+            <div class="d-flex align-items-center">
+                <span class="navbar-text text-white me-3">
+                    <i class="bi bi-person-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
+                </span>
+                <a href="../index.php" class="btn btn-outline-light btn-sm me-2">
                     <i class="bi bi-box-arrow-left me-1"></i>Back to Site
                 </a>
-            </span>
+                <a href="logout.php" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -26,8 +38,14 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2">
                 <div class="list-group">
-                    <a href="#dashboard" class="list-group-item list-group-item-action active">
+                    <a href="index.php" class="list-group-item list-group-item-action active">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    </a>
+                    <a href="settings.php" class="list-group-item list-group-item-action">
+                        <i class="bi bi-gear me-2"></i>Settings
+                    </a>
+                    <a href="password.php" class="list-group-item list-group-item-action">
+                        <i class="bi bi-key me-2"></i>Change Password
                     </a>
                     <a href="#products" class="list-group-item list-group-item-action">
                         <i class="bi bi-box-seam me-2"></i>Products
