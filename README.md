@@ -90,6 +90,29 @@ Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
 2. Import the database schema from `database/schema.sql`
 3. Visit `/admin/` and click "Start eBay Sync" to import products
 4. Products will be automatically synced from your eBay store (moto800)
+5. Set up automated sync with cron job (see below)
+
+### Automated eBay Synchronization
+
+Set up a cron job for regular product updates:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add one of these lines:
+
+# Sync every hour (recommended)
+0 * * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
+
+# Sync every 6 hours
+0 */6 * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
+
+# Sync daily at 2 AM
+0 2 * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
+```
+
+See `cron/README.md` for detailed setup instructions.
 
 ## API Integration
 
@@ -112,9 +135,15 @@ Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
   - Handle callbacks
 - **Usage**: Integrated in checkout flow
 
-### EasyShip Integration
-- **Status**: Configuration ready
-- **Note**: Implement shipping rate calculation and label generation
+### EasyShip Integration ✅
+- **Integration**: Complete
+- **File**: `src/integrations/EasyShipAPI.php`
+- **Features**:
+  - Calculate real-time shipping rates
+  - Multiple courier options
+  - Delivery time estimates
+  - Automatic parcel building from cart items
+- **Usage**: Integrated in checkout flow via `/api/shipping-rates.php`
 
 ## Admin Panel ✅
 
@@ -138,9 +167,19 @@ See `database/schema.sql` for full schema.
 
 ## API Endpoints
 
-- **GET** `/api/ebay-sync.php?key=KEY` - Sync products from eBay store
+- **GET** `/api/ebay-sync.php?key=KEY` - Sync products from eBay store (manual trigger)
+- **POST** `/api/shipping-rates.php` - Calculate shipping rates via EasyShip
+  - Body: `{ "items": [...], "address": {...} }`
 - **POST** `/api/create-order.php` - Create PayPal order (to be implemented)
 - **POST** `/api/capture-payment.php` - Capture PayPal payment (to be implemented)
+
+## Automated Synchronization
+
+Use the cron job script for regular eBay product updates:
+- **Script**: `cron/ebay-sync-cron.php`
+- **Recommended**: Run hourly or every 6 hours
+- **Logs**: All syncs to `ebay_sync_log` table
+- See `cron/README.md` for setup details
 
 ## Color Scheme
 

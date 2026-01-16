@@ -63,11 +63,24 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Country *</label>
-                            <select class="form-select" name="country" required>
+                            <select class="form-select" name="country" id="country-select" required>
                                 <option value="US">United States</option>
                                 <option value="CA">Canada</option>
                                 <option value="MX">Mexico</option>
                             </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="calculate-shipping-btn">
+                            <i class="bi bi-calculator"></i> Calculate Shipping
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Shipping Options -->
+                <div class="card border-0 shadow-sm mb-4" id="shipping-options-card" style="display: none;">
+                    <div class="card-body p-4">
+                        <h4 class="mb-4"><i class="bi bi-box-seam me-2"></i>Select Shipping Method</h4>
+                        <div id="shipping-options-container">
+                            <!-- Shipping options will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -129,8 +142,13 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
+let selectedShippingRate = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     displayCheckoutItems();
+    
+    // Calculate shipping button
+    document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
     
     // Note: PayPal SDK would be loaded here
     // <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
@@ -138,6 +156,106 @@ document.addEventListener('DOMContentLoaded', function() {
     // For now, show a placeholder
     document.getElementById('paypal-button-container').innerHTML = `
         <button type="button" class="btn btn-primary btn-lg w-100" onclick="alert('PayPal integration will be configured with API credentials')">
+            <i class="bi bi-paypal"></i> Pay with PayPal
+        </button>
+    `;
+});
+
+async function calculateShipping() {
+    const form = document.getElementById('checkout-form');
+    const address = {
+        address1: form.address1.value,
+        address2: form.address2.value,
+        city: form.city.value,
+        state: form.state.value,
+        zip: form.zip.value,
+        country: form.country.value
+    };
+    
+    // Validate address fields
+    if (!address.address1 || !address.city || !address.state || !address.zip) {
+        alert('Please fill in all required shipping address fields');
+        return;
+    }
+    
+    const cart = window.cart.cart;
+    const items = cart.map(item => ({
+        name: item.name,
+        sku: item.sku,
+        price: item.price,
+        quantity: item.quantity,
+        weight: 1.5 // Default weight, should come from product data
+    }));
+    
+    const btn = document.getElementById('calculate-shipping-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculating...';
+    
+    try {
+        const response = await fetch('/api/shipping-rates.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ items, address })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.rates) {
+            displayShippingOptions(data.rates);
+        } else {
+            alert('Error: ' + (data.error || 'Failed to calculate shipping'));
+        }
+    } catch (error) {
+        console.error('Shipping calculation error:', error);
+        alert('Failed to calculate shipping rates. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
+    }
+}
+
+function displayShippingOptions(rates) {
+    const container = document.getElementById('shipping-options-container');
+    const card = document.getElementById('shipping-options-card');
+    
+    let html = '';
+    rates.forEach((rate, index) => {
+        html += `
+            <div class="form-check mb-3 p-3 border rounded">
+                <input class="form-check-input" type="radio" name="shipping_method" 
+                       id="shipping_${index}" value="${index}" 
+                       data-cost="${rate.total_charge}" 
+                       data-courier="${rate.courier_id}"
+                       onchange="selectShippingMethod(${index}, ${rate.total_charge})">
+                <label class="form-check-label w-100" for="shipping_${index}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${rate.courier_name}</strong> - ${rate.service_name}<br>
+                            <small class="text-muted">${rate.delivery_time_text}</small>
+                        </div>
+                        <strong class="text-danger">$${rate.total_charge.toFixed(2)}</strong>
+                    </div>
+                </label>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    card.style.display = 'block';
+    
+    // Auto-select cheapest option
+    if (rates.length > 0) {
+        document.getElementById('shipping_0').checked = true;
+        selectShippingMethod(0, rates[0].total_charge);
+    }
+}
+
+function selectShippingMethod(index, cost) {
+    selectedShippingRate = { index, cost };
+    updateCheckoutSummary();
+}>
             <i class="bi bi-paypal"></i> Pay with PayPal
         </button>
     `;
@@ -175,12 +293,20 @@ function displayCheckoutItems() {
 function updateCheckoutSummary() {
     const subtotal = window.cart.getTotal();
     const tax = subtotal * 0.08; // 8% tax (should be calculated based on location)
-    const shipping = 10.00; // Flat shipping (should be calculated via EasyShip)
+    const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const total = subtotal + tax + shipping;
     
     document.getElementById('checkout-subtotal').textContent = `$${subtotal.toFixed(2)}`;
     document.getElementById('checkout-tax').textContent = `$${tax.toFixed(2)}`;
-    document.getElementById('checkout-shipping').textContent = `$${shipping.toFixed(2)}`;
+    
+    if (selectedShippingRate) {
+        document.getElementById('checkout-shipping').textContent = `$${shipping.toFixed(2)}`;
+        document.getElementById('checkout-shipping').classList.remove('text-muted');
+    } else {
+        document.getElementById('checkout-shipping').textContent = 'Calculate shipping';
+        document.getElementById('checkout-shipping').classList.add('text-muted');
+    }
+    
     document.getElementById('checkout-total').textContent = `$${total.toFixed(2)}`;
 }
 </script>
