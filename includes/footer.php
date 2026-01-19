@@ -4,7 +4,7 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <h5 class="fw-bold">FLIP AND STRIP</h5>
-                    <p>Quality motorcycle and ATV parts</p>
+                    <p>Quality motorcycle, ATV/UTV, and boat parts</p>
                     <p class="small">Low miles, tested, and inspected parts from top brands including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.</p>
                 </div>
                 <div class="col-md-4 mb-3">

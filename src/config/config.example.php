@@ -52,6 +52,12 @@ return [
         'platform_order_number_prefix' => 'FAS'
     ],
     
+    'tawk' => [
+        'enabled' => false,
+        'property_id' => 'YOUR_PROPERTY_ID',
+        'widget_id' => 'YOUR_WIDGET_ID'
+    ],
+    
     'site' => [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',

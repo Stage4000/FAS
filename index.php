@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Flip and Strip - Motorcycle Parts, ATV Parts, Automotive Parts, and More">
-    <title>Flip and Strip - Quality Motorcycle & ATV Parts</title>
+    <meta name="description" content="Flip and Strip - Motorcycle Parts, ATV/UTV Parts, Boat Parts, Automotive Parts, and More">
+    <title>Flip and Strip - Quality Motorcycle & ATV/UTV Parts</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -181,7 +181,7 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <h5 class="fw-bold">FLIP AND STRIP</h5>
-                    <p>Quality motorcycle and ATV parts</p>
+                    <p>Quality motorcycle, ATV/UTV, and boat parts</p>
                 </div>
                 <div class="col-md-4 mb-3">
                     <h6>Quick Links</h6>
