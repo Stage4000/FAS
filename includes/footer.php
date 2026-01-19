@@ -12,7 +12,8 @@
                     <ul class="list-unstyled">
                         <li><a href="products.php" class="text-white-50 text-decoration-none">Shop All Products</a></li>
                         <li><a href="products.php?category=motorcycle" class="text-white-50 text-decoration-none">Motorcycle Parts</a></li>
-                        <li><a href="products.php?category=atv" class="text-white-50 text-decoration-none">ATV Parts</a></li>
+                        <li><a href="products.php?category=atv" class="text-white-50 text-decoration-none">ATV/UTV Parts</a></li>
+                        <li><a href="products.php?category=boat" class="text-white-50 text-decoration-none">Boat Parts</a></li>
                         <li><a href="about.php" class="text-white-50 text-decoration-none">About Us</a></li>
                         <li><a href="contact.php" class="text-white-50 text-decoration-none">Contact</a></li>
                         <li><a href="cart.php" class="text-white-50 text-decoration-none">Shopping Cart</a></li>
@@ -38,22 +39,21 @@
 
     <?php
     // Tawk.to Live Chat Integration
-    // Get from config or admin settings
-    $tawkPropertyId = 'YOUR_PROPERTY_ID'; // Configure in admin settings
-    $tawkWidgetId = 'YOUR_WIDGET_ID'; // Configure in admin settings
-    $tawkEnabled = false; // Configure in admin settings
+    $tawkEnabled = false;
+    $tawkPropertyId = '';
+    $tawkWidgetId = '';
     
     // Try to load from config
     if (file_exists(__DIR__ . '/../src/config/config.php')) {
-        require_once __DIR__ . '/../src/config/config.php';
-        if (defined('TAWK_ENABLED') && TAWK_ENABLED && defined('TAWK_PROPERTY_ID') && defined('TAWK_WIDGET_ID')) {
-            $tawkPropertyId = TAWK_PROPERTY_ID;
-            $tawkWidgetId = TAWK_WIDGET_ID;
-            $tawkEnabled = true;
+        $config = require __DIR__ . '/../src/config/config.php';
+        if (isset($config['tawk'])) {
+            $tawkEnabled = !empty($config['tawk']['enabled']);
+            $tawkPropertyId = $config['tawk']['property_id'] ?? '';
+            $tawkWidgetId = $config['tawk']['widget_id'] ?? '';
         }
     }
     
-    if ($tawkEnabled && $tawkPropertyId !== 'YOUR_PROPERTY_ID'):
+    if ($tawkEnabled && !empty($tawkPropertyId) && !empty($tawkWidgetId)):
     ?>
     <!--Start of Tawk.to Script-->
     <script type="text/javascript">

@@ -50,6 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'platform_name' => $_POST['easyship_platform_name'] ?? 'Flip and Strip',
             'platform_order_number_prefix' => $_POST['easyship_prefix'] ?? 'FAS'
         ],
+        'tawk' => [
+            'enabled' => isset($_POST['tawk_enabled']),
+            'property_id' => $_POST['tawk_property_id'] ?? '',
+            'widget_id' => $_POST['tawk_widget_id'] ?? ''
+        ],
         'site' => [
             'name' => $_POST['site_name'] ?? 'Flip and Strip',
             'url' => $_POST['site_url'] ?? 'https://flipandstrip.com',
@@ -232,6 +237,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <label class="form-label">Order Number Prefix</label>
                                     <input type="text" class="form-control" name="easyship_prefix" value="<?php echo htmlspecialchars($config['easyship']['platform_order_number_prefix'] ?? 'FAS'); ?>">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tawk.to Chat Settings -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Tawk.to Live Chat Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="tawk_enabled" id="tawk_enabled" <?php echo !empty($config['tawk']['enabled']) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="tawk_enabled">Enable Tawk.to Live Chat</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Property ID</label>
+                                    <input type="text" class="form-control" name="tawk_property_id" value="<?php echo htmlspecialchars($config['tawk']['property_id'] ?? ''); ?>" placeholder="e.g., 5f8b3c2d4e1234567890abcd">
+                                    <small class="text-muted">Found in your Tawk.to dashboard</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Widget ID</label>
+                                    <input type="text" class="form-control" name="tawk_widget_id" value="<?php echo htmlspecialchars($config['tawk']['widget_id'] ?? ''); ?>" placeholder="e.g., default">
+                                    <small class="text-muted">Usually "default" or a custom ID</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>How to get your Tawk.to IDs:</strong><br>
+                                1. Sign up or log in at <a href="https://tawk.to" target="_blank" class="alert-link">tawk.to</a><br>
+                                2. Go to Administration > Channels > Chat Widget<br>
+                                3. Copy the Property ID and Widget ID from the widget code
                             </div>
                         </div>
                     </div>

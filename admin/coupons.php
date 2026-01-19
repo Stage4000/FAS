@@ -168,9 +168,10 @@ $coupons = $couponModel->getAll();
                         <div class="mb-3">
                             <label class="form-label">Coupon Code *</label>
                             <input type="text" name="code" class="form-control" required 
-                                   pattern="[A-Z0-9]+" style="text-transform:uppercase"
-                                   placeholder="e.g., SAVE10">
-                            <small class="text-muted">Letters and numbers only</small>
+                                   pattern="[A-Z0-9]+" 
+                                   placeholder="e.g., SAVE10"
+                                   oninput="this.value = this.value.toUpperCase()">
+                            <small class="text-muted">Letters and numbers only (automatically converted to uppercase)</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>

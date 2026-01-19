@@ -86,6 +86,10 @@ access_log
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# Gallery uploads (product images)
+/gallery/uploads/*
+!/gallery/uploads/.gitkeep
+
 # Cache directories
 /cache/
 /storage/cache/

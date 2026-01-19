@@ -160,6 +160,11 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Insert default categories
 INSERT INTO categories (name, slug, description, sort_order) VALUES
 ('Motorcycle Parts', 'motorcycle', 'Parts for motorcycles from all major brands', 1),
-('ATV Parts', 'atv', 'Parts for ATVs and quads', 2),
-('Automotive Parts', 'automotive', 'Auto and truck parts', 3),
-('Biker Gifts', 'gifts', 'Gifts and accessories for bikers', 4);
+('ATV/UTV Parts', 'atv', 'Parts for ATVs, UTVs and quads', 2),
+('Boat Parts', 'boat', 'Parts for boats and marine vehicles', 3),
+('Automotive Parts', 'automotive', 'Auto and truck parts', 4),
+('Biker Gifts', 'gifts', 'Gifts and accessories for bikers', 5)
+ON DUPLICATE KEY UPDATE 
+    name = VALUES(name),
+    description = VALUES(description),
+    sort_order = VALUES(sort_order);
