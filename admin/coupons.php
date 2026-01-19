@@ -58,20 +58,7 @@ $coupons = $couponModel->getAll();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index.php">
-                <i class="bi bi-shield-lock"></i> Admin Panel
-            </a>
-            <div>
-                <a href="index.php" class="btn btn-outline-light btn-sm me-2">Dashboard</a>
-                <a href="settings.php" class="btn btn-outline-light btn-sm me-2">Settings</a>
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container my-5">
+    <?php include __DIR__ . '/includes/nav.php'; ?>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="bi bi-tag"></i> Coupon Management</h1>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCouponModal">
@@ -230,6 +217,8 @@ $coupons = $couponModel->getAll();
             </div>
         </div>
     </div>
+
+    <?php include __DIR__ . '/includes/footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

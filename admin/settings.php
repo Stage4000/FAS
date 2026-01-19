@@ -83,42 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index.php">
-                <i class="bi bi-gear-fill me-2"></i>Flip and Strip Admin
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="navbar-text text-white me-3">
-                    <i class="bi bi-person-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                </span>
-                <a href="../index.php" class="btn btn-outline-light btn-sm me-2">
-                    <i class="bi bi-box-arrow-left me-1"></i>Back to Site
-                </a>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-box-arrow-right me-1"></i>Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <div class="col-md-3 col-lg-2">
-                <div class="list-group">
-                    <a href="index.php" class="list-group-item list-group-item-action">
-                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                    </a>
-                    <a href="settings.php" class="list-group-item list-group-item-action active">
-                        <i class="bi bi-gear me-2"></i>Settings
-                    </a>
-                    <a href="password.php" class="list-group-item list-group-item-action">
-                        <i class="bi bi-key me-2"></i>Change Password
-                    </a>
-                </div>
-            </div>
-
-            <div class="col-md-9 col-lg-10">
+    <?php include __DIR__ . '/includes/nav.php'; ?>
                 <h1 class="mb-4">Settings</h1>
 
                 <?php if ($success): ?>
@@ -183,8 +148,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="text" class="form-control" name="ebay_dev_id" value="<?php echo htmlspecialchars($config['ebay']['dev_id'] ?? ''); ?>">
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">User Token</label>
-                                    <input type="text" class="form-control" name="ebay_user_token" value="<?php echo htmlspecialchars($config['ebay']['user_token'] ?? ''); ?>">
+                                    <label class="form-label">User Token 
+                                        <a href="ebay-token-guide.php" class="text-decoration-none" target="_blank">
+                                            <i class="bi bi-question-circle"></i> How to obtain?
+                                        </a>
+                                    </label>
+                                    <input type="text" class="form-control" name="ebay_user_token" value="<?php echo htmlspecialchars($config['ebay']['user_token'] ?? ''); ?>" placeholder="Your eBay User Token">
+                                    <small class="text-muted">Required for syncing products from your eBay store</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Store Name</label>
@@ -309,9 +279,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="index.php" class="btn btn-secondary btn-lg">Cancel</a>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
+
+    <?php include __DIR__ . '/includes/footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
