@@ -153,8 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <i class="bi bi-question-circle"></i> How to obtain?
                                         </a>
                                     </label>
-                                    <input type="text" class="form-control" name="ebay_user_token" value="<?php echo htmlspecialchars($config['ebay']['user_token'] ?? ''); ?>" placeholder="Your eBay User Token">
-                                    <small class="text-muted">Required for syncing products from your eBay store</small>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="ebay_user_token" value="<?php echo htmlspecialchars($config['ebay']['user_token'] ?? ''); ?>" placeholder="Your eBay User Token">
+                                        <a href="ebay-oauth.php" class="btn btn-primary" title="Generate User Token using OAuth">
+                                            <i class="bi bi-key"></i> Get User Token
+                                        </a>
+                                    </div>
+                                    <small class="text-muted">Required for syncing products from your eBay store. Click "Get User Token" to automatically obtain it using OAuth.</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Store Name</label>
