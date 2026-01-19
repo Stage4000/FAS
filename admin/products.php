@@ -33,21 +33,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         mkdir($uploadDir, 0755, true);
                     }
                     
-                    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                    $fileType = $_FILES['image_file']['type'];
+                    // Validate file type by extension and MIME type
+                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
                     
-                    if (in_array($fileType, $allowedTypes)) {
-                        $extension = pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION);
+                    $extension = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $_FILES['image_file']['tmp_name']);
+                    finfo_close($finfo);
+                    
+                    // Additional validation: verify it's actually an image
+                    $imageInfo = @getimagesize($_FILES['image_file']['tmp_name']);
+                    
+                    if (in_array($extension, $allowedExtensions) && 
+                        in_array($mimeType, $allowedMimeTypes) && 
+                        $imageInfo !== false) {
                         $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
                         $targetPath = $uploadDir . $filename;
                         
                         if (move_uploaded_file($_FILES['image_file']['tmp_name'], $targetPath)) {
-                            $imageUrl = '/gallery/uploads/' . $filename;
+                            // Use relative path from document root
+                            $imageUrl = 'gallery/uploads/' . $filename;
                         } else {
                             $error = 'Failed to upload image file';
                         }
                     } else {
-                        $error = 'Invalid image file type. Please upload a JPEG, PNG, GIF, or WebP image.';
+                        $error = 'Invalid image file. Please upload a valid JPEG, PNG, GIF, or WebP image.';
                     }
                 }
                 

@@ -44,12 +44,18 @@
     $tawkWidgetId = '';
     
     // Try to load from config
-    if (file_exists(__DIR__ . '/../src/config/config.php')) {
-        $config = require __DIR__ . '/../src/config/config.php';
-        if (isset($config['tawk'])) {
-            $tawkEnabled = !empty($config['tawk']['enabled']);
-            $tawkPropertyId = $config['tawk']['property_id'] ?? '';
-            $tawkWidgetId = $config['tawk']['widget_id'] ?? '';
+    $configPath = __DIR__ . '/../src/config/config.php';
+    if (file_exists($configPath)) {
+        try {
+            $config = require $configPath;
+            if (isset($config['tawk']) && is_array($config['tawk'])) {
+                $tawkEnabled = !empty($config['tawk']['enabled']);
+                $tawkPropertyId = $config['tawk']['property_id'] ?? '';
+                $tawkWidgetId = $config['tawk']['widget_id'] ?? '';
+            }
+        } catch (Exception $e) {
+            // Silently fail if config has errors
+            error_log('Tawk.to config error: ' . $e->getMessage());
         }
     }
     
