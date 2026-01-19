@@ -127,7 +127,14 @@ $auth->requireLogin();
             
             // Call sync API
             fetch('../api/ebay-sync.php?key=fas_sync_key_2026')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'HTTP error ' + response.status);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         statusDiv.innerHTML = `
@@ -139,10 +146,16 @@ $auth->requireLogin();
                                 Failed: ${data.failed}
                             </div>
                         `;
-                    } else {
+                    } else if (data.error) {
+                        let helpLink = '';
+                        if (data.help) {
+                            helpLink = `<br><small><a href="${data.help}" class="alert-link" target="_blank">Click here for help</a></small>`;
+                        }
                         statusDiv.innerHTML = `
                             <div class="alert alert-danger">
-                                <strong>Sync Failed:</strong> ${data.error}
+                                <strong>Sync Failed:</strong><br>
+                                ${data.message || data.error}
+                                ${helpLink}
                             </div>
                         `;
                     }
@@ -150,7 +163,8 @@ $auth->requireLogin();
                 .catch(error => {
                     statusDiv.innerHTML = `
                         <div class="alert alert-danger">
-                            <strong>Error:</strong> ${error.message}
+                            <strong>Error:</strong> ${error.message}<br>
+                            <small>Please check your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a>.</small>
                         </div>
                     `;
                 })

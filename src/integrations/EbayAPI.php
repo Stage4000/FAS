@@ -147,7 +147,7 @@ class EbayAPI
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
         if (curl_errno($ch)) {
-            error_log('eBay API Error: ' . curl_error($ch));
+            error_log('eBay API cURL Error: ' . curl_error($ch));
             curl_close($ch);
             return null;
         }
@@ -155,10 +155,25 @@ class EbayAPI
         curl_close($ch);
         
         if ($httpCode === 200) {
-            return json_decode($response, true);
+            $data = json_decode($response, true);
+            
+            // Check for eBay API errors in response
+            if (isset($data['errorMessage'])) {
+                error_log('eBay API Error Response: ' . json_encode($data['errorMessage']));
+                return null;
+            }
+            
+            return $data;
         }
         
-        error_log('eBay API HTTP Error: ' . $httpCode);
+        // Log detailed error information
+        error_log('eBay API HTTP Error: ' . $httpCode . ' | Response: ' . substr($response, 0, 500));
+        
+        // Check if credentials are placeholders
+        if ($this->appId === 'YOUR_EBAY_APP_ID' || strpos($this->appId, 'YOUR_') === 0) {
+            error_log('eBay API Error: Invalid credentials. Please configure eBay API credentials in Settings.');
+        }
+        
         return null;
     }
     

@@ -26,7 +26,23 @@ if ($authKey !== $expectedKey) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $ebayAPI = new EbayAPI();
+    
+    // Load config to check credentials
+    $config = require __DIR__ . '/../src/config/config.php';
+    
+    // Validate eBay credentials are configured
+    if ($config['ebay']['app_id'] === 'YOUR_EBAY_APP_ID' || 
+        strpos($config['ebay']['app_id'], 'YOUR_') === 0) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'eBay API credentials not configured',
+            'message' => 'Please configure your eBay API credentials in the Settings page before syncing.',
+            'help' => 'Visit /admin/ebay-token-guide.php for instructions on obtaining eBay credentials.'
+        ]);
+        exit;
+    }
+    
+    $ebayAPI = new EbayAPI($config);
     $productModel = new Product($db);
     
     // Start sync log
@@ -45,6 +61,28 @@ try {
         $result = $ebayAPI->getStoreItems('moto800', $page, 100);
         
         if (!$result || empty($result['items'])) {
+            // Log if no results on first page
+            if ($page === 1) {
+                error_log('eBay Sync: No items found. Check eBay credentials and store name.');
+                
+                // Update sync log with error
+                $stmt = $db->prepare("
+                    UPDATE ebay_sync_log 
+                    SET status = 'failed', 
+                        error_message = 'No items found. Check eBay API credentials and store name.',
+                        completed_at = datetime('now')
+                    WHERE id = ?
+                ");
+                $stmt->execute([$syncLogId]);
+                
+                http_response_code(400);
+                echo json_encode([
+                    'error' => 'No items found',
+                    'message' => 'Unable to fetch items from eBay. This may be due to invalid credentials, incorrect store name, or API rate limits.',
+                    'help' => 'Visit /admin/ebay-token-guide.php for help with eBay API configuration.'
+                ]);
+                exit;
+            }
             break;
         }
         
