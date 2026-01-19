@@ -16,13 +16,13 @@ class Product
     }
     
     /**
-     * Get all products with pagination
+     * Get all products with pagination (public website - only visible and active)
      */
     public function getAll($page = 1, $perPage = 24, $category = null, $search = null)
     {
         $offset = ($page - 1) * $perPage;
         
-        $sql = "SELECT * FROM products WHERE is_active = 1";
+        $sql = "SELECT * FROM products WHERE is_active = 1 AND show_on_website = 1";
         $params = [];
         
         if ($category) {
@@ -49,11 +49,72 @@ class Product
     }
     
     /**
-     * Get total count of products
+     * Get all products for admin (includes hidden and inactive)
+     */
+    public function getAllProducts($page = 1, $perPage = 20, $search = null, $sourceFilter = null)
+    {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT * FROM products WHERE 1=1";
+        $params = [];
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if ($sourceFilter) {
+            $sql .= " AND source = ?";
+            $params[] = $sourceFilter;
+        }
+        
+        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params[] = $perPage;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get count of all products for admin
+     */
+    public function getCountAll($search = null, $sourceFilter = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM products WHERE 1=1";
+        $params = [];
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if ($sourceFilter) {
+            $sql .= " AND source = ?";
+            $params[] = $sourceFilter;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['total'];
+    }
+    
+    /**
+     * Get total count of products (public website - only visible)
      */
     public function getCount($category = null, $search = null)
     {
-        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1";
+        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
         $params = [];
         
         if ($category) {
@@ -79,9 +140,12 @@ class Product
     /**
      * Get product by ID
      */
-    public function getById($id)
+    public function getById($id, $includeInactive = false)
     {
-        $sql = "SELECT * FROM products WHERE id = ? AND is_active = 1";
+        $sql = "SELECT * FROM products WHERE id = ?";
+        if (!$includeInactive) {
+            $sql .= " AND is_active = 1";
+        }
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
         
@@ -106,9 +170,9 @@ class Product
     public function create($data)
     {
         $sql = "INSERT INTO products (
-            ebay_item_id, sku, name, description, price, quantity, category,
-            manufacturer, model, condition_name, weight, image_url, images, ebay_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ebay_item_id, sku, name, description, price, sale_price, quantity, category,
+            manufacturer, model, condition_name, weight, image_url, images, ebay_url, source, show_on_website
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
@@ -117,15 +181,18 @@ class Product
             $data['name'],
             $data['description'] ?? null,
             $data['price'],
+            $data['sale_price'] ?? null,
             $data['quantity'] ?? 1,
             $data['category'] ?? null,
             $data['manufacturer'] ?? null,
             $data['model'] ?? null,
-            $data['condition'] ?? null,
+            $data['condition_name'] ?? null,
             $data['weight'] ?? null,
             $data['image_url'] ?? null,
             isset($data['images']) ? json_encode($data['images']) : null,
-            $data['ebay_url'] ?? null
+            $data['ebay_url'] ?? null,
+            $data['source'] ?? 'manual',
+            isset($data['show_on_website']) ? $data['show_on_website'] : 1
         ]);
         
         if ($result) {
@@ -144,12 +211,13 @@ class Product
         $params = [];
         
         $allowedFields = [
-            'sku', 'name', 'description', 'price', 'quantity', 'category',
-            'manufacturer', 'model', 'condition_name', 'weight', 'image_url', 'images', 'ebay_url'
+            'sku', 'name', 'description', 'price', 'sale_price', 'quantity', 'category',
+            'manufacturer', 'model', 'condition_name', 'weight', 'image_url', 'images', 'ebay_url', 
+            'source', 'show_on_website'
         ];
         
         foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = ?";
                 if ($field === 'images' && is_array($data[$field])) {
                     $params[] = json_encode($data[$field]);
@@ -168,6 +236,16 @@ class Product
         
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
+    }
+    
+    /**
+     * Toggle website visibility
+     */
+    public function toggleWebsiteVisibility($id)
+    {
+        $sql = "UPDATE products SET show_on_website = CASE WHEN show_on_website = 1 THEN 0 ELSE 1 END WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$id]);
     }
     
     /**
@@ -193,15 +271,19 @@ class Product
             'description' => $ebayData['description'] ?? '',
             'price' => $ebayData['price'],
             'quantity' => $ebayData['quantity'] ?? 1,
-            'condition' => $ebayData['condition'] ?? 'Used',
+            'condition_name' => $ebayData['condition'] ?? 'Used',
             'image_url' => $ebayData['image'],
             'images' => $ebayData['images'] ?? [],
             'ebay_url' => $ebayData['url'] ?? null,
+            'source' => 'ebay'
         ];
         
         if ($existing) {
+            // Don't update show_on_website on sync - preserve admin's setting
             return $this->update($existing['id'], $productData);
         } else {
+            // New eBay products default to visible
+            $productData['show_on_website'] = 1;
             return $this->create($productData);
         }
     }

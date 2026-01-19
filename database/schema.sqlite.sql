@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS products (
     image_url TEXT,
     images TEXT, -- JSON stored as TEXT
     ebay_url TEXT,
+    source TEXT DEFAULT 'manual', -- 'ebay' or 'manual'
+    show_on_website INTEGER DEFAULT 1, -- 1 = visible, 0 = hidden
     is_active INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
@@ -30,6 +32,8 @@ CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_ebay_item_id ON products(ebay_item_id);
 CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 CREATE INDEX IF NOT EXISTS idx_products_manufacturer ON products(manufacturer);
+CREATE INDEX IF NOT EXISTS idx_products_source ON products(source);
+CREATE INDEX IF NOT EXISTS idx_products_show_on_website ON products(show_on_website);
 
 -- Categories table
 CREATE TABLE IF NOT EXISTS categories (

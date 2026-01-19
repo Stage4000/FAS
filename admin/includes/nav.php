@@ -29,6 +29,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <a href="index.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
                     <i class="bi bi-speedometer2 me-2"></i>Dashboard
                 </a>
+                <a href="products.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'products.php' ? 'active' : ''; ?>">
+                    <i class="bi bi-box-seam me-2"></i>Products
+                </a>
                 <a href="settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
                     <i class="bi bi-gear me-2"></i>Settings
                 </a>
