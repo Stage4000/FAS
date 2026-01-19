@@ -38,7 +38,8 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="products.php?category=motorcycle">Motorcycle Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=atv">ATV Parts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=atv">ATV/UTV Parts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=gifts">Biker Gifts</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -65,7 +66,7 @@
     <section class="hero-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat; min-height: 500px;">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 400px;">
             <h1 class="display-3 fw-bold mb-4">FLIP AND STRIP</h1>
-            <p class="lead mb-4">Quality Motorcycle Parts, ATV Parts & Accessories</p>
+            <p class="lead mb-4">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
             <p class="fs-5 mb-5">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
             <div>
                 <a href="products.php" class="btn btn-light btn-lg px-5 py-3">Shop Now</a>
@@ -92,9 +93,19 @@
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="bi bi-circle display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">ATV Parts</h5>
-                            <p class="card-text text-muted">Honda, Yamaha, Kawasaki, Suzuki ATVs</p>
+                            <h5 class="card-title">ATV/UTV Parts</h5>
+                            <p class="card-text text-muted">Honda, Yamaha, Kawasaki, Suzuki ATVs & UTVs</p>
                             <a href="products.php?category=atv" class="btn btn-outline-danger">Browse</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card category-card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <i class="bi bi-water display-4 text-danger mb-3"></i>
+                            <h5 class="card-title">Boat Parts</h5>
+                            <p class="card-text text-muted">Marine & Boat Parts</p>
+                            <a href="products.php?category=boat" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
@@ -108,7 +119,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
+            </div>
+            <div class="row g-4 mt-2">
+                <div class="col-md-3 col-sm-6 mx-auto">
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="bi bi-gift display-4 text-danger mb-3"></i>
