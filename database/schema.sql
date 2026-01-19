@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS products (
     image_url VARCHAR(500),
     images JSON,
     ebay_url VARCHAR(500),
-    source VARCHAR(20) DEFAULT 'manual',
-    show_on_website BOOLEAN DEFAULT TRUE,
+    source VARCHAR(20) DEFAULT 'manual', -- 'ebay' or 'manual'
+    show_on_website BOOLEAN DEFAULT TRUE, -- TRUE = visible, FALSE = hidden
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -116,6 +116,10 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_percentage INT NULL AFTER
 -- Add source and show_on_website columns if they don't exist
 ALTER TABLE products ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual' AFTER ebay_url;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS show_on_website BOOLEAN DEFAULT TRUE AFTER source;
+
+-- Add indexes for new columns
+CREATE INDEX IF NOT EXISTS idx_source ON products(source);
+CREATE INDEX IF NOT EXISTS idx_show_on_website ON products(show_on_website);
 
 -- Add discount_code and discount_amount to orders table
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50) NULL AFTER tax_amount;
