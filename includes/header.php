@@ -5,29 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Flip and Strip - Quality motorcycle parts, ATV parts, and automotive accessories. Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW and more.'; ?>">
-    <meta name="keywords" content="motorcycle parts, ATV parts, Harley Davidson parts, Yamaha parts, Honda parts, Kawasaki parts, Suzuki parts, BMW parts, motorcycle accessories, ATV accessories, used motorcycle parts">
+    <meta name="description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Flip and Strip - Quality motorcycle parts, ATV/UTV parts, boat parts, and automotive accessories. Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW and more.'; ?>">
+    <meta name="keywords" content="motorcycle parts, ATV/UTV parts, boat parts, Harley Davidson parts, Yamaha parts, Honda parts, Kawasaki parts, Suzuki parts, BMW parts, motorcycle accessories, ATV/UTV accessories, boat accessories, used motorcycle parts">
     <meta name="author" content="Flip and Strip">
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?>">
-    <meta property="og:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV Parts'; ?>">
-    <meta property="og:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle and ATV parts. Low miles, tested parts from top brands.'; ?>">
+    <meta property="og:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
+    <meta property="og:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts. Low miles, tested parts from top brands.'; ?>">
     <meta property="og:image" content="<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?>">
-    <meta property="twitter:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV Parts'; ?>">
-    <meta property="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle and ATV parts from top brands.'; ?>">
+    <meta property="twitter:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
+    <meta property="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts from top brands.'; ?>">
     <meta property="twitter:image" content="<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?'); ?>">
     
-    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>Flip and Strip - Quality Motorcycle & ATV Parts</title>
+    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>Flip and Strip - Quality Motorcycle & ATV/UTV Parts</title>
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -55,7 +55,7 @@
         "name": "Flip and Strip",
         "url": "<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>",
         "logo": "<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg",
-        "description": "Quality motorcycle parts, ATV parts, and automotive accessories from top brands",
+        "description": "Quality motorcycle parts, ATV/UTV parts, boat parts, and automotive accessories from top brands",
         "address": {
             "@type": "PostalAddress",
             "addressCountry": "US"
