@@ -23,7 +23,7 @@ class Coupon
         $sql = "SELECT * FROM coupons 
                 WHERE code = ? 
                 AND is_active = 1 
-                AND (expires_at IS NULL OR expires_at > NOW())
+                AND (expires_at IS NULL OR expires_at > datetime('now'))
                 AND (max_uses IS NULL OR times_used < max_uses)";
         
         $stmt = $this->db->prepare($sql);

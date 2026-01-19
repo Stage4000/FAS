@@ -87,7 +87,7 @@ try {
     // Complete sync log
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
-        SET status = 'completed', completed_at = NOW()
+        SET status = 'completed', completed_at = datetime('now')
         WHERE id = ?
     ");
     $stmt->execute([$syncLogId]);
@@ -105,7 +105,7 @@ try {
     if (isset($syncLogId)) {
         $stmt = $db->prepare("
             UPDATE ebay_sync_log 
-            SET status = 'failed', error_message = ?, completed_at = NOW()
+            SET status = 'failed', error_message = ?, completed_at = datetime('now')
             WHERE id = ?
         ");
         $stmt->execute([$e->getMessage(), $syncLogId]);

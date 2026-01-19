@@ -43,7 +43,7 @@ class AdminAuth
             $_SESSION['admin_email'] = $admin['email'];
             
             // Update last login
-            $stmt = $this->db->prepare("UPDATE admin_users SET last_login = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now') WHERE id = ?");
             $stmt->execute([$admin['id']]);
             
             return true;
