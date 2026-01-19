@@ -93,7 +93,8 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="products.php?category=motorcycle">Motorcycle Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=atv">ATV Parts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=atv">ATV/UTV Parts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=gifts">Biker Gifts</a></li>
                             <li><hr class="dropdown-divider"></li>

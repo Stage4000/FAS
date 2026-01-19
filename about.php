@@ -10,9 +10,9 @@ require_once __DIR__ . '/includes/header.php';
             
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-5">
-                    <h3 class="text-danger mb-3">Quality Motorcycle & ATV Parts</h3>
+                    <h3 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h3>
                     <p class="lead">
-                        Flip and Strip specializes in providing high-quality, tested motorcycle and ATV parts 
+                        Flip and Strip specializes in providing high-quality, tested motorcycle, ATV/UTV, boat, and automotive parts 
                         from top manufacturers including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.
                     </p>
                     
@@ -26,14 +26,15 @@ require_once __DIR__ . '/includes/header.php';
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Tested and inspected parts</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Low-mileage components</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Detailed photos and descriptions</li>
-                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Fast shipping via EasyShip</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Fast shipping via EasyShip with multiple carrier options</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Secure PayPal checkout</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Direct integration with our eBay store</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Live chat support via Tawk.to</li>
                     </ul>
                     
                     <h4 class="mt-4 mb-3">Our Inventory</h4>
                     <p>
-                        We maintain a large inventory of motorcycle and ATV parts, including:
+                        We maintain a large inventory of motorcycle, ATV/UTV, boat, and automotive parts, including:
                     </p>
                     <div class="row">
                         <div class="col-md-6">

@@ -1,17 +1,18 @@
 # Flip and Strip - E-commerce Website
 
-Modern e-commerce website for Flip and Strip motorcycle and ATV parts business.
+Modern e-commerce website for Flip and Strip motorcycle, ATV/UTV, boat, and automotive parts business.
 
 ## Website: https://flipandstrip.com
 
 ## Features
 
 - **Modern Design**: Built with Bootstrap 5 for responsive, mobile-first design
-- **Product Catalog**: Browse motorcycle and ATV parts by category
+- **Product Catalog**: Browse motorcycle, ATV/UTV, boat, and automotive parts by category
 - **Shopping Cart**: JavaScript-based shopping cart with localStorage
 - **eBay Integration**: Ready for eBay API integration to sync listings
 - **Payment Gateway**: PayPal checkout integration (to be configured)
 - **Shipping**: EasyShip integration ready (to be configured)
+- **Live Chat**: Tawk.to integration for customer support
 
 ## Technology Stack
 

@@ -153,6 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 -- Insert default categories
 INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
 ('Motorcycle Parts', 'motorcycle', 'Parts for motorcycles from all major brands', 1),
-('ATV Parts', 'atv', 'Parts for ATVs and quads', 2),
-('Automotive Parts', 'automotive', 'Auto and truck parts', 3),
-('Biker Gifts', 'gifts', 'Gifts and accessories for bikers', 4);
+('ATV/UTV Parts', 'atv', 'Parts for ATVs, UTVs and quads', 2),
+('Boat Parts', 'boat', 'Parts for boats and marine vehicles', 3),
+('Automotive Parts', 'automotive', 'Auto and truck parts', 4),
+('Biker Gifts', 'gifts', 'Gifts and accessories for bikers', 5);

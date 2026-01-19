@@ -23,38 +23,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'create':
             case 'update':
-                $productData = [
-                    'name' => $_POST['name'] ?? '',
-                    'sku' => $_POST['sku'] ?? '',
-                    'description' => $_POST['description'] ?? '',
-                    'price' => floatval($_POST['price'] ?? 0),
-                    'sale_price' => !empty($_POST['sale_price']) ? floatval($_POST['sale_price']) : null,
-                    'quantity' => intval($_POST['quantity'] ?? 1),
-                    'category' => $_POST['category'] ?? '',
-                    'manufacturer' => $_POST['manufacturer'] ?? '',
-                    'model' => $_POST['model'] ?? '',
-                    'condition_name' => $_POST['condition_name'] ?? 'New',
-                    'weight' => !empty($_POST['weight']) ? floatval($_POST['weight']) : null,
-                    'image_url' => $_POST['image_url'] ?? '',
-                    'source' => $_POST['source'] ?? 'manual',
-                    'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
-                ];
+                // Handle image upload
+                $imageUrl = $_POST['image_url'] ?? '';
                 
-                if ($_POST['action'] === 'create') {
-                    $result = $productModel->create($productData);
-                    if ($result) {
-                        $success = 'Product created successfully';
-                        $action = 'list';
-                    } else {
-                        $error = 'Failed to create product';
+                if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+                    // Create uploads directory if it doesn't exist
+                    $uploadDir = __DIR__ . '/../gallery/uploads/';
+                    if (!file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
                     }
-                } else {
-                    $result = $productModel->update(intval($_POST['product_id']), $productData);
-                    if ($result) {
-                        $success = 'Product updated successfully';
-                        $action = 'list';
+                    
+                    // Validate file type by extension and MIME type
+                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    
+                    $extension = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $_FILES['image_file']['tmp_name']);
+                    finfo_close($finfo);
+                    
+                    // Additional validation: verify it's actually an image
+                    $imageInfo = @getimagesize($_FILES['image_file']['tmp_name']);
+                    
+                    if (in_array($extension, $allowedExtensions) && 
+                        in_array($mimeType, $allowedMimeTypes) && 
+                        $imageInfo !== false) {
+                        $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
+                        $targetPath = $uploadDir . $filename;
+                        
+                        if (move_uploaded_file($_FILES['image_file']['tmp_name'], $targetPath)) {
+                            // Use relative path from document root
+                            $imageUrl = 'gallery/uploads/' . $filename;
+                        } else {
+                            $error = 'Failed to upload image file';
+                        }
                     } else {
-                        $error = 'Failed to update product';
+                        $error = 'Invalid image file. Please upload a valid JPEG, PNG, GIF, or WebP image.';
+                    }
+                }
+                
+                if (empty($error)) {
+                    $productData = [
+                        'name' => $_POST['name'] ?? '',
+                        'sku' => $_POST['sku'] ?? '',
+                        'description' => $_POST['description'] ?? '',
+                        'price' => floatval($_POST['price'] ?? 0),
+                        'sale_price' => !empty($_POST['sale_price']) ? floatval($_POST['sale_price']) : null,
+                        'quantity' => intval($_POST['quantity'] ?? 1),
+                        'category' => $_POST['category'] ?? '',
+                        'manufacturer' => $_POST['manufacturer'] ?? '',
+                        'model' => $_POST['model'] ?? '',
+                        'condition_name' => $_POST['condition_name'] ?? 'New',
+                        'weight' => !empty($_POST['weight']) ? floatval($_POST['weight']) : null,
+                        'image_url' => $imageUrl,
+                        'source' => $_POST['source'] ?? 'manual',
+                        'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
+                    ];
+                    
+                    if ($_POST['action'] === 'create') {
+                        $result = $productModel->create($productData);
+                        if ($result) {
+                            $success = 'Product created successfully';
+                            $action = 'list';
+                        } else {
+                            $error = 'Failed to create product';
+                        }
+                    } else {
+                        $result = $productModel->update(intval($_POST['product_id']), $productData);
+                        if ($result) {
+                            $success = 'Product updated successfully';
+                            $action = 'list';
+                        } else {
+                            $error = 'Failed to update product';
+                        }
                     }
                 }
                 break;
@@ -273,7 +314,7 @@ if ($action === 'list') {
 
                     <div class="card">
                         <div class="card-body">
-                            <form method="POST">
+                            <form method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="<?php echo $action === 'create' ? 'create' : 'update'; ?>">
                                 <?php if ($product): ?>
                                     <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
@@ -346,7 +387,8 @@ if ($action === 'list') {
                                             <select class="form-select" name="category">
                                                 <option value="">Select Category</option>
                                                 <option value="motorcycle" <?php echo $product && $product['category'] === 'motorcycle' ? 'selected' : ''; ?>>Motorcycle Parts</option>
-                                                <option value="atv" <?php echo $product && $product['category'] === 'atv' ? 'selected' : ''; ?>>ATV Parts</option>
+                                                <option value="atv" <?php echo $product && $product['category'] === 'atv' ? 'selected' : ''; ?>>ATV/UTV Parts</option>
+                                                <option value="boat" <?php echo $product && $product['category'] === 'boat' ? 'selected' : ''; ?>>Boat Parts</option>
                                                 <option value="automotive" <?php echo $product && $product['category'] === 'automotive' ? 'selected' : ''; ?>>Automotive Parts</option>
                                                 <option value="gifts" <?php echo $product && $product['category'] === 'gifts' ? 'selected' : ''; ?>>Biker Gifts</option>
                                             </select>
@@ -374,10 +416,33 @@ if ($action === 'list') {
                                         </div>
 
                                         <div class="mb-3">
-                                            <label class="form-label">Image URL</label>
-                                            <input type="url" class="form-control" name="image_url" 
-                                                   value="<?php echo $product ? htmlspecialchars($product['image_url']) : ''; ?>">
-                                            <small class="text-muted">Enter full URL to product image</small>
+                                            <label class="form-label">Product Image</label>
+                                            
+                                            <?php if ($product && $product['image_url']): ?>
+                                                <div class="mb-2">
+                                                    <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                                         alt="Current product image" 
+                                                         style="max-width: 200px; max-height: 200px; object-fit: cover;"
+                                                         class="border rounded">
+                                                    <div class="small text-muted mt-1">Current image</div>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small">Upload Image File</label>
+                                                <input type="file" class="form-control" name="image_file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                                                <small class="text-muted">Upload a product image (JPEG, PNG, GIF, or WebP)</small>
+                                            </div>
+                                            
+                                            <div class="text-muted text-center my-2">OR</div>
+                                            
+                                            <div>
+                                                <label class="form-label small">Image URL</label>
+                                                <input type="url" class="form-control" name="image_url" 
+                                                       value="<?php echo $product ? htmlspecialchars($product['image_url']) : ''; ?>"
+                                                       placeholder="https://example.com/image.jpg">
+                                                <small class="text-muted">Enter a URL to an external image</small>
+                                            </div>
                                         </div>
 
                                         <?php if (!$product || $product['source'] === 'manual'): ?>

@@ -139,7 +139,9 @@ $totalPages = ceil($totalProducts / $perPage);
                 <a href="products.php?category=motorcycle<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
                 <a href="products.php?category=atv<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV</a>
+                   class="btn <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV/UTV</a>
+                <a href="products.php?category=boat<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                   class="btn <?php echo $category === 'boat' ? 'btn-danger' : 'btn-outline-danger'; ?>">Boat</a>
                 <a href="products.php?category=automotive<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
                 <a href="products.php?category=gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
