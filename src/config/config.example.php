@@ -12,6 +12,10 @@ define('TAWK_WIDGET_ID', 'YOUR_WIDGET_ID'); // Get from Tawk.to dashboard
 // Return configuration array for database and API integrations
 return [
     'database' => [
+        'driver' => 'sqlite', // Database driver: 'sqlite' or 'mysql'
+        'path' => __DIR__ . '/../../database/flipandstrip.db', // SQLite database file path
+        
+        // MySQL settings (not used with SQLite, kept for reference)
         'host' => 'localhost',
         'database' => 'flipandstrip',
         'username' => 'root',

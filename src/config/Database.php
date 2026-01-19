@@ -16,19 +16,32 @@ class Database
         $dbConfig = $config['database'];
         
         try {
+            // Use SQLite database
+            $dbPath = $dbConfig['path'] ?? __DIR__ . '/../../database/flipandstrip.db';
+            
+            // Ensure database directory exists
+            $dbDir = dirname($dbPath);
+            if (!is_dir($dbDir)) {
+                mkdir($dbDir, 0755, true);
+            }
+            
             $this->connection = new \PDO(
-                "mysql:host={$dbConfig['host']};dbname={$dbConfig['database']};charset=utf8mb4",
-                $dbConfig['username'],
-                $dbConfig['password'],
+                "sqlite:{$dbPath}",
+                null,
+                null,
                 [
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                     \PDO::ATTR_EMULATE_PREPARES => false
                 ]
             );
+            
+            // Enable foreign keys support in SQLite
+            $this->connection->exec('PRAGMA foreign_keys = ON;');
+            
         } catch (\PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
-            throw new \Exception('Database connection failed');
+            throw new \Exception('Database connection failed: ' . $e->getMessage());
         }
     }
     
