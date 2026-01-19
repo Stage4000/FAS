@@ -4,6 +4,12 @@
  * Copy this file to config.php and update with your actual credentials
  */
 
+// Tawk.to Live Chat Configuration
+define('TAWK_ENABLED', false); // Set to true to enable live chat
+define('TAWK_PROPERTY_ID', 'YOUR_PROPERTY_ID'); // Get from Tawk.to dashboard
+define('TAWK_WIDGET_ID', 'YOUR_WIDGET_ID'); // Get from Tawk.to dashboard
+
+// Return configuration array for database and API integrations
 return [
     'database' => [
         'host' => 'localhost',
