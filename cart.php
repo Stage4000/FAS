@@ -3,27 +3,27 @@ $pageTitle = 'Shopping Cart';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="container my-5">
+<div class="container my-5 animate-fade-in">
     <h1 class="mb-4 fw-bold">Shopping Cart</h1>
     
     <div class="row">
         <div class="col-lg-8">
-            <div id="cart-items-container">
+            <div id="cart-items-container" class="scroll-reveal">
                 <!-- Cart items will be dynamically loaded here -->
             </div>
             
-            <div id="empty-cart-message" class="card border-0 shadow-sm" style="display: none;">
+            <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-cart-x display-1 text-muted mb-3"></i>
                     <h3>Your cart is empty</h3>
                     <p class="text-muted">Start shopping to add items to your cart</p>
-                    <a href="products.php" class="btn btn-danger">Browse Products</a>
+                    <a href="products.php" class="btn btn-danger btn-ripple">Browse Products</a>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 100px;">
+            <div class="card border-0 shadow-sm sticky-top order-summary-mobile" style="top: 100px;">
                 <div class="card-body">
                     <h4 class="mb-4">Order Summary</h4>
                     
@@ -41,7 +41,7 @@ require_once __DIR__ . '/includes/header.php';
                         <strong id="cart-total" class="text-danger fs-4">$0.00</strong>
                     </div>
                     
-                    <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2" style="display: none;">
+                    <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2 btn-ripple" style="display: none;">
                         <i class="bi bi-credit-card"></i> Proceed to Checkout
                     </a>
                     <a href="products.php" class="btn btn-outline-dark w-100">Continue Shopping</a>
@@ -93,32 +93,48 @@ function displayCartItems() {
     checkoutBtn.style.display = 'block';
     
     let html = '';
-    window.cart.cart.forEach(item => {
+    window.cart.cart.forEach((item, index) => {
         html += `
-            <div class="card border-0 shadow-sm mb-3">
+            <div class="card border-0 shadow-sm mb-3 cart-item-card card-entrance" style="animation-delay: ${index * 0.1}s;">
                 <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-2">
-                            ${item.image ? `<img src="${item.image}" class="img-fluid rounded" alt="${item.name}">` : '<div class="bg-light p-3 rounded text-center"><i class="bi bi-image"></i></div>'}
+                    <div class="row align-items-center cart-item-mobile">
+                        <!-- Image - hidden on mobile -->
+                        <div class="col-md-2 cart-item-image">
+                            ${item.image ? `<img src="${item.image}" class="img-fluid rounded" alt="${item.name}" loading="lazy">` : '<div class="bg-light p-3 rounded text-center"><i class="bi bi-image"></i></div>'}
                         </div>
-                        <div class="col-md-4">
-                            <h6 class="mb-1">${item.name}</h6>
-                            <small class="text-muted">SKU: ${item.sku || 'N/A'}</small>
-                        </div>
-                        <div class="col-md-2 text-center">
-                            <div class="input-group input-group-sm">
-                                <button class="btn btn-outline-secondary" onclick="updateItemQuantity('${item.id}', ${item.quantity - 1})">-</button>
-                                <input type="number" class="form-control text-center" value="${item.quantity}" min="1" 
-                                       onchange="updateItemQuantity('${item.id}', this.value)" style="max-width: 60px;">
-                                <button class="btn btn-outline-secondary" onclick="updateItemQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                        
+                        <!-- Product Details -->
+                        <div class="col-md-4 cart-item-details">
+                            <h6 class="mb-1 fw-bold">${item.name}</h6>
+                            <small class="text-muted d-block">SKU: ${item.sku || 'N/A'}</small>
+                            <div class="d-md-none cart-item-price mt-2">
+                                $${(item.price * item.quantity).toFixed(2)}
                             </div>
                         </div>
-                        <div class="col-md-2 text-center">
-                            <strong class="text-danger">$${(item.price * item.quantity).toFixed(2)}</strong>
+                        
+                        <!-- Quantity Controls -->
+                        <div class="col-md-2 cart-item-quantity">
+                            <div class="input-group input-group-sm">
+                                <button class="btn btn-outline-secondary mobile-touch-target" onclick="updateItemQuantity('${item.id}', ${item.quantity - 1})" aria-label="Decrease quantity">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" class="form-control text-center" value="${item.quantity}" min="1" 
+                                       onchange="updateItemQuantity('${item.id}', this.value)" style="max-width: 60px;" aria-label="Quantity">
+                                <button class="btn btn-outline-secondary mobile-touch-target" onclick="updateItemQuantity('${item.id}', ${item.quantity + 1})" aria-label="Increase quantity">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-2 text-end">
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeCartItem('${item.id}')">
-                                <i class="bi bi-trash"></i>
+                        
+                        <!-- Price - desktop only -->
+                        <div class="col-md-2 text-center d-none d-md-block">
+                            <strong class="text-danger fs-5">$${(item.price * item.quantity).toFixed(2)}</strong>
+                        </div>
+                        
+                        <!-- Remove Button -->
+                        <div class="col-md-2 text-end cart-item-total">
+                            <button class="btn btn-sm btn-outline-danger mobile-touch-target" onclick="removeCartItem('${item.id}')" aria-label="Remove item">
+                                <i class="bi bi-trash"></i> <span class="d-none d-md-inline">Remove</span>
                             </button>
                         </div>
                     </div>
@@ -129,6 +145,13 @@ function displayCartItems() {
     
     cartItemsContainer.innerHTML = html;
     updateCartSummary();
+    
+    // Trigger scroll reveal animations
+    setTimeout(() => {
+        document.querySelectorAll('.scroll-reveal').forEach(el => {
+            el.classList.add('revealed');
+        });
+    }, 100);
 }
 
 function updateItemQuantity(productId, quantity) {

@@ -420,3 +420,421 @@ footer a:hover {
     font-size: 0.9rem;
 }
 
+/* ======================================
+   ENHANCED UX & ANIMATIONS
+   ====================================== */
+
+/* Page load animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Apply animations to page elements */
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-left {
+    animation: slideInLeft 0.6s ease-out;
+}
+
+.animate-slide-right {
+    animation: slideInRight 0.6s ease-out;
+}
+
+.animate-scale {
+    animation: scaleIn 0.5s ease-out;
+}
+
+/* Staggered animation delays for cards */
+.product-card:nth-child(1) { animation-delay: 0.1s; }
+.product-card:nth-child(2) { animation-delay: 0.2s; }
+.product-card:nth-child(3) { animation-delay: 0.3s; }
+.product-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Smooth entrance for cards */
+.card-entrance {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* Ripple effect for buttons */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-ripple:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* Skeleton loader for images */
+.skeleton {
+    animation: skeleton-loading 1s linear infinite alternate;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-color: hsl(200, 20%, 80%);
+    }
+    100% {
+        background-color: hsl(200, 20%, 95%);
+    }
+}
+
+/* ======================================
+   MOBILE CART OPTIMIZATIONS
+   ====================================== */
+
+@media (max-width: 768px) {
+    /* Hide cart images on mobile */
+    .cart-item-image {
+        display: none !important;
+    }
+    
+    /* Optimize cart item layout for mobile */
+    .cart-item-mobile {
+        flex-direction: column;
+        padding: 1rem;
+    }
+    
+    .cart-item-details {
+        width: 100% !important;
+        margin-bottom: 0.75rem;
+    }
+    
+    .cart-item-price {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .cart-item-quantity {
+        width: 100% !important;
+        margin-bottom: 0.75rem;
+    }
+    
+    .cart-item-quantity .input-group {
+        max-width: 150px;
+    }
+    
+    .cart-item-total {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        align-items: center;
+    }
+    
+    /* Sticky cart summary on mobile */
+    .cart-summary-mobile {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        border-top: 2px solid var(--primary-color);
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        z-index: 1000;
+        padding: 1rem;
+    }
+    
+    /* Compact buttons on mobile */
+    .cart-actions-mobile {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .cart-actions-mobile .btn {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Optimized order summary on mobile */
+    .order-summary-mobile {
+        padding: 1rem;
+    }
+    
+    .order-summary-mobile .btn {
+        font-size: 1rem;
+        padding: 0.85rem;
+    }
+    
+    /* Better spacing on mobile */
+    .cart-item-card {
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Larger touch targets */
+    .mobile-touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* ======================================
+   ENHANCED SEO ELEMENTS
+   ====================================== */
+
+/* Breadcrumb schema-friendly markup */
+.breadcrumb-seo {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    list-style: none;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+/* Product rating stars */
+.star-rating {
+    display: inline-flex;
+    font-size: 1.2rem;
+    color: #ffc107;
+}
+
+.star-rating .bi-star-fill {
+    margin-right: 2px;
+}
+
+/* Price display optimization */
+.price-display {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.price-currency {
+    font-size: 1.2rem;
+    vertical-align: super;
+}
+
+/* Availability badge */
+.availability-badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.in-stock {
+    background-color: #28a745;
+    color: white;
+}
+
+.low-stock {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.out-of-stock {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* ======================================
+   SCROLL ANIMATIONS
+   ====================================== */
+
+/* Scroll reveal effect */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Parallax effect */
+.parallax {
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+/* ======================================
+   LOADING STATES
+   ====================================== */
+
+.loading-spinner {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-dots::after {
+    content: '.';
+    animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* ======================================
+   IMPROVED MICROINTERACTIONS
+   ====================================== */
+
+/* Checkbox and radio custom styling */
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-check-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(219, 3, 53, 0.25);
+}
+
+/* Select dropdown enhancement */
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(219, 3, 53, 0.25);
+}
+
+/* Input focus glow */
+.input-glow:focus {
+    box-shadow: 0 0 0 3px rgba(219, 3, 53, 0.1),
+                0 0 20px rgba(219, 3, 53, 0.2);
+}
+
+/* Toast notification */
+.toast-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 250px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* ======================================
+   ACCESSIBILITY IMPROVEMENTS
+   ====================================== */
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--primary-color);
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-to-main:focus {
+    top: 0;
+}
+
+/* ======================================
+   PERFORMANCE OPTIMIZATIONS
+   ====================================== */
+
+/* GPU acceleration for animations */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+

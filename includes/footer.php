@@ -74,5 +74,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="public/js/main.js"></script>
+    <!-- Animation & UX Enhancement JS -->
+    <script src="public/js/animations.js"></script>
 </body>
 </html>

@@ -47,6 +47,23 @@
     <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg">
     
+    <!-- Enhanced JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Flip and Strip",
+        "url": "<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>",
+        "logo": "<?php echo 'https://' . $_SERVER['HTTP_HOST']; ?>/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg",
+        "description": "Quality motorcycle parts, ATV parts, and automotive accessories from top brands",
+        "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "US"
+        },
+        "sameAs": []
+    }
+    </script>
+    
     <?php if (isset($productSchema)): ?>
     <!-- JSON-LD Structured Data for Products -->
     <script type="application/ld+json">
