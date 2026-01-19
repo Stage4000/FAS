@@ -1,0 +1,24 @@
+{
+    "name": "flipandstrip/fas",
+    "description": "Flip and Strip E-commerce Website",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-curl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "FAS\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"copy('src/config/config.example.php', 'src/config/config.php');\""
+        ]
+    }
+}
