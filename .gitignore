@@ -1,44 +1,120 @@
-# Dependencies
-/vendor/
-node_modules/
+# ========================================
+# Configuration Files
+# ========================================
+# Protect production config file from updates
+# The initial config.php with defaults is committed,
+# but any local changes should not be overwritten
+src/config/config.php.local
+src/config/config.production.php
 
 # Environment files
 .env
 .env.local
-src/config/config.php
+.env.production
 
-# IDE files
+# ========================================
+# Database Files
+# ========================================
+# Protect SQLite database from being overwritten
+# The initial empty database is committed,
+# but any local data should persist through updates
+database/flipandstrip.db.local
+database/*.backup
+database/backups/
+
+# Keep the initial database structure in repo
+# but ignore it if it has been modified locally
+# Uncomment the line below after first deployment to prevent overwriting:
+# database/flipandstrip.db
+
+# SQL backup files
+*.sql.backup
+*.sql.gz
+
+# ========================================
+# Dependencies
+# ========================================
+/vendor/
+node_modules/
+composer.phar
+composer.lock
+
+# ========================================
+# IDE and Editor Files
+# ========================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# OS files
+# ========================================
+# OS Generated Files
+# ========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Log files
+# ========================================
+# Log Files
+# ========================================
 *.log
 logs/
+error_log
+access_log
+/var/log/
 
-# Temporary files
+# ========================================
+# Temporary Files
+# ========================================
 /tmp/
 *.tmp
+*.temp
+*.cache
 
-# Uploaded files (keep structure, ignore content)
+# ========================================
+# Uploaded/Generated Content
+# ========================================
+# Keep structure, ignore user-uploaded content
 /public/uploads/*
 !/public/uploads/.gitkeep
 
-# Cache
+# Cache directories
 /cache/
-*.cache
+/storage/cache/
 
-# Composer
-composer.phar
-composer.lock
+# ========================================
+# Build Artifacts
+# ========================================
+dist/
+build/
+*.min.js
+*.min.css
 
-# Database
-*.sql.backup
-*.sqlite
-*.db
+# ========================================
+# Security
+# ========================================
+# Never commit sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_rsa.pub
+
+# ========================================
+# Project Specific
+# ========================================
+# Session files
+/storage/sessions/
+
+# Image processing cache
+gallery/cache/
+gallery/thumbs/

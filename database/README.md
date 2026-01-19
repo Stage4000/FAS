@@ -11,7 +11,59 @@ The SQLite database file is stored at:
 /database/flipandstrip.db
 ```
 
-**Note**: The `.db` file is excluded from git via `.gitignore` for security.
+## Database Protection Through Updates
+
+### Initial Deployment
+
+The pre-initialized database file `flipandstrip.db` is **included in the repository** for easy deployment. This allows the application to work immediately after cloning.
+
+### After First Deployment - IMPORTANT
+
+To protect your database from being overwritten during git updates, you have two options:
+
+**Option 1: Uncomment the .gitignore line (Recommended)**
+
+After your site is deployed and has live data:
+
+1. Open `.gitignore` in the root directory
+2. Find the commented line: `# database/flipandstrip.db`
+3. Uncomment it to: `database/flipandstrip.db`
+4. Commit this change
+
+This will prevent git from tracking changes to your database file, protecting your data during updates.
+
+**Option 2: Rename your production database**
+
+Alternatively, rename your production database to a protected name:
+
+```bash
+mv database/flipandstrip.db database/flipandstrip.db.local
+```
+
+Then update `src/config/config.php` to point to the new filename:
+
+```php
+'database' => [
+    'driver' => 'sqlite',
+    'path' => __DIR__ . '/../../database/flipandstrip.db.local'
+]
+```
+
+The `.local` suffix is already in `.gitignore` and will never be overwritten.
+
+### Backup Your Database
+
+Regular backups are recommended. Create backups with:
+
+```bash
+# Create a dated backup
+cp database/flipandstrip.db database/backups/backup-$(date +%Y%m%d-%H%M%S).db
+
+# Or use SQLite's backup command
+sqlite3 database/flipandstrip.db ".backup 'database/backups/backup.db'"
+```
+
+The `database/backups/` directory is automatically excluded from git.
 
 ## Initial Setup
 
