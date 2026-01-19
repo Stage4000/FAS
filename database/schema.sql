@@ -18,13 +18,18 @@ CREATE TABLE IF NOT EXISTS products (
     image_url VARCHAR(500),
     images JSON,
     ebay_url VARCHAR(500),
+    source VARCHAR(20) DEFAULT 'manual',
+    show_on_website BOOLEAN DEFAULT TRUE,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_category (category),
     INDEX idx_sku (sku),
     INDEX idx_ebay_item_id (ebay_item_id),
-    INDEX idx_is_active (is_active)
+    INDEX idx_is_active (is_active),
+    INDEX idx_manufacturer (manufacturer),
+    INDEX idx_source (source),
+    INDEX idx_show_on_website (show_on_website)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Categories table
@@ -107,6 +112,10 @@ CREATE TABLE IF NOT EXISTS coupons (
 -- Add sale_price column to products table if not exists
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_price DECIMAL(10, 2) NULL AFTER price;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_percentage INT NULL AFTER sale_price;
+
+-- Add source and show_on_website columns if they don't exist
+ALTER TABLE products ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual' AFTER ebay_url;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS show_on_website BOOLEAN DEFAULT TRUE AFTER source;
 
 -- Add discount_code and discount_amount to orders table
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50) NULL AFTER tax_amount;
