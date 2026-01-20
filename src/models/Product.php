@@ -18,7 +18,7 @@ class Product
     /**
      * Get all products with pagination (public website - only visible and active)
      */
-    public function getAll($page = 1, $perPage = 24, $category = null, $search = null)
+    public function getAll($page = 1, $perPage = 24, $category = null, $search = null, $manufacturer = null)
     {
         $offset = ($page - 1) * $perPage;
         
@@ -28,6 +28,11 @@ class Product
         if ($category) {
             $sql .= " AND category = ?";
             $params[] = $category;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
         }
         
         if ($search) {
@@ -112,7 +117,7 @@ class Product
     /**
      * Get total count of products (public website - only visible)
      */
-    public function getCount($category = null, $search = null)
+    public function getCount($category = null, $search = null, $manufacturer = null)
     {
         $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
         $params = [];
@@ -120,6 +125,11 @@ class Product
         if ($category) {
             $sql .= " AND category = ?";
             $params[] = $category;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
         }
         
         if ($search) {
@@ -135,6 +145,25 @@ class Product
         
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result['total'];
+    }
+    
+    /**
+     * Get unique manufacturers for filtering
+     */
+    public function getManufacturers()
+    {
+        $sql = "SELECT DISTINCT manufacturer FROM products 
+                WHERE is_active = 1 AND show_on_website = 1 AND manufacturer IS NOT NULL 
+                ORDER BY manufacturer";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        
+        $manufacturers = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $manufacturers[] = $row['manufacturer'];
+        }
+        
+        return $manufacturers;
     }
     
     /**
