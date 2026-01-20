@@ -25,7 +25,7 @@ database/backups/
 # Keep the initial database structure in repo
 # but ignore it if it has been modified locally
 # Uncomment the line below after first deployment to prevent overwriting:
-# database/flipandstrip.db
+database/flipandstrip.db
 
 # SQL backup files
 *.sql.backup
