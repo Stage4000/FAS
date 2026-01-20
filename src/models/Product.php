@@ -264,7 +264,8 @@ class Product
         $sql = "UPDATE products SET " . implode(', ', $fields) . " WHERE id = ?";
         
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $stmt->execute($params);
+        return $stmt->rowCount() > 0;
     }
     
     /**
@@ -274,7 +275,8 @@ class Product
     {
         $sql = "UPDATE products SET show_on_website = CASE WHEN show_on_website = 1 THEN 0 ELSE 1 END WHERE id = ?";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$id]);
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
     }
     
     /**
@@ -284,7 +286,8 @@ class Product
     {
         $sql = "UPDATE products SET is_active = 0 WHERE id = ?";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$id]);
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
     }
     
     /**
