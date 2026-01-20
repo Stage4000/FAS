@@ -18,17 +18,11 @@ $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 
 // Get products from database
-$products = $productModel->getAll($page, $perPage, $category, $search);
-$totalProducts = $productModel->getCount($category, $search);
+$products = $productModel->getAll($page, $perPage, $category, $search, $manufacturer);
+$totalProducts = $productModel->getCount($category, $search, $manufacturer);
 
 // Get unique manufacturers for filter (from all products)
 $allManufacturers = $productModel->getManufacturers();
-
-// Filter by manufacturer if specified (client-side filtering for now)
-if ($manufacturer) {
-    $products = array_filter($products, fn($p) => $p['manufacturer'] === $manufacturer);
-    $totalProducts = count($products);
-}
 
 $totalPages = ceil($totalProducts / $perPage);
 ?>
@@ -111,8 +105,8 @@ $totalPages = ceil($totalProducts / $perPage);
             <div class="col-lg-3 col-md-4 col-sm-6">
                 <div class="card product-card h-100">
                     <div class="position-relative">
-                        <?php if (file_exists($product['image'])): ?>
-                            <img src="<?php echo htmlspecialchars($product['image']); ?>" 
+                        <?php if (!empty($product['image_url']) && file_exists($product['image_url'])): ?>
+                            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
                                  class="card-img-top product-image" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>">
                         <?php else: ?>
