@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/src/config/Database.php';
+require_once __DIR__ . '/src/models/Product.php';
+
+use FAS\Config\Database;
+use FAS\Models\Product;
 
 // Get filter parameters
 $category = $_GET['category'] ?? null;
@@ -7,99 +12,24 @@ $manufacturer = $_GET['manufacturer'] ?? null;
 $search = $_GET['search'] ?? null;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $perPage = 24;
-$offset = ($page - 1) * $perPage;
 
-// Sample products (will be replaced with database query)
-$sampleProducts = [
-    [
-        'id' => '1',
-        'name' => 'Yamaha YZF600R Thundercat Foot Peg Bracket',
-        'description' => 'High-quality foot peg bracket for YZF600R Thundercat models',
-        'price' => 23.45,
-        'sale_price' => 19.99,
-        'image' => 'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 1.webp',
-        'sku' => '1325 FAS',
-        'category' => 'motorcycle',
-        'manufacturer' => 'Yamaha'
-    ],
-    [
-        'id' => '2',
-        'name' => 'Harley Davidson Primary Case Saver',
-        'description' => 'Protect your primary case with this OEM quality part',
-        'price' => 45.99,
-        'sale_price' => null,
-        'image' => 'gallery/Harley Davidson-Primary Case Saver  1.webp',
-        'sku' => '2101 FAS',
-        'category' => 'motorcycle',
-        'manufacturer' => 'Harley Davidson'
-    ],
-    [
-        'id' => '3',
-        'name' => 'BMW R1200 GS Left Tank Cover',
-        'description' => 'OEM BMW R1200 GS left side tank cover in excellent condition',
-        'price' => 89.99,
-        'sale_price' => 74.99,
-        'image' => 'gallery/BMW-R1200 GS-Left Tank Cover-OEM  1.webp',
-        'sku' => '3045 FAS',
-        'category' => 'motorcycle',
-        'manufacturer' => 'BMW'
-    ],
-    [
-        'id' => '4',
-        'name' => 'Kawasaki ZX6R Brake Caliper',
-        'description' => 'Front brake caliper for Kawasaki ZX6R models',
-        'price' => 67.50,
-        'sale_price' => null,
-        'image' => 'gallery/kawasaki-brake-caliper-front-left-zx6r-parts 1.webp',
-        'sku' => '4012 FAS',
-        'category' => 'motorcycle',
-        'manufacturer' => 'Kawasaki'
-    ],
-    [
-        'id' => '5',
-        'name' => 'Honda TRX 350 Fourtrax Throttle Cable',
-        'description' => 'Replacement throttle cable for Honda TRX 350 ATV',
-        'price' => 18.99,
-        'sale_price' => 14.99,
-        'image' => 'gallery/honda-throttle-cable-trx350-parts 1.webp',
-        'sku' => '5201 FAS',
-        'category' => 'atv',
-        'manufacturer' => 'Honda'
-    ],
-    [
-        'id' => '6',
-        'name' => 'Suzuki GSXR 1000 Fairing Stay Bracket',
-        'description' => 'Upper fairing stay bracket for GSX-R 1000',
-        'price' => 34.99,
-        'sale_price' => null,
-        'image' => 'gallery/suzuki-fairing-stay-bracket-upper-gsxr1000-parts 1.webp',
-        'sku' => '6045 FAS',
-        'category' => 'motorcycle',
-        'manufacturer' => 'Suzuki'
-    ],
-];
+// Initialize database and product model
+$db = Database::getInstance()->getConnection();
+$productModel = new Product($db);
 
-// Filter products based on search/category/manufacturer
-$products = $sampleProducts;
-if ($category) {
-    $products = array_filter($products, fn($p) => $p['category'] === $category);
-}
+// Get products from database
+$products = $productModel->getAll($page, $perPage, $category, $search);
+$totalProducts = $productModel->getCount($category, $search);
+
+// Get unique manufacturers for filter (from all products)
+$allManufacturers = $productModel->getManufacturers();
+
+// Filter by manufacturer if specified (client-side filtering for now)
 if ($manufacturer) {
     $products = array_filter($products, fn($p) => $p['manufacturer'] === $manufacturer);
-}
-if ($search) {
-    $products = array_filter($products, fn($p) => 
-        stripos($p['name'], $search) !== false || 
-        stripos($p['description'], $search) !== false ||
-        stripos($p['manufacturer'], $search) !== false
-    );
+    $totalProducts = count($products);
 }
 
-// Get unique manufacturers for filter
-$allManufacturers = array_unique(array_column($sampleProducts, 'manufacturer'));
-sort($allManufacturers);
-
-$totalProducts = count($products);
 $totalPages = ceil($totalProducts / $perPage);
 ?>
 
@@ -123,7 +53,7 @@ $totalPages = ceil($totalProducts / $perPage);
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search products..." id="product-search">
                 <button class="btn btn-danger" type="button">
-                    <i class="bi bi-search"></i> Search
+                    <i class="fas fa-search"></i> Search
                 </button>
             </div>
         </div>
@@ -131,21 +61,21 @@ $totalPages = ceil($totalProducts / $perPage);
 
     <!-- Filters -->
     <div class="row mb-4">
-        <div class="col-md-6 mb-3 mb-md-0">
+        <div class="col-12 mb-3">
             <label class="form-label fw-bold">Category</label>
-            <div class="btn-group d-block" role="group">
+            <div class="btn-group-responsive" role="group">
                 <a href="products.php<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All</a>
+                   class="btn btn-sm <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All</a>
                 <a href="products.php?category=motorcycle<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
+                   class="btn btn-sm <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
                 <a href="products.php?category=atv<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV/UTV</a>
+                   class="btn btn-sm <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV/UTV</a>
                 <a href="products.php?category=boat<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'boat' ? 'btn-danger' : 'btn-outline-danger'; ?>">Boat</a>
+                   class="btn btn-sm <?php echo $category === 'boat' ? 'btn-danger' : 'btn-outline-danger'; ?>">Boat</a>
                 <a href="products.php?category=automotive<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
+                   class="btn btn-sm <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
                 <a href="products.php?category=gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
+                   class="btn btn-sm <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
             </div>
         </div>
         <div class="col-md-6">
@@ -187,7 +117,7 @@ $totalPages = ceil($totalProducts / $perPage);
                                  alt="<?php echo htmlspecialchars($product['name']); ?>">
                         <?php else: ?>
                             <div class="product-image bg-light d-flex align-items-center justify-content-center">
-                                <i class="bi bi-image text-muted display-4"></i>
+                                <i class="fas fa-image text-muted display-4"></i>
                             </div>
                         <?php endif; ?>
                         <span class="badge bg-success product-badge">In Stock</span>
@@ -221,9 +151,9 @@ $totalPages = ceil($totalProducts / $perPage);
                                     data-id="<?php echo $product['id']; ?>"
                                     data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                     data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
-                                    data-image="<?php echo htmlspecialchars($product['image']); ?>"
+                                    data-image="<?php echo htmlspecialchars($product['image_url'] ?? ''); ?>"
                                     data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
-                                <i class="bi bi-cart-plus"></i> Add to Cart
+                                <i class="fas fa-cart-plus"></i> Add to Cart
                             </button>
                         </div>
                     </div>

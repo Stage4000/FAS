@@ -138,6 +138,25 @@ class Product
     }
     
     /**
+     * Get unique manufacturers for filtering
+     */
+    public function getManufacturers()
+    {
+        $sql = "SELECT DISTINCT manufacturer FROM products 
+                WHERE is_active = 1 AND show_on_website = 1 AND manufacturer IS NOT NULL 
+                ORDER BY manufacturer";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        
+        $manufacturers = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $manufacturers[] = $row['manufacturer'];
+        }
+        
+        return $manufacturers;
+    }
+    
+    /**
      * Get product by ID
      */
     public function getById($id, $includeInactive = false)

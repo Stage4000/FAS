@@ -8,8 +8,8 @@
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="public/css/style.css">
     
@@ -54,7 +54,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="cart.php">
-                            <i class="bi bi-cart3"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
+                            <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
                 </ul>
@@ -77,22 +77,26 @@
     <!-- Featured Categories -->
     <section class="py-5">
         <div class="container">
-            <h2 class="text-center mb-5 fw-bold">Shop by Category</h2>
-            <div class="row g-4">
-                <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm">
-                        <div class="card-body text-center p-4">
-                            <i class="bi bi-bicycle display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Motorcycle Parts</h5>
-                            <p class="card-text text-muted">Harley, Yamaha, Honda, Suzuki, Kawasaki & More</p>
-                            <a href="products.php?category=motorcycle" class="btn btn-outline-danger">Browse</a>
+            <h2 class="text-center mb-5 fw-bold animate-fade-in">Shop by Category</h2>
+            <!-- Motorcycle Parts - Full Width -->
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card category-card category-card-featured h-100 border-0 shadow-lg animate-scale">
+                        <div class="card-body text-center p-5">
+                            <i class="fas fa-motorcycle display-3 text-danger mb-3"></i>
+                            <h4 class="card-title fw-bold">Motorcycle Parts</h4>
+                            <p class="card-text text-muted fs-5">Harley, Yamaha, Honda, Suzuki, Kawasaki & More</p>
+                            <a href="products.php?category=motorcycle" class="btn btn-danger btn-lg px-5">Browse Motorcycle Parts</a>
                         </div>
                     </div>
                 </div>
+            </div>
+            <!-- Other Categories -->
+            <div class="row g-4">
                 <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm">
+                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-left">
                         <div class="card-body text-center p-4">
-                            <i class="bi bi-circle display-4 text-danger mb-3"></i>
+                            <i class="fas fa-car-side display-4 text-danger mb-3"></i>
                             <h5 class="card-title">ATV/UTV Parts</h5>
                             <p class="card-text text-muted">Honda, Yamaha, Kawasaki, Suzuki ATVs & UTVs</p>
                             <a href="products.php?category=atv" class="btn btn-outline-danger">Browse</a>
@@ -100,9 +104,9 @@
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm">
+                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-left" style="animation-delay: 0.1s;">
                         <div class="card-body text-center p-4">
-                            <i class="bi bi-water display-4 text-danger mb-3"></i>
+                            <i class="fas fa-ship display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Boat Parts</h5>
                             <p class="card-text text-muted">Marine & Boat Parts</p>
                             <a href="products.php?category=boat" class="btn btn-outline-danger">Browse</a>
@@ -110,21 +114,19 @@
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm">
+                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-right" style="animation-delay: 0.2s;">
                         <div class="card-body text-center p-4">
-                            <i class="bi bi-truck display-4 text-danger mb-3"></i>
+                            <i class="fas fa-truck display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Automotive</h5>
                             <p class="card-text text-muted">Auto & Truck Parts</p>
                             <a href="products.php?category=automotive" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="row g-4 mt-2">
-                <div class="col-md-3 col-sm-6 mx-auto">
-                    <div class="card category-card h-100 border-0 shadow-sm">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-right" style="animation-delay: 0.3s;">
                         <div class="card-body text-center p-4">
-                            <i class="bi bi-gift display-4 text-danger mb-3"></i>
+                            <i class="fas fa-gift display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Biker Gifts</h5>
                             <p class="card-text text-muted">Watches, Clothing & Accessories</p>
                             <a href="products.php?category=gifts" class="btn btn-outline-danger">Browse</a>
@@ -140,22 +142,30 @@
         <div class="container">
             <div class="row g-4 text-center">
                 <div class="col-md-3">
-                    <i class="bi bi-truck display-5 text-danger mb-3"></i>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-shipping-fast display-5 text-danger mb-3"></i>
+                    </div>
                     <h5>Fast Shipping</h5>
                     <p class="text-muted">Quick delivery via EasyShip</p>
                 </div>
                 <div class="col-md-3">
-                    <i class="bi bi-shield-check display-5 text-danger mb-3"></i>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-shield-alt display-5 text-danger mb-3"></i>
+                    </div>
                     <h5>Quality Parts</h5>
                     <p class="text-muted">Tested & inspected</p>
                 </div>
                 <div class="col-md-3">
-                    <i class="bi bi-credit-card display-5 text-danger mb-3"></i>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-credit-card display-5 text-danger mb-3"></i>
+                    </div>
                     <h5>Secure Payment</h5>
                     <p class="text-muted">PayPal checkout</p>
                 </div>
                 <div class="col-md-3">
-                    <i class="bi bi-headset display-5 text-danger mb-3"></i>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-headset display-5 text-danger mb-3"></i>
+                    </div>
                     <h5>Support</h5>
                     <p class="text-muted">Expert assistance</p>
                 </div>
@@ -207,6 +217,7 @@
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
+    <script src="public/js/animations.js"></script>
     <script src="public/js/main.js"></script>
 </body>
 </html>
