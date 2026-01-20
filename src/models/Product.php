@@ -284,7 +284,8 @@ class Product
     {
         $sql = "UPDATE products SET is_active = 0 WHERE id = ?";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$id]);
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
     }
     
     /**
