@@ -14,7 +14,7 @@ require_once __DIR__ . '/includes/header.php';
             
             <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
                 <div class="card-body text-center py-5">
-                    <i class="bi bi-cart-x display-1 text-muted mb-3"></i>
+                    <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
                     <h3>Your cart is empty</h3>
                     <p class="text-muted">Start shopping to add items to your cart</p>
                     <a href="products.php" class="btn btn-danger btn-ripple">Browse Products</a>
@@ -42,14 +42,14 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     
                     <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2 btn-ripple" style="display: none;">
-                        <i class="bi bi-credit-card"></i> Proceed to Checkout
+                        <i class="fas fa-credit-card"></i> Proceed to Checkout
                     </a>
                     <a href="products.php" class="btn btn-outline-dark w-100">Continue Shopping</a>
                     
                     <div class="mt-4 pt-3 border-top">
                         <h6 class="mb-3">We Accept</h6>
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-credit-card display-6 text-muted me-3"></i>
+                            <i class="fas fa-credit-card display-6 text-muted me-3"></i>
                             <div>
                                 <small class="text-muted">Secure PayPal Checkout</small>
                             </div>
@@ -100,7 +100,7 @@ function displayCartItems() {
                     <div class="row align-items-center cart-item-mobile">
                         <!-- Image - hidden on mobile -->
                         <div class="col-md-2 cart-item-image">
-                            ${item.image ? `<img src="${item.image}" class="img-fluid rounded" alt="${item.name}" loading="lazy">` : '<div class="bg-light p-3 rounded text-center"><i class="bi bi-image"></i></div>'}
+                            ${item.image ? `<img src="${item.image}" class="img-fluid rounded" alt="${item.name}" loading="lazy">` : '<div class="bg-light p-3 rounded text-center"><i class="fas fa-image"></i></div>'}
                         </div>
                         
                         <!-- Product Details -->
@@ -116,12 +116,12 @@ function displayCartItems() {
                         <div class="col-md-2 cart-item-quantity">
                             <div class="input-group input-group-sm">
                                 <button class="btn btn-outline-secondary mobile-touch-target" onclick="updateItemQuantity('${item.id}', ${item.quantity - 1})" aria-label="Decrease quantity">
-                                    <i class="bi bi-dash"></i>
+                                    <i class="fas fa-minus"></i>
                                 </button>
                                 <input type="number" class="form-control text-center" value="${item.quantity}" min="1" 
                                        onchange="updateItemQuantity('${item.id}', this.value)" style="max-width: 60px;" aria-label="Quantity">
                                 <button class="btn btn-outline-secondary mobile-touch-target" onclick="updateItemQuantity('${item.id}', ${item.quantity + 1})" aria-label="Increase quantity">
-                                    <i class="bi bi-plus"></i>
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </div>
@@ -134,7 +134,7 @@ function displayCartItems() {
                         <!-- Remove Button -->
                         <div class="col-md-2 text-end cart-item-total">
                             <button class="btn btn-sm btn-outline-danger mobile-touch-target" onclick="removeCartItem('${item.id}')" aria-label="Remove item">
-                                <i class="bi bi-trash"></i> <span class="d-none d-md-inline">Remove</span>
+                                <i class="fas fa-trash"></i> <span class="d-none d-md-inline">Remove</span>
                             </button>
                         </div>
                     </div>

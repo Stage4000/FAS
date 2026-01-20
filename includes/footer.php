@@ -21,12 +21,12 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <h6>Connect</h6>
-                    <p><a href="https://flipandstrip.com" class="text-white-50 text-decoration-none"><i class="bi bi-globe"></i> flipandstrip.com</a></p>
-                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="bi bi-shop"></i> eBay Store</a></p>
+                    <p><a href="https://flipandstrip.com" class="text-white-50 text-decoration-none"><i class="fas fa-globe"></i> flipandstrip.com</a></p>
+                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
                     <div class="mt-3">
                         <h6 class="small">Secure Payment & Shipping</h6>
-                        <p class="text-white-50 small"><i class="bi bi-shield-check"></i> PayPal Checkout</p>
-                        <p class="text-white-50 small"><i class="bi bi-truck"></i> EasyShip Delivery</p>
+                        <p class="text-white-50 small"><i class="fas fa-shield-alt"></i> PayPal Checkout</p>
+                        <p class="text-white-50 small"><i class="fas fa-shipping-fast"></i> EasyShip Delivery</p>
                     </div>
                 </div>
             </div>
