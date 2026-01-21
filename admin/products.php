@@ -489,7 +489,7 @@ if ($action === 'list') {
                     Are you sure you want to delete "<span id="productName"></span>"?
                 </div>
                 <div class="modal-footer">
-                    <form method="POST" id="deleteForm">
+                    <form method="POST" action="products.php" id="deleteForm">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="product_id" id="deleteProductId">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
