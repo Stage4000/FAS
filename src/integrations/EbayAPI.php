@@ -1,7 +1,9 @@
 <?php
 /**
  * eBay API Integration
- * Handles communication with eBay Finding and Shopping APIs
+ * Handles communication with eBay Inventory, Finding and Shopping APIs
+ * Primary: Inventory API (OAuth 2.0) - 2M requests/day
+ * Legacy: Finding and Shopping APIs - 5K requests/day
  */
 
 namespace FAS\Integrations;
@@ -19,6 +21,7 @@ class EbayAPI
     private $rateLimitExceeded = false;
     
     // API Endpoints
+    private $inventoryApiUrl = 'https://api.ebay.com/sell/inventory/v1';
     private $findingApiUrl = 'https://svcs.ebay.com/services/search/FindingService/v1';
     private $shoppingApiUrl = 'https://open.api.ebay.com/shopping';
     
@@ -47,32 +50,34 @@ class EbayAPI
     }
     
     /**
-     * Get items from eBay store
+     * Get items from eBay store using Inventory API
      */
     public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100)
     {
         $this->rateLimitExceeded = false; // Reset flag
         
-        $url = $this->findingApiUrl;
+        // Use Inventory API to get all inventory items
+        $url = $this->inventoryApiUrl . '/inventory_item';
         
-        $params = [
-            'OPERATION-NAME' => 'findItemsIneBayStores',
-            'SERVICE-VERSION' => '1.13.0',
-            'SECURITY-APPNAME' => $this->appId,
-            'RESPONSE-DATA-FORMAT' => 'JSON',
-            'REST-PAYLOAD' => '',
-            'storeName' => $storeName,
-            'paginationInput.entriesPerPage' => $entriesPerPage,
-            'paginationInput.pageNumber' => $pageNumber,
-        ];
+        // Calculate offset for pagination
+        $offset = ($pageNumber - 1) * $entriesPerPage;
         
-        $queryString = http_build_query($params);
-        $fullUrl = $url . '?' . $queryString;
+        // Add pagination parameters
+        $url .= '?limit=' . $entriesPerPage . '&offset=' . $offset;
         
-        $response = $this->makeRequest($fullUrl);
+        $response = $this->makeRequest($url, 0, self::RATE_LIMIT_MAX_RETRIES, true);
         
-        if ($response && isset($response['findItemsIneBayStoresResponse'])) {
-            return $this->parseItemsResponse($response['findItemsIneBayStoresResponse']);
+        if ($response && isset($response['inventoryItems'])) {
+            return $this->parseInventoryResponse($response, $pageNumber, $entriesPerPage);
+        }
+        
+        // Handle empty response
+        if ($response && !isset($response['inventoryItems'])) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'pages' => 0
+            ];
         }
         
         return null;
@@ -164,7 +169,7 @@ class EbayAPI
     /**
      * Make HTTP request to eBay API with retry logic for rate limiting
      */
-    private function makeRequest($url, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES)
+    private function makeRequest($url, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES, $useOAuth = false)
     {
         // Log the request
         SyncLogger::logRequest($url);
@@ -175,6 +180,17 @@ class EbayAPI
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        // Add OAuth 2.0 authentication header if required
+        if ($useOAuth && $this->userToken) {
+            $headers = [
+                'Authorization: Bearer ' . $this->userToken,
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ];
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            SyncLogger::log("Using OAuth 2.0 authentication with user token");
+        }
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -213,7 +229,7 @@ class EbayAPI
                         error_log("eBay API Rate Limit: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         sleep($waitTime);
-                        return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+                        return $this->makeRequest($url, $retryCount + 1, $maxRetries, $useOAuth);
                     } else {
                         $totalWaitTime = $this->getTotalRetryWaitTime();
                         error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
@@ -247,7 +263,7 @@ class EbayAPI
                     error_log("eBay API HTTP 500 (invalid JSON): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     SyncLogger::log("HTTP 500 with invalid JSON. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
-                    return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+                    return $this->makeRequest($url, $retryCount + 1, $maxRetries, $useOAuth);
                 } else {
                     error_log('eBay API: Max retries exceeded for HTTP 500 errors with invalid JSON.');
                     SyncLogger::logError('Max retries exceeded for HTTP 500 errors with invalid JSON');
@@ -264,7 +280,7 @@ class EbayAPI
                     error_log("eBay API Rate Limit (HTTP 500): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     SyncLogger::log("Rate limit (HTTP 500). Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
-                    return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+                    return $this->makeRequest($url, $retryCount + 1, $maxRetries, $useOAuth);
                 } else {
                     $totalWaitTime = $this->getTotalRetryWaitTime();
                     error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
@@ -285,7 +301,7 @@ class EbayAPI
                 error_log("eBay API HTTP 500: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                 SyncLogger::log("HTTP 500. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                 sleep($waitTime);
-                return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+                return $this->makeRequest($url, $retryCount + 1, $maxRetries, $useOAuth);
             } else {
                 error_log('eBay API: Max retries exceeded for HTTP 500 errors.');
                 SyncLogger::logError('Max retries exceeded for HTTP 500 errors');
@@ -336,7 +352,45 @@ class EbayAPI
     }
     
     /**
-     * Parse items response from Finding API
+     * Parse Inventory API response
+     */
+    private function parseInventoryResponse($response, $pageNumber, $entriesPerPage)
+    {
+        $items = $response['inventoryItems'] ?? [];
+        $total = $response['total'] ?? count($items);
+        
+        $parsedItems = [];
+        foreach ($items as $item) {
+            // Get the offer for pricing information
+            $offer = null;
+            if (isset($item['sku'])) {
+                // We'll use availability and product info from the inventory item
+                $parsedItems[] = [
+                    'id' => $item['sku'] ?? '',
+                    'title' => $item['product']['title'] ?? 'Untitled',
+                    'price' => $item['product']['aspects']['Price'][0] ?? '0',
+                    'currency' => 'USD', // Default, actual currency may be in offers
+                    'image' => $item['product']['imageUrls'][0] ?? null,
+                    'url' => '', // Inventory API doesn't provide listing URL directly
+                    'condition' => $item['condition'] ?? 'USED',
+                    'location' => $item['availability']['shipToLocationAvailability']['quantity'] ?? '',
+                    'shipping_cost' => 0, // Would need to fetch from offers
+                ];
+            }
+        }
+        
+        // Calculate total pages
+        $pages = ($total > 0) ? ceil($total / $entriesPerPage) : 0;
+        
+        return [
+            'items' => $parsedItems,
+            'total' => $total,
+            'pages' => $pages
+        ];
+    }
+    
+    /**
+     * Parse items response from Finding API (legacy, kept for compatibility)
      */
     private function parseItemsResponse($response)
     {

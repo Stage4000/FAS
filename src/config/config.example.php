@@ -33,7 +33,7 @@ return [
         'app_id' => 'YOUR_EBAY_APP_ID',
         'cert_id' => 'YOUR_EBAY_CERT_ID',
         'dev_id' => 'YOUR_EBAY_DEV_ID',
-        'user_token' => 'YOUR_EBAY_USER_TOKEN',
+        'user_token' => 'YOUR_EBAY_USER_TOKEN', // OAuth 2.0 token with sell.inventory.readonly scope for Inventory API
         'sandbox' => false,
         'site_id' => 0, // 0 = US
         'store_name' => 'moto800'
