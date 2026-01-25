@@ -20,7 +20,11 @@ $expectedKey = 'fas_sync_key_2026'; // Should be in config
 
 if ($authKey !== $expectedKey) {
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+    echo json_encode([
+        'error' => 'Unauthorized',
+        'message' => 'Invalid sync API key provided.',
+        'help' => 'The sync key is configured in Settings > Security Settings > Sync API Key. Use that key in the URL: /api/ebay-sync.php?key=YOUR_KEY'
+    ]);
     exit;
 }
 
@@ -63,6 +67,30 @@ try {
         if (!$result || empty($result['items'])) {
             // Log if no results on first page
             if ($page === 1) {
+                // Check if this was due to rate limiting
+                if ($ebayAPI->wasRateLimited()) {
+                    error_log('eBay Sync: Rate limit exceeded. Please wait and try again later.');
+                    
+                    // Update sync log with error
+                    $stmt = $db->prepare("
+                        UPDATE ebay_sync_log 
+                        SET status = 'failed', 
+                            error_message = 'eBay API rate limit exceeded. Please wait 5-10 minutes before trying again.',
+                            completed_at = datetime('now')
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$syncLogId]);
+                    
+                    http_response_code(429); // Too Many Requests
+                    echo json_encode([
+                        'error' => 'Rate limit exceeded',
+                        'message' => 'eBay API rate limit has been exceeded. The sync tried 3 times with exponential backoff (5, 15, 45 seconds) but the limit persists.',
+                        'help' => 'Please wait 5-10 minutes before trying to sync again. eBay limits API calls to prevent abuse.',
+                        'next_action' => 'Wait a few minutes and click "Start eBay Sync" again.'
+                    ]);
+                    exit;
+                }
+                
                 error_log('eBay Sync: No items found. Check eBay credentials and store name.');
                 
                 // Update sync log with error
@@ -78,7 +106,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     'error' => 'No items found',
-                    'message' => 'Unable to fetch items from eBay. This may be due to invalid credentials, incorrect store name, or API rate limits.',
+                    'message' => 'Unable to fetch items from eBay. This may be due to invalid credentials, incorrect store name, or the store having no items.',
                     'help' => 'Visit /admin/ebay-token-guide.php for help with eBay API configuration.'
                 ]);
                 exit;

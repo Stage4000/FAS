@@ -90,7 +90,11 @@ $auth->requireLogin();
                         <p>Sync products from your eBay store (moto800) to the website database.</p>
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>Note:</strong> Before syncing, make sure to configure your eBay API credentials in <code>src/config/config.php</code>
+                            <strong>Before syncing:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Configure your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a></li>
+                                <li>Be aware of eBay rate limits (5,000 calls/day). If you hit a rate limit, wait 5-10 minutes before retrying.</li>
+                            </ul>
                         </div>
                         <button class="btn btn-primary" id="sync-ebay-btn">
                             <i class="bi bi-arrow-repeat me-2"></i>Start eBay Sync
@@ -171,6 +175,11 @@ $auth->requireLogin();
                 .finally(() => {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Start eBay Sync';
+                    
+                    // Reload page after a successful sync to update stats
+                    if (statusDiv.querySelector('.alert-success')) {
+                        setTimeout(() => location.reload(), 3000);
+                    }
                 });
         });
     </script>

@@ -14,6 +14,7 @@ class EbayAPI
     private $userToken;
     private $sandbox;
     private $siteId;
+    private $rateLimitExceeded = false;
     
     // API Endpoints
     private $findingApiUrl = 'https://svcs.ebay.com/services/search/FindingService/v1';
@@ -43,6 +44,8 @@ class EbayAPI
      */
     public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100)
     {
+        $this->rateLimitExceeded = false; // Reset flag
+        
         $url = $this->findingApiUrl;
         
         $params = [
@@ -66,6 +69,14 @@ class EbayAPI
         }
         
         return null;
+    }
+    
+    /**
+     * Check if the last request failed due to rate limiting
+     */
+    public function wasRateLimited()
+    {
+        return $this->rateLimitExceeded;
     }
     
     /**
@@ -162,13 +173,15 @@ class EbayAPI
                 // Check if this is a rate limiting error
                 if ($this->isRateLimitError($data['errorMessage'])) {
                     if ($retryCount < $maxRetries) {
-                        // Calculate exponential backoff: 2^retryCount seconds
-                        $waitTime = pow(2, $retryCount + 1);
+                        // Use longer exponential backoff for rate limiting: 5, 15, 45 seconds
+                        $waitTime = 5 * pow(3, $retryCount);
                         error_log("eBay API Rate Limit: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         sleep($waitTime);
                         return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                     } else {
-                        error_log('eBay API Rate Limit: Max retries exceeded. Please try again later.');
+                        error_log('eBay API Rate Limit: Max retries exceeded after ' . (5 + 15 + 45) . ' seconds total wait time.');
+                        // Set a flag to indicate rate limiting
+                        $this->rateLimitExceeded = true;
                         return null;
                     }
                 }
@@ -179,19 +192,39 @@ class EbayAPI
             return $data;
         }
         
-        // Handle HTTP 500 errors which may contain rate limit information
+        // Handle HTTP 500 errors which may indicate rate limiting or server issues
         if ($httpCode === 500) {
             $data = json_decode($response, true);
+            
+            // Check if response contains rate limit error
             if ($data && isset($data['errorMessage']) && $this->isRateLimitError($data['errorMessage'])) {
                 if ($retryCount < $maxRetries) {
-                    $waitTime = pow(2, $retryCount + 1);
+                    // Use longer exponential backoff: 5, 15, 45 seconds
+                    $waitTime = 5 * pow(3, $retryCount);
                     error_log("eBay API Rate Limit (HTTP 500): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
                     return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                 } else {
-                    error_log('eBay API Rate Limit: Max retries exceeded. Please try again later.');
+                    error_log('eBay API Rate Limit: Max retries exceeded after ' . (5 + 15 + 45) . ' seconds total wait time.');
+                    // Set a flag to indicate rate limiting
+                    $this->rateLimitExceeded = true;
                     return null;
                 }
+            }
+            
+            // HTTP 500 without clear rate limit message - may still be rate limiting
+            error_log('eBay API HTTP 500 Error - Possible rate limiting or server error. Response: ' . substr($response, 0, 500));
+            
+            if ($retryCount < $maxRetries) {
+                // Treat as potential rate limit and retry with backoff
+                $waitTime = 5 * pow(3, $retryCount);
+                error_log("eBay API HTTP 500: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                sleep($waitTime);
+                return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+            } else {
+                error_log('eBay API: Max retries exceeded for HTTP 500 errors.');
+                $this->rateLimitExceeded = true;
+                return null;
             }
         }
         
