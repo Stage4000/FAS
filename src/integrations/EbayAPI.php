@@ -92,6 +92,7 @@ class EbayAPI
         $xml .= '<RequesterCredentials>';
         $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
         $xml .= '</RequesterCredentials>';
+        $xml .= '<Version>967</Version>';
         $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
         $xml .= '<WarningLevel>High</WarningLevel>';
         
@@ -104,9 +105,10 @@ class EbayAPI
         // Detail level
         $xml .= '<DetailLevel>ReturnAll</DetailLevel>';
         
-        // Include ended listings in the past 30 days if needed
-        // $xml .= '<EndTimeFrom>' . date('c', strtotime('-30 days')) . '</EndTimeFrom>';
-        // $xml .= '<EndTimeTo>' . date('c') . '</EndTimeTo>';
+        // Time range - get listings from the past 120 days (maximum allowed)
+        // This will include all active listings
+        $xml .= '<StartTimeFrom>' . date('c', strtotime('-120 days')) . '</StartTimeFrom>';
+        $xml .= '<StartTimeTo>' . date('c') . '</StartTimeTo>';
         
         // Output selector for specific fields
         $xml .= '<OutputSelector>ItemID</OutputSelector>';
