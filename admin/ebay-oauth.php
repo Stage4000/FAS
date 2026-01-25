@@ -50,21 +50,30 @@ $host = $_SERVER['HTTP_HOST'];
 $callbackUrl = $protocol . '://' . $host . dirname($_SERVER['PHP_SELF']) . '/ebay-oauth-callback.php';
 
 // OAuth scopes for eBay API
+// Use the correct scope URL format for user token (refresh token)
 $scopes = [
     'https://api.ebay.com/oauth/api_scope',
-    'https://api.ebay.com/oauth/api_scope/sell.inventory'
+    'https://api.ebay.com/oauth/api_scope/sell.inventory',
+    'https://api.ebay.com/oauth/api_scope/sell.marketing',
+    'https://api.ebay.com/oauth/api_scope/sell.account'
 ];
 
-// Build authorization URL
+// Build authorization URL with proper encoding
 $params = [
     'client_id' => $appId,
     'redirect_uri' => $callbackUrl,
     'response_type' => 'code',
     'state' => $state,
-    'scope' => implode(' ', $scopes)
+    'scope' => implode(' ', $scopes),
+    'prompt' => 'login'  // Force user to login for fresh consent
 ];
 
-$authorizationUrl = $authUrl . '?' . http_build_query($params);
+// Manually build query string to ensure proper encoding
+$queryParts = [];
+foreach ($params as $key => $value) {
+    $queryParts[] = $key . '=' . urlencode($value);
+}
+$authorizationUrl = $authUrl . '?' . implode('&', $queryParts);
 
 // Redirect to eBay for authorization
 header('Location: ' . $authorizationUrl);
