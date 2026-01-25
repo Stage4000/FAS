@@ -71,6 +71,8 @@ try {
                 if ($ebayAPI->wasRateLimited()) {
                     error_log('eBay Sync: Rate limit exceeded. Please wait and try again later.');
                     
+                    $totalWaitTime = $ebayAPI->getTotalRetryWaitTime();
+                    
                     // Update sync log with error
                     $stmt = $db->prepare("
                         UPDATE ebay_sync_log 
@@ -84,7 +86,7 @@ try {
                     http_response_code(429); // Too Many Requests
                     echo json_encode([
                         'error' => 'Rate limit exceeded',
-                        'message' => 'eBay API rate limit has been exceeded. The sync tried 3 times with exponential backoff (5, 15, 45 seconds) but the limit persists.',
+                        'message' => "eBay API rate limit has been exceeded. The sync tried 3 times with exponential backoff ({$totalWaitTime} seconds total) but the limit persists.",
                         'help' => 'Please wait 5-10 minutes before trying to sync again. eBay limits API calls to prevent abuse.',
                         'next_action' => 'Wait a few minutes and click "Start eBay Sync" again.'
                     ]);

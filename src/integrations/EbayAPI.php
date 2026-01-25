@@ -20,6 +20,11 @@ class EbayAPI
     private $findingApiUrl = 'https://svcs.ebay.com/services/search/FindingService/v1';
     private $shoppingApiUrl = 'https://open.api.ebay.com/shopping';
     
+    // Rate limiting constants
+    private const RATE_LIMIT_MAX_RETRIES = 3;
+    private const RATE_LIMIT_BASE_WAIT = 5; // Base wait time in seconds
+    private const RATE_LIMIT_MULTIPLIER = 3; // Exponential multiplier
+    
     public function __construct($config = null)
     {
         if ($config === null) {
@@ -77,6 +82,18 @@ class EbayAPI
     public function wasRateLimited()
     {
         return $this->rateLimitExceeded;
+    }
+    
+    /**
+     * Get total wait time for all retries (for error messages)
+     */
+    public function getTotalRetryWaitTime()
+    {
+        $total = 0;
+        for ($i = 0; $i < self::RATE_LIMIT_MAX_RETRIES; $i++) {
+            $total += self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $i);
+        }
+        return $total;
     }
     
     /**
@@ -145,7 +162,7 @@ class EbayAPI
     /**
      * Make HTTP request to eBay API with retry logic for rate limiting
      */
-    private function makeRequest($url, $retryCount = 0, $maxRetries = 3)
+    private function makeRequest($url, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES)
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -173,13 +190,14 @@ class EbayAPI
                 // Check if this is a rate limiting error
                 if ($this->isRateLimitError($data['errorMessage'])) {
                     if ($retryCount < $maxRetries) {
-                        // Use longer exponential backoff for rate limiting: 5, 15, 45 seconds
-                        $waitTime = 5 * pow(3, $retryCount);
+                        // Use exponential backoff for rate limiting
+                        $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                         error_log("eBay API Rate Limit: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         sleep($waitTime);
                         return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                     } else {
-                        error_log('eBay API Rate Limit: Max retries exceeded after ' . (5 + 15 + 45) . ' seconds total wait time.');
+                        $totalWaitTime = $this->getTotalRetryWaitTime();
+                        error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
                         // Set a flag to indicate rate limiting
                         $this->rateLimitExceeded = true;
                         return null;
@@ -199,13 +217,14 @@ class EbayAPI
             // Check if response contains rate limit error
             if ($data && isset($data['errorMessage']) && $this->isRateLimitError($data['errorMessage'])) {
                 if ($retryCount < $maxRetries) {
-                    // Use longer exponential backoff: 5, 15, 45 seconds
-                    $waitTime = 5 * pow(3, $retryCount);
+                    // Use exponential backoff
+                    $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                     error_log("eBay API Rate Limit (HTTP 500): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
                     return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                 } else {
-                    error_log('eBay API Rate Limit: Max retries exceeded after ' . (5 + 15 + 45) . ' seconds total wait time.');
+                    $totalWaitTime = $this->getTotalRetryWaitTime();
+                    error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
                     // Set a flag to indicate rate limiting
                     $this->rateLimitExceeded = true;
                     return null;
@@ -217,7 +236,7 @@ class EbayAPI
             
             if ($retryCount < $maxRetries) {
                 // Treat as potential rate limit and retry with backoff
-                $waitTime = 5 * pow(3, $retryCount);
+                $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                 error_log("eBay API HTTP 500: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                 sleep($waitTime);
                 return $this->makeRequest($url, $retryCount + 1, $maxRetries);
