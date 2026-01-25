@@ -3,7 +3,10 @@
 /**
  * Cron Job Script for Automated eBay Synchronization
  * 
- * Schedule this to run regularly (e.g., every hour or daily)
+ * Uses GetSellerEvents to track incremental changes efficiently
+ * Only syncs items that have changed since the last successful sync
+ * 
+ * Schedule this to run regularly (e.g., every hour or every 6 hours)
  * 
  * Crontab examples:
  * Run every hour
@@ -28,21 +31,42 @@ use FAS\Integrations\EbayAPI;
 use FAS\Models\Product;
 
 // Log start
-echo "[" . date('Y-m-d H:i:s') . "] Starting eBay synchronization...\n";
-
-// Date range for CRON: last 120 days by default
-$startDate = date('Y-m-d', strtotime('-120 days'));
-$endDate = date('Y-m-d');
-
-echo "[" . date('Y-m-d H:i:s') . "] Using date range: $startDate to $endDate\n";
+echo "[" . date('Y-m-d H:i:s') . "] Starting eBay synchronization (GetSellerEvents)...\n";
 
 try {
     $db = Database::getInstance()->getConnection();
     $ebayAPI = new EbayAPI();
     $productModel = new Product($db);
     
+    // Get last successful sync timestamp
+    $stmt = $db->prepare("
+        SELECT last_sync_timestamp 
+        FROM ebay_sync_log 
+        WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL
+        ORDER BY completed_at DESC 
+        LIMIT 1
+    ");
+    $stmt->execute();
+    $lastSync = $stmt->fetchColumn();
+    
+    // Determine time range for GetSellerEvents
+    if ($lastSync) {
+        // Use last sync time with 2-minute overlap (eBay recommendation)
+        $modTimeFrom = new DateTime($lastSync);
+        $modTimeFrom->modify('-2 minutes');
+        echo "[" . date('Y-m-d H:i:s') . "] Syncing changes since: " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
+    } else {
+        // First sync - get last 48 hours (eBay recommendation for GetSellerEvents)
+        $modTimeFrom = new DateTime('-48 hours');
+        echo "[" . date('Y-m-d H:i:s') . "] First sync - fetching last 48 hours\n";
+    }
+    
+    // ModTimeTo: current time minus 2 minutes (eBay recommendation)
+    $modTimeTo = new DateTime('-2 minutes');
+    echo "[" . date('Y-m-d H:i:s') . "] Sync time range: " . $modTimeFrom->format('Y-m-d H:i:s') . " to " . $modTimeTo->format('Y-m-d H:i:s') . "\n";
+    
     // Start sync log
-    $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES ('scheduled_sync', 'running')");
+    $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES ('scheduled_events_sync', 'running')");
     $stmt->execute();
     $syncLogId = $db->lastInsertId();
     
@@ -52,15 +76,18 @@ try {
     $totalUpdated = 0;
     $totalFailed = 0;
     
-    // Fetch items from eBay
+    // Fetch changed items from eBay using GetSellerEvents
     do {
-        $result = $ebayAPI->getStoreItems('moto800', $page, 100, $startDate, $endDate);
+        $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         
         if (!$result || empty($result['items'])) {
+            if ($page == 1) {
+                echo "[" . date('Y-m-d H:i:s') . "] No changes detected in time range\n";
+            }
             break;
         }
         
-        echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " items...\n";
+        echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " changed items...\n";
         
         foreach ($result['items'] as $item) {
             try {
@@ -96,19 +123,18 @@ try {
             break;
         }
         
-        // Delay between pages to avoid rate limiting
-        // eBay Finding API allows 5000 calls per day per app
-        sleep(2);
+        // Brief delay between pages
+        sleep(1);
         
     } while (true);
     
-    // Complete sync log
+    // Complete sync log with timestamp
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
-        SET status = 'completed', completed_at = datetime('now')
+        SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?
         WHERE id = ?
     ");
-    $stmt->execute([$syncLogId]);
+    $stmt->execute([$modTimeTo->format('Y-m-d H:i:s'), $syncLogId]);
     
     echo "[" . date('Y-m-d H:i:s') . "] Synchronization completed successfully!\n";
     echo "  Processed: {$totalProcessed}\n";

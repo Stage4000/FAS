@@ -91,6 +91,66 @@ class EbayAPI
     }
     
     /**
+     * Get seller events (changes) using Trading API GetSellerEvents
+     * This is optimized for CRON jobs to track incremental changes
+     * 
+     * @param DateTime|string|null $modTimeFrom Last sync time (default: 48 hours ago)
+     * @param DateTime|string|null $modTimeTo End of time range (default: now - 2 minutes)
+     * @param int $pageNumber Page number for pagination
+     * @param int $entriesPerPage Items per page (max 200)
+     * @return array|null Response with items and pagination info
+     */
+    public function getSellerEvents($modTimeFrom = null, $modTimeTo = null, $pageNumber = 1, $entriesPerPage = 200)
+    {
+        $this->rateLimitExceeded = false; // Reset flag
+        
+        // Default to last 48 hours if no time provided (eBay recommendation)
+        if ($modTimeFrom === null) {
+            $modTimeFrom = new \DateTime('-48 hours');
+        } elseif (is_string($modTimeFrom)) {
+            $modTimeFrom = new \DateTime($modTimeFrom);
+        }
+        
+        // Default to now - 2 minutes (eBay recommendation to avoid missing recent changes)
+        if ($modTimeTo === null) {
+            $modTimeTo = new \DateTime('-2 minutes');
+        } elseif (is_string($modTimeTo)) {
+            $modTimeTo = new \DateTime($modTimeTo);
+        }
+        
+        // Validate time range (eBay recommends < 48 hours)
+        $interval = $modTimeFrom->diff($modTimeTo);
+        $hoursDiff = ($interval->days * 24) + $interval->h;
+        if ($hoursDiff > 48) {
+            SyncLogger::logWarning("GetSellerEvents time range > 48 hours ({$hoursDiff}h). eBay recommends smaller windows.");
+        }
+        
+        // Use Trading API GetSellerEvents
+        $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : $this->tradingApiUrl;
+        
+        // Build GetSellerEvents XML request
+        $xmlRequest = $this->buildGetSellerEventsRequest($modTimeFrom, $modTimeTo, $pageNumber, $entriesPerPage);
+        
+        $response = $this->makeTradingApiRequest($url, $xmlRequest, 0, self::RATE_LIMIT_MAX_RETRIES, 'GetSellerEvents');
+        
+        if ($response && isset($response['ItemArray']['Item'])) {
+            return $this->parseTradingApiResponse($response, $pageNumber, $entriesPerPage);
+        }
+        
+        // Handle empty response (no changes in time range)
+        if ($response && isset($response['Ack']) && $response['Ack'] === 'Success') {
+            return [
+                'items' => [],
+                'total' => 0,
+                'pages' => 0,
+                'has_more' => false
+            ];
+        }
+        
+        return null;
+    }
+    
+    /**
      * Build GetSellerList XML request
      */
     private function buildGetSellerListRequest($pageNumber, $entriesPerPage, $startDate, $endDate)
@@ -138,12 +198,60 @@ class EbayAPI
     }
     
     /**
+     * Build GetSellerEvents XML request
+     */
+    private function buildGetSellerEventsRequest(\DateTime $modTimeFrom, \DateTime $modTimeTo, $pageNumber, $entriesPerPage)
+    {
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
+        $xml .= '<GetSellerEventsRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<RequesterCredentials>';
+        $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
+        $xml .= '</RequesterCredentials>';
+        $xml .= '<Version>967</Version>';
+        $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
+        $xml .= '<WarningLevel>High</WarningLevel>';
+        
+        // Pagination
+        $xml .= '<Pagination>';
+        $xml .= '<EntriesPerPage>' . $entriesPerPage . '</EntriesPerPage>';
+        $xml .= '<PageNumber>' . $pageNumber . '</PageNumber>';
+        $xml .= '</Pagination>';
+        
+        // Detail level
+        $xml .= '<DetailLevel>ReturnAll</DetailLevel>';
+        
+        // Time range using ModTimeFrom and ModTimeTo (modification time)
+        // Format: ISO 8601 (YYYY-MM-DDTHH:MM:SS.SSSZ)
+        $xml .= '<ModTimeFrom>' . $modTimeFrom->format('c') . '</ModTimeFrom>';
+        $xml .= '<ModTimeTo>' . $modTimeTo->format('c') . '</ModTimeTo>';
+        
+        // Include watch count to track listing changes
+        $xml .= '<IncludeWatchCount>true</IncludeWatchCount>';
+        
+        // Output selectors for specific fields
+        $xml .= '<OutputSelector>ItemID</OutputSelector>';
+        $xml .= '<OutputSelector>Title</OutputSelector>';
+        $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
+        $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
+        $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
+        $xml .= '<OutputSelector>ListingType</OutputSelector>';
+        $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
+        $xml .= '<OutputSelector>TimeLeft</OutputSelector>';
+        $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
+        
+        $xml .= '</GetSellerEventsRequest>';
+        
+        return $xml;
+    }
+    
+    /**
      * Make Trading API request
      */
-    private function makeTradingApiRequest($url, $xmlRequest, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES)
+    private function makeTradingApiRequest($url, $xmlRequest, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES, $callName = 'GetSellerList')
     {
         // Log the request
-        SyncLogger::logRequest($url . ' (Trading API GetSellerList)');
+        SyncLogger::logRequest($url . ' (Trading API ' . $callName . ')');
         SyncLogger::log('Request body (XML): ' . substr($xmlRequest, 0, 500) . '...');
         
         $ch = curl_init();
@@ -156,7 +264,7 @@ class EbayAPI
         
         $headers = [
             'X-EBAY-API-COMPATIBILITY-LEVEL: 967',
-            'X-EBAY-API-CALL-NAME: GetSellerList',
+            'X-EBAY-API-CALL-NAME: ' . $callName,
             'X-EBAY-API-SITEID: ' . $this->siteId,
             'Content-Type: text/xml;charset=utf-8'
         ];
@@ -200,7 +308,7 @@ class EbayAPI
                         $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                         SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         sleep($waitTime);
-                        return $this->makeTradingApiRequest($url, $xmlRequest, $retryCount + 1, $maxRetries);
+                        return $this->makeTradingApiRequest($url, $xmlRequest, $retryCount + 1, $maxRetries, $callName);
                     } else {
                         $this->rateLimitExceeded = true;
                     }
