@@ -6,6 +6,8 @@
 
 namespace FAS\Integrations;
 
+use FAS\Utils\SyncLogger;
+
 class EbayAPI
 {
     private $appId;
@@ -164,6 +166,9 @@ class EbayAPI
      */
     private function makeRequest($url, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES)
     {
+        // Log the request
+        SyncLogger::logRequest($url);
+        
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -174,8 +179,13 @@ class EbayAPI
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
+        // Log the response
+        SyncLogger::logResponse($response, $httpCode);
+        
         if (curl_errno($ch)) {
-            error_log('eBay API cURL Error: ' . curl_error($ch));
+            $curlError = curl_error($ch);
+            error_log('eBay API cURL Error: ' . $curlError);
+            SyncLogger::logError('cURL Error: ' . $curlError);
             curl_close($ch);
             return null;
         }
@@ -187,7 +197,9 @@ class EbayAPI
             
             // Validate JSON parsing was successful
             if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
-                error_log('eBay API: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Full response: ' . $response);
+                $jsonError = json_last_error_msg();
+                error_log('eBay API: Invalid JSON response. Error: ' . $jsonError . ' | Full response: ' . $response);
+                SyncLogger::logError('Invalid JSON response. Error: ' . $jsonError);
                 return null;
             }
             
@@ -199,17 +211,20 @@ class EbayAPI
                         // Use exponential backoff for rate limiting
                         $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                         error_log("eBay API Rate Limit: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                        SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                         sleep($waitTime);
                         return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                     } else {
                         $totalWaitTime = $this->getTotalRetryWaitTime();
                         error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
+                        SyncLogger::logError("Rate limit: Max retries exceeded after {$totalWaitTime} seconds");
                         // Set a flag to indicate rate limiting
                         $this->rateLimitExceeded = true;
                         return null;
                     }
                 }
                 error_log('eBay API Error Response: ' . json_encode($data['errorMessage']));
+                SyncLogger::logError('eBay API returned error: ' . json_encode($data['errorMessage']));
                 return null;
             }
             
@@ -222,16 +237,20 @@ class EbayAPI
             
             // Validate JSON parsing was successful
             if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
-                error_log('eBay API HTTP 500: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Full response: ' . $response);
+                $jsonError = json_last_error_msg();
+                error_log('eBay API HTTP 500: Invalid JSON response. Error: ' . $jsonError . ' | Full response: ' . $response);
+                SyncLogger::logError('HTTP 500 with invalid JSON. Error: ' . $jsonError);
                 
                 // HTTP 500 with invalid response - may still be rate limiting, retry with backoff
                 if ($retryCount < $maxRetries) {
                     $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                     error_log("eBay API HTTP 500 (invalid JSON): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                    SyncLogger::log("HTTP 500 with invalid JSON. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
                     return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                 } else {
                     error_log('eBay API: Max retries exceeded for HTTP 500 errors with invalid JSON.');
+                    SyncLogger::logError('Max retries exceeded for HTTP 500 errors with invalid JSON');
                     $this->rateLimitExceeded = true;
                     return null;
                 }
@@ -243,11 +262,13 @@ class EbayAPI
                     // Use exponential backoff
                     $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                     error_log("eBay API Rate Limit (HTTP 500): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                    SyncLogger::log("Rate limit (HTTP 500). Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                     sleep($waitTime);
                     return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                 } else {
                     $totalWaitTime = $this->getTotalRetryWaitTime();
                     error_log("eBay API Rate Limit: Max retries exceeded after {$totalWaitTime} seconds total wait time.");
+                    SyncLogger::logError("Rate limit: Max retries exceeded after {$totalWaitTime} seconds");
                     // Set a flag to indicate rate limiting
                     $this->rateLimitExceeded = true;
                     return null;
@@ -256,15 +277,18 @@ class EbayAPI
             
             // HTTP 500 without clear rate limit message - may still be rate limiting
             error_log('eBay API HTTP 500 Error - Possible rate limiting or server error. Response: ' . substr($response, 0, 500));
+            SyncLogger::logError('HTTP 500 Error - Possible rate limiting or server error');
             
             if ($retryCount < $maxRetries) {
                 // Treat as potential rate limit and retry with backoff
                 $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                 error_log("eBay API HTTP 500: Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                SyncLogger::log("HTTP 500. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
                 sleep($waitTime);
                 return $this->makeRequest($url, $retryCount + 1, $maxRetries);
             } else {
                 error_log('eBay API: Max retries exceeded for HTTP 500 errors.');
+                SyncLogger::logError('Max retries exceeded for HTTP 500 errors');
                 $this->rateLimitExceeded = true;
                 return null;
             }
@@ -272,10 +296,12 @@ class EbayAPI
         
         // Log detailed error information
         error_log('eBay API HTTP Error: ' . $httpCode . ' | Response: ' . substr($response, 0, 500));
+        SyncLogger::logError('eBay API HTTP Error: ' . $httpCode);
         
         // Check if credentials are placeholders
         if ($this->appId === 'YOUR_EBAY_APP_ID' || strpos($this->appId, 'YOUR_') === 0) {
             error_log('eBay API Error: Invalid credentials. Please configure eBay API credentials in Settings.');
+            SyncLogger::logError('Invalid credentials. Please configure eBay API credentials in Settings.');
         }
         
         return null;
