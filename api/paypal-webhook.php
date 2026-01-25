@@ -19,11 +19,28 @@ $webhookData = json_decode($rawInput, true);
 // Log webhook for debugging
 error_log('PayPal Webhook received: ' . $rawInput);
 
-// Verify it's a valid PayPal webhook (in production, verify signature)
+// Verify it's a valid PayPal webhook
 if (!$webhookData || !isset($webhookData['event_type'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid webhook data']);
     exit;
+}
+
+// Verify webhook signature (basic check - in production use PayPal's verification)
+$headers = getallheaders();
+$transmissionId = $headers['Paypal-Transmission-Id'] ?? null;
+$transmissionTime = $headers['Paypal-Transmission-Time'] ?? null;
+$transmissionSig = $headers['Paypal-Transmission-Sig'] ?? null;
+$certUrl = $headers['Paypal-Cert-Url'] ?? null;
+
+// For production, verify signature using PayPal SDK
+// For now, we check if required headers are present
+if (!$transmissionId || !$transmissionSig) {
+    error_log('PayPal Webhook: Missing signature headers - possible unauthorized request');
+    // In development, log warning but continue. In production, reject the request:
+    // http_response_code(401);
+    // echo json_encode(['error' => 'Unauthorized']);
+    // exit;
 }
 
 $eventType = $webhookData['event_type'];

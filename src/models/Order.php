@@ -17,6 +17,13 @@ class Order
     
     /**
      * Create new order
+     * 
+     * @param array $data Order data with keys: order_number, customer_email, customer_name, 
+     *                    customer_phone, billing_address, shipping_address, subtotal, 
+     *                    shipping_cost, tax_amount, total_amount, payment_method, 
+     *                    payment_status, paypal_order_id, paypal_transaction_id, 
+     *                    order_status, notes
+     * @return int|false Order ID on success, false on failure
      */
     public function create($data)
     {
@@ -56,6 +63,11 @@ class Order
     
     /**
      * Add items to order
+     * 
+     * @param int $orderId The order ID
+     * @param array $items Array of items, each with keys: product_id, product_name, 
+     *                     product_sku, quantity, unit_price, total_price
+     * @return bool True on success
      */
     public function addItems($orderId, $items)
     {

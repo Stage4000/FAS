@@ -76,10 +76,20 @@ function createOrder($input, $orderModel, $productModel)
     
     // Validate inventory availability
     foreach ($input['items'] as $item) {
-        $product = $productModel->getById($item['product_id']);
+        $product = $productModel->getById($item['product_id'], true); // Include inactive to check existence
         if (!$product) {
             http_response_code(400);
             echo json_encode(['error' => 'Product not found: ' . $item['product_id']]);
+            exit;
+        }
+        
+        // Check if product is active and available
+        if (!$product['is_active']) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => 'Product is no longer available',
+                'product' => $product['name']
+            ]);
             exit;
         }
         
