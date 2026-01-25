@@ -52,6 +52,52 @@ if ($authKey !== $expectedKey) {
 
 SyncLogger::log("Authentication successful");
 
+// Get date parameters from query string, default to last 120 days
+$startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-120 days'));
+$endDate = $_GET['end_date'] ?? date('Y-m-d');
+
+// Validate date format
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+    SyncLogger::log("Invalid date format provided");
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'Invalid date format',
+        'message' => 'Dates must be in YYYY-MM-DD format'
+    ]);
+    SyncLogger::finalize();
+    exit;
+}
+
+// Validate date range is less than 120 days
+$start = new DateTime($startDate);
+$end = new DateTime($endDate);
+$interval = $start->diff($end);
+$daysDiff = $interval->days;
+
+if ($daysDiff > 120) {
+    SyncLogger::log("Date range exceeds 120 days: $daysDiff days");
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'Invalid date range',
+        'message' => 'Date range must be less than 120 days (eBay requirement). Your range: ' . $daysDiff . ' days'
+    ]);
+    SyncLogger::finalize();
+    exit;
+}
+
+if ($end < $start) {
+    SyncLogger::log("End date is before start date");
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'Invalid date range',
+        'message' => 'End date must be after start date'
+    ]);
+    SyncLogger::finalize();
+    exit;
+}
+
+SyncLogger::log("Date range validated: $startDate to $endDate ($daysDiff days)");
+
 try {
     $db = Database::getInstance()->getConnection();
     SyncLogger::log("Database connection established");
@@ -94,7 +140,7 @@ try {
     // Fetch items from eBay
     do {
         SyncLogger::log("Fetching page $page from eBay store");
-        $result = $ebayAPI->getStoreItems('moto800', $page, 100);
+        $result = $ebayAPI->getStoreItems('moto800', $page, 100, $startDate, $endDate);
         
         if (!$result || empty($result['items'])) {
             // Log if no results on first page

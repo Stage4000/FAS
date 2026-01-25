@@ -54,15 +54,23 @@ class EbayAPI
     /**
      * Get items from eBay store using Trading API GetSellerList
      */
-    public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100)
+    public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100, $startDate = null, $endDate = null)
     {
         $this->rateLimitExceeded = false; // Reset flag
+        
+        // Default to last 120 days if no dates provided
+        if ($startDate === null) {
+            $startDate = date('Y-m-d', strtotime('-120 days'));
+        }
+        if ($endDate === null) {
+            $endDate = date('Y-m-d');
+        }
         
         // Use Trading API GetSellerList to get seller's active listings
         $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : $this->tradingApiUrl;
         
         // Build GetSellerList XML request
-        $xmlRequest = $this->buildGetSellerListRequest($pageNumber, $entriesPerPage);
+        $xmlRequest = $this->buildGetSellerListRequest($pageNumber, $entriesPerPage, $startDate, $endDate);
         
         $response = $this->makeTradingApiRequest($url, $xmlRequest);
         
@@ -85,7 +93,7 @@ class EbayAPI
     /**
      * Build GetSellerList XML request
      */
-    private function buildGetSellerListRequest($pageNumber, $entriesPerPage)
+    private function buildGetSellerListRequest($pageNumber, $entriesPerPage, $startDate, $endDate)
     {
         $xml = '<?xml version="1.0" encoding="utf-8"?>';
         $xml .= '<GetSellerListRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
@@ -105,10 +113,13 @@ class EbayAPI
         // Detail level
         $xml .= '<DetailLevel>ReturnAll</DetailLevel>';
         
-        // Time range - get listings from the past 120 days (maximum allowed)
-        // This will include all active listings
-        $xml .= '<StartTimeFrom>' . date('c', strtotime('-120 days')) . '</StartTimeFrom>';
-        $xml .= '<StartTimeTo>' . date('c') . '</StartTimeTo>';
+        // Time range - convert dates to ISO 8601 format
+        $startDateTime = new \DateTime($startDate);
+        $endDateTime = new \DateTime($endDate);
+        $endDateTime->setTime(23, 59, 59); // Set to end of day
+        
+        $xml .= '<StartTimeFrom>' . $startDateTime->format('c') . '</StartTimeFrom>';
+        $xml .= '<StartTimeTo>' . $endDateTime->format('c') . '</StartTimeTo>';
         
         // Output selector for specific fields
         $xml .= '<OutputSelector>ItemID</OutputSelector>';

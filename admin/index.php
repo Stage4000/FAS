@@ -94,8 +94,27 @@ $auth->requireLogin();
                             <ul class="mb-0 mt-2">
                                 <li>Configure your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a></li>
                                 <li>Be aware of eBay rate limits (5,000 calls/day). If you hit a rate limit, wait 5-10 minutes before retrying.</li>
+                                <li>eBay requires date ranges to be less than 120 days apart</li>
                             </ul>
                         </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="start-date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start-date" 
+                                       value="<?php echo date('Y-m-d', strtotime('-120 days')); ?>"
+                                       max="<?php echo date('Y-m-d'); ?>">
+                                <small class="text-muted">Fetch listings from this date</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end-date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end-date" 
+                                       value="<?php echo date('Y-m-d'); ?>"
+                                       max="<?php echo date('Y-m-d'); ?>">
+                                <small class="text-muted">Fetch listings until this date</small>
+                            </div>
+                        </div>
+                        
                         <button class="btn btn-primary" id="sync-ebay-btn">
                             <i class="bi bi-arrow-repeat me-2"></i>Start eBay Sync
                         </button>
@@ -120,17 +139,50 @@ $auth->requireLogin();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Date range validation
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        
+        function validateDateRange() {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff < 0) {
+                alert('End date must be after start date');
+                return false;
+            }
+            
+            if (daysDiff > 120) {
+                alert('Date range must be less than 120 days (eBay requirement)');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        startDateInput.addEventListener('change', validateDateRange);
+        endDateInput.addEventListener('change', validateDateRange);
+        
         document.getElementById('sync-ebay-btn').addEventListener('click', function() {
             const btn = this;
             const statusDiv = document.getElementById('sync-status');
+            
+            // Validate date range
+            if (!validateDateRange()) {
+                return;
+            }
+            
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
             
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';
             
             statusDiv.innerHTML = '<div class="alert alert-info">Starting eBay synchronization...</div>';
             
-            // Call sync API
-            fetch('../api/ebay-sync.php?key=fas_sync_key_2026')
+            // Call sync API with date parameters
+            fetch(`../api/ebay-sync.php?key=fas_sync_key_2026&start_date=${startDate}&end_date=${endDate}`)
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {

@@ -6,13 +6,13 @@
  * Schedule this to run regularly (e.g., every hour or daily)
  * 
  * Crontab examples:
- * # Run every hour
+ * Run every hour
  * 0 * * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
  * 
- * # Run every 6 hours
- * 0 */6 * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
+ * Run every 6 hours
+ * 0 0,6,12,18 * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
  * 
- * # Run daily at 2 AM
+ * Run daily at 2 AM
  * 0 2 * * * /usr/bin/php /path/to/FAS/cron/ebay-sync-cron.php >> /var/log/fas-sync.log 2>&1
  */
 
@@ -29,6 +29,12 @@ use FAS\Models\Product;
 
 // Log start
 echo "[" . date('Y-m-d H:i:s') . "] Starting eBay synchronization...\n";
+
+// Date range for CRON: last 120 days by default
+$startDate = date('Y-m-d', strtotime('-120 days'));
+$endDate = date('Y-m-d');
+
+echo "[" . date('Y-m-d H:i:s') . "] Using date range: $startDate to $endDate\n";
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -48,7 +54,7 @@ try {
     
     // Fetch items from eBay
     do {
-        $result = $ebayAPI->getStoreItems('moto800', $page, 100);
+        $result = $ebayAPI->getStoreItems('moto800', $page, 100, $startDate, $endDate);
         
         if (!$result || empty($result['items'])) {
             break;
