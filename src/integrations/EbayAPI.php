@@ -169,6 +169,7 @@ class EbayAPI
                         return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                     } else {
                         error_log('eBay API Rate Limit: Max retries exceeded. Please try again later.');
+                        return null;
                     }
                 }
                 error_log('eBay API Error Response: ' . json_encode($data['errorMessage']));
@@ -189,6 +190,7 @@ class EbayAPI
                     return $this->makeRequest($url, $retryCount + 1, $maxRetries);
                 } else {
                     error_log('eBay API Rate Limit: Max retries exceeded. Please try again later.');
+                    return null;
                 }
             }
         }
