@@ -185,6 +185,12 @@ class EbayAPI
         if ($httpCode === 200) {
             $data = json_decode($response, true);
             
+            // Validate JSON parsing was successful
+            if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
+                error_log('eBay API: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Response preview: ' . substr($response, 0, 200));
+                return null;
+            }
+            
             // Check for eBay API errors in response
             if (isset($data['errorMessage'])) {
                 // Check if this is a rate limiting error
@@ -213,6 +219,23 @@ class EbayAPI
         // Handle HTTP 500 errors which may indicate rate limiting or server issues
         if ($httpCode === 500) {
             $data = json_decode($response, true);
+            
+            // Validate JSON parsing was successful
+            if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
+                error_log('eBay API HTTP 500: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Response preview: ' . substr($response, 0, 200));
+                
+                // HTTP 500 with invalid response - may still be rate limiting, retry with backoff
+                if ($retryCount < $maxRetries) {
+                    $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
+                    error_log("eBay API HTTP 500 (invalid JSON): Retry {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                    sleep($waitTime);
+                    return $this->makeRequest($url, $retryCount + 1, $maxRetries);
+                } else {
+                    error_log('eBay API: Max retries exceeded for HTTP 500 errors with invalid JSON.');
+                    $this->rateLimitExceeded = true;
+                    return null;
+                }
+            }
             
             // Check if response contains rate limit error
             if ($data && isset($data['errorMessage']) && $this->isRateLimitError($data['errorMessage'])) {
