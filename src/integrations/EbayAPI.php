@@ -187,7 +187,7 @@ class EbayAPI
             
             // Validate JSON parsing was successful
             if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
-                error_log('eBay API: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Response preview: ' . substr($response, 0, 100));
+                error_log('eBay API: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Full response: ' . $response);
                 return null;
             }
             
@@ -222,7 +222,7 @@ class EbayAPI
             
             // Validate JSON parsing was successful
             if (json_last_error() !== JSON_ERROR_NONE || $data === null) {
-                error_log('eBay API HTTP 500: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Response preview: ' . substr($response, 0, 100));
+                error_log('eBay API HTTP 500: Invalid JSON response. Error: ' . json_last_error_msg() . ' | Full response: ' . $response);
                 
                 // HTTP 500 with invalid response - may still be rate limiting, retry with backoff
                 if ($retryCount < $maxRetries) {
