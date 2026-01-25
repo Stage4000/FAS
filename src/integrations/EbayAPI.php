@@ -1,8 +1,9 @@
 <?php
 /**
  * eBay API Integration
- * Handles communication with eBay Inventory, Finding and Shopping APIs
- * Primary: Inventory API (OAuth 2.0) - 2M requests/day
+ * Handles communication with eBay Trading, Inventory, Finding and Shopping APIs
+ * Primary: Trading API GetSellerList (OAuth 2.0) - for fetching seller listings
+ * Alternative: Inventory API (OAuth 2.0) - 2M requests/day for inventory management
  * Legacy: Finding and Shopping APIs - 5K requests/day
  */
 
@@ -21,6 +22,7 @@ class EbayAPI
     private $rateLimitExceeded = false;
     
     // API Endpoints
+    private $tradingApiUrl = 'https://api.ebay.com/ws/api.dll';
     private $inventoryApiUrl = 'https://api.ebay.com/sell/inventory/v1';
     private $findingApiUrl = 'https://svcs.ebay.com/services/search/FindingService/v1';
     private $shoppingApiUrl = 'https://open.api.ebay.com/shopping';
@@ -50,29 +52,26 @@ class EbayAPI
     }
     
     /**
-     * Get items from eBay store using Inventory API
+     * Get items from eBay store using Trading API GetSellerList
      */
     public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100)
     {
         $this->rateLimitExceeded = false; // Reset flag
         
-        // Use Inventory API to get all inventory items
-        $url = $this->inventoryApiUrl . '/inventory_item';
+        // Use Trading API GetSellerList to get seller's active listings
+        $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : $this->tradingApiUrl;
         
-        // Calculate offset for pagination
-        $offset = ($pageNumber - 1) * $entriesPerPage;
+        // Build GetSellerList XML request
+        $xmlRequest = $this->buildGetSellerListRequest($pageNumber, $entriesPerPage);
         
-        // Add pagination parameters
-        $url .= '?limit=' . $entriesPerPage . '&offset=' . $offset;
+        $response = $this->makeTradingApiRequest($url, $xmlRequest);
         
-        $response = $this->makeRequest($url, 0, self::RATE_LIMIT_MAX_RETRIES, true);
-        
-        if ($response && isset($response['inventoryItems'])) {
-            return $this->parseInventoryResponse($response, $pageNumber, $entriesPerPage);
+        if ($response && isset($response['ItemArray']['Item'])) {
+            return $this->parseTradingApiResponse($response, $pageNumber, $entriesPerPage);
         }
         
         // Handle empty response
-        if ($response && !isset($response['inventoryItems'])) {
+        if ($response && isset($response['Ack']) && $response['Ack'] === 'Success') {
             return [
                 'items' => [],
                 'total' => 0,
@@ -81,6 +80,186 @@ class EbayAPI
         }
         
         return null;
+    }
+    
+    /**
+     * Build GetSellerList XML request
+     */
+    private function buildGetSellerListRequest($pageNumber, $entriesPerPage)
+    {
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
+        $xml .= '<GetSellerListRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<RequesterCredentials>';
+        $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
+        $xml .= '</RequesterCredentials>';
+        $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
+        $xml .= '<WarningLevel>High</WarningLevel>';
+        
+        // Pagination
+        $xml .= '<Pagination>';
+        $xml .= '<EntriesPerPage>' . $entriesPerPage . '</EntriesPerPage>';
+        $xml .= '<PageNumber>' . $pageNumber . '</PageNumber>';
+        $xml .= '</Pagination>';
+        
+        // Detail level
+        $xml .= '<DetailLevel>ReturnAll</DetailLevel>';
+        
+        // Include ended listings in the past 30 days if needed
+        // $xml .= '<EndTimeFrom>' . date('c', strtotime('-30 days')) . '</EndTimeFrom>';
+        // $xml .= '<EndTimeTo>' . date('c') . '</EndTimeTo>';
+        
+        // Output selector for specific fields
+        $xml .= '<OutputSelector>ItemID</OutputSelector>';
+        $xml .= '<OutputSelector>Title</OutputSelector>';
+        $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
+        $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
+        $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
+        $xml .= '<OutputSelector>ListingType</OutputSelector>';
+        $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
+        $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
+        
+        $xml .= '</GetSellerListRequest>';
+        
+        return $xml;
+    }
+    
+    /**
+     * Make Trading API request
+     */
+    private function makeTradingApiRequest($url, $xmlRequest, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES)
+    {
+        // Log the request
+        SyncLogger::logRequest($url . ' (Trading API GetSellerList)');
+        SyncLogger::log('Request body (XML): ' . substr($xmlRequest, 0, 500) . '...');
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlRequest);
+        
+        $headers = [
+            'X-EBAY-API-COMPATIBILITY-LEVEL: 967',
+            'X-EBAY-API-CALL-NAME: GetSellerList',
+            'X-EBAY-API-SITEID: ' . $this->siteId,
+            'Content-Type: text/xml;charset=utf-8'
+        ];
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        // Log the response
+        SyncLogger::logResponse($response, $httpCode);
+        
+        if (curl_errno($ch)) {
+            $curlError = curl_error($ch);
+            error_log('eBay Trading API cURL Error: ' . $curlError);
+            SyncLogger::logError('cURL Error: ' . $curlError);
+            curl_close($ch);
+            return null;
+        }
+        
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            // Parse XML response to array
+            $data = $this->parseXmlResponse($response);
+            
+            if (!$data) {
+                error_log('eBay Trading API: Failed to parse XML response');
+                SyncLogger::logError('Failed to parse XML response');
+                return null;
+            }
+            
+            // Check for API errors
+            if (isset($data['Ack']) && ($data['Ack'] === 'Failure' || $data['Ack'] === 'PartialFailure')) {
+                $errorMsg = $data['Errors']['LongMessage'] ?? $data['Errors']['ShortMessage'] ?? 'Unknown error';
+                error_log('eBay Trading API Error: ' . $errorMsg);
+                SyncLogger::logError('Trading API returned error: ' . $errorMsg);
+                
+                // Check for rate limit
+                if (isset($data['Errors']['ErrorCode']) && $data['Errors']['ErrorCode'] == '21919300') {
+                    if ($retryCount < $maxRetries) {
+                        $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
+                        SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
+                        sleep($waitTime);
+                        return $this->makeTradingApiRequest($url, $xmlRequest, $retryCount + 1, $maxRetries);
+                    } else {
+                        $this->rateLimitExceeded = true;
+                    }
+                }
+                
+                return null;
+            }
+            
+            return $data;
+        }
+        
+        error_log('eBay Trading API HTTP Error: ' . $httpCode);
+        SyncLogger::logError('eBay Trading API HTTP Error: ' . $httpCode);
+        return null;
+    }
+    
+    /**
+     * Parse XML response to array
+     */
+    private function parseXmlResponse($xmlString)
+    {
+        try {
+            $xml = simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
+            if ($xml === false) {
+                return null;
+            }
+            $json = json_encode($xml);
+            return json_decode($json, true);
+        } catch (\Exception $e) {
+            error_log('XML parsing error: ' . $e->getMessage());
+            SyncLogger::logError('XML parsing error', $e);
+            return null;
+        }
+    }
+    
+    /**
+     * Parse Trading API response
+     */
+    private function parseTradingApiResponse($response, $pageNumber, $entriesPerPage)
+    {
+        $items = [];
+        
+        // Handle single item (not in array)
+        $itemsData = $response['ItemArray']['Item'] ?? [];
+        if (isset($itemsData['ItemID'])) {
+            // Single item, wrap in array
+            $itemsData = [$itemsData];
+        }
+        
+        foreach ($itemsData as $item) {
+            $items[] = [
+                'id' => $item['ItemID'] ?? '',
+                'title' => $item['Title'] ?? 'Untitled',
+                'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
+                'currency' => 'USD',
+                'image' => $item['PictureDetails']['PictureURL'][0] ?? $item['PictureDetails']['PictureURL'] ?? null,
+                'url' => $item['ViewItemURL'] ?? '',
+                'condition' => $item['ConditionDisplayName'] ?? 'Used',
+                'location' => '',
+                'shipping_cost' => 0,
+            ];
+        }
+        
+        // Get pagination info
+        $totalEntries = (int)($response['PaginationResult']['TotalNumberOfEntries'] ?? count($items));
+        $totalPages = (int)($response['PaginationResult']['TotalNumberOfPages'] ?? 1);
+        
+        return [
+            'items' => $items,
+            'total' => $totalEntries,
+            'pages' => $totalPages
+        ];
     }
     
     /**

@@ -50,9 +50,9 @@ $host = $_SERVER['HTTP_HOST'];
 $callbackUrl = $protocol . '://' . $host . dirname($_SERVER['PHP_SELF']) . '/ebay-oauth-callback.php';
 
 // OAuth scopes for eBay API
-// Use the Inventory API readonly scope for read-only access to inventory
+// Use the general OAuth scope which includes Trading API access
 $scopes = [
-    'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly'
+    'https://api.ebay.com/oauth/api_scope'
 ];
 
 // Build authorization URL with proper encoding
