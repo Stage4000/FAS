@@ -150,16 +150,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculate shipping button
     document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
     
-    // Note: PayPal SDK would be loaded here
-    // <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
+    // Setup PayPal button
+    // Note: In production, load PayPal SDK with: <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
     
-    // For now, show a placeholder
+    // For now, show a demo button that creates order
     document.getElementById('paypal-button-container').innerHTML = `
-        <button type="button" class="btn btn-primary btn-lg w-100" onclick="alert('PayPal integration will be configured with API credentials')">
-            <i class="bi bi-paypal"></i> Pay with PayPal
+        <button type="button" class="btn btn-primary btn-lg w-100" onclick="handleCheckout()">
+            <i class="bi bi-paypal"></i> Complete Order (Demo)
         </button>
+        <small class="text-muted d-block mt-2">Note: Configure PayPal SDK for live payments</small>
     `;
 });
+
+/**
+ * Handle checkout process
+ */
+async function handleCheckout() {
+    const form = document.getElementById('checkout-form');
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Validate shipping is selected
+    if (!selectedShippingRate) {
+        alert('Please calculate and select a shipping method first');
+        return;
+    }
+    
+    // Create order
+    const orderResult = await createOrder();
+    if (!orderResult) {
+        return;
+    }
+    
+    // In a real implementation, this would integrate with PayPal SDK
+    // For demo purposes, we'll simulate payment completion
+    if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
+        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now());
+    }
+}
 
 async function calculateShipping() {
     const form = document.getElementById('checkout-form');
@@ -255,11 +287,7 @@ function displayShippingOptions(rates) {
 function selectShippingMethod(index, cost) {
     selectedShippingRate = { index, cost };
     updateCheckoutSummary();
-}>
-            <i class="bi bi-paypal"></i> Pay with PayPal
-        </button>
-    `;
-});
+}
 
 function displayCheckoutItems() {
     const container = document.getElementById('checkout-items');
@@ -309,6 +337,113 @@ function updateCheckoutSummary() {
     
     document.getElementById('checkout-total').textContent = `$${total.toFixed(2)}`;
 }
+
+/**
+ * Process order creation
+ */
+async function createOrder() {
+    const form = document.getElementById('checkout-form');
+    const cart = window.cart.cart;
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return null;
+    }
+    
+    // Prepare order data
+    const subtotal = window.cart.getTotal();
+    const tax = subtotal * 0.08;
+    const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
+    const total = subtotal + tax + shipping;
+    
+    const orderData = {
+        action: 'create_order',
+        customer_email: form.email.value,
+        customer_name: form.first_name.value + ' ' + form.last_name.value,
+        customer_phone: form.phone.value,
+        shipping_address: {
+            address1: form.address1.value,
+            address2: form.address2.value,
+            city: form.city.value,
+            state: form.state.value,
+            zip: form.zip.value,
+            country: form.country.value
+        },
+        items: cart.map(item => ({
+            product_id: item.id,
+            product_name: item.name,
+            product_sku: item.sku,
+            quantity: item.quantity,
+            unit_price: item.price
+        })),
+        subtotal: subtotal,
+        shipping_cost: shipping,
+        tax_amount: tax,
+        total_amount: total,
+        notes: form.notes.value,
+        paypal_order_id: 'PENDING-' + Date.now() // Will be updated with actual PayPal order ID
+    };
+    
+    try {
+        const response = await fetch('/api/process-order.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create order');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Order creation error:', error);
+        alert('Failed to create order: ' + error.message);
+        return null;
+    }
+}
+
+/**
+ * Complete order after payment
+ */
+async function completeOrder(paypalOrderId, paypalTransactionId) {
+    try {
+        const response = await fetch('/api/process-order.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'complete_order',
+                paypal_order_id: paypalOrderId,
+                paypal_transaction_id: paypalTransactionId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to complete order');
+        }
+        
+        // Clear cart
+        window.cart.clearCart();
+        
+        // Redirect to success page
+        alert('Order completed successfully! Order #' + data.order_number);
+        window.location.href = 'index.php';
+        
+    } catch (error) {
+        console.error('Order completion error:', error);
+        alert('Payment was successful but there was an issue completing your order. Please contact support.');
+    }
+}
+
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

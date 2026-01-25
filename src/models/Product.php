@@ -54,13 +54,13 @@ class Product
     }
     
     /**
-     * Get all products for admin (includes hidden and inactive)
+     * Get all products for admin (includes hidden but excludes deleted)
      */
     public function getAllProducts($page = 1, $perPage = 20, $search = null, $sourceFilter = null)
     {
         $offset = ($page - 1) * $perPage;
         
-        $sql = "SELECT * FROM products WHERE 1=1";
+        $sql = "SELECT * FROM products WHERE is_active = 1";
         $params = [];
         
         if ($search) {
@@ -87,11 +87,11 @@ class Product
     }
     
     /**
-     * Get count of all products for admin
+     * Get count of all products for admin (excludes deleted products)
      */
     public function getCountAll($search = null, $sourceFilter = null)
     {
-        $sql = "SELECT COUNT(*) as total FROM products WHERE 1=1";
+        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1";
         $params = [];
         
         if ($search) {
