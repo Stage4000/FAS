@@ -90,8 +90,9 @@ try {
             break;
         }
         
-        // Small delay to avoid rate limiting
-        sleep(1);
+        // Delay between pages to avoid rate limiting
+        // eBay Finding API allows 5000 calls per day per app
+        sleep(2);
         
     } while (true);
     
