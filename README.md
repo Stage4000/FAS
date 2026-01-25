@@ -123,6 +123,24 @@ crontab -e
 
 See `cron/README.md` for detailed setup instructions.
 
+#### eBay API Rate Limits
+
+eBay enforces rate limits on API calls to prevent abuse:
+- **Finding API**: 5,000 calls per day per App ID
+- If you hit rate limits, the sync will automatically retry with exponential backoff (5, 15, 45 seconds)
+- If rate limits persist, wait 5-10 minutes before trying again
+- Space out your syncs (hourly or every 6 hours recommended, not more frequently)
+
+#### Sync API Key
+
+The **Sync API Key** is a security token that protects the sync endpoint from unauthorized access:
+- **Purpose**: Prevents anyone from triggering product syncs on your site
+- **Default**: `fas_sync_key_2026` 
+- **Location**: Configured in `src/config/config.php` under `security.sync_api_key`
+- **Usage**: Append `?key=YOUR_KEY` when calling `/api/ebay-sync.php`
+- **Best Practice**: Change the default key to a random string for better security
+- **Where to find it**: Admin Panel > Settings > Security Settings > Sync API Key
+
 ## API Integration
 
 ### eBay API ✅

@@ -309,9 +309,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label">Sync API Key</label>
-                                <input type="text" class="form-control" name="sync_api_key" value="<?php echo htmlspecialchars($config['security']['sync_api_key'] ?? 'fas_sync_key_2026'); ?>">
-                                <small class="text-muted">Used for API endpoint authentication</small>
+                                <label class="form-label">
+                                    Sync API Key
+                                    <i class="bi bi-question-circle text-muted" 
+                                       data-bs-toggle="tooltip" 
+                                       title="Security token used to authenticate API sync requests. Change this to a random string for better security."></i>
+                                </label>
+                                <input type="text" class="form-control font-monospace" name="sync_api_key" value="<?php echo htmlspecialchars($config['security']['sync_api_key'] ?? 'fas_sync_key_2026'); ?>">
+                                <small class="text-muted">
+                                    This key is used to protect the sync endpoint from unauthorized access. 
+                                    It's automatically used by the admin panel, but you'll need it if calling the API directly: 
+                                    <code>/api/ebay-sync.php?key=YOUR_KEY</code>
+                                </small>
+                            </div>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-shield-exclamation me-2"></i>
+                                <strong>Security Tip:</strong> Change the default sync key to a long, random string to prevent unauthorized sync requests.
                             </div>
                         </div>
                     </div>
@@ -327,5 +340,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include __DIR__ . '/includes/footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
 </body>
 </html>
