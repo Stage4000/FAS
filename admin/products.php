@@ -235,7 +235,7 @@ if ($action === 'list') {
                                                 <tr>
                                                     <td>
                                                         <?php if ($prod['image_url']): ?>
-                                                            <img src="<?php echo htmlspecialchars($prod['image_url']); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
+                                                            <img src="../<?php echo htmlspecialchars($prod['image_url']); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
                                                         <?php else: ?>
                                                             <div style="width: 50px; height: 50px; background: #eee; display: flex; align-items: center; justify-content: center;">
                                                                 <i class="bi bi-image text-muted"></i>
@@ -420,7 +420,7 @@ if ($action === 'list') {
                                             
                                             <?php if ($product && $product['image_url']): ?>
                                                 <div class="mb-2">
-                                                    <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                                    <img src="../<?php echo htmlspecialchars($product['image_url']); ?>" 
                                                          alt="Current product image" 
                                                          style="max-width: 200px; max-height: 200px; object-fit: cover;"
                                                          class="border rounded">
