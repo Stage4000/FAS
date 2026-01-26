@@ -10,6 +10,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="public/css/style.css">
     
@@ -63,13 +65,15 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat; min-height: 500px;">
-        <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 400px;">
-            <h1 class="display-3 fw-bold mb-4">FLIP AND STRIP</h1>
-            <p class="lead mb-4">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
-            <p class="fs-5 mb-5">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
-            <div>
-                <a href="products.php" class="btn btn-light btn-lg px-5 py-3">Shop Now</a>
+    <section class="hero-section parallax-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat fixed; min-height: 700px;">
+        <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
+            <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
+            <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
+            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
+            <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
+                <a href="products.php" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
+                    <i class="fas fa-search me-2"></i>Shop Now
+                </a>
             </div>
         </div>
     </section>
@@ -77,11 +81,11 @@
     <!-- Featured Categories -->
     <section class="py-5">
         <div class="container">
-            <h2 class="text-center mb-5 fw-bold animate-fade-in">Shop by Category</h2>
+            <h2 class="text-center mb-5 fw-bold" data-aos="fade-up" data-aos-duration="800">Shop by Category</h2>
             <!-- Motorcycle Parts - Full Width -->
             <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card category-card category-card-featured h-100 border-0 shadow-lg animate-scale">
+                <div class="col-12" data-aos="fade-up" data-aos-duration="800">
+                    <div class="card category-card category-card-featured h-100 border-0 shadow-lg">
                         <div class="card-body text-center p-5">
                             <i class="fas fa-motorcycle display-3 text-danger mb-3"></i>
                             <h4 class="card-title fw-bold">Motorcycle Parts</h4>
@@ -93,8 +97,8 @@
             </div>
             <!-- Other Categories -->
             <div class="row g-4">
-                <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-left">
+                <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="100" data-aos-duration="800">
+                    <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-car-side display-4 text-danger mb-3"></i>
                             <h5 class="card-title">ATV/UTV Parts</h5>
@@ -103,8 +107,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-left" style="animation-delay: 0.1s;">
+                <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="200" data-aos-duration="800">
+                    <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-ship display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Boat Parts</h5>
@@ -113,8 +117,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-right" style="animation-delay: 0.2s;">
+                <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="300" data-aos-duration="800">
+                    <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-truck display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Automotive</h5>
@@ -123,8 +127,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card category-card h-100 border-0 shadow-sm animate-slide-right" style="animation-delay: 0.3s;">
+                <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="400" data-aos-duration="800">
+                    <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-gift display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Biker Gifts</h5>
@@ -141,28 +145,28 @@
     <section class="bg-light py-5">
         <div class="container">
             <div class="row g-4 text-center">
-                <div class="col-md-3">
+                <div class="col-md-3" data-aos="zoom-in" data-aos-delay="100" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-shipping-fast display-5 text-danger mb-3"></i>
                     </div>
                     <h5>Fast Shipping</h5>
-                    <p class="text-muted">Quick delivery via EasyShip</p>
+                    <p class="text-muted">Quick and reliable delivery</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3" data-aos="zoom-in" data-aos-delay="200" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-shield-alt display-5 text-danger mb-3"></i>
                     </div>
                     <h5>Quality Parts</h5>
                     <p class="text-muted">Tested & inspected</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3" data-aos="zoom-in" data-aos-delay="300" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-credit-card display-5 text-danger mb-3"></i>
                     </div>
                     <h5>Secure Payment</h5>
                     <p class="text-muted">PayPal checkout</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3" data-aos="zoom-in" data-aos-delay="400" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-headset display-5 text-danger mb-3"></i>
                     </div>
@@ -216,6 +220,15 @@
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS (Animate On Scroll) -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 1000,
+            once: true,
+            offset: 100
+        });
+    </script>
     <!-- Custom JS -->
     <script src="public/js/animations.js"></script>
     <script src="public/js/main.js"></script>

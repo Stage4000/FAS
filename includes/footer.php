@@ -26,7 +26,7 @@
                     <div class="mt-3">
                         <h6 class="small">Secure Payment & Shipping</h6>
                         <p class="text-white-50 small"><i class="fas fa-shield-alt"></i> PayPal Checkout</p>
-                        <p class="text-white-50 small"><i class="fas fa-shipping-fast"></i> EasyShip Delivery</p>
+                        <p class="text-white-50 small"><i class="fas fa-shipping-fast"></i> Fast Delivery</p>
                     </div>
                 </div>
             </div>

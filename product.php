@@ -1,6 +1,11 @@
 <?php
 $pageTitle = 'Product Details';
 require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/src/config/Database.php';
+require_once __DIR__ . '/src/models/Product.php';
+
+use FAS\Config\Database;
+use FAS\Models\Product;
 
 // Get product ID
 $productId = $_GET['id'] ?? null;
@@ -10,29 +15,42 @@ if (!$productId) {
     exit;
 }
 
-// Sample product data (will be replaced with database query)
-$product = [
-    'id' => $productId,
-    'name' => 'Yamaha YZF600R Thundercat Foot Peg Bracket Left Rear',
-    'description' => '<p>YAMAHA YZF600R THUNDERCAT FOOT PEG AND BRACKET REAR LEFT.</p><p>LOW MILES (9300 MI) - USED CONDITION.</p><p><i>PLEASE ALL SEE PICTURES!!!</i></p><p>(JA1 1325FAS YZF23)</p><p>4JH-2741L-03-00 BRACKET</p>',
-    'price' => 23.45,
-    'sku' => '1325 FAS',
-    'condition' => 'Used - Excellent',
-    'quantity' => 1,
-    'weight' => 1.4,
-    'category' => 'Motorcycle Parts',
-    'manufacturer' => 'Yamaha',
-    'model' => 'YZF600R Thundercat',
-    'images' => [
-        'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 1.webp',
-        'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 2.webp',
-        'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 3.webp',
-        'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 4.webp',
-        'gallery/yamaha-foot-peg-bracket-left-rear-yzf600r-parts 5.webp',
-    ]
-];
+// Initialize database and product model
+$db = Database::getInstance()->getConnection();
+$productModel = new Product($db);
 
-$mainImage = $product['images'][0] ?? 'gallery/default.jpg';
+// Get product from database
+$product = $productModel->getById($productId);
+
+if (!$product) {
+    header('Location: products.php');
+    exit;
+}
+
+// Parse images from JSON if available
+$images = [];
+if (!empty($product['images'])) {
+    $images = json_decode($product['images'], true);
+    if (!is_array($images)) {
+        $images = [];
+    }
+}
+
+// Use main image or first from images array
+$mainImage = $product['image_url'] ?? null;
+if (empty($mainImage) && !empty($images)) {
+    $mainImage = $images[0];
+}
+
+// If we have a main image but it's not in the images array, add it
+if ($mainImage && !in_array($mainImage, $images)) {
+    array_unshift($images, $mainImage);
+}
+
+// Fallback to default if no images
+if (empty($mainImage)) {
+    $mainImage = 'gallery/default.jpg';
+}
 ?>
 
 <div class="container my-5">
@@ -63,14 +81,15 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
             </div>
             
             <!-- Thumbnail Gallery -->
-            <?php if (!empty($product['images'])): ?>
+            <?php if (!empty($images) && count($images) > 1): ?>
                 <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap">
-                    <?php foreach ($product['images'] as $index => $image): ?>
+                    <?php foreach ($images as $index => $image): ?>
                         <?php if (file_exists($image)): ?>
                             <img src="<?php echo htmlspecialchars($image); ?>" 
-                                 class="img-thumbnail <?php echo $index === 0 ? 'active' : ''; ?>" 
+                                 class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>" 
                                  data-full="<?php echo htmlspecialchars($image); ?>"
-                                 alt="View <?php echo $index + 1; ?>">
+                                 alt="View <?php echo $index + 1; ?>"
+                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;">
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
@@ -83,7 +102,9 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
             
             <div class="mb-4">
                 <span class="badge bg-success me-2">In Stock</span>
-                <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition']); ?></span>
+                <?php if (!empty($product['condition_name'])): ?>
+                    <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                <?php endif; ?>
             </div>
             
             <div class="product-price display-4 fw-bold text-danger mb-4">
@@ -98,26 +119,36 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
                 <div class="card-body">
                     <h6 class="mb-3">Product Details</h6>
                     <table class="table table-sm table-borderless mb-0">
+                        <?php if (!empty($product['category'])): ?>
                         <tr>
                             <td class="text-muted">Category:</td>
-                            <td><?php echo htmlspecialchars($product['category']); ?></td>
+                            <td><?php echo htmlspecialchars(ucfirst($product['category']) . ($product['category'] === 'gifts' ? '' : ' Parts')); ?></td>
                         </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($product['manufacturer'])): ?>
                         <tr>
                             <td class="text-muted">Manufacturer:</td>
                             <td><?php echo htmlspecialchars($product['manufacturer']); ?></td>
                         </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($product['model'])): ?>
                         <tr>
                             <td class="text-muted">Model:</td>
                             <td><?php echo htmlspecialchars($product['model']); ?></td>
                         </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($product['condition_name'])): ?>
                         <tr>
                             <td class="text-muted">Condition:</td>
-                            <td><?php echo htmlspecialchars($product['condition']); ?></td>
+                            <td><?php echo htmlspecialchars($product['condition_name']); ?></td>
                         </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($product['weight'])): ?>
                         <tr>
                             <td class="text-muted">Weight:</td>
-                            <td><?php echo $product['weight']; ?> lbs</td>
+                            <td><?php echo number_format($product['weight'], 2); ?> lbs</td>
                         </tr>
+                        <?php endif; ?>
                     </table>
                 </div>
             </div>
@@ -126,7 +157,7 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
                 <label class="form-label fw-bold">Quantity:</label>
                 <div class="input-group" style="max-width: 150px;">
                     <button class="btn btn-outline-secondary" type="button" id="decrease-qty">-</button>
-                    <input type="number" class="form-control text-center" value="1" min="1" max="<?php echo $product['quantity']; ?>" id="quantity-input">
+                    <input type="number" class="form-control text-center" value="1" min="1" max="<?php echo intval($product['quantity']); ?>" id="quantity-input">
                     <button class="btn btn-outline-secondary" type="button" id="increase-qty">+</button>
                 </div>
             </div>
@@ -148,7 +179,7 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
             <div class="alert alert-info">
                 <i class="bi bi-truck me-2"></i>
                 <strong>Fast Shipping Available</strong><br>
-                <small>Ships via EasyShip with tracking</small>
+                <small>Ships with tracking</small>
             </div>
             
             <div class="alert alert-secondary">
@@ -173,6 +204,22 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
 </div>
 
 <script>
+// Thumbnail gallery functionality
+document.querySelectorAll('.thumbnail-image').forEach(thumbnail => {
+    thumbnail.addEventListener('click', function() {
+        const fullImageUrl = this.dataset.full;
+        const mainImage = document.getElementById('main-product-image');
+        
+        if (mainImage && fullImageUrl) {
+            mainImage.src = fullImageUrl;
+        }
+        
+        // Update active state
+        document.querySelectorAll('.thumbnail-image').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
 // Quantity controls
 document.getElementById('decrease-qty').addEventListener('click', function() {
     const input = document.getElementById('quantity-input');

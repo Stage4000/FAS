@@ -75,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'model' => $_POST['model'] ?? '',
                         'condition_name' => $_POST['condition_name'] ?? 'New',
                         'weight' => !empty($_POST['weight']) ? floatval($_POST['weight']) : null,
+                        'length' => !empty($_POST['length']) ? floatval($_POST['length']) : null,
+                        'width' => !empty($_POST['width']) ? floatval($_POST['width']) : null,
+                        'height' => !empty($_POST['height']) ? floatval($_POST['height']) : null,
                         'image_url' => $imageUrl,
                         'source' => $_POST['source'] ?? 'manual',
                         'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
@@ -157,12 +160,9 @@ if ($action === 'list') {
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
-    <div class="container-fluid">
-        <div class="row">
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <?php if ($action === 'list'): ?>
-                    <!-- Product List View -->
-                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <?php if ($action === 'list'): ?>
+            <!-- Product List View -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                         <h1 class="h2">Products</h1>
                         <div class="btn-toolbar mb-2 mb-md-0">
                             <a href="?action=create" class="btn btn-primary">
@@ -293,12 +293,11 @@ if ($action === 'list') {
                                     </ul>
                                 </nav>
                             <?php endif; ?>
-                        </div>
                     </div>
 
-                <?php elseif ($action === 'create' || $action === 'edit'): ?>
-                    <!-- Product Form -->
-                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <?php elseif ($action === 'create' || $action === 'edit'): ?>
+            <!-- Product Form -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                         <h1 class="h2"><?php echo $action === 'create' ? 'Add' : 'Edit'; ?> Product</h1>
                         <a href="?action=list" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-1"></i> Back to List
@@ -376,6 +375,36 @@ if ($action === 'list') {
                                                     <label class="form-label">Weight (lbs)</label>
                                                     <input type="number" class="form-control" name="weight" step="0.01" 
                                                            value="<?php echo $product && $product['weight'] ? $product['weight'] : ''; ?>">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Length (inches)</label>
+                                                    <input type="number" class="form-control" name="length" step="0.01" 
+                                                           value="<?php echo $product && $product['length'] ? $product['length'] : ''; ?>"
+                                                           placeholder="Package length">
+                                                    <small class="text-muted">For shipping calculations</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Width (inches)</label>
+                                                    <input type="number" class="form-control" name="width" step="0.01" 
+                                                           value="<?php echo $product && $product['width'] ? $product['width'] : ''; ?>"
+                                                           placeholder="Package width">
+                                                    <small class="text-muted">For shipping calculations</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Height (inches)</label>
+                                                    <input type="number" class="form-control" name="height" step="0.01" 
+                                                           value="<?php echo $product && $product['height'] ? $product['height'] : ''; ?>"
+                                                           placeholder="Package height">
+                                                    <small class="text-muted">For shipping calculations</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -472,10 +501,7 @@ if ($action === 'list') {
                             </form>
                         </div>
                     </div>
-                <?php endif; ?>
-            </main>
-        </div>
-    </div>
+            <?php endif; ?>
 
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1">

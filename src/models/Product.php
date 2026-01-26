@@ -200,8 +200,8 @@ class Product
     {
         $sql = "INSERT INTO products (
             ebay_item_id, sku, name, description, price, sale_price, quantity, category,
-            manufacturer, model, condition_name, weight, image_url, images, ebay_url, source, show_on_website
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
@@ -217,6 +217,9 @@ class Product
             $data['model'] ?? null,
             $data['condition_name'] ?? null,
             $data['weight'] ?? null,
+            $data['length'] ?? null,
+            $data['width'] ?? null,
+            $data['height'] ?? null,
             $data['image_url'] ?? null,
             isset($data['images']) ? json_encode($data['images']) : null,
             $data['ebay_url'] ?? null,
@@ -241,8 +244,8 @@ class Product
         
         $allowedFields = [
             'sku', 'name', 'description', 'price', 'sale_price', 'quantity', 'category',
-            'manufacturer', 'model', 'condition_name', 'weight', 'image_url', 'images', 'ebay_url', 
-            'source', 'show_on_website'
+            'manufacturer', 'model', 'condition_name', 'weight', 'length', 'width', 'height', 
+            'image_url', 'images', 'ebay_url', 'source', 'show_on_website'
         ];
         
         foreach ($allowedFields as $field) {

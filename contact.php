@@ -34,7 +34,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="card-body">
                             <i class="bi bi-truck display-4 text-danger mb-3"></i>
                             <h5>Shipping</h5>
-                            <p class="text-muted">Fast shipping via EasyShip</p>
+                            <p class="text-muted">Fast and reliable shipping</p>
                             <p class="small text-muted mb-0">Domestic & International</p>
                         </div>
                     </div>
