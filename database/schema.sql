@@ -137,9 +137,13 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
     error_message TEXT,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
+    last_sync_timestamp TIMESTAMP NULL,
     INDEX idx_status (status),
     INDEX idx_sync_type (sync_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add last_sync_timestamp column if it doesn't exist
+ALTER TABLE ebay_sync_log ADD COLUMN IF NOT EXISTS last_sync_timestamp TIMESTAMP NULL AFTER completed_at;
 
 -- Admin users table
 CREATE TABLE IF NOT EXISTS admin_users (

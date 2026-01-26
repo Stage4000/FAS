@@ -70,6 +70,7 @@ logs/
 error_log
 access_log
 /var/log/
+log.txt
 
 # ========================================
 # Temporary Files

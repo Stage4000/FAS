@@ -50,12 +50,9 @@ $host = $_SERVER['HTTP_HOST'];
 $callbackUrl = $protocol . '://' . $host . dirname($_SERVER['PHP_SELF']) . '/ebay-oauth-callback.php';
 
 // OAuth scopes for eBay API
-// Use the correct scope URL format for user token (refresh token)
+// Use the general OAuth scope which includes Trading API access
 $scopes = [
-    'https://api.ebay.com/oauth/api_scope',
-    'https://api.ebay.com/oauth/api_scope/sell.inventory',
-    'https://api.ebay.com/oauth/api_scope/sell.marketing',
-    'https://api.ebay.com/oauth/api_scope/sell.account'
+    'https://api.ebay.com/oauth/api_scope'
 ];
 
 // Build authorization URL with proper encoding
