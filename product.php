@@ -122,7 +122,7 @@ if (empty($mainImage)) {
                         <?php if (!empty($product['category'])): ?>
                         <tr>
                             <td class="text-muted">Category:</td>
-                            <td><?php echo htmlspecialchars(ucfirst($product['category'])); ?> Parts</td>
+                            <td><?php echo htmlspecialchars(ucfirst($product['category']) . ($product['category'] === 'gifts' ? '' : ' Parts')); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['manufacturer'])): ?>
