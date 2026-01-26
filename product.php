@@ -148,7 +148,7 @@ $mainImage = $product['images'][0] ?? 'gallery/default.jpg';
             <div class="alert alert-info">
                 <i class="bi bi-truck me-2"></i>
                 <strong>Fast Shipping Available</strong><br>
-                <small>Ships via EasyShip with tracking</small>
+                <small>Ships with tracking</small>
             </div>
             
             <div class="alert alert-secondary">

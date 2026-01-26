@@ -26,7 +26,7 @@ require_once __DIR__ . '/includes/header.php';
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Tested and inspected parts</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Low-mileage components</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Detailed photos and descriptions</li>
-                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Fast shipping via EasyShip with multiple carrier options</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Fast shipping with multiple carrier options</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Secure PayPal checkout</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Direct integration with our eBay store</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Live chat support via Tawk.to</li>

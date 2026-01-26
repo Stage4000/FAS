@@ -146,7 +146,7 @@
                         <i class="fas fa-shipping-fast display-5 text-danger mb-3"></i>
                     </div>
                     <h5>Fast Shipping</h5>
-                    <p class="text-muted">Quick delivery via EasyShip</p>
+                    <p class="text-muted">Quick and reliable delivery</p>
                 </div>
                 <div class="col-md-3">
                     <div class="feature-icon-wrapper">
