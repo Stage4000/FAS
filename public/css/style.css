@@ -73,11 +73,26 @@ html {
 
 /* Hero Section */
 .hero-section {
-    min-height: 500px;
+    min-height: 700px;
     display: flex;
     align-items: center;
     position: relative;
     overflow: hidden;
+}
+
+/* Parallax effect */
+.parallax-section {
+    background-attachment: fixed !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: cover !important;
+}
+
+/* Fallback for mobile devices that don't support fixed backgrounds */
+@media (max-width: 768px) {
+    .parallax-section {
+        background-attachment: scroll !important;
+    }
 }
 
 .hero-section::before {
@@ -89,6 +104,7 @@ html {
     bottom: 0;
     background: inherit;
     animation: subtleZoom 20s ease-in-out infinite alternate;
+    z-index: 0;
 }
 
 @keyframes subtleZoom {
