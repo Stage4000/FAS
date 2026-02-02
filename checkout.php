@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
     
     // Setup PayPal button
-    // Note: In production, load PayPal SDK with: <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
+    // Note: In production, load PayPal SDK with: <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"><\/script>
     
     // For now, show a demo button that creates order
     document.getElementById('paypal-button-container').innerHTML = `
