@@ -10,9 +10,10 @@ class EasyShipAPI
 {
     private $apiKey;
     private $platformName;
-    private $apiUrl = 'https://api.easyship.com/2023-01';
+    private $apiUrl = 'https://public-api.easyship.com/2024-09';
     private $maxRetries = 3;
     private $timeout = 30;
+    private $logFile;
     
     public function __construct($config = null)
     {
@@ -27,6 +28,9 @@ class EasyShipAPI
         $easyshipConfig = $config['easyship'];
         $this->apiKey = $easyshipConfig['api_key'];
         $this->platformName = $easyshipConfig['platform_name'];
+        
+        // Set log file path
+        $this->logFile = __DIR__ . '/../../log.txt';
         
         // Validate configuration
         if (empty($this->apiKey) || strpos($this->apiKey, 'YOUR_') === 0) {
@@ -58,24 +62,37 @@ class EasyShipAPI
         
         try {
             $shipmentData = [
-                'destination_address' => [
-                    'line_1' => substr($destinationAddress['address1'], 0, 255),
-                    'line_2' => isset($destinationAddress['address2']) ? substr($destinationAddress['address2'], 0, 255) : '',
-                    'city' => substr($destinationAddress['city'], 0, 100),
-                    'state' => substr($destinationAddress['state'], 0, 100),
-                    'postal_code' => substr($destinationAddress['zip'], 0, 20),
-                    'country_alpha2' => $this->getCountryCode($destinationAddress['country'])
-                ],
                 'origin_address' => $originAddress,
-                'incoterms' => 'DDU',
+                'destination_address' => [
+                    'country_alpha2' => $this->getCountryCode($destinationAddress['country']),
+                    'line_1' => substr($destinationAddress['address1'], 0, 255),
+                    'state' => substr($destinationAddress['state'], 0, 100),
+                    'city' => substr($destinationAddress['city'], 0, 100),
+                    'postal_code' => substr($destinationAddress['zip'], 0, 20)
+                ],
+                'incoterms' => 'DDP',
                 'insurance' => [
                     'is_insured' => false
                 ],
-                'courier_selection' => [
+                'courier_settings' => [
+                    'show_courier_logo_url' => true,
                     'apply_shipping_rules' => true
                 ],
-                'parcels' => $this->buildParcels($items)
+                'shipping_settings' => [
+                    'units' => [
+                        'weight' => 'lb',
+                        'dimensions' => 'in'
+                    ],
+                    'output_currency' => 'USD'
+                ],
+                'parcels' => $this->buildParcels($items),
+                'calculate_tax_and_duties' => false
             ];
+            
+            // Add line_2 if present
+            if (!empty($destinationAddress['address2'])) {
+                $shipmentData['destination_address']['line_2'] = substr($destinationAddress['address2'], 0, 255);
+            }
             
             $response = $this->makeRequest('POST', '/rates', $shipmentData);
             
@@ -176,17 +193,25 @@ class EasyShipAPI
             $description = substr($item['name'], 0, 255);
             
             $parcels[] = [
-                'total_actual_weight' => (float)$weight,
+                'box' => [
+                    'length' => 10,
+                    'width' => 10,
+                    'height' => 10
+                ],
                 'items' => [
                     [
-                        'description' => $description,
-                        'sku' => $sku,
-                        'actual_weight' => (float)$weight,
+                        'quantity' => (int)$item['quantity'],
+                        'contains_battery_pi966' => false,
+                        'contains_battery_pi967' => false,
+                        'contains_liquids' => false,
+                        'origin_country_alpha2' => 'US',
                         'declared_currency' => 'USD',
-                        'declared_customs_value' => (float)$item['price'],
-                        'quantity' => (int)$item['quantity']
+                        'description' => $description,
+                        'hs_code' => '85171400', // Default HS code for electronics
+                        'declared_customs_value' => (float)$item['price']
                     ]
-                ]
+                ],
+                'total_actual_weight' => (float)$weight
             ];
         }
         
@@ -257,9 +282,8 @@ class EasyShipAPI
         if ($warehouse && is_array($warehouse)) {
             return [
                 'line_1' => $warehouse['address_line1'],
-                'line_2' => $warehouse['address_line2'] ?? '',
-                'city' => $warehouse['city'],
                 'state' => $warehouse['state'],
+                'city' => $warehouse['city'],
                 'postal_code' => $warehouse['postal_code'],
                 'country_alpha2' => $warehouse['country_code'] ?? 'US'
             ];
@@ -277,9 +301,8 @@ class EasyShipAPI
             if ($defaultWarehouse) {
                 return [
                     'line_1' => $defaultWarehouse['address_line1'],
-                    'line_2' => $defaultWarehouse['address_line2'] ?? '',
-                    'city' => $defaultWarehouse['city'],
                     'state' => $defaultWarehouse['state'],
+                    'city' => $defaultWarehouse['city'],
                     'postal_code' => $defaultWarehouse['postal_code'],
                     'country_alpha2' => $defaultWarehouse['country_code'] ?? 'US'
                 ];
@@ -290,10 +313,11 @@ class EasyShipAPI
         
         // Fallback to hardcoded default (for backwards compatibility)
         return [
-            'city' => 'Wesley Chapel',
-            'state' => 'FL',
-            'country_alpha2' => 'US',
-            'postal_code' => '33510'
+            'line_1' => '3430 sw westwood dr',
+            'city' => 'Topeka',
+            'state' => 'KS',
+            'postal_code' => '66614',
+            'country_alpha2' => 'US'
         ];
     }
     
@@ -332,13 +356,15 @@ class EasyShipAPI
                 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, [
                     'Authorization: Bearer ' . $this->apiKey,
-                    'Content-Type: application/json'
+                    'Content-Type: application/json',
+                    'Accept: application/json'
                 ]);
                 
+                $jsonData = null;
                 if ($method === 'POST') {
                     curl_setopt($ch, CURLOPT_POST, true);
                     if ($data !== null) {
-                        $jsonData = json_encode($data);
+                        $jsonData = json_encode($data, JSON_PRETTY_PRINT);
                         if ($jsonData === false) {
                             throw new \Exception('Failed to encode request data as JSON');
                         }
@@ -346,10 +372,27 @@ class EasyShipAPI
                     }
                 }
                 
+                // Log request
+                $this->logToFile("========== EASYSHIP API REQUEST ==========\n");
+                $this->logToFile("Time: " . date('Y-m-d H:i:s') . "\n");
+                $this->logToFile("Method: $method\n");
+                $this->logToFile("URL: $url\n");
+                if ($jsonData) {
+                    $this->logToFile("Payload:\n" . $jsonData . "\n");
+                }
+                
                 $response = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlError = curl_error($ch);
                 curl_close($ch);
+                
+                // Log response
+                $this->logToFile("Response Code: $httpCode\n");
+                if ($curlError) {
+                    $this->logToFile("cURL Error: $curlError\n");
+                }
+                $this->logToFile("Response Body:\n" . $response . "\n");
+                $this->logToFile("=========================================\n\n");
                 
                 if ($curlError) {
                     throw new \Exception('cURL error: ' . $curlError);
@@ -386,12 +429,26 @@ class EasyShipAPI
                     // Exponential backoff: 1s, 2s, 4s
                     sleep(pow(2, $retries - 1));
                     error_log('EasyShip API request retry ' . $retries . '/' . $this->maxRetries . ': ' . $lastError);
+                    $this->logToFile("Retrying request (attempt " . ($retries + 1) . ")...\n\n");
                 } else {
                     error_log('EasyShip API request failed after ' . $this->maxRetries . ' retries: ' . $lastError);
+                    $this->logToFile("Request failed after " . $this->maxRetries . " retries: $lastError\n\n");
                 }
             }
         }
         
         return null;
+    }
+    
+    /**
+     * Log message to log file
+     */
+    private function logToFile($message)
+    {
+        try {
+            file_put_contents($this->logFile, $message, FILE_APPEND | LOCK_EX);
+        } catch (\Exception $e) {
+            error_log('Failed to write to EasyShip log file: ' . $e->getMessage());
+        }
     }
 }
