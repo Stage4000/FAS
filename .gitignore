@@ -4,7 +4,7 @@
 # Protect production config file from updates
 # The initial config.php with defaults is committed,
 # but any local changes should not be overwritten
-src/config/config.php.local
+src/config/config.php
 src/config/config.production.php
 
 # Environment files
@@ -21,6 +21,7 @@ src/config/config.production.php
 database/flipandstrip.db.local
 database/*.backup
 database/backups/
+
 
 # Keep the initial database structure in repo
 # but ignore it if it has been modified locally
