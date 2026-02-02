@@ -37,7 +37,7 @@ class EasyShipAPI
     /**
      * Get shipping rates for cart items with validation
      */
-    public function getShippingRates($items, $destinationAddress)
+    public function getShippingRates($items, $destinationAddress, $originWarehouse = null)
     {
         // Validate inputs
         if (empty($items) || !is_array($items)) {
@@ -53,6 +53,9 @@ class EasyShipAPI
             }
         }
         
+        // Get origin address from warehouse or use default
+        $originAddress = $this->getOriginAddress($originWarehouse);
+        
         try {
             $shipmentData = [
                 'destination_address' => [
@@ -63,10 +66,7 @@ class EasyShipAPI
                     'postal_code' => substr($destinationAddress['zip'], 0, 20),
                     'country_alpha2' => $this->getCountryCode($destinationAddress['country'])
                 ],
-                'origin_address' => [
-                    'country_alpha2' => 'US',
-                    'postal_code' => '33510' // Florida ZIP - should be in config
-                ],
+                'origin_address' => $originAddress,
                 'incoterms' => 'DDU',
                 'insurance' => [
                     'is_insured' => false
@@ -246,6 +246,55 @@ class EasyShipAPI
         }
         
         return "Standard delivery";
+    }
+    
+    /**
+     * Get origin address from warehouse or config
+     */
+    private function getOriginAddress($warehouse = null)
+    {
+        // If warehouse object provided, use it
+        if ($warehouse && is_array($warehouse)) {
+            return [
+                'line_1' => $warehouse['address_line1'],
+                'line_2' => $warehouse['address_line2'] ?? '',
+                'city' => $warehouse['city'],
+                'state' => $warehouse['state'],
+                'postal_code' => $warehouse['postal_code'],
+                'country_alpha2' => $warehouse['country_code'] ?? 'US'
+            ];
+        }
+        
+        // Try to get default warehouse from database
+        try {
+            require_once __DIR__ . '/../config/Database.php';
+            require_once __DIR__ . '/../models/Warehouse.php';
+            
+            $db = \FAS\Config\Database::getInstance()->getConnection();
+            $warehouseModel = new \FAS\Models\Warehouse($db);
+            $defaultWarehouse = $warehouseModel->getDefault();
+            
+            if ($defaultWarehouse) {
+                return [
+                    'line_1' => $defaultWarehouse['address_line1'],
+                    'line_2' => $defaultWarehouse['address_line2'] ?? '',
+                    'city' => $defaultWarehouse['city'],
+                    'state' => $defaultWarehouse['state'],
+                    'postal_code' => $defaultWarehouse['postal_code'],
+                    'country_alpha2' => $defaultWarehouse['country_code'] ?? 'US'
+                ];
+            }
+        } catch (\Exception $e) {
+            error_log('EasyShip: Could not load warehouse from database: ' . $e->getMessage());
+        }
+        
+        // Fallback to hardcoded default (for backwards compatibility)
+        return [
+            'city' => 'Wesley Chapel',
+            'state' => 'FL',
+            'country_alpha2' => 'US',
+            'postal_code' => '33510'
+        ];
     }
     
     /**

@@ -5,8 +5,12 @@
  */
 
 require_once __DIR__ . '/../src/integrations/EasyShipAPI.php';
+require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/models/Warehouse.php';
 
 use FAS\Integrations\EasyShipAPI;
+use FAS\Config\Database;
+use FAS\Models\Warehouse;
 
 header('Content-Type: application/json');
 
@@ -52,7 +56,18 @@ foreach ($requiredAddressFields as $field) {
 try {
     $easyship = new EasyShipAPI();
     
-    $rates = $easyship->getShippingRates($input['items'], $input['address']);
+    // Get optimal warehouse for cart items
+    $warehouse = null;
+    try {
+        $db = Database::getInstance()->getConnection();
+        $warehouseModel = new Warehouse($db);
+        $warehouse = $warehouseModel->getForCartItems($input['items']);
+    } catch (Exception $e) {
+        error_log('Could not load warehouse: ' . $e->getMessage());
+        // Continue with null warehouse (will use default)
+    }
+    
+    $rates = $easyship->getShippingRates($input['items'], $input['address'], $warehouse);
     
     if ($rates === null) {
         http_response_code(500);
