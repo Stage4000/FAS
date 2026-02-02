@@ -101,6 +101,13 @@ class Warehouse
         
         // Get all warehouses for products in cart
         $productIds = array_column($items, 'id');
+        
+        // If no product IDs found in cart items, return default warehouse
+        // This happens when cart items don't have 'id' field (e.g., from frontend)
+        if (empty($productIds)) {
+            return $this->getDefault();
+        }
+        
         $placeholders = str_repeat('?,', count($productIds) - 1) . '?';
         
         $stmt = $this->db->prepare("
