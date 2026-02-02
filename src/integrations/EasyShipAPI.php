@@ -1,7 +1,7 @@
 <?php
 /**
  * EasyShip API Integration
- * Handles shipping rate calculation and label generation
+ * Handles shipping rate calculation and label generation with production-ready error handling
  */
 
 namespace FAS\Integrations;
@@ -11,6 +11,8 @@ class EasyShipAPI
     private $apiKey;
     private $platformName;
     private $apiUrl = 'https://api.easyship.com/2023-01';
+    private $maxRetries = 3;
+    private $timeout = 30;
     
     public function __construct($config = null)
     {
@@ -25,103 +27,161 @@ class EasyShipAPI
         $easyshipConfig = $config['easyship'];
         $this->apiKey = $easyshipConfig['api_key'];
         $this->platformName = $easyshipConfig['platform_name'];
+        
+        // Validate configuration
+        if (empty($this->apiKey) || strpos($this->apiKey, 'YOUR_') === 0) {
+            throw new \Exception('EasyShip API key not configured');
+        }
     }
     
     /**
-     * Get shipping rates for cart items
+     * Get shipping rates for cart items with validation
      */
     public function getShippingRates($items, $destinationAddress)
     {
-        $shipmentData = [
-            'destination_address' => [
-                'line_1' => $destinationAddress['address1'],
-                'line_2' => $destinationAddress['address2'] ?? '',
-                'city' => $destinationAddress['city'],
-                'state' => $destinationAddress['state'],
-                'postal_code' => $destinationAddress['zip'],
-                'country_alpha2' => $this->getCountryCode($destinationAddress['country'])
-            ],
-            'origin_address' => [
-                'country_alpha2' => 'US',
-                'postal_code' => '33510' // Florida ZIP - should be in config
-            ],
-            'incoterms' => 'DDU',
-            'insurance' => [
-                'is_insured' => false
-            ],
-            'courier_selection' => [
-                'apply_shipping_rules' => true
-            ],
-            'parcels' => $this->buildParcels($items)
-        ];
-        
-        $response = $this->makeRequest('POST', '/rates', $shipmentData);
-        
-        if ($response && isset($response['rates'])) {
-            return $this->parseRates($response['rates']);
+        // Validate inputs
+        if (empty($items) || !is_array($items)) {
+            error_log('EasyShip: Invalid items array');
+            return null;
         }
         
-        return null;
+        $requiredFields = ['address1', 'city', 'state', 'zip', 'country'];
+        foreach ($requiredFields as $field) {
+            if (empty($destinationAddress[$field])) {
+                error_log('EasyShip: Missing required address field: ' . $field);
+                return null;
+            }
+        }
+        
+        try {
+            $shipmentData = [
+                'destination_address' => [
+                    'line_1' => substr($destinationAddress['address1'], 0, 255),
+                    'line_2' => isset($destinationAddress['address2']) ? substr($destinationAddress['address2'], 0, 255) : '',
+                    'city' => substr($destinationAddress['city'], 0, 100),
+                    'state' => substr($destinationAddress['state'], 0, 100),
+                    'postal_code' => substr($destinationAddress['zip'], 0, 20),
+                    'country_alpha2' => $this->getCountryCode($destinationAddress['country'])
+                ],
+                'origin_address' => [
+                    'country_alpha2' => 'US',
+                    'postal_code' => '33510' // Florida ZIP - should be in config
+                ],
+                'incoterms' => 'DDU',
+                'insurance' => [
+                    'is_insured' => false
+                ],
+                'courier_selection' => [
+                    'apply_shipping_rules' => true
+                ],
+                'parcels' => $this->buildParcels($items)
+            ];
+            
+            $response = $this->makeRequest('POST', '/rates', $shipmentData);
+            
+            if ($response && isset($response['rates'])) {
+                return $this->parseRates($response['rates']);
+            }
+            
+            error_log('EasyShip: No rates found in response');
+            return null;
+            
+        } catch (\Exception $e) {
+            error_log('EasyShip getShippingRates error: ' . $e->getMessage());
+            return null;
+        }
     }
     
     /**
-     * Create shipment and get label
+     * Create shipment and get label with validation
      */
     public function createShipment($orderId, $items, $shippingAddress, $courierID)
     {
-        $shipmentData = [
-            'platform_name' => $this->platformName,
-            'platform_order_number' => $orderId,
-            'destination_address' => [
-                'line_1' => $shippingAddress['address1'],
-                'line_2' => $shippingAddress['address2'] ?? '',
-                'city' => $shippingAddress['city'],
-                'state' => $shippingAddress['state'],
-                'postal_code' => $shippingAddress['zip'],
-                'country_alpha2' => $this->getCountryCode($shippingAddress['country']),
-                'contact_name' => $shippingAddress['name'],
-                'contact_phone' => $shippingAddress['phone'] ?? '',
-                'contact_email' => $shippingAddress['email']
-            ],
-            'parcels' => $this->buildParcels($items),
-            'selected_courier_id' => $courierID
-        ];
-        
-        $response = $this->makeRequest('POST', '/shipments', $shipmentData);
-        
-        if ($response && isset($response['shipment'])) {
-            return [
-                'success' => true,
-                'shipment_id' => $response['shipment']['easyship_shipment_id'],
-                'tracking_number' => $response['shipment']['tracking_number'] ?? null,
-                'label_url' => $response['shipment']['label_url'] ?? null
-            ];
+        // Validate inputs
+        if (empty($orderId) || empty($items) || empty($shippingAddress) || empty($courierID)) {
+            return ['success' => false, 'error' => 'Missing required parameters'];
         }
         
-        return ['success' => false, 'error' => $response['message'] ?? 'Failed to create shipment'];
+        $requiredAddressFields = ['address1', 'city', 'state', 'zip', 'country', 'name', 'email'];
+        foreach ($requiredAddressFields as $field) {
+            if (empty($shippingAddress[$field])) {
+                return ['success' => false, 'error' => 'Missing required address field: ' . $field];
+            }
+        }
+        
+        try {
+            $shipmentData = [
+                'platform_name' => $this->platformName,
+                'platform_order_number' => (string)$orderId,
+                'destination_address' => [
+                    'line_1' => substr($shippingAddress['address1'], 0, 255),
+                    'line_2' => isset($shippingAddress['address2']) ? substr($shippingAddress['address2'], 0, 255) : '',
+                    'city' => substr($shippingAddress['city'], 0, 100),
+                    'state' => substr($shippingAddress['state'], 0, 100),
+                    'postal_code' => substr($shippingAddress['zip'], 0, 20),
+                    'country_alpha2' => $this->getCountryCode($shippingAddress['country']),
+                    'contact_name' => substr($shippingAddress['name'], 0, 100),
+                    'contact_phone' => isset($shippingAddress['phone']) ? substr($shippingAddress['phone'], 0, 50) : '',
+                    'contact_email' => substr($shippingAddress['email'], 0, 255)
+                ],
+                'parcels' => $this->buildParcels($items),
+                'selected_courier_id' => (string)$courierID
+            ];
+            
+            $response = $this->makeRequest('POST', '/shipments', $shipmentData);
+            
+            if ($response && isset($response['shipment'])) {
+                return [
+                    'success' => true,
+                    'shipment_id' => $response['shipment']['easyship_shipment_id'],
+                    'tracking_number' => $response['shipment']['tracking_number'] ?? null,
+                    'label_url' => $response['shipment']['label_url'] ?? null
+                ];
+            }
+            
+            return ['success' => false, 'error' => $response['message'] ?? 'Failed to create shipment'];
+            
+        } catch (\Exception $e) {
+            error_log('EasyShip createShipment error: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
     
     /**
-     * Build parcels array from cart items
+     * Build parcels array from cart items with validation
      */
     private function buildParcels($items)
     {
         $parcels = [];
         
         foreach ($items as $item) {
+            // Validate item structure
+            if (!isset($item['name']) || !isset($item['price']) || !isset($item['quantity'])) {
+                error_log('EasyShip: Invalid item structure, skipping item');
+                continue;
+            }
+            
+            $weight = isset($item['weight']) && $item['weight'] > 0 ? $item['weight'] : 1.0;
+            $sku = isset($item['sku']) ? substr($item['sku'], 0, 100) : '';
+            $description = substr($item['name'], 0, 255);
+            
             $parcels[] = [
-                'total_actual_weight' => $item['weight'] ?? 1.0,
+                'total_actual_weight' => (float)$weight,
                 'items' => [
                     [
-                        'description' => $item['name'],
-                        'sku' => $item['sku'] ?? '',
-                        'actual_weight' => $item['weight'] ?? 1.0,
+                        'description' => $description,
+                        'sku' => $sku,
+                        'actual_weight' => (float)$weight,
                         'declared_currency' => 'USD',
-                        'declared_customs_value' => $item['price'],
-                        'quantity' => $item['quantity']
+                        'declared_customs_value' => (float)$item['price'],
+                        'quantity' => (int)$item['quantity']
                     ]
                 ]
             ];
+        }
+        
+        if (empty($parcels)) {
+            throw new \Exception('No valid items to ship');
         }
         
         return $parcels;
@@ -196,41 +256,83 @@ class EasyShipAPI
     }
     
     /**
-     * Make HTTP request to EasyShip API
+     * Make HTTP request to EasyShip API with retry logic and improved error handling
      */
     private function makeRequest($method, $endpoint, $data = null)
     {
         $url = $this->apiUrl . $endpoint;
+        $retries = 0;
+        $lastError = null;
         
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $this->apiKey,
-            'Content-Type: application/json'
-        ]);
-        
-        if ($method === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        while ($retries < $this->maxRetries) {
+            try {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Authorization: Bearer ' . $this->apiKey,
+                    'Content-Type: application/json'
+                ]);
+                
+                if ($method === 'POST') {
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    if ($data !== null) {
+                        $jsonData = json_encode($data);
+                        if ($jsonData === false) {
+                            throw new \Exception('Failed to encode request data as JSON');
+                        }
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+                    }
+                }
+                
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
+                curl_close($ch);
+                
+                if ($curlError) {
+                    throw new \Exception('cURL error: ' . $curlError);
+                }
+                
+                $responseData = json_decode($response, true);
+                
+                if ($httpCode >= 200 && $httpCode < 300) {
+                    return $responseData;
+                }
+                
+                // Handle error responses
+                $errorMessage = 'HTTP ' . $httpCode;
+                if ($responseData && isset($responseData['message'])) {
+                    $errorMessage .= ': ' . $responseData['message'];
+                }
+                if ($responseData && isset($responseData['errors'])) {
+                    $errorMessage .= ' - ' . json_encode($responseData['errors']);
+                }
+                
+                // Don't retry on client errors (4xx)
+                if ($httpCode >= 400 && $httpCode < 500) {
+                    error_log('EasyShip API client error: ' . $errorMessage);
+                    return $responseData ?: ['error' => $errorMessage];
+                }
+                
+                throw new \Exception($errorMessage);
+                
+            } catch (\Exception $e) {
+                $lastError = $e->getMessage();
+                $retries++;
+                
+                if ($retries < $this->maxRetries) {
+                    // Exponential backoff: 1s, 2s, 4s
+                    sleep(pow(2, $retries - 1));
+                    error_log('EasyShip API request retry ' . $retries . '/' . $this->maxRetries . ': ' . $lastError);
+                } else {
+                    error_log('EasyShip API request failed after ' . $this->maxRetries . ' retries: ' . $lastError);
+                }
+            }
         }
         
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_errno($ch)) {
-            error_log('EasyShip API Error: ' . curl_error($ch));
-            curl_close($ch);
-            return null;
-        }
-        
-        curl_close($ch);
-        
-        if ($httpCode >= 200 && $httpCode < 300) {
-            return json_decode($response, true);
-        }
-        
-        error_log('EasyShip API HTTP Error: ' . $httpCode . ' - ' . $response);
-        return json_decode($response, true);
+        return null;
     }
 }
