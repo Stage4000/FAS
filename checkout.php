@@ -1,4 +1,7 @@
 <?php
+// Ensure proper content type (must be first)
+header('Content-Type: text/html; charset=UTF-8');
+
 $pageTitle = 'Checkout';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -141,7 +144,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<script>
+<script type="text/javascript">
 let selectedShippingRate = null;
 
 document.addEventListener('DOMContentLoaded', function() {
