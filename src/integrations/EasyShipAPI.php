@@ -154,6 +154,10 @@ class EasyShipAPI
     {
         $parcels = [];
         
+        // Default weight in lbs - should be configured or come from product data
+        // This is a fallback value when product weight is not specified
+        $defaultWeight = 1.0;
+        
         foreach ($items as $item) {
             // Validate item structure
             if (!isset($item['name']) || !isset($item['price']) || !isset($item['quantity'])) {
@@ -161,7 +165,13 @@ class EasyShipAPI
                 continue;
             }
             
-            $weight = isset($item['weight']) && $item['weight'] > 0 ? $item['weight'] : 1.0;
+            // Use product weight if available, otherwise use default
+            // Note: In production, all products should have weight specified
+            $weight = isset($item['weight']) && $item['weight'] > 0 ? $item['weight'] : $defaultWeight;
+            if (!isset($item['weight']) || $item['weight'] <= 0) {
+                error_log("EasyShip: Using default weight ({$defaultWeight} lbs) for item: {$item['name']}");
+            }
+            
             $sku = isset($item['sku']) ? substr($item['sku'], 0, 100) : '';
             $description = substr($item['name'], 0, 255);
             

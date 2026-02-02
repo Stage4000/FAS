@@ -18,8 +18,16 @@ use FAS\Integrations\PayPalAPI;
 $rawInput = file_get_contents('php://input');
 $webhookData = json_decode($rawInput, true);
 
-// Log webhook for debugging
-error_log('PayPal Webhook received: ' . substr($rawInput, 0, 500)); // Log first 500 chars
+// Log webhook metadata only (not sensitive payment data)
+if ($webhookData && isset($webhookData['event_type'])) {
+    $orderId = 'unknown';
+    if (isset($webhookData['resource']['id'])) {
+        $orderId = substr($webhookData['resource']['id'], 0, 20); // Truncate for safety
+    } elseif (isset($webhookData['resource']['supplementary_data']['related_ids']['order_id'])) {
+        $orderId = substr($webhookData['resource']['supplementary_data']['related_ids']['order_id'], 0, 20);
+    }
+    error_log('PayPal Webhook: event=' . $webhookData['event_type'] . ' order=' . $orderId);
+}
 
 // Verify it's a valid PayPal webhook
 if (!$webhookData || !isset($webhookData['event_type'])) {
@@ -107,17 +115,22 @@ function handlePaymentCompleted($webhookData)
                 'paypal_transaction_id' => $resource['id'] ?? null
             ]);
             
-            // Deduct inventory for this order
-            $items = $orderModel->getItems($existingOrder['id']);
-            foreach ($items as $item) {
-                $product = $productModel->getById($item['product_id'], true);
-                if ($product && $product['quantity'] >= $item['quantity']) {
-                    $newQuantity = $product['quantity'] - $item['quantity'];
-                    $productModel->update($item['product_id'], ['quantity' => $newQuantity]);
-                    error_log("Deducted {$item['quantity']} units from product #{$item['product_id']} for order #{$existingOrder['order_number']}");
-                } else {
-                    error_log("Warning: Could not deduct inventory for product #{$item['product_id']} in order #{$existingOrder['order_number']}");
+            // Deduct inventory for this order only if not already deducted
+            // Check if inventory was already deducted (order status would be 'processing' or higher)
+            if ($existingOrder['order_status'] === 'pending') {
+                $items = $orderModel->getItems($existingOrder['id']);
+                foreach ($items as $item) {
+                    $product = $productModel->getById($item['product_id'], true);
+                    if ($product && $product['quantity'] >= $item['quantity']) {
+                        $newQuantity = $product['quantity'] - $item['quantity'];
+                        $productModel->update($item['product_id'], ['quantity' => $newQuantity]);
+                        error_log("Deducted {$item['quantity']} units from product #{$item['product_id']} for order #{$existingOrder['order_number']}");
+                    } else {
+                        error_log("Warning: Could not deduct inventory for product #{$item['product_id']} in order #{$existingOrder['order_number']}");
+                    }
                 }
+            } else {
+                error_log('PayPal webhook: Inventory already deducted for order #' . $existingOrder['order_number'] . ', skipping');
             }
             
             error_log('PayPal webhook: Updated existing order #' . $existingOrder['order_number']);

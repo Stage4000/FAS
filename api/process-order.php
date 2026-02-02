@@ -247,15 +247,14 @@ function completeOrder($input, $orderModel, $productModel)
         'paypal_transaction_id' => $paypalTransactionId
     ]);
     
-    // Deduct product quantities
+    // Deduct product quantities (inventory was already verified above)
     foreach ($items as $item) {
         $product = $productModel->getById($item['product_id'], true);
-        if ($product && $product['quantity'] >= $item['quantity']) {
+        // Product and quantity already validated above, proceed with deduction
+        if ($product) {
             $newQuantity = $product['quantity'] - $item['quantity'];
             $productModel->update($item['product_id'], ['quantity' => $newQuantity]);
             error_log("Deducted {$item['quantity']} units from product #{$item['product_id']}. New quantity: {$newQuantity}");
-        } else {
-            error_log("Warning: Could not deduct inventory for product #{$item['product_id']}");
         }
     }
     

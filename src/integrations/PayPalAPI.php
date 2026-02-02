@@ -247,13 +247,15 @@ class PayPalAPI
     
     /**
      * Verify webhook signature for security
+     * Note: This is a placeholder. For production use, implement proper verification.
      */
     public function verifyWebhookSignature($headers, $body)
     {
-        // In production, you should implement proper webhook verification using PayPal's SDK
-        // This requires:
-        // 1. PayPal webhook ID from your PayPal dashboard
-        // 2. The verification endpoint: POST /v1/notifications/verify-webhook-signature
+        // IMPORTANT: This method requires proper implementation for production use
+        // To implement webhook verification:
+        // 1. Get your webhook ID from PayPal Developer Dashboard
+        // 2. Store it in your config
+        // 3. Use PayPal's verification API endpoint
         
         $transmissionId = $headers['Paypal-Transmission-Id'] ?? $headers['paypal-transmission-id'] ?? null;
         $transmissionTime = $headers['Paypal-Transmission-Time'] ?? $headers['paypal-transmission-time'] ?? null;
@@ -266,21 +268,37 @@ class PayPalAPI
             return false;
         }
         
-        // For production, use PayPal SDK to verify:
-        // $accessToken = $this->getAccessToken();
-        // $verificationData = [
-        //     'transmission_id' => $transmissionId,
-        //     'transmission_time' => $transmissionTime,
-        //     'cert_url' => $certUrl,
-        //     'auth_algo' => $authAlgo,
-        //     'transmission_sig' => $transmissionSig,
-        //     'webhook_id' => 'YOUR_WEBHOOK_ID',
-        //     'webhook_event' => json_decode($body, true)
-        // ];
-        // $result = $this->makeRequest('POST', '/v1/notifications/verify-webhook-signature', $verificationData);
-        // return isset($result['verification_status']) && $result['verification_status'] === 'SUCCESS';
+        // TODO: Implement proper verification using PayPal SDK
+        // Example implementation (requires webhook_id in config):
+        /*
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            return false;
+        }
         
-        // For now, basic validation
+        $webhookId = $this->config['paypal']['webhook_id'] ?? null;
+        if (!$webhookId) {
+            error_log('PayPal webhook ID not configured');
+            return false;
+        }
+        
+        $verificationData = [
+            'transmission_id' => $transmissionId,
+            'transmission_time' => $transmissionTime,
+            'cert_url' => $certUrl,
+            'auth_algo' => $authAlgo,
+            'transmission_sig' => $transmissionSig,
+            'webhook_id' => $webhookId,
+            'webhook_event' => json_decode($body, true)
+        ];
+        
+        $result = $this->makeRequest('POST', '/v1/notifications/verify-webhook-signature', $verificationData);
+        return isset($result['verification_status']) && $result['verification_status'] === 'SUCCESS';
+        */
+        
+        // WARNING: Returning true without verification is UNSAFE for production
+        // In a production environment, either implement the above or reject unverified webhooks
+        error_log('PayPal webhook: Signature verification not implemented - accepting webhook (UNSAFE)');
         return true;
     }
     
