@@ -1,9 +1,8 @@
 <?php
-$pageTitle = 'Checkout';
-
-// Ensure proper content type
+// Ensure proper content type (must be first)
 header('Content-Type: text/html; charset=UTF-8');
 
+$pageTitle = 'Checkout';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
