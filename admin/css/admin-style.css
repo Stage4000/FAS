@@ -218,6 +218,9 @@ body {
 /* Alert */
 .alert {
     border-radius: var(--admin-border-radius);
+}
+
+[data-theme="dark"] .alert {
     background-color: var(--admin-card-bg);
     border: 1px solid var(--admin-border);
 }
