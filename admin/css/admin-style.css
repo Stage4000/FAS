@@ -19,7 +19,7 @@
 [data-theme="dark"] {
     --admin-bg: #1a1a1a;
     --admin-text: #e0e0e0;
-    --admin-card-bg: #2a2a2a;  /* Changed to differentiate from body */
+    --admin-card-bg: #2d2d2d;  /* Lighter for better contrast from body */
     --admin-border: #404040;
 }
 
@@ -191,6 +191,15 @@ body {
     border-color: var(--admin-border);
 }
 
+/* Override Bootstrap's .table-light in dark mode */
+[data-theme="dark"] .table-light,
+[data-theme="dark"] .table-light > th,
+[data-theme="dark"] .table-light > td {
+    background-color: #333333 !important;
+    color: var(--admin-text) !important;
+    border-color: var(--admin-border) !important;
+}
+
 /* Stats card colors */
 .text-primary {
     color: var(--admin-primary) !important;
@@ -210,6 +219,12 @@ body {
 
 .card {
     animation: fadeInUp 0.5s ease-out;
+}
+
+/* Add border to cards in dark mode for better distinction */
+[data-theme="dark"] .card {
+    border: 1px solid var(--admin-border) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Theme toggle for admin */
