@@ -973,8 +973,9 @@ footer a:hover {
     background-clip: text;
 }
 
-/* Enhanced shadow on hover for cards */
-.card:hover {
+/* Enhanced shadow on hover for specific cards */
+.product-card.card:hover,
+.category-card.card:hover {
     box-shadow: 0 15px 40px rgba(219, 3, 53, 0.15) !important;
 }
 
@@ -994,12 +995,6 @@ footer a:hover {
     .gallery-image:hover {
         transform: scale(1.02);
     }
-}
-
-/* Link underline animation */
-a:not(.btn):not(.nav-link):not(.dropdown-item) {
-    position: relative;
-    text-decoration: none;
 }
 
 /* Improved focus states for accessibility */
