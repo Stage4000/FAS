@@ -231,27 +231,40 @@ class EasyShipAPI
         $parsed = [];
         
         foreach ($rates as $rate) {
-            // Handle 2024-09 API format
-            if (isset($rate['courier']) && is_array($rate['courier'])) {
-                $courier = $rate['courier'];
-                $courierId = $courier['id'] ?? $courier['slug'] ?? 'unknown';
-                $courierName = $courier['name'] ?? 'Unknown Courier';
+            // Handle 2024-09 API format with courier_service object
+            if (isset($rate['courier_service']) && is_array($rate['courier_service'])) {
+                $courierService = $rate['courier_service'];
+                $courierId = $courierService['id'] ?? $courierService['courier_id'] ?? 'unknown';
+                $courierName = $courierService['name'] ?? 'Unknown Courier';
                 
+                // Calculate total charge from various fee components
+                $totalCharge = 0.0;
+                $totalCharge += floatval($rate['shipment_charge'] ?? 0);
+                $totalCharge += floatval($rate['fuel_surcharge'] ?? 0);
+                $totalCharge += floatval($rate['additional_services_surcharge'] ?? 0);
+                $totalCharge += floatval($rate['insurance_fee'] ?? 0);
+                $totalCharge += floatval($rate['import_tax_charge'] ?? 0);
+                $totalCharge += floatval($rate['import_duty_charge'] ?? 0);
+                $totalCharge += floatval($rate['ddp_handling_fee'] ?? 0);
+                
+                // Use shipment_charge_total if available, otherwise use calculated total
                 if (isset($rate['shipment_charge_total'])) {
-                    $parsed[] = [
-                        'courier_id' => $courierId,
-                        'courier_name' => $courierName,
-                        'service_name' => $rate['courier_display_name'] ?? $courierName,
-                        'total_charge' => floatval($rate['shipment_charge_total']),
-                        'currency' => $rate['currency'] ?? 'USD',
-                        'min_delivery_time' => $rate['min_delivery_time'] ?? null,
-                        'max_delivery_time' => $rate['max_delivery_time'] ?? null,
-                        'delivery_time_text' => $this->formatDeliveryTime($rate)
-                    ];
+                    $totalCharge = floatval($rate['shipment_charge_total']);
                 }
+                
+                $parsed[] = [
+                    'courier_id' => $courierId,
+                    'courier_name' => $courierName,
+                    'service_name' => $courierService['name'] ?? $courierName,
+                    'total_charge' => $totalCharge,
+                    'currency' => $rate['currency'] ?? 'USD',
+                    'min_delivery_time' => $rate['min_delivery_time'] ?? null,
+                    'max_delivery_time' => $rate['max_delivery_time'] ?? null,
+                    'delivery_time_text' => $this->formatDeliveryTime($rate)
+                ];
             } else {
                 // Log unexpected format for debugging
-                error_log('EasyShip: Unexpected rate format: ' . json_encode($rate));
+                error_log('EasyShip: Unexpected rate format - missing courier_service: ' . json_encode($rate));
             }
         }
         
