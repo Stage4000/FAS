@@ -252,14 +252,13 @@ class EasyShipAPI
                 }
             }
             // Handle 2023-01 API format (legacy support)
-            elseif (isset($rate['available_handover_options']) && is_array($rate['available_handover_options'])) {
-                $courierId = $rate['courier_id'] ?? 'unknown';
+            elseif (isset($rate['courier_id']) && isset($rate['available_handover_options']) && is_array($rate['available_handover_options'])) {
+                $courierId = $rate['courier_id'];
                 $courierName = $rate['courier_name'] ?? 'Unknown Courier';
                 
                 foreach ($rate['available_handover_options'] as $option) {
-                    // Validate that $option is an array
+                    // Only process array elements (valid options)
                     if (!is_array($option)) {
-                        error_log('EasyShip: Skipping non-array option in available_handover_options');
                         continue;
                     }
                     
