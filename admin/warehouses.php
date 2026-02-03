@@ -119,13 +119,15 @@ if ($action === 'list') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse Management - Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
     <h1 class="mb-4">
-        <i class="bi bi-building me-2"></i>Warehouse Management
+        <i class="fas fa-warehouse me-2"></i>Warehouse Management
     </h1>
     
     <?php if ($success): ?>
@@ -148,14 +150,14 @@ if ($action === 'list') {
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Warehouses</h5>
                     <a href="?action=create" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-1"></i>Add Warehouse
+                        <i class="fas fa-plus-circle me-1"></i>Add Warehouse
                     </a>
                 </div>
             </div>
             <div class="card-body p-0">
                 <?php if (empty($warehouses)): ?>
                     <div class="p-4 text-center text-muted">
-                        <i class="bi bi-inbox display-1"></i>
+                        <i class="fas fa-warehouse display-1"></i>
                         <p class="mt-3">No warehouses found. Add your first warehouse to get started.</p>
                     </div>
                 <?php else: ?>
@@ -191,10 +193,10 @@ if ($action === 'list') {
                                         </td>
                                         <td>
                                             <?php if ($wh['phone']): ?>
-                                                <i class="bi bi-telephone me-1"></i><?php echo htmlspecialchars($wh['phone']); ?><br>
+                                                <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($wh['phone']); ?><br>
                                             <?php endif; ?>
                                             <?php if ($wh['email']): ?>
-                                                <i class="bi bi-envelope me-1"></i><?php echo htmlspecialchars($wh['email']); ?>
+                                                <i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($wh['email']); ?>
                                             <?php endif; ?>
                                             <?php if (!$wh['phone'] && !$wh['email']): ?>
                                                 <span class="text-muted">-</span>
@@ -210,26 +212,26 @@ if ($action === 'list') {
                                         <td>
                                             <div class="btn-group btn-group-sm">
                                                 <a href="?action=edit&id=<?php echo $wh['id']; ?>" class="btn btn-outline-primary">
-                                                    <i class="bi bi-pencil"></i>
+                                                    <i class="fas fa-edit"></i>
                                                 </a>
                                                 <?php if (!$wh['is_default']): ?>
                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Set this warehouse as default?');">
                                                         <input type="hidden" name="action" value="set_default">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">
                                                         <button type="submit" class="btn btn-outline-secondary" title="Set as Default">
-                                                            <i class="bi bi-star"></i>
+                                                            <i class="far fa-star"></i>
                                                         </button>
                                                     </form>
                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this warehouse? Products assigned to it will be set to no warehouse.');">
                                                         <input type="hidden" name="action" value="delete">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">
                                                         <button type="submit" class="btn btn-outline-danger">
-                                                            <i class="bi bi-trash"></i>
+                                                            <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
                                                 <?php else: ?>
                                                     <button type="button" class="btn btn-outline-secondary" disabled title="Cannot delete default warehouse">
-                                                        <i class="bi bi-star-fill"></i>
+                                                        <i class="fas fa-star"></i>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -346,14 +348,14 @@ if ($action === 'list') {
                     </div>
                     
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
+                        <i class="fas fa-circle-info me-2"></i>
                         <strong>Note:</strong> City and state are required by EasyShip for accurate shipping rate calculations. 
                         Products without an assigned warehouse will use the default warehouse for shipping calculations.
                     </div>
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-1"></i>Save Warehouse
+                            <i class="fas fa-check-circle me-1"></i>Save Warehouse
                         </button>
                         <a href="warehouses.php" class="btn btn-secondary">Cancel</a>
                     </div>
@@ -364,6 +366,8 @@ if ($action === 'list') {
     
     </div>
     </div>
+    
+    <?php include __DIR__ . '/includes/footer.php'; ?>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>

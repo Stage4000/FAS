@@ -10,6 +10,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- AOS (Animate On Scroll) -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
@@ -22,11 +26,11 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php">
-                <img src="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip" height="40" class="d-inline-block align-text-top me-2">
+            <a class="navbar-brand fw-bold" href="index.php" aria-label="Flip and Strip Home">
+                <img src="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
                 FLIP AND STRIP
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -35,7 +39,7 @@
                         <a class="nav-link active" href="index.php">Home</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Shop by Category
                         </a>
                         <ul class="dropdown-menu">
@@ -59,13 +63,18 @@
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section parallax-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat fixed; min-height: 700px;">
+    <section class="hero-section parallax-section py-5">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
@@ -100,9 +109,9 @@
                 <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="100" data-aos-duration="800">
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
-                            <i class="fas fa-car-side display-4 text-danger mb-3"></i>
+                            <i class="fas fa-truck display-4 text-danger mb-3"></i>
                             <h5 class="card-title">ATV/UTV Parts</h5>
-                            <p class="card-text text-muted">Honda, Yamaha, Kawasaki, Suzuki ATVs & UTVs</p>
+                            <p class="card-text text-muted">ATV & UTV parts</p>
                             <a href="products.php?category=atv" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
@@ -120,8 +129,8 @@
                 <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="300" data-aos-duration="800">
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
-                            <i class="fas fa-truck display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Automotive</h5>
+                            <i class="fas fa-car-side display-4 text-danger mb-3"></i>
+                            <h5 class="card-title">Automotive Parts</h5>
                             <p class="card-text text-muted">Auto & Truck Parts</p>
                             <a href="products.php?category=automotive" class="btn btn-outline-danger">Browse</a>
                         </div>
@@ -232,5 +241,13 @@
     <!-- Custom JS -->
     <script src="public/js/animations.js"></script>
     <script src="public/js/main.js"></script>
+    
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
+        <i class="fas fa-moon"></i>
+    </button>
+    
+    <!-- Theme Toggle Script -->
+    <script src="public/js/theme-toggle.js"></script>
 </body>
 </html>

@@ -6,9 +6,9 @@ require_once __DIR__ . '/includes/header.php';
 <div class="container my-5">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <h1 class="mb-4 fw-bold text-center">About Flip and Strip</h1>
+            <h1 class="mb-4 fw-bold text-center" data-aos="fade-down">About Flip and Strip</h1>
             
-            <div class="card border-0 shadow-sm mb-4">
+            <div class="card border-0 shadow-sm mb-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="card-body p-5">
                     <h3 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h3>
                     <p class="lead">
@@ -57,11 +57,11 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             
-            <div class="text-center">
+            <div class="text-center" data-aos="fade-up" data-aos-delay="200">
                 <h3 class="mb-4">Ready to Find Your Parts?</h3>
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="products.php" class="btn btn-danger btn-lg">Browse Products</a>
-                    <a href="contact.php" class="btn btn-outline-dark btn-lg">Contact Us</a>
+                    <a href="contact.php" class="btn btn-danger btn-lg">Contact Us</a>
                 </div>
             </div>
         </div>

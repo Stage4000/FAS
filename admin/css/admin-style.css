@@ -1,0 +1,409 @@
+/* Admin Area Custom Styles */
+
+:root {
+    --admin-primary: #db0335;
+    --admin-dark: #242629;
+    --admin-light: #f8f8f8;
+    --admin-success: #28a745;
+    --admin-border-radius: 1em;
+    --admin-transition: all 0.3s ease;
+    
+    /* Light mode */
+    --admin-bg: #f8f9fa;
+    --admin-text: #333333;
+    --admin-card-bg: #ffffff;
+    --admin-border: #e0e0e0;
+}
+
+/* Dark mode for admin */
+[data-theme="dark"] {
+    --admin-bg: #1a1a1a;  /* rgb(26,26,26) - body background */
+    --admin-text: #e0e0e0;
+    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - card background for better contrast */
+    --admin-border: #404040;
+}
+
+body {
+    background-color: var(--admin-bg) !important;
+    color: var(--admin-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Placeholder text visibility in dark mode */
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .form-select::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: #999 !important;
+    opacity: 1;
+}
+
+/* Navbar styling with red theme */
+.navbar {
+    background-color: var(--admin-dark) !important;
+}
+
+.navbar-brand {
+    color: white !important;
+    font-weight: 600;
+    transition: var(--admin-transition);
+}
+
+.navbar-brand:hover {
+    color: var(--admin-primary) !important;
+    transform: translateY(-2px);
+}
+
+/* Admin navbar theme toggle */
+#navbarThemeToggle {
+    color: white !important;
+    text-decoration: none !important;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+}
+
+#navbarThemeToggle:hover {
+    color: var(--admin-primary) !important;
+}
+
+/* Sidebar */
+.list-group-item {
+    border-radius: 1em;
+    margin-bottom: 0.5rem;
+    transition: var(--admin-transition);
+    border: 1px solid var(--admin-border);
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+}
+
+.list-group-item:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+    transform: translateX(5px);
+}
+
+.list-group-item.active {
+    background-color: var(--admin-primary) !important;
+    border-color: var(--admin-primary) !important;
+    color: white !important;
+}
+
+.list-group-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Cards */
+.card {
+    border-radius: var(--admin-border-radius);
+    border: 1px solid var(--admin-border);
+    transition: var(--admin-transition);
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+}
+
+/* Enhanced shadow for dark mode */
+[data-theme="dark"] .card {
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.card-header {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.card-body {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+}
+
+.card-footer {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-top: 1px solid var(--admin-border);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.25);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.4);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 1em;
+    transition: var(--admin-transition);
+}
+
+.btn-primary {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+}
+
+.btn-primary:hover {
+    background-color: #c10230;
+    border-color: #c10230;
+    transform: translateY(-2px);
+}
+
+.btn-outline-danger {
+    color: var(--admin-primary);
+    border-color: var(--admin-primary);
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+}
+
+/* Forms */
+.form-control,
+.form-select {
+    border-radius: 1em;
+    border: 2px solid var(--admin-border);
+    transition: var(--admin-transition);
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.15);
+    background-color: var(--admin-card-bg);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: #333;
+    color: var(--admin-text);
+}
+
+/* Tables */
+.table {
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .table {
+    --bs-table-bg: var(--admin-card-bg);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+    --bs-table-color: var(--admin-text);
+}
+
+[data-theme="dark"] .table thead {
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+}
+
+[data-theme="dark"] .table tbody {
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td {
+    color: var(--admin-text) !important;
+    border-color: var(--admin-border);
+}
+
+/* Override Bootstrap's .table-light CSS variables in dark mode */
+[data-theme="dark"] .table-light {
+    --bs-table-color: #e0e0e0 !important;
+    --bs-table-bg: #333333 !important;
+    --bs-table-border-color: #404040 !important;
+    --bs-table-striped-bg: #3a3a3a !important;
+    --bs-table-striped-color: #e0e0e0 !important;
+    --bs-table-active-bg: #404040 !important;
+    --bs-table-active-color: #e0e0e0 !important;
+    --bs-table-hover-bg: #3a3a3a !important;
+    --bs-table-hover-color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table-light > th,
+[data-theme="dark"] .table-light > td {
+    color: var(--admin-text) !important;
+    border-color: var(--admin-border) !important;
+}
+
+/* Stats card colors */
+.text-primary {
+    color: var(--admin-primary) !important;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Add border to cards in dark mode for better distinction */
+[data-theme="dark"] .card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Theme toggle for admin - HIDDEN (navbar toggle only) */
+.theme-toggle {
+    display: none !important;
+}
+
+/* Alert */
+.alert {
+    border-radius: 1em;
+}
+
+[data-theme="dark"] .alert {
+    background-color: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+}
+
+[data-theme="dark"] .alert-success {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: rgba(40, 167, 69, 0.4);
+    color: #7fda89;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(219, 3, 53, 0.2);
+    border-color: rgba(219, 3, 53, 0.4);
+    color: #ff6b8a;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(13, 110, 253, 0.2);
+    border-color: rgba(13, 110, 253, 0.4);
+    color: #7db3ff;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #ffd454;
+}
+
+/* Badge */
+.badge {
+    border-radius: 1em;
+}
+
+/* Modal */
+[data-theme="dark"] .modal-content {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+    border-radius: 1em;
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    border-color: var(--admin-border);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Additional dark mode elements */
+[data-theme="dark"] .bg-white {
+    background-color: var(--admin-card-bg) !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--admin-card-bg) !important;
+}
+
+[data-theme="dark"] .border-bottom {
+    border-bottom-color: var(--admin-border) !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #aaa !important;
+}
+
+[data-theme="dark"] .list-group-item {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border);
+    color: var(--admin-text);
+}
+
+/* Dropdown menus */
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .dropdown-divider {
+    border-top-color: var(--admin-border);
+}
+
+/* Card shadows in dark mode */
+[data-theme="dark"] .card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.25);
+}
+
+/* Page header in dark mode */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: var(--admin-text);
+}
+
+/* Badge colors in dark mode */
+[data-theme="dark"] .badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+[data-theme="dark"] .badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+[data-theme="dark"] .badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+[data-theme="dark"] .badge.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Input group styling in dark mode */
+[data-theme="dark"] .input-group-text {
+    background-color: #333;
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+}

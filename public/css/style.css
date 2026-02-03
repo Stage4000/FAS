@@ -5,9 +5,30 @@
     --dark-color: #242629;
     --light-color: #f8f8f8;
     --success-color: #28a745;
-    --border-radius: 8px;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --border-radius-lg: 16px;
     --box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     --transition: all 0.3s ease;
+    
+    /* Light mode (default) */
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --card-bg: #ffffff;
+    --border-color: #e0e0e0;
+    --navbar-bg: #242629;
+    --navbar-text: #ffffff;
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --card-bg: #2d2d2d;
+    --border-color: #404040;
+    --navbar-bg: #000000;
+    --navbar-text: #ffffff;
+    --light-color: #2d2d2d;
 }
 
 * {
@@ -15,8 +36,56 @@
 }
 
 body {
-    color: #333;
+    color: var(--text-color);
     line-height: 1.6;
+    background-color: var(--bg-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Card backgrounds for dark mode */
+[data-theme="dark"] .card {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #999 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .form-select::placeholder {
+    color: #999 !important;
+    opacity: 1;
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+}
+
+/* Theme toggle button - HIDDEN (navbar toggle only) */
+.theme-toggle {
+    display: none !important;
 }
 
 /* Smooth Scrolling */
@@ -29,6 +98,8 @@ html {
     font-size: 1.5rem;
     letter-spacing: 1px;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
 }
 
 .navbar-brand:hover {
@@ -51,6 +122,24 @@ html {
     position: relative;
 }
 
+/* Navbar theme toggle button */
+#navbarThemeToggle {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.5rem 1rem;
+    font-size: 1.1rem;
+    border: none !important;
+    background: none !important;
+    text-decoration: none !important;
+}
+
+#navbarThemeToggle:hover {
+    color: var(--primary-color) !important;
+}
+
+#navbarThemeToggle i {
+    transition: var(--transition);
+}
+
 .nav-link::after {
     content: '';
     position: absolute;
@@ -71,6 +160,19 @@ html {
     color: var(--primary-color) !important;
 }
 
+/* Navbar dropdown hover for desktop */
+@media (min-width: 992px) {
+    .nav-item.dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+        animation: dropdownSlide 0.3s ease-out;
+    }
+    
+    .dropdown-menu {
+        margin-top: 0;
+    }
+}
+
 /* Hero Section */
 .hero-section {
     min-height: 700px;
@@ -80,45 +182,31 @@ html {
     overflow: hidden;
 }
 
-/* Parallax effect */
+/* True Parallax effect - background scrolls at different rate */
 .parallax-section {
+    background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('../../gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat;
     background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
+    position: relative;
+    min-height: 700px;
+}
+
+/* Dark mode overlay for hero */
+[data-theme="dark"] .parallax-section {
+    background: linear-gradient(rgba(219, 3, 53, 0.7), rgba(10, 10, 10, 0.9)), url('../../gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat;
+    background-attachment: fixed;
+}
+
+.parallax-section > * {
+    position: relative;
+    z-index: 1;
 }
 
 /* Fallback for mobile devices that don't support fixed backgrounds */
 @media (max-width: 768px) {
-    .parallax-section {
+    .parallax-section,
+    [data-theme="dark"] .parallax-section {
         background-attachment: scroll;
     }
-}
-
-.hero-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: inherit;
-    animation: subtleZoom 20s ease-in-out infinite alternate;
-    z-index: 0;
-}
-
-@keyframes subtleZoom {
-    from {
-        transform: scale(1);
-    }
-    to {
-        transform: scale(1.05);
-    }
-}
-
-.hero-section > * {
-    position: relative;
-    z-index: 1;
 }
 
 /* Category Cards */
@@ -187,7 +275,7 @@ html {
     z-index: 2;
     font-size: 0.75rem;
     padding: 0.4rem 0.6rem;
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
     font-weight: 600;
 }
 
@@ -207,7 +295,7 @@ html {
 
 /* Buttons */
 .btn {
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     font-weight: 500;
     padding: 0.6rem 1.5rem;
     transition: var(--transition);
@@ -310,7 +398,7 @@ footer a:hover {
     cursor: pointer;
     border: 2px solid transparent;
     transition: var(--transition);
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
 }
 
 .product-thumbnails img:hover,
@@ -321,7 +409,7 @@ footer a:hover {
 
 /* Forms */
 .form-control, .form-select {
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     border: 2px solid #e0e0e0;
     transition: var(--transition);
 }
@@ -334,7 +422,7 @@ footer a:hover {
 /* Pagination */
 .pagination .page-link {
     color: var(--primary-color);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     margin: 0 4px;
     transition: var(--transition);
 }
@@ -354,7 +442,7 @@ footer a:hover {
 /* Alert animations */
 .alert {
     animation: slideDown 0.3s ease;
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 @keyframes slideDown {
@@ -689,7 +777,7 @@ footer a:hover {
     margin-bottom: 1rem;
     list-style: none;
     background-color: #f8f9fa;
-    border-radius: 0.25rem;
+    border-radius: var(--border-radius);
 }
 
 /* Product rating stars */
@@ -726,7 +814,7 @@ footer a:hover {
     text-align: center;
     white-space: nowrap;
     vertical-align: baseline;
-    border-radius: 0.25rem;
+    border-radius: var(--border-radius-sm);
 }
 
 .in-stock {
@@ -880,5 +968,298 @@ footer a:hover {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+    
+    /* Specifically disable problematic infinite animations */
+    .badge {
+        animation: none;
+    }
+    
+    .skeleton {
+        animation: none;
+        background: #f0f0f0;
+    }
+    
+    body {
+        animation: none;
+    }
+    
+    .dropdown-menu {
+        animation: none;
+    }
+}
+
+/* ======================================
+   CUSTOM SCROLLBAR
+   ====================================== */
+
+/* Custom scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-color) 0%, #a00228 100%);
+    border-radius: var(--border-radius);
+    border: 2px solid #f1f1f1;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ff0040 0%, var(--primary-color) 100%);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f1f1f1;
+}
+
+/* ======================================
+   Z-INDEX FIX FOR CART PAGE
+   ====================================== */
+
+/* Ensure navbar is always on top */
+.navbar.sticky-top {
+    z-index: 1030 !important;
+}
+
+/* Order summary should be below navbar */
+.order-summary-mobile,
+.sticky-top.order-summary-mobile {
+    z-index: 1020 !important;
+    top: 100px;
+}
+
+/* Cart summary container */
+.cart-summary-mobile {
+    z-index: 1020 !important;
+}
+
+/* ======================================
+   ENHANCED PROFESSIONAL TOUCHES
+   ====================================== */
+
+/* Glass morphism effect for cards */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Gradient text effect */
+.gradient-text {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #ff4d6d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Enhanced shadow on hover for specific cards */
+.product-card.card:hover,
+.category-card.card:hover {
+    box-shadow: 0 15px 40px rgba(219, 3, 53, 0.15) !important;
+}
+
+/* Smooth image transitions - scoped to specific contexts */
+.product-card img,
+.category-card img,
+.product-detail-img,
+.gallery-image {
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) {
+    .product-card img:hover,
+    .category-card img:hover,
+    .product-detail-img:hover,
+    .gallery-image:hover {
+        transform: scale(1.02);
+    }
+}
+
+/* Improved focus states for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 3px;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Smooth page transitions */
+body {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Enhanced dropdown animations */
+.dropdown-menu {
+    animation: dropdownSlide 0.3s ease-out;
+    border: none;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badge pulse animation */
+.badge {
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(219, 3, 53, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(219, 3, 53, 0);
+    }
+}
+
+/* Loading skeleton shimmer effect */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Tooltip enhancement */
+.tooltip {
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Enhanced form elements */
+.form-control:focus,
+.form-select:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(219, 3, 53, 0.15);
+}
+
+/* Sticky elements smooth transition */
+.sticky-top {
+    transition: all 0.3s ease;
+}
+
+/* Product card image container */
+.product-card .card-img-top {
+    overflow: hidden;
+    border-bottom: 2px solid var(--light-color);
+}
+
+/* Enhanced button states */
+.btn {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+    z-index: -1;
+}
+
+.btn:hover::before {
+    width: 400%;
+    height: 400%;
+}
+
+/* Improved navbar transition */
+.navbar {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.navbar.scrolled {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Enhanced category card effects */
+.category-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(219, 3, 53, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.category-card:hover::before {
+    opacity: 1;
+}
+
+/* Breadcrumb enhancement */
+.breadcrumb-item a {
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+    transform: translateX(3px);
+}
+
+/* Footer link enhancements */
+footer a {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    padding-left: 8px;
 }
 

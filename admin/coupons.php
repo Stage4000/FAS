@@ -55,14 +55,16 @@ $coupons = $couponModel->getAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coupon Management - Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="bi bi-tag"></i> Coupon Management</h1>
+            <h1><i class="fas fa-tags"></i> Coupon Management</h1>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCouponModal">
-                <i class="bi bi-plus-circle"></i> Create New Coupon
+                <i class="fas fa-plus-circle"></i> Create New Coupon
             </button>
         </div>
 
@@ -136,7 +138,7 @@ $coupons = $couponModel->getAll();
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $coupon['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i>
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     </td>
