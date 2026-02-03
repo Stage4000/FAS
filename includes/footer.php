@@ -94,7 +94,7 @@
     <script src="public/js/animations.js"></script>
     
     <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
         <i class="fas fa-moon"></i>
     </button>
     
