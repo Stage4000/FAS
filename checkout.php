@@ -80,13 +80,10 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Country *</label>
-                            <select class="form-select" name="country" id="country-select" required>
-                                <option value="US">United States</option>
-                                <option value="CA">Canada</option>
-                                <option value="MX">Mexico</option>
-                            </select>
+                            <input type="text" class="form-control" name="country" id="country-select" value="US" readonly required>
+                            <small class="text-muted">Currently shipping to US addresses only</small>
                         </div>
-                        <button type="button" class="btn btn-primary" id="calculate-shipping-btn">
+                        <button type="button" class="btn btn-danger col-12" id="calculate-shipping-btn">
                             <i class="bi bi-calculator"></i> Calculate Shipping
                         </button>
                     </div>
@@ -166,6 +163,38 @@ require_once __DIR__ . '/includes/header.php';
 <script type="text/javascript">
 let selectedShippingRate = null;
 
+// Function to check if form is ready for payment
+function isFormReadyForPayment() {
+    const form = document.getElementById('checkout-form');
+    if (!form) return false;
+    
+    // Check required fields
+    const requiredFields = form.querySelectorAll('[required]');
+    for (let field of requiredFields) {
+        if (!field.value || (field.type === 'select-one' && !field.value)) {
+            return false;
+        }
+    }
+    
+    // Check if shipping is selected
+    if (!selectedShippingRate) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Function to update payment button state
+function updatePaymentButtonState() {
+    const container = document.getElementById('paypal-button-container');
+    const isReady = isFormReadyForPayment();
+    
+    if (container) {
+        container.style.opacity = isReady ? '1' : '0.5';
+        container.style.pointerEvents = isReady ? 'auto' : 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     displayCheckoutItems();
     
@@ -174,6 +203,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup PayPal button
     setupPayPalButton();
+    
+    // Monitor form fields for changes to enable/disable payment button
+    const form = document.getElementById('checkout-form');
+    if (form) {
+        form.addEventListener('input', updatePaymentButtonState);
+        form.addEventListener('change', updatePaymentButtonState);
+    }
+    
+    // Initial state
+    updatePaymentButtonState();
 });
 
 /**
@@ -227,7 +266,7 @@ function setupPayPalButton() {
             // Calculate amounts
             const cart = window.cart.cart;
             const subtotal = window.cart.getTotal();
-            const tax = subtotal * 0.08;
+            const tax = 0; // Tax removed - will be implemented based on customer location in future
             const shipping = selectedShippingRate.cost;
             const total = subtotal + tax + shipping;
             
@@ -479,6 +518,7 @@ function displayShippingOptions(rates) {
 function selectShippingMethod(index, cost) {
     selectedShippingRate = { index, cost };
     updateCheckoutSummary();
+    updatePaymentButtonState(); // Enable payment button when shipping is selected
 }
 
 function displayCheckoutItems() {
@@ -512,7 +552,7 @@ function displayCheckoutItems() {
 
 function updateCheckoutSummary() {
     const subtotal = window.cart.getTotal();
-    const tax = subtotal * 0.08; // 8% tax (should be calculated based on location)
+    const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const total = subtotal + tax + shipping;
     
@@ -545,7 +585,7 @@ async function createOrder() {
     
     // Prepare order data
     const subtotal = window.cart.getTotal();
-    const tax = subtotal * 0.08;
+    const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const total = subtotal + tax + shipping;
     
