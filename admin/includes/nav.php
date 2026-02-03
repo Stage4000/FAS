@@ -35,6 +35,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <a href="products.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'products.php' ? 'active' : ''; ?>">
                     <i class="fas fa-box me-2"></i>Products
                 </a>
+                <a href="orders.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'orders.php' ? 'active' : ''; ?>">
+                    <i class="fas fa-shopping-cart me-2"></i>Orders
+                </a>
                 <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">
                     <i class="fas fa-warehouse me-2"></i>Warehouses
                 </a>
