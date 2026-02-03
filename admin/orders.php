@@ -12,12 +12,22 @@ use FAS\Models\Order;
 $db = Database::getInstance()->getConnection();
 $orderModel = new Order($db);
 
+// Load site configuration
+$configFile = __DIR__ . '/../src/config/config.php';
+if (!file_exists($configFile)) {
+    $configFile = __DIR__ . '/../src/config/config.example.php';
+}
+$config = require $configFile;
+$siteUrl = $config['site']['url'] ?? 'https://yoursite.com';
+
 // Get filter parameters
 $status = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? '';
 
-// Build query
-$sql = "SELECT * FROM orders WHERE 1=1";
+// Build query - only select columns needed for list view
+$sql = "SELECT id, order_number, customer_name, customer_email, created_at, 
+        total_amount, payment_status, order_status 
+        FROM orders WHERE 1=1";
 $params = [];
 
 if ($status !== 'all') {
@@ -109,7 +119,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
             <li>Log in to your <a href="https://www.paypal.com" target="_blank" class="alert-link">PayPal account</a></li>
             <li>Go to <strong>Settings</strong> (gear icon) → <strong>Notifications</strong></li>
             <li>Under <strong>Instant payment notifications</strong>, click <strong>Update</strong></li>
-            <li>Enter your IPN URL: <code><?php echo htmlspecialchars(($_SERVER['HTTPS'] ?? 'off') === 'on' ? 'https://' : 'http://') . htmlspecialchars($_SERVER['HTTP_HOST'] ?? 'yoursite.com') . '/api/paypal-ipn.php'; ?></code></li>
+            <li>Enter your IPN URL: <code><?php echo htmlspecialchars($siteUrl . '/api/paypal-ipn.php'); ?></code></li>
             <li>Select <strong>Receive IPN messages (Enabled)</strong></li>
             <li>Click <strong>Save</strong></li>
         </ol>

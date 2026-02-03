@@ -171,7 +171,7 @@ function isFormReadyForPayment() {
     // Check required fields
     const requiredFields = form.querySelectorAll('[required]');
     for (let field of requiredFields) {
-        if (!field.value || (field.type === 'select-one' && !field.value)) {
+        if (!field.value) {
             return false;
         }
     }
