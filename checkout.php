@@ -78,11 +78,6 @@ require_once __DIR__ . '/includes/header.php';
                                 <input type="text" class="form-control" name="zip" required>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Country *</label>
-                            <input type="text" class="form-control" name="country" id="country-select" value="US" readonly required>
-                            <small class="text-muted">Currently shipping to US addresses only</small>
-                        </div>
                         <button type="button" class="btn btn-danger col-12" id="calculate-shipping-btn">
                             <i class="bi bi-calculator"></i> Calculate Shipping
                         </button>
@@ -310,7 +305,7 @@ function setupPayPalButton() {
                             admin_area_2: form.city.value,
                             admin_area_1: form.state.value,
                             postal_code: form.zip.value,
-                            country_code: form.country.value
+                            country_code: 'US' // Hardcoded for US-only shipping
                         }
                     }
                 }],
@@ -432,7 +427,7 @@ async function calculateShipping() {
         city: form.city.value,
         state: form.state.value,
         zip: form.zip.value,
-        country: form.country.value
+        country: 'US' // Hardcoded for US-only shipping
     };
     
     // Validate address fields
@@ -600,7 +595,7 @@ async function createOrder() {
             city: form.city.value,
             state: form.state.value,
             zip: form.zip.value,
-            country: form.country.value
+            country: 'US' // Hardcoded for US-only shipping
         },
         items: cart.map(item => ({
             product_id: item.id,
