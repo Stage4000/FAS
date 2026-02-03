@@ -65,7 +65,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section parallax-section py-5" style="background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat fixed; min-height: 700px;">
+    <section class="hero-section parallax-section py-5">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>

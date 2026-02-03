@@ -137,6 +137,21 @@ html {
     position: relative;
 }
 
+/* Navbar theme toggle button */
+#navbarThemeToggle {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.5rem 1rem;
+    font-size: 1.1rem;
+}
+
+#navbarThemeToggle:hover {
+    color: var(--primary-color) !important;
+}
+
+#navbarThemeToggle i {
+    transition: var(--transition);
+}
+
 .nav-link::after {
     content: '';
     position: absolute;
@@ -181,11 +196,16 @@ html {
 
 /* Enhanced Parallax effect with background animation */
 .parallax-section {
+    background: linear-gradient(rgba(219, 3, 53, 0.85), rgba(36, 38, 41, 0.85)), url('../../../gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat;
     background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
     position: relative;
+    min-height: 700px;
+}
+
+/* Dark mode overlay for hero */
+[data-theme="dark"] .parallax-section {
+    background: linear-gradient(rgba(219, 3, 53, 0.7), rgba(10, 10, 10, 0.9)), url('../../../gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat;
+    background-attachment: fixed;
 }
 
 .parallax-section::before {
@@ -195,9 +215,11 @@ html {
     left: 0;
     right: 0;
     bottom: 0;
-    background: inherit;
+    background: url('../../../gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg') center/cover no-repeat;
+    background-attachment: fixed;
     animation: parallaxZoom 20s ease-in-out infinite alternate;
     z-index: 0;
+    opacity: 0.3;
 }
 
 @keyframes parallaxZoom {
@@ -216,7 +238,8 @@ html {
 
 /* Fallback for mobile devices that don't support fixed backgrounds */
 @media (max-width: 768px) {
-    .parallax-section {
+    .parallax-section,
+    .parallax-section::before {
         background-attachment: scroll;
     }
     

@@ -119,6 +119,11 @@
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode" style="border: none; background: none;">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>

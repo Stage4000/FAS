@@ -8,6 +8,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <i class="fas fa-cog me-2"></i>Flip and Strip Admin
         </a>
         <div class="d-flex align-items-center">
+            <button class="btn btn-link text-white me-2" id="navbarThemeToggle" aria-label="Toggle dark mode" style="text-decoration: none; font-size: 1.1rem;">
+                <i class="fas fa-moon"></i>
+            </button>
             <span class="navbar-text text-white me-3">
                 <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
             </span>
