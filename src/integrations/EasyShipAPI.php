@@ -86,7 +86,7 @@ class EasyShipAPI
                     'output_currency' => 'USD'
                 ],
                 'parcels' => $this->buildParcels($items),
-                'calculate_tax_and_duties' => false
+                'calculate_tax_and_duties' => true // Required for DDP (Delivered Duty Paid) shipments
             ];
             
             // Add line_2 if present
