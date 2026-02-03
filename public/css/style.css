@@ -880,6 +880,24 @@ footer a:hover {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+    
+    /* Specifically disable problematic infinite animations */
+    .badge {
+        animation: none;
+    }
+    
+    .skeleton {
+        animation: none;
+        background: #f0f0f0;
+    }
+    
+    body {
+        animation: none;
+    }
+    
+    .dropdown-menu {
+        animation: none;
+    }
 }
 
 /* ======================================
@@ -1041,13 +1059,6 @@ body {
     }
 }
 
-/* Disable animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-    .badge {
-        animation: none;
-    }
-}
-
 /* Loading skeleton shimmer effect */
 .skeleton {
     background: linear-gradient(
@@ -1066,14 +1077,6 @@ body {
     }
     100% {
         background-position: 200% 0;
-    }
-}
-
-/* Disable animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-    .skeleton {
-        animation: none;
-        background: #f0f0f0;
     }
 }
 
