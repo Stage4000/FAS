@@ -92,6 +92,23 @@ body {
     color: var(--admin-text);
 }
 
+.card-header {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.card-body {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+}
+
+.card-footer {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-top: 1px solid var(--admin-border);
+}
+
 .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(219, 3, 53, 0.15);
@@ -201,6 +218,32 @@ body {
 /* Alert */
 .alert {
     border-radius: var(--admin-border-radius);
+    background-color: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+}
+
+[data-theme="dark"] .alert-success {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: rgba(40, 167, 69, 0.4);
+    color: #7fda89;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(219, 3, 53, 0.2);
+    border-color: rgba(219, 3, 53, 0.4);
+    color: #ff6b8a;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(13, 110, 253, 0.2);
+    border-color: rgba(13, 110, 253, 0.4);
+    color: #7db3ff;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #ffd454;
 }
 
 /* Badge */
@@ -229,4 +272,46 @@ body {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Additional dark mode elements */
+[data-theme="dark"] .bg-white {
+    background-color: var(--admin-card-bg) !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--admin-card-bg) !important;
+}
+
+[data-theme="dark"] .border-bottom {
+    border-bottom-color: var(--admin-border) !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #aaa !important;
+}
+
+[data-theme="dark"] .list-group-item {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border);
+    color: var(--admin-text);
+}
+
+/* Dropdown menus */
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .dropdown-divider {
+    border-top-color: var(--admin-border);
 }
