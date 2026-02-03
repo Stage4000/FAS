@@ -5,7 +5,9 @@
     --dark-color: #242629;
     --light-color: #f8f8f8;
     --success-color: #28a745;
-    --border-radius: 8px;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --border-radius-lg: 16px;
     --box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     --transition: all 0.3s ease;
 }
@@ -80,22 +82,16 @@ html {
     overflow: hidden;
 }
 
-/* Parallax effect */
+/* Enhanced Parallax effect with background animation */
 .parallax-section {
     background-attachment: fixed;
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
+    position: relative;
 }
 
-/* Fallback for mobile devices that don't support fixed backgrounds */
-@media (max-width: 768px) {
-    .parallax-section {
-        background-attachment: scroll;
-    }
-}
-
-.hero-section::before {
+.parallax-section::before {
     content: '';
     position: absolute;
     top: 0;
@@ -103,22 +99,33 @@ html {
     right: 0;
     bottom: 0;
     background: inherit;
-    animation: subtleZoom 20s ease-in-out infinite alternate;
+    animation: parallaxZoom 20s ease-in-out infinite alternate;
     z-index: 0;
 }
 
-@keyframes subtleZoom {
+@keyframes parallaxZoom {
     from {
         transform: scale(1);
     }
     to {
-        transform: scale(1.05);
+        transform: scale(1.1);
     }
 }
 
-.hero-section > * {
+.parallax-section > * {
     position: relative;
     z-index: 1;
+}
+
+/* Fallback for mobile devices that don't support fixed backgrounds */
+@media (max-width: 768px) {
+    .parallax-section {
+        background-attachment: scroll;
+    }
+    
+    .parallax-section::before {
+        animation: none;
+    }
 }
 
 /* Category Cards */
@@ -187,7 +194,7 @@ html {
     z-index: 2;
     font-size: 0.75rem;
     padding: 0.4rem 0.6rem;
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
     font-weight: 600;
 }
 
@@ -207,7 +214,7 @@ html {
 
 /* Buttons */
 .btn {
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     font-weight: 500;
     padding: 0.6rem 1.5rem;
     transition: var(--transition);
@@ -310,7 +317,7 @@ footer a:hover {
     cursor: pointer;
     border: 2px solid transparent;
     transition: var(--transition);
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
 }
 
 .product-thumbnails img:hover,
@@ -321,7 +328,7 @@ footer a:hover {
 
 /* Forms */
 .form-control, .form-select {
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     border: 2px solid #e0e0e0;
     transition: var(--transition);
 }
@@ -334,7 +341,7 @@ footer a:hover {
 /* Pagination */
 .pagination .page-link {
     color: var(--primary-color);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     margin: 0 4px;
     transition: var(--transition);
 }
@@ -354,7 +361,7 @@ footer a:hover {
 /* Alert animations */
 .alert {
     animation: slideDown 0.3s ease;
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 @keyframes slideDown {
@@ -689,7 +696,7 @@ footer a:hover {
     margin-bottom: 1rem;
     list-style: none;
     background-color: #f8f9fa;
-    border-radius: 0.25rem;
+    border-radius: var(--border-radius);
 }
 
 /* Product rating stars */
@@ -726,7 +733,7 @@ footer a:hover {
     text-align: center;
     white-space: nowrap;
     vertical-align: baseline;
-    border-radius: 0.25rem;
+    border-radius: var(--border-radius-sm);
 }
 
 .in-stock {
@@ -912,12 +919,12 @@ footer a:hover {
 
 ::-webkit-scrollbar-track {
     background: #f1f1f1;
-    border-radius: 10px;
+    border-radius: var(--border-radius);
 }
 
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, var(--primary-color) 0%, #a00228 100%);
-    border-radius: 10px;
+    border-radius: var(--border-radius);
     border: 2px solid #f1f1f1;
     transition: background 0.3s ease;
 }
@@ -1005,7 +1012,7 @@ select:focus-visible,
 textarea:focus-visible {
     outline: 3px solid var(--primary-color);
     outline-offset: 3px;
-    border-radius: 4px;
+    border-radius: var(--border-radius-sm);
 }
 
 /* Smooth page transitions */
