@@ -1121,8 +1121,8 @@ body {
 }
 
 .btn:hover::before {
-    width: 300px;
-    height: 300px;
+    width: 400%;
+    height: 400%;
 }
 
 /* Improved navbar transition */
