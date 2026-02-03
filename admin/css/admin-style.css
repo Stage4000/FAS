@@ -19,7 +19,7 @@
 [data-theme="dark"] {
     --admin-bg: #1a1a1a;
     --admin-text: #e0e0e0;
-    --admin-card-bg: #2d2d2d;
+    --admin-card-bg: #2a2a2a;  /* Changed to differentiate from body */
     --admin-border: #404040;
 }
 
@@ -73,9 +73,9 @@ body {
 }
 
 .list-group-item.active {
-    background-color: var(--admin-primary);
-    border-color: var(--admin-primary);
-    color: white;
+    background-color: var(--admin-primary) !important;
+    border-color: var(--admin-primary) !important;
+    color: white !important;
 }
 
 .list-group-item i {
@@ -155,6 +155,13 @@ body {
 .form-select:focus {
     border-color: var(--admin-primary);
     box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.15);
+    background-color: var(--admin-card-bg);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: #333;
+    color: var(--admin-text);
 }
 
 /* Tables */
@@ -166,6 +173,22 @@ body {
     --bs-table-bg: var(--admin-card-bg);
     --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
     --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+    --bs-table-color: var(--admin-text);
+}
+
+[data-theme="dark"] .table thead {
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+}
+
+[data-theme="dark"] .table tbody {
+    color: var(--admin-text);
+}
+
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td {
+    color: var(--admin-text) !important;
+    border-color: var(--admin-border);
 }
 
 /* Stats card colors */
@@ -317,4 +340,48 @@ body {
 
 [data-theme="dark"] .dropdown-divider {
     border-top-color: var(--admin-border);
+}
+
+/* Card shadows in dark mode */
+[data-theme="dark"] .card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.25);
+}
+
+/* Page header in dark mode */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: var(--admin-text);
+}
+
+/* Badge colors in dark mode */
+[data-theme="dark"] .badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+[data-theme="dark"] .badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+[data-theme="dark"] .badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+[data-theme="dark"] .badge.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Input group styling in dark mode */
+[data-theme="dark"] .input-group-text {
+    background-color: #333;
+    color: var(--admin-text);
+    border-color: var(--admin-border);
 }
