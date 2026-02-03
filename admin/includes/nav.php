@@ -8,7 +8,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <i class="fas fa-cog me-2"></i>Flip and Strip Admin
         </a>
         <div class="d-flex align-items-center">
-            <button class="btn btn-link text-white me-2" id="navbarThemeToggle" aria-label="Toggle dark mode" style="text-decoration: none; font-size: 1.1rem;">
+            <button class="btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
                 <i class="fas fa-moon"></i>
             </button>
             <span class="navbar-text text-white me-3">

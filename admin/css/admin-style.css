@@ -45,6 +45,18 @@ body {
     transform: translateY(-2px);
 }
 
+/* Admin navbar theme toggle */
+#navbarThemeToggle {
+    color: white !important;
+    text-decoration: none !important;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+}
+
+#navbarThemeToggle:hover {
+    color: var(--admin-primary) !important;
+}
+
 /* Sidebar */
 .list-group-item {
     border-radius: var(--admin-border-radius);

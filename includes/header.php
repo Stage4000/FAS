@@ -120,7 +120,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode" style="border: none; background: none;">
+                        <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
                             <i class="fas fa-moon"></i>
                         </button>
                     </li>
