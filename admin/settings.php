@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
+                                <i class="fas fa-circle-info me-2"></i>
                                 <strong>How to get your Tawk.to IDs:</strong><br>
                                 1. Sign up or log in at <a href="https://tawk.to" target="_blank" class="alert-link">tawk.to</a><br>
                                 2. Go to Administration > Channels > Chat Widget<br>
