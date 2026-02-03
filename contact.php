@@ -6,10 +6,10 @@ require_once __DIR__ . '/includes/header.php';
 <div class="container my-5">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <h1 class="mb-4 fw-bold text-center">Contact Us</h1>
+            <h1 class="mb-4 fw-bold text-center" data-aos="fade-down">Contact Us</h1>
             
             <div class="row g-4 mb-5">
-                <div class="col-md-4 text-center">
+                <div class="col-md-4 text-center" data-aos="fade-up" data-aos-delay="100">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <i class="bi bi-shop display-4 text-danger mb-3"></i>
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 text-center">
+                <div class="col-md-4 text-center" data-aos="fade-up" data-aos-delay="200">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <i class="bi bi-globe display-4 text-danger mb-3"></i>
@@ -29,7 +29,7 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 text-center">
+                <div class="col-md-4 text-center" data-aos="fade-up" data-aos-delay="300">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <i class="bi bi-truck display-4 text-danger mb-3"></i>
@@ -41,7 +41,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm" data-aos="fade-up" data-aos-delay="400">
                 <div class="card-body p-5">
                     <h3 class="mb-4">Send Us a Message</h3>
                     <form id="contact-form">

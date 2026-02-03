@@ -54,7 +54,7 @@ if (empty($mainImage)) {
 ?>
 
 <div class="container my-5">
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" data-aos="fade-down">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="index.php">Home</a></li>
             <li class="breadcrumb-item"><a href="products.php">Products</a></li>
@@ -64,7 +64,7 @@ if (empty($mainImage)) {
 
     <div class="row">
         <!-- Product Images -->
-        <div class="col-lg-6 mb-4">
+        <div class="col-lg-6 mb-4" data-aos="fade-right">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <?php if (file_exists($mainImage)): ?>
@@ -97,7 +97,7 @@ if (empty($mainImage)) {
         </div>
 
         <!-- Product Information -->
-        <div class="col-lg-6">
+        <div class="col-lg-6" data-aos="fade-left">
             <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
             
             <div class="mb-4">

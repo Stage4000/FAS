@@ -882,3 +882,264 @@ footer a:hover {
     }
 }
 
+/* ======================================
+   CUSTOM SCROLLBAR
+   ====================================== */
+
+/* Custom scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-color) 0%, #a00228 100%);
+    border-radius: 10px;
+    border: 2px solid #f1f1f1;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ff0040 0%, var(--primary-color) 100%);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f1f1f1;
+}
+
+/* ======================================
+   Z-INDEX FIX FOR CART PAGE
+   ====================================== */
+
+/* Ensure navbar is always on top */
+.navbar.sticky-top {
+    z-index: 1030 !important;
+}
+
+/* Order summary should be below navbar */
+.order-summary-mobile,
+.sticky-top.order-summary-mobile {
+    z-index: 1020 !important;
+}
+
+/* Cart summary container */
+.cart-summary-mobile {
+    z-index: 1020 !important;
+}
+
+/* ======================================
+   ENHANCED PROFESSIONAL TOUCHES
+   ====================================== */
+
+/* Glass morphism effect for cards */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Gradient text effect */
+.gradient-text {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #ff4d6d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Enhanced shadow on hover for cards */
+.card:hover {
+    box-shadow: 0 15px 40px rgba(219, 3, 53, 0.15) !important;
+}
+
+/* Smooth image transitions */
+img {
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+
+/* Link underline animation */
+a:not(.btn):not(.nav-link):not(.dropdown-item) {
+    position: relative;
+    text-decoration: none;
+}
+
+/* Improved focus states for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Smooth page transitions */
+body {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Enhanced dropdown animations */
+.dropdown-menu {
+    animation: dropdownSlide 0.3s ease-out;
+    border: none;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badge pulse animation */
+.badge {
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(219, 3, 53, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(219, 3, 53, 0);
+    }
+}
+
+/* Loading skeleton shimmer effect */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Tooltip enhancement */
+.tooltip {
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Enhanced form elements */
+.form-control:focus,
+.form-select:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(219, 3, 53, 0.15);
+}
+
+/* Sticky elements smooth transition */
+.sticky-top {
+    transition: all 0.3s ease;
+}
+
+/* Product card image container */
+.product-card .card-img-top {
+    overflow: hidden;
+    border-bottom: 2px solid var(--light-color);
+}
+
+/* Enhanced button states */
+.btn {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+    z-index: -1;
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Improved navbar transition */
+.navbar {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.navbar.scrolled {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Enhanced category card effects */
+.category-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(219, 3, 53, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.category-card:hover::before {
+    opacity: 1;
+}
+
+/* Breadcrumb enhancement */
+.breadcrumb-item a {
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+    transform: translateX(3px);
+}
+
+/* Footer link enhancements */
+footer a {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    padding-left: 8px;
+}
+

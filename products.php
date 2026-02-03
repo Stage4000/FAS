@@ -101,8 +101,8 @@ $totalPages = ceil($totalProducts / $perPage);
 
     <!-- Products Grid -->
     <div class="row g-4">
-        <?php foreach ($products as $product): ?>
-            <div class="col-lg-3 col-md-4 col-sm-6">
+        <?php foreach ($products as $index => $product): ?>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="<?php echo ($index % 8) * 50; ?>">
                 <div class="card product-card h-100">
                     <div class="position-relative">
                         <?php if (!empty($product['image_url']) && file_exists($product['image_url'])): ?>
