@@ -37,27 +37,6 @@ require_once __DIR__ . '/includes/header.php';
                 </form>
             </div>
             
-            <div class="row g-4 text-center" data-aos="fade-up" data-aos-delay="200">
-                <div class="col-md-4">
-                    <i class="fas fa-store display-4 text-danger mb-3"></i>
-                    <h5>eBay Store</h5>
-                    <p class="text-muted">Visit our eBay store for more items</p>
-                    <a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener" class="btn btn-outline-danger btn-sm">Visit Store</a>
-                </div>
-                <div class="col-md-4">
-                    <i class="fas fa-globe display-4 text-danger mb-3"></i>
-                    <h5>Website</h5>
-                    <p class="text-muted">Browse our online catalog</p>
-                    <a href="https://flipandstrip.com" class="btn btn-outline-danger btn-sm">Visit Site</a>
-                </div>
-                <div class="col-md-4">
-                    <i class="fas fa-truck display-4 text-danger mb-3"></i>
-                    <h5>Shipping</h5>
-                    <p class="text-muted">Fast and reliable shipping</p>
-                    <p class="small text-muted mb-0">Domestic & International</p>
-                </div>
-            </div>
-            
             <div class="alert alert-secondary mt-5">
                 <h5><i class="fas fa-clock me-2"></i>Response Time</h5>
                 <p class="mb-0">We typically respond to all inquiries within 24 hours during business days.</p>
