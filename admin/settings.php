@@ -85,7 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
@@ -93,14 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php if ($success): ?>
                     <div class="alert alert-success alert-dismissible fade show">
-                        <i class="bi bi-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
+                        <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
                 <?php if ($error): ?>
                     <div class="alert alert-danger alert-dismissible fade show">
-                        <i class="bi bi-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+                        <i class="fas fa-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
@@ -109,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Database Settings -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-database me-2"></i>Database Settings</h5>
+                            <h5 class="mb-0"><i class="fas fa-database me-2"></i>Database Settings</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -136,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- eBay API Settings -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-shop me-2"></i>eBay API Settings</h5>
+                            <h5 class="mb-0"><i class="fas fa-store me-2"></i>eBay API Settings</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -266,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                             <div class="alert alert-info">
-                                <i class="bi bi-info-circle me-2"></i>
+                                <i class="fas fa-info-circle me-2"></i>
                                 <strong>How to get your Tawk.to IDs:</strong><br>
                                 1. Sign up or log in at <a href="https://tawk.to" target="_blank" class="alert-link">tawk.to</a><br>
                                 2. Go to Administration > Channels > Chat Widget<br>
@@ -278,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Site Settings -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Site Settings</h5>
+                            <h5 class="mb-0"><i class="fas fa-globe me-2"></i>Site Settings</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -331,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="mb-4">
                         <button type="submit" class="btn btn-danger btn-lg">
-                            <i class="bi bi-check-circle me-2"></i>Save Settings
+                            <i class="fas fa-check-circle me-2"></i>Save Settings
                         </button>
                         <a href="index.php" class="btn btn-secondary btn-lg">Cancel</a>
                     </div>

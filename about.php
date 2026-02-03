@@ -61,7 +61,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h3 class="mb-4">Ready to Find Your Parts?</h3>
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="products.php" class="btn btn-danger btn-lg">Browse Products</a>
-                    <a href="contact.php" class="btn btn-outline-dark btn-lg">Contact Us</a>
+                    <a href="contact.php" class="btn btn-danger btn-lg">Contact Us</a>
                 </div>
             </div>
         </div>

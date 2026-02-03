@@ -159,7 +159,9 @@ if ($action === 'list') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products - Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
@@ -170,21 +172,21 @@ if ($action === 'list') {
                         <h1 class="h2">Products</h1>
                         <div class="btn-toolbar mb-2 mb-md-0">
                             <a href="?action=create" class="btn btn-primary">
-                                <i class="bi bi-plus-circle me-1"></i> Add Product
+                                <i class="fas fa-plus-circle me-1"></i> Add Product
                             </a>
                         </div>
                     </div>
 
                     <?php if ($success): ?>
                         <div class="alert alert-success alert-dismissible fade show">
-                            <i class="bi bi-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
+                            <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($error): ?>
                         <div class="alert alert-danger alert-dismissible fade show">
-                            <i class="bi bi-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+                            <i class="fas fa-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
@@ -267,12 +269,12 @@ if ($action === 'list') {
                                                     <td>
                                                         <div class="btn-group btn-group-sm">
                                                             <a href="?action=edit&id=<?php echo $prod['id']; ?>" class="btn btn-outline-primary" title="Edit">
-                                                                <i class="bi bi-pencil"></i>
+                                                                <i class="fas fa-edit"></i>
                                                             </a>
                                                             <button type="button" class="btn btn-outline-danger delete-product" 
                                                                     data-product-id="<?php echo $prod['id']; ?>"
                                                                     data-product-name="<?php echo htmlspecialchars($prod['name']); ?>" title="Delete">
-                                                                <i class="bi bi-trash"></i>
+                                                                <i class="fas fa-trash"></i>
                                                             </button>
                                                         </div>
                                                     </td>
@@ -310,7 +312,7 @@ if ($action === 'list') {
 
                     <?php if ($error): ?>
                         <div class="alert alert-danger alert-dismissible fade show">
-                            <i class="bi bi-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+                            <i class="fas fa-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
