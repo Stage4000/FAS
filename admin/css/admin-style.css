@@ -191,11 +191,21 @@ body {
     border-color: var(--admin-border);
 }
 
-/* Override Bootstrap's .table-light in dark mode */
-[data-theme="dark"] .table-light,
+/* Override Bootstrap's .table-light CSS variables in dark mode */
+[data-theme="dark"] .table-light {
+    --bs-table-color: #e0e0e0 !important;
+    --bs-table-bg: #333333 !important;
+    --bs-table-border-color: #404040 !important;
+    --bs-table-striped-bg: #3a3a3a !important;
+    --bs-table-striped-color: #e0e0e0 !important;
+    --bs-table-active-bg: #404040 !important;
+    --bs-table-active-color: #e0e0e0 !important;
+    --bs-table-hover-bg: #3a3a3a !important;
+    --bs-table-hover-color: #e0e0e0 !important;
+}
+
 [data-theme="dark"] .table-light > th,
 [data-theme="dark"] .table-light > td {
-    background-color: #333333 !important;
     color: var(--admin-text) !important;
     border-color: var(--admin-border) !important;
 }
