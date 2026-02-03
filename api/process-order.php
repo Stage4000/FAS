@@ -60,7 +60,7 @@ try {
 }
 
 /**
- * Create order in database (called when customer initiates checkout)
+ * Create order in database (called when customer initiates checkout) with improved validation
  */
 function createOrder($input, $orderModel, $productModel)
 {
@@ -74,8 +74,35 @@ function createOrder($input, $orderModel, $productModel)
         }
     }
     
+    // Validate email format
+    if (!filter_var($input['customer_email'], FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid email address']);
+        exit;
+    }
+    
+    // Validate items array
+    if (!is_array($input['items']) || empty($input['items'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Items must be a non-empty array']);
+        exit;
+    }
+    
+    // Validate amounts
+    if ($input['subtotal'] < 0 || $input['total_amount'] < 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid amounts']);
+        exit;
+    }
+    
     // Validate inventory availability
     foreach ($input['items'] as $item) {
+        if (!isset($item['product_id']) || !isset($item['quantity'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid item structure']);
+            exit;
+        }
+        
         $product = $productModel->getById($item['product_id'], true); // Include inactive to check existence
         if (!$product) {
             http_response_code(400);
@@ -158,7 +185,7 @@ function createOrder($input, $orderModel, $productModel)
 }
 
 /**
- * Complete order and deduct inventory (called after payment is confirmed)
+ * Complete order and deduct inventory (called after payment is confirmed) with improved validation
  */
 function completeOrder($input, $orderModel, $productModel)
 {
@@ -180,12 +207,35 @@ function completeOrder($input, $orderModel, $productModel)
         exit;
     }
     
-    // Check if already completed
+    // Check if already completed to prevent duplicate inventory deduction
     if ($order['payment_status'] === 'completed') {
         echo json_encode([
             'success' => true,
             'message' => 'Order already completed',
             'order_number' => $order['order_number']
+        ]);
+        exit;
+    }
+    
+    // Verify inventory is still available before completing
+    $items = $orderModel->getItems($order['id']);
+    $inventoryIssues = [];
+    
+    foreach ($items as $item) {
+        $product = $productModel->getById($item['product_id'], true);
+        if (!$product) {
+            $inventoryIssues[] = "Product #{$item['product_id']} not found";
+        } elseif ($product['quantity'] < $item['quantity']) {
+            $inventoryIssues[] = "{$product['name']}: only {$product['quantity']} available, need {$item['quantity']}";
+        }
+    }
+    
+    if (!empty($inventoryIssues)) {
+        error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
+        http_response_code(409);
+        echo json_encode([
+            'error' => 'Inventory no longer available',
+            'details' => $inventoryIssues
         ]);
         exit;
     }
@@ -197,16 +247,14 @@ function completeOrder($input, $orderModel, $productModel)
         'paypal_transaction_id' => $paypalTransactionId
     ]);
     
-    // Deduct product quantities
-    $items = $orderModel->getItems($order['id']);
+    // Deduct product quantities (inventory was already verified above)
     foreach ($items as $item) {
         $product = $productModel->getById($item['product_id'], true);
-        if ($product && $product['quantity'] >= $item['quantity']) {
+        // Product and quantity already validated above, proceed with deduction
+        if ($product) {
             $newQuantity = $product['quantity'] - $item['quantity'];
             $productModel->update($item['product_id'], ['quantity' => $newQuantity]);
             error_log("Deducted {$item['quantity']} units from product #{$item['product_id']}. New quantity: {$newQuantity}");
-        } else {
-            error_log("Warning: Could not deduct inventory for product #{$item['product_id']}");
         }
     }
     

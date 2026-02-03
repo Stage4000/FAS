@@ -67,11 +67,12 @@ document.addEventListener('DOMContentLoaded', function() {
     displayCartItems();
     
     // Checkout button
-    document.getElementById('checkout-btn').addEventListener('click', function() {
-        if (window.cart.cart.length > 0) {
-            alert('Proceeding to PayPal checkout...\n\nThis will be integrated with PayPal payment gateway.');
-            // TODO: Integrate with PayPal
+    document.getElementById('checkout-btn').addEventListener('click', function(e) {
+        if (window.cart.cart.length === 0) {
+            e.preventDefault();
+            alert('Your cart is empty');
         }
+        // Allow navigation to checkout.php
     });
 });
 

@@ -50,6 +50,8 @@ return [
         'api_key' => 'YOUR_EASYSHIP_API_KEY',
         'platform_name' => 'Flip and Strip',
         'platform_order_number_prefix' => 'FAS'
+        // Note: Origin addresses are now managed via the warehouses table in the database
+        // Run database/migrate-add-warehouses.php to set up warehouse management
     ],
     
     'tawk' => [

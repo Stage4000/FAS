@@ -2,15 +2,18 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../src/models/Warehouse.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Models\Warehouse;
 
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
+$warehouseModel = new Warehouse($db);
 
 $success = '';
 $error = '';
@@ -78,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'length' => !empty($_POST['length']) ? floatval($_POST['length']) : null,
                         'width' => !empty($_POST['width']) ? floatval($_POST['width']) : null,
                         'height' => !empty($_POST['height']) ? floatval($_POST['height']) : null,
+                        'warehouse_id' => !empty($_POST['warehouse_id']) ? intval($_POST['warehouse_id']) : null,
                         'image_url' => $imageUrl,
                         'source' => $_POST['source'] ?? 'manual',
                         'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
@@ -442,6 +446,24 @@ if ($action === 'list') {
                                                 <option value="Used" <?php echo $product && $product['condition_name'] === 'Used' ? 'selected' : ''; ?>>Used</option>
                                                 <option value="Refurbished" <?php echo $product && $product['condition_name'] === 'Refurbished' ? 'selected' : ''; ?>>Refurbished</option>
                                             </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Warehouse Location</label>
+                                            <select class="form-select" name="warehouse_id">
+                                                <option value="">Default Warehouse</option>
+                                                <?php
+                                                $warehouses = $warehouseModel->getAll();
+                                                foreach ($warehouses as $wh):
+                                                ?>
+                                                    <option value="<?php echo $wh['id']; ?>" 
+                                                        <?php echo $product && $product['warehouse_id'] == $wh['id'] ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($wh['name']); ?> (<?php echo htmlspecialchars($wh['code']); ?>)
+                                                        <?php if ($wh['is_default']): ?> - Default<?php endif; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Used to calculate shipping costs from the warehouse location</small>
                                         </div>
 
                                         <div class="mb-3">

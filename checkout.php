@@ -1,6 +1,20 @@
 <?php
+// Disable error display in production to prevent HTML corruption
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
 // Ensure proper content type (must be first)
 header('Content-Type: text/html; charset=UTF-8');
+
+// Load configuration for PayPal
+$configFile = __DIR__ . '/src/config/config.php';
+if (!file_exists($configFile)) {
+    $configFile = __DIR__ . '/src/config/config.example.php';
+}
+$config = require $configFile;
+$paypalClientId = $config['paypal']['client_id'] ?? '';
+$paypalMode = $config['paypal']['mode'] ?? 'sandbox';
 
 $pageTitle = 'Checkout';
 require_once __DIR__ . '/includes/header.php';
@@ -100,7 +114,7 @@ require_once __DIR__ . '/includes/header.php';
         
         <!-- Order Summary -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 100px;">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 100px; z-index: 100;">
                 <div class="card-body p-4">
                     <h4 class="mb-4">Order Summary</h4>
                     
@@ -129,7 +143,7 @@ require_once __DIR__ . '/includes/header.php';
                         <strong id="checkout-total" class="text-danger fs-4">$0.00</strong>
                     </div>
                     
-                    <!-- PayPal Button -->
+                    <!-- PayPal Button Container -->
                     <div id="paypal-button-container" class="mb-3"></div>
                     
                     <div class="text-center mt-3">
@@ -144,6 +158,11 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<!-- Load PayPal SDK -->
+<?php if (!empty($paypalClientId) && strpos($paypalClientId, 'YOUR_') !== 0): ?>
+<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&currency=USD"></script>
+<?php endif; ?>
+
 <script type="text/javascript">
 let selectedShippingRate = null;
 
@@ -154,19 +173,189 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
     
     // Setup PayPal button
-    // Note: In production, load PayPal SDK with: <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
-    
-    // For now, show a demo button that creates order
-    document.getElementById('paypal-button-container').innerHTML = `
-        <button type="button" class="btn btn-primary btn-lg w-100" onclick="handleCheckout()">
-            <i class="bi bi-paypal"></i> Complete Order (Demo)
-        </button>
-        <small class="text-muted d-block mt-2">Note: Configure PayPal SDK for live payments</small>
-    `;
+    setupPayPalButton();
 });
 
 /**
- * Handle checkout process
+ * Setup PayPal Button with full integration
+ */
+function setupPayPalButton() {
+    const container = document.getElementById('paypal-button-container');
+    
+    // Check if PayPal SDK is loaded
+    if (typeof paypal === 'undefined') {
+        // Fallback to demo mode if PayPal SDK not configured
+        container.innerHTML = `
+            <button type="button" class="btn btn-primary btn-lg w-100" onclick="handleDemoCheckout()">
+                <i class="bi bi-paypal"></i> Complete Order (Demo Mode)
+            </button>
+            <small class="text-muted d-block mt-2">Configure PayPal credentials for live payments</small>
+        `;
+        return;
+    }
+    
+    // Render actual PayPal button
+    paypal.Buttons({
+        style: {
+            layout: 'vertical',
+            color: 'blue',
+            shape: 'rect',
+            label: 'pay'
+        },
+        
+        // Create order on PayPal
+        createOrder: async function(data, actions) {
+            // Validate form
+            const form = document.getElementById('checkout-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                throw new Error('Please fill in all required fields');
+            }
+            
+            // Validate shipping
+            if (!selectedShippingRate) {
+                alert('Please calculate and select a shipping method first');
+                throw new Error('Shipping not selected');
+            }
+            
+            // Create order in our database first
+            const orderResult = await createOrder();
+            if (!orderResult) {
+                throw new Error('Failed to create order');
+            }
+            
+            // Calculate amounts
+            const cart = window.cart.cart;
+            const subtotal = window.cart.getTotal();
+            const tax = subtotal * 0.08;
+            const shipping = selectedShippingRate.cost;
+            const total = subtotal + tax + shipping;
+            
+            // Create PayPal order
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        currency_code: 'USD',
+                        value: total.toFixed(2),
+                        breakdown: {
+                            item_total: {
+                                currency_code: 'USD',
+                                value: subtotal.toFixed(2)
+                            },
+                            shipping: {
+                                currency_code: 'USD',
+                                value: shipping.toFixed(2)
+                            },
+                            tax_total: {
+                                currency_code: 'USD',
+                                value: tax.toFixed(2)
+                            }
+                        }
+                    },
+                    items: cart.map(item => ({
+                        name: item.name,
+                        description: item.sku || '',
+                        unit_amount: {
+                            currency_code: 'USD',
+                            value: item.price.toFixed(2)
+                        },
+                        quantity: item.quantity.toString()
+                    })),
+                    shipping: {
+                        name: {
+                            full_name: form.first_name.value + ' ' + form.last_name.value
+                        },
+                        address: {
+                            address_line_1: form.address1.value,
+                            address_line_2: form.address2.value || '',
+                            admin_area_2: form.city.value,
+                            admin_area_1: form.state.value,
+                            postal_code: form.zip.value,
+                            country_code: form.country.value
+                        }
+                    }
+                }],
+                application_context: {
+                    shipping_preference: 'SET_PROVIDED_ADDRESS'
+                }
+            });
+        },
+        
+        // Handle payment approval
+        onApprove: async function(data, actions) {
+            try {
+                // Capture the payment
+                const orderData = await actions.order.capture();
+                
+                // Complete order in our system
+                await completeOrder(data.orderID, orderData.purchase_units[0].payments.captures[0].id);
+                
+                // Clear cart
+                window.cart.clearCart();
+                
+                // Show success message and redirect
+                alert('Payment successful! Order #' + orderData.id + ' completed.');
+                window.location.href = 'index.php?order_success=1';
+                
+            } catch (error) {
+                console.error('Payment capture error:', error);
+                alert('Payment was approved but there was an error completing your order. Please contact support.');
+            }
+        },
+        
+        // Handle errors
+        onError: function(err) {
+            console.error('PayPal error:', err);
+            alert('An error occurred with PayPal. Please try again or contact support.');
+        },
+        
+        // Handle cancellation
+        onCancel: function(data) {
+            console.log('Payment cancelled:', data);
+            alert('Payment was cancelled. Your cart items are still saved.');
+        }
+    }).render('#paypal-button-container');
+}
+
+/**
+ * Demo checkout handler (fallback when PayPal not configured)
+ */
+async function handleDemoCheckout() {
+    const form = document.getElementById('checkout-form');
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Validate shipping is selected
+    if (!selectedShippingRate) {
+        alert('Please calculate and select a shipping method first');
+        return;
+    }
+    
+    // Create order
+    const orderResult = await createOrder();
+    if (!orderResult) {
+        return;
+    }
+    
+    // Simulate payment completion
+    if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
+        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now());
+        
+        // Clear cart
+        window.cart.clearCart();
+        
+        // Redirect
+        alert('Demo order completed successfully! Order #' + orderResult.order_number);
+        window.location.href = 'index.php';
+    }
+}
+
+/**
+ * Handle checkout process (kept for legacy compatibility)
  */
 async function handleCheckout() {
     const form = document.getElementById('checkout-form');
