@@ -231,13 +231,12 @@ class EasyShipAPI
         $parsed = [];
         
         foreach ($rates as $rate) {
-            // Handle 2024-09 API format (rates array contains courier objects)
+            // Handle 2024-09 API format
             if (isset($rate['courier']) && is_array($rate['courier'])) {
                 $courier = $rate['courier'];
                 $courierId = $courier['id'] ?? $courier['slug'] ?? 'unknown';
                 $courierName = $courier['name'] ?? 'Unknown Courier';
                 
-                // 2024-09 format has shipment_charge_total at rate level
                 if (isset($rate['shipment_charge_total'])) {
                     $parsed[] = [
                         'courier_id' => $courierId,
@@ -250,32 +249,8 @@ class EasyShipAPI
                         'delivery_time_text' => $this->formatDeliveryTime($rate)
                     ];
                 }
-            }
-            // Handle 2023-01 API format (legacy support)
-            elseif (isset($rate['courier_id']) && isset($rate['available_handover_options']) && is_array($rate['available_handover_options'])) {
-                $courierId = $rate['courier_id'];
-                $courierName = $rate['courier_name'] ?? 'Unknown Courier';
-                
-                foreach ($rate['available_handover_options'] as $option) {
-                    // Only process array elements (valid options)
-                    if (!is_array($option)) {
-                        continue;
-                    }
-                    
-                    $parsed[] = [
-                        'courier_id' => $courierId,
-                        'courier_name' => $courierName,
-                        'service_name' => $option['service_level_name'] ?? 'Standard',
-                        'total_charge' => isset($option['total_charge']) ? floatval($option['total_charge']) : 0.0,
-                        'currency' => $option['currency'] ?? 'USD',
-                        'min_delivery_time' => $option['min_delivery_time'] ?? null,
-                        'max_delivery_time' => $option['max_delivery_time'] ?? null,
-                        'delivery_time_text' => $this->formatDeliveryTime($option)
-                    ];
-                }
-            }
-            // Log unexpected format for debugging
-            else {
+            } else {
+                // Log unexpected format for debugging
                 error_log('EasyShip: Unexpected rate format: ' . json_encode($rate));
             }
         }
