@@ -190,7 +190,59 @@ function updatePaymentButtonState() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Validate cart items to ensure all products still exist
+ */
+async function validateCartItems() {
+    const cart = window.cart.cart;
+    if (cart.length === 0) return true;
+    
+    const invalidItems = [];
+    
+    // Check each item in the cart
+    for (const item of cart) {
+        try {
+            // Call the API to check if product exists
+            const response = await fetch(`/api/product-check.php?id=${item.id}`);
+            const data = await response.json();
+            
+            if (!data.exists || !data.active) {
+                invalidItems.push(item);
+            }
+        } catch (error) {
+            console.error('Error validating product:', item.id, error);
+            // On error, assume item is invalid to be safe
+            invalidItems.push(item);
+        }
+    }
+    
+    // Remove invalid items from cart
+    if (invalidItems.length > 0) {
+        let message = 'The following items are no longer available and have been removed from your cart:\n';
+        invalidItems.forEach(item => {
+            message += `- ${item.name}\n`;
+            window.cart.removeItem(item.id);
+        });
+        
+        alert(message);
+        
+        // Redirect to cart page if cart is now empty
+        if (window.cart.cart.length === 0) {
+            window.location.href = 'cart.php';
+            return false;
+        }
+        
+        // Refresh the checkout display
+        displayCheckoutItems();
+    }
+    
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Validate cart items before proceeding
+    await validateCartItems();
+    
     displayCheckoutItems();
     
     // Calculate shipping button
