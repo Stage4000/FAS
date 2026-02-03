@@ -109,9 +109,9 @@
                 <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="100" data-aos-duration="800">
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
-                            <i class="fas fa-car-side display-4 text-danger mb-3"></i>
+                            <i class="fas fa-truck display-4 text-danger mb-3"></i>
                             <h5 class="card-title">ATV/UTV Parts</h5>
-                            <p class="card-text text-muted">Honda, Yamaha, Kawasaki, Suzuki ATVs & UTVs</p>
+                            <p class="card-text text-muted">ATV & UTV parts</p>
                             <a href="products.php?category=atv" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
@@ -129,8 +129,8 @@
                 <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="300" data-aos-duration="800">
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
-                            <i class="fas fa-truck display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Automotive</h5>
+                            <i class="fas fa-car-side display-4 text-danger mb-3"></i>
+                            <h5 class="card-title">Automotive Parts</h5>
                             <p class="card-text text-muted">Auto & Truck Parts</p>
                             <a href="products.php?category=automotive" class="btn btn-outline-danger">Browse</a>
                         </div>
