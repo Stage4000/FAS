@@ -59,6 +59,11 @@
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -232,5 +237,13 @@
     <!-- Custom JS -->
     <script src="public/js/animations.js"></script>
     <script src="public/js/main.js"></script>
+    
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <i class="fas fa-moon"></i>
+    </button>
+    
+    <!-- Theme Toggle Script -->
+    <script src="public/js/theme-toggle.js"></script>
 </body>
 </html>
