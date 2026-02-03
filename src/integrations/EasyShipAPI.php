@@ -257,11 +257,17 @@ class EasyShipAPI
                 $courierName = $rate['courier_name'] ?? 'Unknown Courier';
                 
                 foreach ($rate['available_handover_options'] as $option) {
+                    // Validate that $option is an array
+                    if (!is_array($option)) {
+                        error_log('EasyShip: Skipping non-array option in available_handover_options');
+                        continue;
+                    }
+                    
                     $parsed[] = [
                         'courier_id' => $courierId,
                         'courier_name' => $courierName,
                         'service_name' => $option['service_level_name'] ?? 'Standard',
-                        'total_charge' => floatval($option['total_charge']),
+                        'total_charge' => isset($option['total_charge']) ? floatval($option['total_charge']) : 0.0,
                         'currency' => $option['currency'] ?? 'USD',
                         'min_delivery_time' => $option['min_delivery_time'] ?? null,
                         'max_delivery_time' => $option['max_delivery_time'] ?? null,
