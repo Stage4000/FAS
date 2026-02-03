@@ -224,31 +224,58 @@ class EasyShipAPI
     
     /**
      * Parse rates response
+     * Handles both 2023-01 and 2024-09 API response formats
      */
     private function parseRates($rates)
     {
         $parsed = [];
         
         foreach ($rates as $rate) {
-            if (!isset($rate['available_handover_options'])) {
-                continue;
+            // Handle 2024-09 API format (rates array contains courier objects)
+            if (isset($rate['courier']) && is_array($rate['courier'])) {
+                $courier = $rate['courier'];
+                $courierId = $courier['id'] ?? $courier['slug'] ?? 'unknown';
+                $courierName = $courier['name'] ?? 'Unknown Courier';
+                
+                // 2024-09 format has shipment_charge_total at rate level
+                if (isset($rate['shipment_charge_total'])) {
+                    $parsed[] = [
+                        'courier_id' => $courierId,
+                        'courier_name' => $courierName,
+                        'service_name' => $rate['courier_display_name'] ?? $courierName,
+                        'total_charge' => floatval($rate['shipment_charge_total']),
+                        'currency' => $rate['currency'] ?? 'USD',
+                        'min_delivery_time' => $rate['min_delivery_time'] ?? null,
+                        'max_delivery_time' => $rate['max_delivery_time'] ?? null,
+                        'delivery_time_text' => $this->formatDeliveryTime($rate)
+                    ];
+                }
             }
-            
-            foreach ($rate['available_handover_options'] as $option) {
-                $parsed[] = [
-                    'courier_id' => $rate['courier_id'],
-                    'courier_name' => $rate['courier_name'],
-                    'service_name' => $option['service_level_name'] ?? 'Standard',
-                    'total_charge' => $option['total_charge'],
-                    'currency' => $option['currency'],
-                    'min_delivery_time' => $option['min_delivery_time'] ?? null,
-                    'max_delivery_time' => $option['max_delivery_time'] ?? null,
-                    'delivery_time_text' => $this->formatDeliveryTime($option)
-                ];
+            // Handle 2023-01 API format (legacy support)
+            elseif (isset($rate['available_handover_options']) && is_array($rate['available_handover_options'])) {
+                $courierId = $rate['courier_id'] ?? 'unknown';
+                $courierName = $rate['courier_name'] ?? 'Unknown Courier';
+                
+                foreach ($rate['available_handover_options'] as $option) {
+                    $parsed[] = [
+                        'courier_id' => $courierId,
+                        'courier_name' => $courierName,
+                        'service_name' => $option['service_level_name'] ?? 'Standard',
+                        'total_charge' => floatval($option['total_charge']),
+                        'currency' => $option['currency'] ?? 'USD',
+                        'min_delivery_time' => $option['min_delivery_time'] ?? null,
+                        'max_delivery_time' => $option['max_delivery_time'] ?? null,
+                        'delivery_time_text' => $this->formatDeliveryTime($option)
+                    ];
+                }
+            }
+            // Log unexpected format for debugging
+            else {
+                error_log('EasyShip: Unexpected rate format: ' . json_encode($rate));
             }
         }
         
-        // Sort by price
+        // Sort by price (lowest first)
         usort($parsed, function($a, $b) {
             return $a['total_charge'] <=> $b['total_charge'];
         });
