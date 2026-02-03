@@ -17,9 +17,9 @@
 
 /* Dark mode for admin */
 [data-theme="dark"] {
-    --admin-bg: #1a1a1a;
+    --admin-bg: #1a1a1a;  /* rgb(26,26,26) - body background */
     --admin-text: #e0e0e0;
-    --admin-card-bg: #2d2d2d;  /* Lighter for better contrast from body */
+    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - card background for better contrast */
     --admin-border: #404040;
 }
 
@@ -94,16 +94,22 @@ body {
 /* Cards */
 .card {
     border-radius: var(--admin-border-radius);
-    border: 1px solid var(--admin-border);
+    border: 2px solid var(--admin-primary);  /* Red border for all cards */
     transition: var(--admin-transition);
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
 }
 
+/* Enhanced shadow for dark mode */
+[data-theme="dark"] .card {
+    border: 2px solid var(--admin-primary);  /* Red border in dark mode */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 .card-header {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
-    border-bottom: 1px solid var(--admin-border);
+    border-bottom: 2px solid var(--admin-primary);  /* Red border for header */
 }
 
 .card-body {
@@ -114,12 +120,16 @@ body {
 .card-footer {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
-    border-top: 1px solid var(--admin-border);
+    border-top: 2px solid var(--admin-primary);  /* Red border for footer */
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.15);
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.25);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 8px 20px rgba(219, 3, 53, 0.4);
 }
 
 /* Buttons */
