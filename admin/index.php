@@ -11,15 +11,17 @@ $auth->requireLogin();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Flip and Strip</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <h1 class="mb-4">Dashboard</h1>
+                <h1 class="mb-4" data-aos="fade-down">Dashboard</h1>
 
                 <!-- Stats Cards -->
                 <div class="row mb-4">
-                    <div class="col-md-3">
+                    <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
                         <div class="card border-0 shadow-sm">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
@@ -28,7 +30,7 @@ $auth->requireLogin();
                                         <h3 class="mb-0">0</h3>
                                     </div>
                                     <div class="text-primary">
-                                        <i class="bi bi-box-seam display-4"></i>
+                                        <i class="fas fa-box display-4"></i>
                                     </div>
                                 </div>
                             </div>
@@ -43,7 +45,7 @@ $auth->requireLogin();
                                         <h3 class="mb-0">0</h3>
                                     </div>
                                     <div class="text-success">
-                                        <i class="bi bi-cart-check display-4"></i>
+                                        <i class="fas fa-shopping-cart display-4"></i>
                                     </div>
                                 </div>
                             </div>
@@ -58,7 +60,7 @@ $auth->requireLogin();
                                         <h3 class="mb-0">$0</h3>
                                     </div>
                                     <div class="text-warning">
-                                        <i class="bi bi-currency-dollar display-4"></i>
+                                        <i class="fas fa-dollar-sign display-4"></i>
                                     </div>
                                 </div>
                             </div>
@@ -73,7 +75,7 @@ $auth->requireLogin();
                                         <h6 class="mb-0">Never</h6>
                                     </div>
                                     <div class="text-info">
-                                        <i class="bi bi-arrow-repeat display-4"></i>
+                                        <i class="fas fa-sync-alt display-4"></i>
                                     </div>
                                 </div>
                             </div>
@@ -84,7 +86,7 @@ $auth->requireLogin();
                 <!-- eBay Sync Section -->
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-arrow-repeat me-2"></i>eBay Synchronization</h5>
+                        <h5 class="mb-0"><i class="fas fa-sync-alt me-2"></i>eBay Synchronization</h5>
                     </div>
                     <div class="card-body">
                         <p>Sync products from your eBay store (moto800) to the website database.</p>
@@ -116,7 +118,7 @@ $auth->requireLogin();
                         </div>
                         
                         <button class="btn btn-primary" id="sync-ebay-btn">
-                            <i class="bi bi-arrow-repeat me-2"></i>Start eBay Sync
+                            <i class="fas fa-sync-alt me-2"></i>Start eBay Sync
                         </button>
                         <div id="sync-status" class="mt-3"></div>
                     </div>
@@ -226,7 +228,7 @@ $auth->requireLogin();
                 })
                 .finally(() => {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Start eBay Sync';
+                    btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Start eBay Sync';
                     
                     // Reload page after a successful sync to update stats
                     if (statusDiv.querySelector('.alert-success')) {
