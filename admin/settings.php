@@ -55,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'property_id' => $_POST['tawk_property_id'] ?? '',
             'widget_id' => $_POST['tawk_widget_id'] ?? ''
         ],
+        'turnstile' => [
+            'enabled' => isset($_POST['turnstile_enabled']),
+            'site_key' => $_POST['turnstile_site_key'] ?? '',
+            'secret_key' => $_POST['turnstile_secret_key'] ?? ''
+        ],
         'site' => [
             'name' => $_POST['site_name'] ?? 'Flip and Strip',
             'url' => $_POST['site_url'] ?? 'https://flipandstrip.com',
@@ -273,6 +278,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 1. Sign up or log in at <a href="https://tawk.to" target="_blank" class="alert-link">tawk.to</a><br>
                                 2. Go to Administration > Channels > Chat Widget<br>
                                 3. Copy the Property ID and Widget ID from the widget code
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Turnstile Settings -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Cloudflare Turnstile Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="turnstile_enabled" id="turnstile_enabled" <?php echo !empty($config['turnstile']['enabled']) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="turnstile_enabled">Enable Turnstile on Contact Form</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Site Key</label>
+                                    <input type="text" class="form-control" name="turnstile_site_key" value="<?php echo htmlspecialchars($config['turnstile']['site_key'] ?? ''); ?>" placeholder="Your Cloudflare Turnstile site key">
+                                    <small class="text-muted">Public key shown to users</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Secret Key</label>
+                                    <input type="password" class="form-control" name="turnstile_secret_key" value="<?php echo htmlspecialchars($config['turnstile']['secret_key'] ?? ''); ?>" placeholder="Your Cloudflare Turnstile secret key">
+                                    <small class="text-muted">Private key for server-side verification</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-circle-info me-2"></i>
+                                <strong>How to get your Turnstile keys:</strong><br>
+                                1. Sign up or log in at <a href="https://dash.cloudflare.com" target="_blank" class="alert-link">Cloudflare Dashboard</a><br>
+                                2. Go to Turnstile section<br>
+                                3. Create a new site or use an existing one<br>
+                                4. Copy the Site Key and Secret Key<br>
+                                <strong>Note:</strong> Turnstile helps protect your contact form from spam and bot submissions.
                             </div>
                         </div>
                     </div>
