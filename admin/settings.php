@@ -5,6 +5,9 @@ require_once __DIR__ . '/../src/config/Database.php';
 $auth = new AdminAuth();
 $auth->requireLogin();
 
+// Define placeholder for masked secret keys
+define('MASKED_SECRET_PLACEHOLDER', '••••••••••••••••');
+
 $success = '';
 $error = '';
 
@@ -58,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'turnstile' => [
             'enabled' => isset($_POST['turnstile_enabled']),
             'site_key' => $_POST['turnstile_site_key'] ?? '',
-            'secret_key' => ($_POST['turnstile_secret_key'] ?? '') === '••••••••••••••••' 
+            'secret_key' => ($_POST['turnstile_secret_key'] ?? '') === MASKED_SECRET_PLACEHOLDER
                 ? ($config['turnstile']['secret_key'] ?? '') 
                 : ($_POST['turnstile_secret_key'] ?? '')
         ],
@@ -304,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Secret Key</label>
-                                    <input type="password" class="form-control" name="turnstile_secret_key" value="<?php echo !empty($config['turnstile']['secret_key']) ? '••••••••••••••••' : ''; ?>" placeholder="Your Cloudflare Turnstile secret key">
+                                    <input type="password" class="form-control" name="turnstile_secret_key" value="<?php echo !empty($config['turnstile']['secret_key']) ? MASKED_SECRET_PLACEHOLDER : ''; ?>" placeholder="Your Cloudflare Turnstile secret key">
                                     <small class="text-muted">Private key for server-side verification. Leave as-is to keep current key.</small>
                                 </div>
                             </div>

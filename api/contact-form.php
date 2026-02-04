@@ -62,6 +62,8 @@ if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secr
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($verifyData));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     
     $verifyResponse = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -107,8 +109,10 @@ $headers .= "X-Mailer: PHP/" . phpversion();
 
 // Attempt to send email (will fail silently if mail is not configured)
 // In production, you should log failures and consider using a proper email service
-mail($to, $emailSubject, $emailBody, $headers);
+$mailSent = mail($to, $emailSubject, $emailBody, $headers);
 
+// Note: We still return success even if email fails since the main goal is to acknowledge
+// the form submission. In production, consider logging email failures for monitoring.
 echo json_encode([
     'success' => true,
     'message' => 'Thank you for your message! We will get back to you soon.'
