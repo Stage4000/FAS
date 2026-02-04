@@ -16,6 +16,14 @@ class Product
     }
     
     /**
+     * Get database connection
+     */
+    public function getDb()
+    {
+        return $this->db;
+    }
+    
+    /**
      * Get all products with pagination (public website - only visible and active)
      */
     public function getAll($page = 1, $perPage = 24, $category = null, $search = null, $manufacturer = null)

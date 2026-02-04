@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
+
+use FAS\Utils\CSRF;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -25,7 +28,11 @@ $config = file_exists($configFile) ? require $configFile : [];
 
 // Handle config update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $newConfig = [
+    // Validate CSRF token
+    if (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid security token. Please try again.';
+    } else {
+        $newConfig = [
         'database' => [
             'host' => $_POST['db_host'] ?? 'localhost',
             'database' => $_POST['db_name'] ?? 'flipandstrip',
@@ -89,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $error = 'Failed to save settings. Check file permissions.';
     }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -121,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST">
+                    <?php echo CSRF::tokenField(); ?>
                     <!-- Database Settings -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white">
