@@ -78,15 +78,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <input type="text" class="form-control" name="zip" required>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Country *</label>
-                            <select class="form-select" name="country" id="country-select" required>
-                                <option value="US">United States</option>
-                                <option value="CA">Canada</option>
-                                <option value="MX">Mexico</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn btn-primary" id="calculate-shipping-btn">
+                        <button type="button" class="btn btn-danger col-12" id="calculate-shipping-btn">
                             <i class="bi bi-calculator"></i> Calculate Shipping
                         </button>
                     </div>
@@ -166,7 +158,91 @@ require_once __DIR__ . '/includes/header.php';
 <script type="text/javascript">
 let selectedShippingRate = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+// Function to check if form is ready for payment
+function isFormReadyForPayment() {
+    const form = document.getElementById('checkout-form');
+    if (!form) return false;
+    
+    // Check required fields
+    const requiredFields = form.querySelectorAll('[required]');
+    for (let field of requiredFields) {
+        if (!field.value) {
+            return false;
+        }
+    }
+    
+    // Check if shipping is selected
+    if (!selectedShippingRate) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Function to update payment button state
+function updatePaymentButtonState() {
+    const container = document.getElementById('paypal-button-container');
+    const isReady = isFormReadyForPayment();
+    
+    if (container) {
+        container.style.opacity = isReady ? '1' : '0.5';
+        container.style.pointerEvents = isReady ? 'auto' : 'none';
+    }
+}
+
+/**
+ * Validate cart items to ensure all products still exist
+ */
+async function validateCartItems() {
+    const cart = window.cart.cart;
+    if (cart.length === 0) return true;
+    
+    const invalidItems = [];
+    
+    // Check each item in the cart
+    for (const item of cart) {
+        try {
+            // Call the API to check if product exists
+            const response = await fetch(`/api/product-check.php?id=${item.id}`);
+            const data = await response.json();
+            
+            if (!data.exists || !data.active) {
+                invalidItems.push(item);
+            }
+        } catch (error) {
+            console.error('Error validating product:', item.id, error);
+            // On error, assume item is invalid to be safe
+            invalidItems.push(item);
+        }
+    }
+    
+    // Remove invalid items from cart
+    if (invalidItems.length > 0) {
+        let message = 'The following items are no longer available and have been removed from your cart:\n';
+        invalidItems.forEach(item => {
+            message += `- ${item.name}\n`;
+            window.cart.removeItem(item.id);
+        });
+        
+        alert(message);
+        
+        // Redirect to cart page if cart is now empty
+        if (window.cart.cart.length === 0) {
+            window.location.href = 'cart.php';
+            return false;
+        }
+        
+        // Refresh the checkout display
+        displayCheckoutItems();
+    }
+    
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Validate cart items before proceeding
+    await validateCartItems();
+    
     displayCheckoutItems();
     
     // Calculate shipping button
@@ -174,6 +250,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup PayPal button
     setupPayPalButton();
+    
+    // Monitor form fields for changes to enable/disable payment button
+    const form = document.getElementById('checkout-form');
+    if (form) {
+        form.addEventListener('input', updatePaymentButtonState);
+        form.addEventListener('change', updatePaymentButtonState);
+    }
+    
+    // Initial state
+    updatePaymentButtonState();
 });
 
 /**
@@ -227,7 +313,7 @@ function setupPayPalButton() {
             // Calculate amounts
             const cart = window.cart.cart;
             const subtotal = window.cart.getTotal();
-            const tax = subtotal * 0.08;
+            const tax = 0; // Tax removed - will be implemented based on customer location in future
             const shipping = selectedShippingRate.cost;
             const total = subtotal + tax + shipping;
             
@@ -271,7 +357,7 @@ function setupPayPalButton() {
                             admin_area_2: form.city.value,
                             admin_area_1: form.state.value,
                             postal_code: form.zip.value,
-                            country_code: form.country.value
+                            country_code: 'US' // Hardcoded for US-only shipping
                         }
                     }
                 }],
@@ -393,7 +479,7 @@ async function calculateShipping() {
         city: form.city.value,
         state: form.state.value,
         zip: form.zip.value,
-        country: form.country.value
+        country: 'US' // Hardcoded for US-only shipping
     };
     
     // Validate address fields
@@ -479,6 +565,7 @@ function displayShippingOptions(rates) {
 function selectShippingMethod(index, cost) {
     selectedShippingRate = { index, cost };
     updateCheckoutSummary();
+    updatePaymentButtonState(); // Enable payment button when shipping is selected
 }
 
 function displayCheckoutItems() {
@@ -512,7 +599,7 @@ function displayCheckoutItems() {
 
 function updateCheckoutSummary() {
     const subtotal = window.cart.getTotal();
-    const tax = subtotal * 0.08; // 8% tax (should be calculated based on location)
+    const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const total = subtotal + tax + shipping;
     
@@ -545,7 +632,7 @@ async function createOrder() {
     
     // Prepare order data
     const subtotal = window.cart.getTotal();
-    const tax = subtotal * 0.08;
+    const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const total = subtotal + tax + shipping;
     
@@ -560,7 +647,7 @@ async function createOrder() {
             city: form.city.value,
             state: form.state.value,
             zip: form.zip.value,
-            country: form.country.value
+            country: 'US' // Hardcoded for US-only shipping
         },
         items: cart.map(item => ({
             product_id: item.id,
