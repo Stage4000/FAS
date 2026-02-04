@@ -101,10 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             </div>
-            
-            <div class="text-center mt-3 text-white-50">
-                <small>Default credentials: admin / admin123</small>
-            </div>
         </div>
     </div>
     

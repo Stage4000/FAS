@@ -36,7 +36,15 @@ header('Content-Type: application/json');
 
 // Simple authentication check
 $authKey = $_GET['key'] ?? '';
-$expectedKey = 'fas_sync_key_2026'; // Should be in config
+
+// Load API key from config
+$config = require __DIR__ . '/../src/config/config.php';
+$expectedKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
+
+// Warn if using default key in production
+if ($expectedKey === 'fas_sync_key_2026') {
+    error_log("WARNING: Default sync API key is being used. Change this in admin settings for better security.");
+}
 
 if ($authKey !== $expectedKey) {
     SyncLogger::log("Authentication failed - invalid key provided");

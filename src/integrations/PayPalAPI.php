@@ -268,9 +268,24 @@ class PayPalAPI
             return false;
         }
         
-        // TODO: Implement proper verification using PayPal SDK
-        // Example implementation (requires webhook_id in config):
-        /*
+        // WARNING: PayPal webhook signature verification is NOT IMPLEMENTED
+        // This is a critical security issue for production use
+        // Without proper verification, attackers can send fake webhooks to mark orders as paid
+        // 
+        // REQUIRED FOR PRODUCTION:
+        // 1. Get webhook ID from PayPal Developer Dashboard
+        // 2. Store it in config.php under $config['paypal']['webhook_id']
+        // 3. Uncomment and complete the verification code below
+        // 4. For now, REJECT all webhook requests to prevent fraud
+        
+        error_log('SECURITY WARNING: PayPal webhook signature verification is not implemented');
+        error_log('Rejecting webhook to prevent potential fraud. Configure webhook_id to enable.');
+        
+        // For production safety, reject webhooks until proper verification is implemented
+        return false;
+        
+        /* UNCOMMENT THIS BLOCK AFTER CONFIGURING WEBHOOK_ID IN config.php:
+        
         $accessToken = $this->getAccessToken();
         if (!$accessToken) {
             return false;
@@ -294,12 +309,8 @@ class PayPalAPI
         
         $result = $this->makeRequest('POST', '/v1/notifications/verify-webhook-signature', $verificationData);
         return isset($result['verification_status']) && $result['verification_status'] === 'SUCCESS';
-        */
         
-        // WARNING: Returning true without verification is UNSAFE for production
-        // In a production environment, either implement the above or reject unverified webhooks
-        error_log('PayPal webhook: Signature verification not implemented - accepting webhook (UNSAFE)');
-        return true;
+        */
     }
     
     /**

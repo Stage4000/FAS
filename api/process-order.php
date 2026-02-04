@@ -217,50 +217,84 @@ function completeOrder($input, $orderModel, $productModel)
         exit;
     }
     
-    // Verify inventory is still available before completing
-    $items = $orderModel->getItems($order['id']);
-    $inventoryIssues = [];
+    // Use transaction to prevent race conditions during inventory check and deduction
+    // This ensures atomicity: either all inventory is deducted or none is
+    $db = $productModel->getDb();
     
-    foreach ($items as $item) {
-        $product = $productModel->getById($item['product_id'], true);
-        if (!$product) {
-            $inventoryIssues[] = "Product #{$item['product_id']} not found";
-        } elseif ($product['quantity'] < $item['quantity']) {
-            $inventoryIssues[] = "{$product['name']}: only {$product['quantity']} available, need {$item['quantity']}";
+    try {
+        $db->beginTransaction();
+        
+        // Verify inventory is still available and lock the rows
+        $items = $orderModel->getItems($order['id']);
+        $inventoryIssues = [];
+        $productsToUpdate = [];
+        
+        foreach ($items as $item) {
+            // Use SELECT ... FOR UPDATE to lock rows and prevent concurrent modifications
+            // Note: SQLite doesn't support FOR UPDATE, but transaction provides serialization
+            $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+            $stmt->execute([$item['product_id']]);
+            $product = $stmt->fetch();
+            
+            if (!$product) {
+                $inventoryIssues[] = "Product #{$item['product_id']} not found";
+            } elseif ($product['quantity'] < $item['quantity']) {
+                $inventoryIssues[] = "{$product['name']}: only {$product['quantity']} available, need {$item['quantity']}";
+            } else {
+                // Store product for deduction
+                $productsToUpdate[] = [
+                    'id' => $item['product_id'],
+                    'name' => $product['name'],
+                    'quantity' => $item['quantity'],
+                    'new_quantity' => $product['quantity'] - $item['quantity']
+                ];
+            }
         }
-    }
-    
-    if (!empty($inventoryIssues)) {
-        error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
-        http_response_code(409);
+        
+        if (!empty($inventoryIssues)) {
+            $db->rollBack();
+            error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
+            http_response_code(409);
+            echo json_encode([
+                'error' => 'Inventory no longer available',
+                'details' => $inventoryIssues
+            ]);
+            exit;
+        }
+        
+        // Update order status
+        $orderModel->update($order['id'], [
+            'payment_status' => 'completed',
+            'order_status' => 'processing',
+            'paypal_transaction_id' => $paypalTransactionId
+        ]);
+        
+        // Deduct product quantities atomically
+        foreach ($productsToUpdate as $product) {
+            $productModel->update($product['id'], ['quantity' => $product['new_quantity']]);
+            error_log("Deducted {$product['quantity']} units from product #{$product['id']} ({$product['name']}). New quantity: {$product['new_quantity']}");
+        }
+        
+        // Commit transaction
+        $db->commit();
+        
         echo json_encode([
-            'error' => 'Inventory no longer available',
-            'details' => $inventoryIssues
+            'success' => true,
+            'order_number' => $order['order_number'],
+            'message' => 'Order completed and inventory updated'
+        ]);
+        
+    } catch (Exception $e) {
+        // Rollback on any error
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('Order completion failed for order #' . $order['order_number'] . ': ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'error' => 'Failed to complete order',
+            'message' => $e->getMessage()
         ]);
         exit;
     }
-    
-    // Update order status
-    $orderModel->update($order['id'], [
-        'payment_status' => 'completed',
-        'order_status' => 'processing',
-        'paypal_transaction_id' => $paypalTransactionId
-    ]);
-    
-    // Deduct product quantities (inventory was already verified above)
-    foreach ($items as $item) {
-        $product = $productModel->getById($item['product_id'], true);
-        // Product and quantity already validated above, proceed with deduction
-        if ($product) {
-            $newQuantity = $product['quantity'] - $item['quantity'];
-            $productModel->update($item['product_id'], ['quantity' => $newQuantity]);
-            error_log("Deducted {$item['quantity']} units from product #{$item['product_id']}. New quantity: {$newQuantity}");
-        }
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'order_number' => $order['order_number'],
-        'message' => 'Order completed and inventory updated'
-    ]);
 }
