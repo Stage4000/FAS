@@ -127,7 +127,8 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
     status TEXT DEFAULT 'running',
     error_message TEXT,
     started_at TEXT DEFAULT (datetime('now')),
-    completed_at TEXT
+    completed_at TEXT,
+    last_sync_timestamp TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_ebay_sync_log_status ON ebay_sync_log(status);
