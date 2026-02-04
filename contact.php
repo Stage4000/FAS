@@ -5,7 +5,8 @@ require_once __DIR__ . '/includes/header.php';
 // Load configuration for Turnstile
 $configFile = __DIR__ . '/src/config/config.php';
 if (!file_exists($configFile)) {
-    // If config doesn't exist, disable Turnstile for safety
+    // If config doesn't exist, disable Turnstile and log the issue
+    error_log("Warning: Config file not found at $configFile - Turnstile disabled on contact form");
     $turnstileEnabled = false;
     $turnstileSiteKey = '';
 } else {
