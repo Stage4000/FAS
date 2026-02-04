@@ -191,6 +191,7 @@ class EbayAPI
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
         $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
+        $xml .= '<OutputSelector>PrimaryCategory</OutputSelector>';
         
         $xml .= '</GetSellerListRequest>';
         
@@ -369,6 +370,8 @@ class EbayAPI
                 'condition' => $item['ConditionDisplayName'] ?? 'Used',
                 'location' => '',
                 'shipping_cost' => 0,
+                'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
+                'ebay_category_name' => $item['PrimaryCategory']['CategoryName'] ?? null,
             ];
         }
         
