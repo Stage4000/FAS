@@ -97,7 +97,7 @@ document.getElementById('contact-form').addEventListener('submit', async functio
             alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + result.message;
             form.reset();
             // Reset Turnstile widget if it exists
-            if (window.turnstile) {
+            if (window.turnstile && window.turnstile.reset) {
                 window.turnstile.reset();
             }
         } else {

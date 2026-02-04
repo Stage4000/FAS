@@ -36,6 +36,11 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+// Sanitize inputs to prevent header injection
+$name = str_replace(["\r", "\n"], '', $name);
+$email = str_replace(["\r", "\n"], '', $email);
+$subject = str_replace(["\r", "\n"], '', $subject);
+
 // Verify Turnstile if enabled
 if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secret_key'])) {
     if (empty($turnstileToken)) {
