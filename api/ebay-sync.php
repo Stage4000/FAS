@@ -35,6 +35,8 @@ SyncLogger::log("eBay Sync API endpoint called");
 header('Content-Type: application/json');
 
 // Simple authentication check
+$authKey = $_GET['key'] ?? '';
+
 // Load API key from config
 $config = require __DIR__ . '/../src/config/config.php';
 $expectedKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
