@@ -61,9 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'turnstile' => [
             'enabled' => isset($_POST['turnstile_enabled']),
             'site_key' => $_POST['turnstile_site_key'] ?? '',
-            'secret_key' => ($_POST['turnstile_secret_key'] ?? '') === MASKED_SECRET_PLACEHOLDER
-                ? ($config['turnstile']['secret_key'] ?? '') 
-                : ($_POST['turnstile_secret_key'] ?? '')
+            'secret_key' => (function() use ($config) {
+                $postedKey = $_POST['turnstile_secret_key'] ?? '';
+                return $postedKey === MASKED_SECRET_PLACEHOLDER 
+                    ? ($config['turnstile']['secret_key'] ?? '') 
+                    : $postedKey;
+            })()
         ],
         'site' => [
             'name' => $_POST['site_name'] ?? 'Flip and Strip',

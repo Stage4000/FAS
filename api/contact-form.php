@@ -40,8 +40,8 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $name = str_replace(["\r", "\n"], '', $name);
 $email = str_replace(["\r", "\n"], '', $email);
 $subject = str_replace(["\r", "\n"], '', $subject);
-// Strip control characters from message to prevent any header injection attempts
-$message = preg_replace('/[\r\n\t\x00-\x1F\x7F]/', ' ', $message);
+// Strip control characters from message except tabs (preserve intentional formatting)
+$message = preg_replace('/[\r\n\x00-\x08\x0B-\x1F\x7F]/', ' ', $message);
 
 // Verify Turnstile if enabled
 if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secret_key'])) {
@@ -94,8 +94,9 @@ $siteName = $config['site']['name'] ?? 'Flip and Strip';
 
 // Simple email sending (if mail() is configured on server)
 $to = $siteEmail;
-// Use sanitized and encoded subject (already cleaned of newlines above)
-$emailSubject = "Contact Form: " . mb_encode_mimeheader($subject, 'UTF-8');
+// Use sanitized and encoded subject for proper email handling
+// Note: For PHP 8.2+, consider using dedicated email library
+$emailSubject = "Contact Form: " . (function_exists('mb_encode_mimeheader') ? mb_encode_mimeheader($subject, 'UTF-8') : $subject);
 $emailBody = "Name: $name\n";
 $emailBody .= "Email: $email\n";
 $emailBody .= "Subject: $subject\n\n";
