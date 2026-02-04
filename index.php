@@ -187,13 +187,13 @@
     </section>
 
     <!-- Call to Action -->
-    <section class="py-5 bg-dark text-white">
+    <section class="py-5 cta-section">
         <div class="container text-center">
             <h2 class="mb-4">Find the Parts You Need</h2>
             <p class="lead mb-4">Browse our extensive inventory or contact us for specific parts</p>
             <div class="d-flex gap-3 justify-content-center">
                 <a href="products.php" class="btn btn-danger btn-lg">View All Products</a>
-                <a href="contact.php" class="btn btn-outline-light btn-lg">Contact Us</a>
+                <a href="contact.php" class="btn btn-outline-danger btn-lg">Contact Us</a>
             </div>
         </div>
     </section>
