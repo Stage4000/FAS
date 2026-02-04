@@ -78,7 +78,7 @@
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
-            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
+            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">High quality new & used, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more!</p>
             <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
                 <a href="products.php" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
                     <i class="fas fa-search me-2"></i>Shop Now
@@ -187,67 +187,17 @@
     </section>
 
     <!-- Call to Action -->
-    <section class="py-5 bg-dark text-white">
+    <section class="py-5 cta-section">
         <div class="container text-center">
             <h2 class="mb-4">Find the Parts You Need</h2>
             <p class="lead mb-4">Browse our extensive inventory or contact us for specific parts</p>
             <div class="d-flex gap-3 justify-content-center">
                 <a href="products.php" class="btn btn-danger btn-lg">View All Products</a>
-                <a href="contact.php" class="btn btn-outline-light btn-lg">Contact Us</a>
+                <a href="contact.php" class="btn btn-outline-danger btn-lg">Contact Us</a>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-black text-white py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <h5 class="fw-bold">FLIP AND STRIP</h5>
-                    <p>Quality motorcycle, ATV/UTV, and boat parts</p>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <h6>Quick Links</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="products.php" class="text-white-50 text-decoration-none">Shop</a></li>
-                        <li><a href="about.php" class="text-white-50 text-decoration-none">About</a></li>
-                        <li><a href="contact.php" class="text-white-50 text-decoration-none">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <h6>Connect</h6>
-                    <p><a href="https://flipandstrip.com" class="text-white-50 text-decoration-none">flipandstrip.com</a></p>
-                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" class="text-white-50 text-decoration-none">eBay Store</a></p>
-                </div>
-            </div>
-            <hr class="bg-white">
-            <div class="text-center">
-                <p class="mb-0">&copy; <?php echo date('Y'); ?> Flip and Strip. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- AOS (Animate On Scroll) -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 1000,
-            once: true,
-            offset: 100
-        });
-    </script>
-    <!-- Custom JS -->
-    <script src="public/js/animations.js"></script>
-    <script src="public/js/main.js"></script>
-    
-    <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
-        <i class="fas fa-moon"></i>
-    </button>
-    
-    <!-- Theme Toggle Script -->
-    <script src="public/js/theme-toggle.js"></script>
+    <?php require_once __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>

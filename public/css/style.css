@@ -1263,3 +1263,25 @@ footer a:hover {
     padding-left: 8px;
 }
 
+/* Call to Action Section - Light/Dark Mode Compatible */
+.cta-section {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="dark"] .cta-section {
+    background-color: #2d2d2d;
+    color: var(--text-color);
+}
+
+/* Ensure outline button works in both modes */
+.cta-section .btn-outline-danger {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.cta-section .btn-outline-danger:hover {
+    background-color: var(--primary-color);
+    color: white;
+}

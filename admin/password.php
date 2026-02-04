@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <div class="card border-0 shadow-sm" style="max-width: 600px;">
+                <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <form method="POST">
                             <div class="mb-3">

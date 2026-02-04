@@ -65,6 +65,12 @@ return [
         'widget_id' => 'YOUR_WIDGET_ID'
     ],
     
+    'turnstile' => [
+        'enabled' => false,
+        'site_key' => 'YOUR_TURNSTILE_SITE_KEY',
+        'secret_key' => 'YOUR_TURNSTILE_SECRET_KEY'
+    ],
+    
     'site' => [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',
