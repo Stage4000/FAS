@@ -40,8 +40,8 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $name = str_replace(["\r", "\n"], '', $name);
 $email = str_replace(["\r", "\n"], '', $email);
 $subject = str_replace(["\r", "\n"], '', $subject);
-// Also ensure message doesn't contain any potential issues
-$message = str_replace(["\r\n\r\n"], "\n\n", $message);
+// Also ensure message doesn't contain any potential header injection via double line breaks
+$message = str_replace("\r\n\r\n", "\n\n", $message);
 
 // Verify Turnstile if enabled
 if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secret_key'])) {

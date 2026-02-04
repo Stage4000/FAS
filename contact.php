@@ -96,9 +96,9 @@ document.getElementById('contact-form').addEventListener('submit', async functio
             alertDiv.className = 'alert alert-success';
             alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + result.message;
             form.reset();
-            // Reset Turnstile widget if it exists
+            // Reset Turnstile widget if it exists (pass container selector for proper reset)
             if (window.turnstile && window.turnstile.reset) {
-                window.turnstile.reset();
+                window.turnstile.reset('.cf-turnstile');
             }
         } else {
             alertDiv.className = 'alert alert-danger';
