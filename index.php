@@ -78,7 +78,7 @@
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
-            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more</p>
+            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">High quality new & used, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more!</p>
             <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
                 <a href="products.php" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
                     <i class="fas fa-search me-2"></i>Shop Now
