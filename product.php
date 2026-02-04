@@ -196,7 +196,7 @@ if (empty($mainImage)) {
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h3 class="mb-4">Product Description</h3>
-                    <?php echo $product['description']; ?>
+                    <?php echo htmlspecialchars($product['description'], ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             </div>
         </div>
