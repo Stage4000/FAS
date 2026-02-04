@@ -9,7 +9,9 @@ header('Content-Type: application/json');
 // Load configuration
 $configFile = __DIR__ . '/../src/config/config.php';
 if (!file_exists($configFile)) {
-    $configFile = __DIR__ . '/../src/config/config.example.php';
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Server configuration error']);
+    exit;
 }
 $config = require $configFile;
 
@@ -93,12 +95,14 @@ $emailBody = "Name: $name\n";
 $emailBody .= "Email: $email\n";
 $emailBody .= "Subject: $subject\n\n";
 $emailBody .= "Message:\n$message\n";
-$headers = "From: $email\r\n";
+// Use site email as From to prevent header injection, user email in Reply-To
+$headers = "From: $siteEmail\r\n";
 $headers .= "Reply-To: $email\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
 // Attempt to send email (will fail silently if mail is not configured)
-@mail($to, $emailSubject, $emailBody, $headers);
+// In production, you should log failures and consider using a proper email service
+mail($to, $emailSubject, $emailBody, $headers);
 
 echo json_encode([
     'success' => true,

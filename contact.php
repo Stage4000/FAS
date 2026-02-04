@@ -5,11 +5,14 @@ require_once __DIR__ . '/includes/header.php';
 // Load configuration for Turnstile
 $configFile = __DIR__ . '/src/config/config.php';
 if (!file_exists($configFile)) {
-    $configFile = __DIR__ . '/src/config/config.example.php';
+    // If config doesn't exist, disable Turnstile for safety
+    $turnstileEnabled = false;
+    $turnstileSiteKey = '';
+} else {
+    $config = require $configFile;
+    $turnstileEnabled = !empty($config['turnstile']['enabled']);
+    $turnstileSiteKey = $config['turnstile']['site_key'] ?? '';
 }
-$config = require $configFile;
-$turnstileEnabled = !empty($config['turnstile']['enabled']);
-$turnstileSiteKey = $config['turnstile']['site_key'] ?? '';
 ?>
 
 <div class="container my-5">
@@ -94,8 +97,8 @@ document.getElementById('contact-form').addEventListener('submit', async functio
             alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + result.message;
             form.reset();
             // Reset Turnstile widget if it exists
-            if (typeof turnstile !== 'undefined') {
-                turnstile.reset();
+            if (window.turnstile) {
+                window.turnstile.reset();
             }
         } else {
             alertDiv.className = 'alert alert-danger';
