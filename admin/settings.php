@@ -381,10 +381,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     It's automatically used by the admin panel, but you'll need it if calling the API directly: 
                                     <code>/api/ebay-sync.php?key=YOUR_KEY</code>
                                 </small>
+                                <?php if (($config['security']['sync_api_key'] ?? 'fas_sync_key_2026') === 'fas_sync_key_2026'): ?>
+                                <div class="alert alert-danger mt-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Security Warning:</strong> You are using the default API key! This is publicly known and insecure. 
+                                    Please change it to a random string immediately.
+                                </div>
+                                <?php endif; ?>
                             </div>
-                            <div class="alert alert-warning">
-                                <i class="bi bi-shield-exclamation me-2"></i>
-                                <strong>Security Tip:</strong> Change the default sync key to a long, random string to prevent unauthorized sync requests.
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Security Tip:</strong> Use a long, random string (at least 32 characters) for maximum security.
                             </div>
                         </div>
                     </div>
