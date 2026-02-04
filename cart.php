@@ -44,14 +44,14 @@ require_once __DIR__ . '/includes/header.php';
                     <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2 btn-ripple" style="display: none;">
                         <i class="fas fa-credit-card"></i> Proceed to Checkout
                     </a>
-                    <a href="products.php" class="btn btn-outline-dark w-100">Continue Shopping</a>
+                    <a href="products.php" class="btn btn-outline-danger w-100">Continue Shopping</a>
                     
                     <div class="mt-4 pt-3 border-top">
                         <h6 class="mb-3">We Accept</h6>
                         <div class="d-flex align-items-center">
                             <i class="fas fa-credit-card display-6 text-muted me-3"></i>
                             <div>
-                                <small class="text-muted">Secure PayPal Checkout</small>
+                                <small class="text-muted">Secure PayPal, Debit &amp; Credit Checkout</small>
                             </div>
                         </div>
                     </div>
