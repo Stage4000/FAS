@@ -364,7 +364,8 @@ class Product
         ];
         
         if ($existing) {
-            // Don't update show_on_website or category on sync - preserve admin's setting
+            // Don't update category on sync - preserve admin's setting
+            // show_on_website is already excluded from productData for existing products
             unset($productData['category']);
             return $this->update($existing['id'], $productData);
         } else {

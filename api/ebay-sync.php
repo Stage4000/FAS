@@ -101,7 +101,7 @@ if ($daysDiff > 120) {
     $currentStart = clone $start;
     while ($currentStart < $end) {
         $currentEnd = clone $currentStart;
-        $currentEnd->modify('+119 days'); // 120 days inclusive
+        $currentEnd->modify('+119 days'); // 119 days to make 120 days inclusive (day 0 to day 119)
         
         if ($currentEnd > $end) {
             $currentEnd = clone $end;
@@ -112,7 +112,9 @@ if ($daysDiff > 120) {
             'end' => $currentEnd->format('Y-m-d')
         ];
         
-        $currentStart->modify('+120 days');
+        // Move to next chunk starting the day after current end
+        $currentStart = clone $currentEnd;
+        $currentStart->modify('+1 day');
     }
     
     SyncLogger::log("Split into " . count($dateRanges) . " date ranges");
@@ -291,12 +293,12 @@ try {
 }
 
 // Complete sync log
-    $stmt = $db->prepare("
-        UPDATE ebay_sync_log 
-        SET status = 'completed', completed_at = datetime('now')
-        WHERE id = ?
-    ");
-    $stmt->execute([$syncLogId]);
+$stmt = $db->prepare("
+    UPDATE ebay_sync_log 
+    SET status = 'completed', completed_at = datetime('now')
+    WHERE id = ?
+");
+$stmt->execute([$syncLogId]);
     
     SyncLogger::log("Sync completed successfully");
     SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed");

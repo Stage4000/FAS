@@ -11,6 +11,9 @@ use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 
+// Configuration constants
+define('MAX_ADDITIONAL_IMAGES', 10);
+
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $warehouseModel = new Warehouse($db);
@@ -77,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
                     
                     $fileCount = count($_FILES['additional_images']['name']);
-                    for ($i = 0; $i < $fileCount && $i < 10; $i++) {
+                    for ($i = 0; $i < $fileCount && $i < MAX_ADDITIONAL_IMAGES; $i++) {
                         if ($_FILES['additional_images']['error'][$i] === UPLOAD_ERR_OK) {
                             $extension = strtolower(pathinfo($_FILES['additional_images']['name'][$i], PATHINFO_EXTENSION));
                             $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -580,7 +583,7 @@ if ($action === 'list') {
                                             <div>
                                                 <label class="form-label small">Additional Images (Multiple)</label>
                                                 <input type="file" class="form-control" name="additional_images[]" multiple accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                                                <small class="text-muted">Upload up to 10 additional product images</small>
+                                                <small class="text-muted">Upload up to <?php echo MAX_ADDITIONAL_IMAGES; ?> additional product images</small>
                                             </div>
                                         </div>
 
