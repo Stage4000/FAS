@@ -422,7 +422,7 @@ footer a:hover {
 /* Pagination */
 .pagination .page-link {
     color: var(--primary-color);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-sm);
     margin: 0 4px;
     transition: var(--transition);
 }
@@ -430,13 +430,43 @@ footer a:hover {
 .pagination .page-item.active .page-link {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
+    color: #ffffff;
     box-shadow: 0 4px 12px rgba(219, 3, 53, 0.3);
+}
+
+/* Dark mode pagination - fix red on red issue */
+[data-theme="dark"] .pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .pagination .page-link {
+    color: var(--primary-color);
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .pagination .page-link:hover {
+    background-color: rgba(219, 3, 53, 0.2);
+    color: #ffffff;
 }
 
 .pagination .page-link:hover {
     background-color: rgba(219, 3, 53, 0.1);
     color: var(--dark-color);
     transform: translateY(-2px);
+}
+
+/* Fix border radius on first and last pagination items (Previous/Next) */
+.pagination .page-item:first-child .page-link {
+    border-top-left-radius: var(--border-radius-sm);
+    border-bottom-left-radius: var(--border-radius-sm);
+}
+
+.pagination .page-item:last-child .page-link {
+    border-top-right-radius: var(--border-radius-sm);
+    border-bottom-right-radius: var(--border-radius-sm);
 }
 
 /* Alert animations */

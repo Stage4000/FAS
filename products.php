@@ -109,7 +109,15 @@ $totalPages = ceil($totalProducts / $perPage);
             <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                 <div class="card product-card h-100">
                     <div class="position-relative">
-                        <?php if (!empty($product['image_url']) && file_exists($product['image_url'])): ?>
+                        <?php 
+                        // Check if image URL exists and is either external (http/https) or a local file
+                        $hasImage = !empty($product['image_url']) && (
+                            strpos($product['image_url'], 'http://') === 0 || 
+                            strpos($product['image_url'], 'https://') === 0 || 
+                            file_exists($product['image_url'])
+                        );
+                        ?>
+                        <?php if ($hasImage): ?>
                             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
                                  class="card-img-top product-image" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>">

@@ -241,7 +241,13 @@ if ($action === 'list') {
                                                 <tr>
                                                     <td>
                                                         <?php if ($prod['image_url']): ?>
-                                                            <img src="../<?php echo htmlspecialchars($prod['image_url']); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
+                                                            <?php 
+                                                            // Check if URL is external (starts with http:// or https://)
+                                                            $imgSrc = (strpos($prod['image_url'], 'http://') === 0 || strpos($prod['image_url'], 'https://') === 0) 
+                                                                ? $prod['image_url'] 
+                                                                : '../' . $prod['image_url'];
+                                                            ?>
+                                                            <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
                                                         <?php else: ?>
                                                             <div style="width: 50px; height: 50px; background: #eee; display: flex; align-items: center; justify-content: center;">
                                                                 <i class="bi bi-image text-muted"></i>
