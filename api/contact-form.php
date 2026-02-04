@@ -40,6 +40,8 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $name = str_replace(["\r", "\n"], '', $name);
 $email = str_replace(["\r", "\n"], '', $email);
 $subject = str_replace(["\r", "\n"], '', $subject);
+// Also ensure message doesn't contain any potential issues
+$message = str_replace(["\r\n\r\n"], "\n\n", $message);
 
 // Verify Turnstile if enabled
 if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secret_key'])) {
@@ -84,35 +86,35 @@ if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secr
     }
 }
 
-// TODO: Here you would typically:
-// 1. Save the message to database
-// 2. Send email notification to site admin
-// 3. Send confirmation email to user
-
-// For now, we'll just return success
-// In production, you should implement email sending or database storage
+// Store submission in database or send email
+// Current implementation: Send email notification to site admin
 
 $siteEmail = $config['site']['email'] ?? 'info@flipandstrip.com';
 $siteName = $config['site']['name'] ?? 'Flip and Strip';
 
 // Simple email sending (if mail() is configured on server)
 $to = $siteEmail;
+// Use sanitized subject (already cleaned of newlines above)
 $emailSubject = "Contact Form: " . $subject;
 $emailBody = "Name: $name\n";
 $emailBody .= "Email: $email\n";
 $emailBody .= "Subject: $subject\n\n";
 $emailBody .= "Message:\n$message\n";
-// Use site email as From to prevent header injection, user email in Reply-To
+// Use site email as From to prevent header injection, user email in Reply-To (already sanitized)
 $headers = "From: $siteEmail\r\n";
 $headers .= "Reply-To: $email\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
-// Attempt to send email (will fail silently if mail is not configured)
-// In production, you should log failures and consider using a proper email service
+// Send email and capture result
 $mailSent = mail($to, $emailSubject, $emailBody, $headers);
 
-// Note: We still return success even if email fails since the main goal is to acknowledge
-// the form submission. In production, consider logging email failures for monitoring.
+// Log email failures to help diagnose delivery issues
+if (!$mailSent) {
+    error_log("Contact form: Failed to send email notification for submission from $email");
+}
+
+// Return success to user regardless of email status (form was submitted successfully)
+// The main goal is to acknowledge the form submission
 echo json_encode([
     'success' => true,
     'message' => 'Thank you for your message! We will get back to you soon.'
