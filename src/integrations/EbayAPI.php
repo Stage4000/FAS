@@ -360,12 +360,25 @@ class EbayAPI
         }
         
         foreach ($itemsData as $item) {
+            // Extract all images from eBay
+            $allImages = [];
+            if (isset($item['PictureDetails']['PictureURL'])) {
+                $pictureUrls = $item['PictureDetails']['PictureURL'];
+                // If it's a single URL (string), wrap it in array
+                if (is_string($pictureUrls)) {
+                    $allImages = [$pictureUrls];
+                } else if (is_array($pictureUrls)) {
+                    $allImages = $pictureUrls;
+                }
+            }
+            
             $items[] = [
                 'id' => $item['ItemID'] ?? '',
                 'title' => $item['Title'] ?? 'Untitled',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'currency' => 'USD',
-                'image' => $item['PictureDetails']['PictureURL'][0] ?? $item['PictureDetails']['PictureURL'] ?? null,
+                'image' => !empty($allImages) ? $allImages[0] : null,
+                'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
                 'condition' => $item['ConditionDisplayName'] ?? 'Used',
                 'location' => '',

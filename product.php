@@ -67,7 +67,15 @@ if (empty($mainImage)) {
         <div class="col-lg-6 mb-4" data-aos="fade-right">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
-                    <?php if (file_exists($mainImage)): ?>
+                    <?php 
+                    // Check if image is external or local
+                    $hasMainImage = !empty($mainImage) && (
+                        strpos($mainImage, 'http://') === 0 || 
+                        strpos($mainImage, 'https://') === 0 || 
+                        file_exists($mainImage)
+                    );
+                    ?>
+                    <?php if ($hasMainImage): ?>
                         <img src="<?php echo htmlspecialchars($mainImage); ?>" 
                              class="img-fluid product-detail-img w-100" 
                              id="main-product-image"
@@ -84,7 +92,15 @@ if (empty($mainImage)) {
             <?php if (!empty($images) && count($images) > 1): ?>
                 <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap">
                     <?php foreach ($images as $index => $image): ?>
-                        <?php if (file_exists($image)): ?>
+                        <?php 
+                        // Check if image is external or local
+                        $hasImage = !empty($image) && (
+                            strpos($image, 'http://') === 0 || 
+                            strpos($image, 'https://') === 0 || 
+                            file_exists($image)
+                        );
+                        ?>
+                        <?php if ($hasImage): ?>
                             <img src="<?php echo htmlspecialchars($image); ?>" 
                                  class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>" 
                                  data-full="<?php echo htmlspecialchars($image); ?>"
