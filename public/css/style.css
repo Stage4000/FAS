@@ -1327,17 +1327,29 @@ footer a:hover {
 }
 
 [data-theme="dark"] [data-theme-table] {
-    background-color: transparent !important;
+    background-color: #2d2d2d !important;
     color: #e0e0e0 !important;
 }
 
 [data-theme="dark"] [data-theme-table] td {
     color: #e0e0e0 !important;
     border-color: #444 !important;
+    background-color: transparent !important;
 }
 
 [data-theme="dark"] [data-theme-table] .text-muted {
     color: #999 !important;
+}
+
+/* Override Bootstrap table defaults in dark mode */
+[data-theme="dark"] .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #e0e0e0 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .card .table {
+    background-color: transparent !important;
 }
 
 /* Product quantity selector custom styling */
