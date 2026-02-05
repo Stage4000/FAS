@@ -19,8 +19,8 @@
 [data-theme="dark"] {
     --admin-bg: #1a1a1a;  /* rgb(26,26,26) - body background */
     --admin-text: #e0e0e0;
-    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - card background for better contrast */
-    --admin-border: #404040;
+    --admin-card-bg: #363636;  /* rgb(54,54,54) - brighter card background for better contrast */
+    --admin-border: #4a4a4a;  /* Slightly lighter border for better visibility */
 }
 
 body {
@@ -71,12 +71,18 @@ body {
 
 /* Sidebar */
 .list-group-item {
-    border-radius: 1rem;
+    border-radius: 1rem !important;
     margin-bottom: 0.5rem;
     transition: var(--admin-transition);
     border: 1px solid var(--admin-border);
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
+}
+
+/* Override Bootstrap's default first/last child styles for list-group */
+.list-group-item:first-child,
+.list-group-item:last-child {
+    border-radius: 1rem !important;
 }
 
 .list-group-item:hover {
