@@ -1321,22 +1321,22 @@ footer a:hover {
     background-color: #f8f9fa;
 }
 
-[data-bs-theme="dark"] [data-theme-card] {
+[data-theme="dark"] [data-theme-card] {
     background-color: #2d2d2d !important;
     border-color: #444 !important;
 }
 
-[data-bs-theme="dark"] [data-theme-table] {
+[data-theme="dark"] [data-theme-table] {
     background-color: transparent !important;
     color: #e0e0e0 !important;
 }
 
-[data-bs-theme="dark"] [data-theme-table] td {
+[data-theme="dark"] [data-theme-table] td {
     color: #e0e0e0 !important;
     border-color: #444 !important;
 }
 
-[data-bs-theme="dark"] [data-theme-table] .text-muted {
+[data-theme="dark"] [data-theme-table] .text-muted {
     color: #999 !important;
 }
 
