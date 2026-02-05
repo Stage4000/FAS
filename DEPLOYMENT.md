@@ -32,28 +32,28 @@ Default admin credentials: `admin` / `admin123`
 
 ### 4. Protect Your Data (Important!)
 
-After deployment with live data, protect your configuration and database:
+After deployment with live data, protect your configuration and database from being overwritten by git updates:
 
-#### Option A: Update .gitignore (Recommended)
+#### Option A: Tell Git to Ignore Changes (Recommended)
 
-Edit `.gitignore` and uncomment this line:
-
-```
-# database/flipandstrip.db
-```
-
-Change it to:
-
-```
-database/flipandstrip.db
-```
-
-Then commit:
+The `.gitignore` file is already configured to protect your data, but since these files are already tracked by git, you need to tell git to ignore future changes:
 
 ```bash
-git add .gitignore
-git commit -m "Protect production database from updates"
-git push
+# Tell git to ignore changes to the database and config
+git update-index --assume-unchanged database/flipandstrip.db
+git update-index --assume-unchanged src/config/config.php
+```
+
+This ensures that:
+- Your local modifications won't be committed
+- Git updates won't overwrite your files
+- You can safely pull updates without losing data
+
+To undo this later (e.g., to commit intentional changes):
+
+```bash
+git update-index --no-assume-unchanged database/flipandstrip.db
+git update-index --no-assume-unchanged src/config/config.php
 ```
 
 #### Option B: Use Local Filename
@@ -111,28 +111,50 @@ chmod +x database/backup.sh
 
 ## File Protection Summary
 
-### Protected by Default (.gitignore)
+### Protected by .gitignore
 
-These files are never tracked by git:
+The following files are protected in `.gitignore` and changes to them won't be tracked:
 
-- `src/config/config.php.local` - Production config
-- `database/flipandstrip.db.local` - Production database (if renamed)
-- `database/backups/` - All backup files
+**Configuration Files:**
+- `src/config/config.php` - Main configuration (use git update-index to activate protection)
+- `src/config/config.production.php` - Production config
+- `src/config/config.local.php` - Local config
+- `admin/settings.json` - Admin settings
+- `admin/config.json` - Admin configuration
+- `.env`, `.env.local`, `.env.production` - Environment files
+
+**Database Files:**
+- `database/flipandstrip.db` - Main database (use git update-index to activate protection)
+- `database/flipandstrip.db.local` - Local database copy
 - `database/*.backup` - Backup files
-- `.env` files
-- `*.log` files
-- `/cache/` directory
-- `/tmp/` directory
-- User uploads in `/public/uploads/`
+- `database/backups/` - Backup directory
+- `database/*.sql` - SQL files
+- `*.sql.backup`, `*.sql.gz`, `*.sql.bak` - SQL backups
+
+**User Data:**
+- `/public/uploads/*` - User uploaded files
+- `/gallery/uploads/*` - Gallery images
+- `/sessions/` - Session files
+- `*.sess`, `session_*` - Session data
+
+**Logs and Cache:**
+- `*.log`, `logs/`, `debug.log`, `app.log` - Log files
+- `/cache/`, `/storage/cache/` - Cache directories
+- `gallery/cache/`, `gallery/thumbs/` - Image cache
+
+**Backups and Exports:**
+- `admin/backups/` - Admin backup directory
+- `admin/exports/` - Admin export directory
+- `exports/`, `backups/` - Data exports and backups
 
 ### Initially Tracked (for easy deployment)
 
-These files ARE in the repository initially but should be protected after deployment:
+These files ARE in the repository initially for easy first-time deployment:
 
 - `src/config/config.php` - Included with safe defaults
 - `database/flipandstrip.db` - Included as pre-initialized empty database
 
-**After deployment**, protect these files using one of the methods above.
+**After deployment with live data**, use `git update-index --assume-unchanged` to tell git to ignore changes to these files (see "Protect Your Data" section above).
 
 ## Configuration File Management
 
