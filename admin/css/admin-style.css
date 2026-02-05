@@ -5,7 +5,7 @@
     --admin-dark: #242629;
     --admin-light: #f8f8f8;
     --admin-success: #28a745;
-    --admin-border-radius: 1em;
+    --admin-border-radius: 1rem;
     --admin-transition: all 0.3s ease;
     
     /* Light mode */
@@ -40,8 +40,6 @@ body {
 /* Navbar styling with red theme */
 .navbar {
     background-color: var(--admin-dark) !important;
-    border-radius: 0 0 1em 1em;
-    margin-bottom: 1rem;
 }
 
 .navbar-brand {
@@ -61,7 +59,7 @@ body {
     text-decoration: none !important;
     font-size: 1.1rem;
     padding: 0.5rem;
-    border-radius: 1em;
+    border-radius: 1rem;
     transition: var(--admin-transition);
 }
 
@@ -73,7 +71,7 @@ body {
 
 /* Sidebar */
 .list-group-item {
-    border-radius: 1em;
+    border-radius: 1rem;
     margin-bottom: 0.5rem;
     transition: var(--admin-transition);
     border: 1px solid var(--admin-border);
@@ -140,7 +138,7 @@ body {
 
 /* Buttons */
 .btn {
-    border-radius: 1em;
+    border-radius: 1rem;
     transition: var(--admin-transition);
 }
 
@@ -170,17 +168,17 @@ body {
 }
 
 .btn-outline-light {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 .btn-sm {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 /* Forms */
 .form-control,
 .form-select {
-    border-radius: 1em;
+    border-radius: 1rem;
     border: 2px solid var(--admin-border);
     transition: var(--admin-transition);
     background-color: var(--admin-card-bg);
@@ -388,7 +386,7 @@ body {
 
 /* Alert */
 .alert {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -456,7 +454,7 @@ body {
 
 /* Badge */
 .badge {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 /* Modal */
@@ -464,7 +462,7 @@ body {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-color: var(--admin-border);
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 [data-theme="dark"] .modal-header,

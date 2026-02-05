@@ -78,7 +78,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
     
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Total Orders</h6>
@@ -86,7 +86,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Pending</h6>
@@ -94,7 +94,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Processing</h6>
@@ -102,7 +102,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" data-aos="fade-up" data-aos-delay="400">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Total Revenue</h6>
