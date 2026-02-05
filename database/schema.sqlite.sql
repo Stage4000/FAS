@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS products (
     model TEXT,
     condition_name TEXT,
     weight REAL,
+    length REAL,
+    width REAL,
+    height REAL,
     image_url TEXT,
     images TEXT, -- JSON stored as TEXT
     ebay_url TEXT,
