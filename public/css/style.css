@@ -1328,3 +1328,40 @@ footer a:hover {
 [data-theme="dark"] [data-theme-table] .text-muted {
     color: #999 !important;
 }
+
+/* Product quantity selector custom styling */
+.quantity-selector {
+    max-width: 160px;
+}
+
+.quantity-selector .quantity-input {
+    width: 3.5em;
+    min-width: 3.5em;
+    border-left: 2px solid var(--primary-color) !important;
+    border-right: 2px solid var(--primary-color) !important;
+    border-top: 2px solid var(--primary-color) !important;
+    border-bottom: 2px solid var(--primary-color) !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.quantity-selector .quantity-input::-webkit-outer-spin-button,
+.quantity-selector .quantity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-selector .quantity-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.quantity-selector .quantity-btn {
+    border-width: 2px;
+    font-weight: bold;
+    min-width: 42px;
+}
+
+.quantity-selector .quantity-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.25);
+}
