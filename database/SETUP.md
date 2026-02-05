@@ -1,10 +1,22 @@
 # Database Setup Guide
 
-The database file (`flipandstrip.db`) is NOT included in the repository to prevent admin password resets on deployment.
+The database file (`flipandstrip.db`) and configuration file (`src/config/config.php`) are NOT included in the repository to prevent admin password resets and credential exposure on deployment.
 
 ## First Time Setup
 
-### 1. Initialize the Database
+### 1. Create Configuration File
+
+Copy the example configuration file and customize it:
+
+```bash
+cp src/config/config.example.php src/config/config.php
+```
+
+Then edit `src/config/config.php` with your actual credentials (eBay, PayPal, etc.).
+
+**Important**: `config.php` is in `.gitignore` and will never be committed to the repository.
+
+### 2. Initialize the Database
 
 Run the database initialization script:
 
@@ -17,7 +29,7 @@ This will:
 - Set up all required tables
 - Apply the schema from `schema.sqlite.sql`
 
-### 2. Create Admin User
+### 3. Create Admin User
 
 Run the admin initialization script:
 
@@ -31,13 +43,28 @@ This will create the default admin account:
 
 **Important**: Change this password immediately after first login at `/admin/password.php`
 
+## Quick Setup (Alternative)
+
+You can also use the combined installer:
+
+```bash
+php install.php
+```
+
+This will:
+1. Create the configuration file from the example (if it doesn't exist)
+2. Initialize the database
+3. Create the admin user
+4. Delete itself after successful setup
+
 ## Updating the Application
 
 When you pull new code updates:
 
 1. The database file will NOT be overwritten (it's in `.gitignore`)
-2. Your admin password and all data will be preserved
-3. Run any new migration scripts if provided in the update notes
+2. The configuration file will NOT be overwritten (it's in `.gitignore`)
+3. Your admin password and all data will be preserved
+4. Run any new migration scripts if provided in the update notes
 
 ## Database Location
 
