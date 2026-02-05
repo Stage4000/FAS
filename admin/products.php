@@ -548,16 +548,26 @@ if ($action === 'list') {
                                             <div class="mb-2">
                                                 <div class="small fw-bold mb-1">Additional images (<?php echo count($additionalImages); ?>):</div>
                                                 <div class="d-flex flex-wrap gap-2">
-                                                    <?php foreach ($additionalImages as $img): ?>
+                                                    <?php foreach ($additionalImages as $idx => $img): ?>
                                                         <?php 
                                                         $imgSrc = (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) 
                                                             ? $img 
                                                             : '../' . $img;
                                                         ?>
-                                                        <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
-                                                             alt="" 
-                                                             style="width: 80px; height: 80px; object-fit: cover;"
-                                                             class="border rounded">
+                                                        <div class="position-relative image-hover-container" style="width: 80px; height: 80px;">
+                                                            <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
+                                                                 alt="" 
+                                                                 style="width: 100%; height: 100%; object-fit: cover;"
+                                                                 class="border rounded">
+                                                            <button type="button" 
+                                                                    class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 image-delete-btn" 
+                                                                    style="display: none; padding: 0.25rem 0.4rem; z-index: 10;"
+                                                                    data-image-index="<?php echo $idx; ?>"
+                                                                    data-image-url="<?php echo htmlspecialchars($img); ?>">
+                                                                <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                                                            </button>
+                                                            <input type="hidden" name="existing_images[]" value="<?php echo htmlspecialchars($img); ?>" class="existing-image-input">
+                                                        </div>
                                                     <?php endforeach; ?>
                                                 </div>
                                             </div>
@@ -584,8 +594,11 @@ if ($action === 'list') {
                                     
                                     <div>
                                         <label class="form-label small">Additional Images (Multiple)</label>
-                                        <input type="file" class="form-control" name="additional_images[]" multiple accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                                        <small class="text-muted">Upload up to <?php echo MAX_ADDITIONAL_IMAGES; ?> additional product images</small>
+                                        <input type="file" class="form-control" name="additional_images[]" multiple accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" id="additionalImagesInput">
+                                        <small class="text-muted">Upload up to <?php echo MAX_ADDITIONAL_IMAGES; ?> additional product images. Select multiple files at once.</small>
+                                        
+                                        <!-- Preview container for newly selected images -->
+                                        <div id="imagePreviewContainer" class="d-flex flex-wrap gap-2 mt-3" style="display: none !important;"></div>
                                     </div>
                                 </div>
 
@@ -683,6 +696,118 @@ if ($action === 'list') {
                 modal.show();
             });
         });
+
+        // Enhanced Image Management
+        // Show/hide delete button on hover for existing images
+        document.querySelectorAll('.image-hover-container').forEach(container => {
+            const deleteBtn = container.querySelector('.image-delete-btn');
+            
+            container.addEventListener('mouseenter', function() {
+                if (deleteBtn) deleteBtn.style.display = 'block';
+            });
+            
+            container.addEventListener('mouseleave', function() {
+                if (deleteBtn) deleteBtn.style.display = 'none';
+            });
+            
+            // Handle delete button click for existing images
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                    if (confirm('Remove this image?')) {
+                        // Remove the hidden input so it won't be submitted
+                        const hiddenInput = container.querySelector('.existing-image-input');
+                        if (hiddenInput) {
+                            hiddenInput.remove();
+                        }
+                        // Remove the container from DOM
+                        container.remove();
+                    }
+                });
+            }
+        });
+
+        // Multiple file preview for new images
+        const additionalImagesInput = document.getElementById('additionalImagesInput');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        
+        if (additionalImagesInput && imagePreviewContainer) {
+            let selectedFiles = [];
+            
+            additionalImagesInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                
+                if (files.length > 0) {
+                    selectedFiles = files;
+                    displayImagePreviews();
+                    imagePreviewContainer.style.display = 'flex';
+                } else {
+                    imagePreviewContainer.style.display = 'none';
+                }
+            });
+            
+            function displayImagePreviews() {
+                imagePreviewContainer.innerHTML = '';
+                
+                selectedFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'position-relative image-hover-container';
+                        previewDiv.style.cssText = 'width: 80px; height: 80px;';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = file.name;
+                        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                        img.className = 'border rounded';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.type = 'button';
+                        deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1';
+                        deleteBtn.style.cssText = 'display: none; padding: 0.25rem 0.4rem; z-index: 10;';
+                        deleteBtn.innerHTML = '<i class="bi bi-trash" style="font-size: 0.75rem;"></i>';
+                        deleteBtn.dataset.fileIndex = index;
+                        
+                        // Show/hide delete button on hover
+                        previewDiv.addEventListener('mouseenter', function() {
+                            deleteBtn.style.display = 'block';
+                        });
+                        
+                        previewDiv.addEventListener('mouseleave', function() {
+                            deleteBtn.style.display = 'none';
+                        });
+                        
+                        // Handle delete button click for new images
+                        deleteBtn.addEventListener('click', function() {
+                            const fileIndex = parseInt(this.dataset.fileIndex);
+                            selectedFiles.splice(fileIndex, 1);
+                            updateFileInput();
+                            displayImagePreviews();
+                            
+                            if (selectedFiles.length === 0) {
+                                imagePreviewContainer.style.display = 'none';
+                            }
+                        });
+                        
+                        previewDiv.appendChild(img);
+                        previewDiv.appendChild(deleteBtn);
+                        imagePreviewContainer.appendChild(previewDiv);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            function updateFileInput() {
+                // Create a new DataTransfer object to update the file input
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                additionalImagesInput.files = dataTransfer.files;
+            }
+        }
     </script>
 </body>
 </html>
