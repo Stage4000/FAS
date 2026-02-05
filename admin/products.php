@@ -564,7 +564,7 @@ if ($action === 'list') {
                                                                     style="display: none; padding: 0.25rem 0.4rem; z-index: 10;"
                                                                     data-image-index="<?php echo $idx; ?>"
                                                                     data-image-url="<?php echo htmlspecialchars($img); ?>">
-                                                                <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                                                                <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                                             </button>
                                                             <input type="hidden" name="existing_images[]" value="<?php echo htmlspecialchars($img); ?>" class="existing-image-input">
                                                         </div>
@@ -766,7 +766,7 @@ if ($action === 'list') {
                         deleteBtn.type = 'button';
                         deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1';
                         deleteBtn.style.cssText = 'display: none; padding: 0.25rem 0.4rem; z-index: 10;';
-                        deleteBtn.innerHTML = '<i class="bi bi-trash" style="font-size: 0.75rem;"></i>';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>';
                         deleteBtn.dataset.fileIndex = index;
                         
                         // Show/hide delete button on hover
