@@ -131,10 +131,10 @@ if (empty($mainImage)) {
                 <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
             </div>
             
-            <div class="card border-0 bg-light mb-4">
+            <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Product Details</h6>
-                    <table class="table table-sm table-borderless mb-0">
+                    <table class="table table-sm table-borderless mb-0" data-theme-table>
                         <?php if (!empty($product['category'])): ?>
                         <tr>
                             <td class="text-muted">Category:</td>
@@ -171,10 +171,10 @@ if (empty($mainImage)) {
             
             <div class="mb-4">
                 <label class="form-label fw-bold">Quantity:</label>
-                <div class="input-group" style="max-width: 150px;">
-                    <button class="btn btn-outline-secondary" type="button" id="decrease-qty">-</button>
-                    <input type="number" class="form-control text-center" value="1" min="1" max="<?php echo intval($product['quantity']); ?>" id="quantity-input">
-                    <button class="btn btn-outline-secondary" type="button" id="increase-qty">+</button>
+                <div class="input-group quantity-selector">
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty">-</button>
+                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo (isset($product['quantity']) && intval($product['quantity']) > 0) ? intval($product['quantity']) : 999; ?>" id="quantity-input">
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>
                 </div>
             </div>
             
@@ -247,10 +247,35 @@ document.getElementById('decrease-qty').addEventListener('click', function() {
 
 document.getElementById('increase-qty').addEventListener('click', function() {
     const input = document.getElementById('quantity-input');
-    const currentValue = parseInt(input.value);
-    const max = parseInt(input.max);
-    if (currentValue < max) {
+    const currentValue = parseInt(input.value) || 1;
+    const maxValue = parseInt(input.getAttribute('max')) || 999;
+    if (currentValue < maxValue) {
         input.value = currentValue + 1;
+        // Remove tooltip if it exists
+        const tooltip = bootstrap.Tooltip.getInstance(this);
+        if (tooltip) {
+            tooltip.dispose();
+        }
+    } else {
+        // Show tooltip when max is reached
+        if (!this.hasAttribute('data-bs-toggle')) {
+            this.setAttribute('data-bs-toggle', 'tooltip');
+            this.setAttribute('data-bs-placement', 'top');
+            this.setAttribute('title', 'Maximum available quantity reached');
+            const tooltip = new bootstrap.Tooltip(this);
+            tooltip.show();
+            
+            // Hide and remove tooltip after 3 seconds
+            setTimeout(() => {
+                tooltip.hide();
+                setTimeout(() => {
+                    tooltip.dispose();
+                    this.removeAttribute('data-bs-toggle');
+                    this.removeAttribute('data-bs-placement');
+                    this.removeAttribute('title');
+                }, 300);
+            }, 3000);
+        }
     }
 });
 

@@ -108,30 +108,33 @@ $totalPages = ceil($totalProducts / $perPage);
             ?>
             <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                 <div class="card product-card h-100">
-                    <div class="position-relative">
-                        <?php 
-                        // Check if image URL exists and is either external (http/https) or a local file
-                        $hasImage = !empty($product['image_url']) && (
-                            strpos($product['image_url'], 'http://') === 0 || 
-                            strpos($product['image_url'], 'https://') === 0 || 
-                            file_exists($product['image_url'])
-                        );
-                        ?>
-                        <?php if ($hasImage): ?>
-                            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
-                                 class="card-img-top product-image" 
-                                 alt="<?php echo htmlspecialchars($product['name']); ?>">
-                        <?php else: ?>
-                            <div class="product-image bg-light d-flex align-items-center justify-content-center">
-                                <i class="fas fa-image text-muted display-4"></i>
-                            </div>
-                        <?php endif; ?>
-                        <span class="badge bg-success product-badge">In Stock</span>
-                        <?php if (isset($product['sale_price']) && $product['sale_price']): ?>
-                            <?php $discount = round((($product['price'] - $product['sale_price']) / $product['price']) * 100); ?>
-                            <span class="badge bg-danger product-badge" style="top: 50px;">Save <?php echo $discount; ?>%</span>
-                        <?php endif; ?>
-                    </div>
+                    <a href="product.php?id=<?php echo $product['id']; ?>" class="text-decoration-none">
+                        <div class="position-relative">
+                            <?php 
+                            // Check if image URL exists and is either external (http/https) or a local file
+                            $hasImage = !empty($product['image_url']) && (
+                                strpos($product['image_url'], 'http://') === 0 || 
+                                strpos($product['image_url'], 'https://') === 0 || 
+                                file_exists($product['image_url'])
+                            );
+                            ?>
+                            <?php if ($hasImage): ?>
+                                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                     class="card-img-top product-image" 
+                                     alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                     style="cursor: pointer;">
+                            <?php else: ?>
+                                <div class="product-image bg-light d-flex align-items-center justify-content-center" style="cursor: pointer;">
+                                    <i class="fas fa-image text-muted display-4"></i>
+                                </div>
+                            <?php endif; ?>
+                            <span class="badge bg-success product-badge">In Stock</span>
+                            <?php if (isset($product['sale_price']) && $product['sale_price']): ?>
+                                <?php $discount = round((($product['price'] - $product['sale_price']) / $product['price']) * 100); ?>
+                                <span class="badge bg-danger product-badge" style="top: 50px;">Save <?php echo $discount; ?>%</span>
+                            <?php endif; ?>
+                        </div>
+                    </a>
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title">
                             <a href="product.php?id=<?php echo $product['id']; ?>" class="text-decoration-none text-dark">

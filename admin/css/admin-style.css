@@ -5,7 +5,7 @@
     --admin-dark: #242629;
     --admin-light: #f8f8f8;
     --admin-success: #28a745;
-    --admin-border-radius: 1em;
+    --admin-border-radius: 1rem;
     --admin-transition: all 0.3s ease;
     
     /* Light mode */
@@ -17,10 +17,10 @@
 
 /* Dark mode for admin */
 [data-theme="dark"] {
-    --admin-bg: #1a1a1a;  /* rgb(26,26,26) - body background */
+    --admin-bg: #121212;  /* rgb(18,18,18) - darker body background */
     --admin-text: #e0e0e0;
-    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - card background for better contrast */
-    --admin-border: #404040;
+    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - lighter card background for strong contrast */
+    --admin-border: #555555;  /* Lighter border for better visibility */
 }
 
 body {
@@ -59,20 +59,30 @@ body {
     text-decoration: none !important;
     font-size: 1.1rem;
     padding: 0.5rem;
+    border-radius: 1rem;
+    transition: var(--admin-transition);
 }
 
 #navbarThemeToggle:hover {
     color: var(--admin-primary) !important;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
 }
 
 /* Sidebar */
 .list-group-item {
-    border-radius: 1em;
+    border-radius: 1rem !important;
     margin-bottom: 0.5rem;
     transition: var(--admin-transition);
     border: 1px solid var(--admin-border);
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
+}
+
+/* Override Bootstrap's default first/last child styles for list-group */
+.list-group-item:first-child,
+.list-group-item:last-child {
+    border-radius: 1rem !important;
 }
 
 .list-group-item:hover {
@@ -93,11 +103,12 @@ body {
 
 /* Cards */
 .card {
-    border-radius: var(--admin-border-radius);
+    border-radius: var(--admin-border-radius) !important;
     border: 1px solid var(--admin-border);
     transition: var(--admin-transition);
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
+    overflow: hidden; /* Clip children to border-radius */
 }
 
 /* Enhanced shadow for dark mode */
@@ -110,6 +121,7 @@ body {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-bottom: 1px solid var(--admin-border);
+    border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
 }
 
 .card-body {
@@ -117,10 +129,26 @@ body {
     color: var(--admin-text);
 }
 
+/* First card-body in a card without header gets top radius */
+.card > .card-body:first-child {
+    border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
+}
+
+/* Last card-body in a card without footer gets bottom radius */
+.card > .card-body:last-child {
+    border-radius: 0 0 var(--admin-border-radius) var(--admin-border-radius);
+}
+
+/* Single card-body gets all corners rounded */
+.card > .card-body:only-child {
+    border-radius: var(--admin-border-radius);
+}
+
 .card-footer {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-top: 1px solid var(--admin-border);
+    border-radius: 0 0 var(--admin-border-radius) var(--admin-border-radius);
 }
 
 .card:hover {
@@ -134,8 +162,13 @@ body {
 
 /* Buttons */
 .btn {
-    border-radius: 1em;
+    border-radius: 1rem;
     transition: var(--admin-transition);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary {
@@ -146,7 +179,6 @@ body {
 .btn-primary:hover {
     background-color: #c10230;
     border-color: #c10230;
-    transform: translateY(-2px);
 }
 
 .btn-outline-danger {
@@ -159,10 +191,18 @@ body {
     border-color: var(--admin-primary);
 }
 
+.btn-outline-light {
+    border-radius: 1rem;
+}
+
+.btn-sm {
+    border-radius: 1rem;
+}
+
 /* Forms */
 .form-control,
 .form-select {
-    border-radius: 1em;
+    border-radius: 1rem;
     border: 2px solid var(--admin-border);
     transition: var(--admin-transition);
     background-color: var(--admin-card-bg);
@@ -245,8 +285,117 @@ body {
     }
 }
 
-.card {
-    animation: fadeInUp 0.5s ease-out;
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Sidebar animations */
+@media (prefers-reduced-motion: no-preference) {
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    /* Sidebar items - limit animation to first 10 for performance */
+    .list-group-item:nth-child(-n+10) {
+        animation: slideInLeft 0.3s ease-out;
+    }
+
+    .list-group-item:nth-child(1) { animation-delay: 0.05s; }
+    .list-group-item:nth-child(2) { animation-delay: 0.1s; }
+    .list-group-item:nth-child(3) { animation-delay: 0.15s; }
+    .list-group-item:nth-child(4) { animation-delay: 0.2s; }
+    .list-group-item:nth-child(5) { animation-delay: 0.25s; }
+    .list-group-item:nth-child(6) { animation-delay: 0.3s; }
+    .list-group-item:nth-child(7) { animation-delay: 0.35s; }
+    .list-group-item:nth-child(8) { animation-delay: 0.4s; }
+    .list-group-item:nth-child(9) { animation-delay: 0.45s; }
+    .list-group-item:nth-child(10) { animation-delay: 0.5s; }
+
+    /* Navbar animations */
+    .navbar {
+        animation: slideInRight 0.4s ease-out;
+    }
+
+    .navbar-brand {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Button animations */
+    .btn {
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    /* Table row animations - only first 10 rows for performance */
+    .table tbody tr:nth-child(-n+10) {
+        animation: fadeInUp 0.3s ease-out;
+    }
+}
+
+/* Form animations */
+.form-control,
+.form-select {
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Spinner animation for loading states */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .spinner-border {
+        animation: spin 0.75s linear infinite;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner-border {
+        animation: none;
+        opacity: 0.6;
+    }
 }
 
 /* Add border to cards in dark mode for better distinction */
@@ -261,7 +410,13 @@ body {
 
 /* Alert */
 .alert {
-    border-radius: 1em;
+    border-radius: 1rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .alert {
+        animation: fadeInUp 0.5s ease-out;
+    }
 }
 
 [data-theme="dark"] .alert {
@@ -293,9 +448,37 @@ body {
     color: #ffd454;
 }
 
+/* Alert links - improved readability in dark mode */
+.alert-link {
+    font-weight: 600;
+    text-decoration: underline;
+    transition: var(--admin-transition);
+}
+
+[data-theme="dark"] .alert-success .alert-link {
+    color: #a8f5b0 !important;
+}
+
+[data-theme="dark"] .alert-danger .alert-link {
+    color: #ffa8ba !important;
+}
+
+[data-theme="dark"] .alert-info .alert-link {
+    color: #a8d3ff !important;
+}
+
+[data-theme="dark"] .alert-warning .alert-link {
+    color: #ffe89a !important;
+}
+
+.alert-link:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
 /* Badge */
 .badge {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 /* Modal */
@@ -303,7 +486,7 @@ body {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-color: var(--admin-border);
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 [data-theme="dark"] .modal-header,
@@ -320,6 +503,21 @@ body {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Icon animations */
+.fas, .fab, .far {
+    transition: var(--admin-transition);
+}
+
+.list-group-item:hover i,
+.btn:hover i {
+    transform: scale(1.1);
+}
+
+/* Navbar brand icon animation */
+.navbar-brand:hover i {
+    transform: rotate(180deg);
 }
 
 /* Additional dark mode elements */

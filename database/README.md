@@ -11,61 +11,9 @@ The SQLite database file is stored at:
 /database/flipandstrip.db
 ```
 
-## Database Protection Through Updates
+**Important**: This file is **NOT included in the repository** to protect your admin passwords and data from being reset during code updates.
 
-### Initial Deployment
-
-The pre-initialized database file `flipandstrip.db` is **included in the repository** for easy deployment. This allows the application to work immediately after cloning.
-
-### After First Deployment - IMPORTANT
-
-To protect your database from being overwritten during git updates, you have two options:
-
-**Option 1: Uncomment the .gitignore line (Recommended)**
-
-After your site is deployed and has live data:
-
-1. Open `.gitignore` in the root directory
-2. Find the commented line: `# database/flipandstrip.db`
-3. Uncomment it to: `database/flipandstrip.db`
-4. Commit this change
-
-This will prevent git from tracking changes to your database file, protecting your data during updates.
-
-**Option 2: Rename your production database**
-
-Alternatively, rename your production database to a protected name:
-
-```bash
-mv database/flipandstrip.db database/flipandstrip.db.local
-```
-
-Then update `src/config/config.php` to point to the new filename:
-
-```php
-'database' => [
-    'driver' => 'sqlite',
-    'path' => __DIR__ . '/../../database/flipandstrip.db.local'
-]
-```
-
-The `.local` suffix is already in `.gitignore` and will never be overwritten.
-
-### Backup Your Database
-
-Regular backups are recommended. Create backups with:
-
-```bash
-# Create a dated backup
-cp database/flipandstrip.db database/backups/backup-$(date +%Y%m%d-%H%M%S).db
-
-# Or use SQLite's backup command
-sqlite3 database/flipandstrip.db ".backup 'database/backups/backup.db'"
-```
-
-The `database/backups/` directory is automatically excluded from git.
-
-## Initial Setup
+## Initial Setup (Required for First Time)
 
 ### 1. Initialize the Database
 
@@ -81,23 +29,7 @@ This will:
 - Insert default categories
 - Enable foreign key constraints
 
-### 2. Run Migrations
-
-After initializing the database, run any pending migrations:
-
-```bash
-# Add last_sync_timestamp column for CRON job (required for automated eBay sync)
-php database/migrate-add-sync-timestamp.php
-
-# Other migrations (if needed)
-php database/migrate-add-dimensions.php
-php database/migrate-add-product-columns.php
-php database/migrate-add-warehouses.php
-```
-
-**Note:** Migrations are idempotent - they can be run multiple times safely.
-
-### 3. Create Admin User
+### 2. Create Admin User
 
 After initializing the database, create the admin user:
 
@@ -107,11 +39,30 @@ php admin/init-admin.php
 
 Default credentials: `admin` / `admin123`
 
-### 4. Login and Configure
+**Important**: Change this password immediately after first login at `/admin/password.php`
+
+### 3. Login and Configure
 
 1. Visit `/admin/` and login
 2. Change your password at `/admin/password.php`
 3. Configure API credentials at `/admin/settings.php`
+
+## Updating the Application
+
+When you pull new code updates:
+
+1. ✅ **Your database will NOT be overwritten** (it's in `.gitignore`)
+2. ✅ **Admin password and all data will be preserved**
+3. ✅ Run any new migration scripts if provided in the update notes
+
+### Database Protection
+
+The database file is listed in `.gitignore` and will never be committed to the repository. This ensures:
+- Your admin passwords persist through updates
+- Customer orders and data are never lost
+- Custom configurations remain intact
+
+For detailed setup instructions, see [SETUP.md](./SETUP.md)
 
 ## Database Schema
 

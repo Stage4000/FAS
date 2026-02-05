@@ -1,0 +1,43 @@
+{
+  "name": "Flip and Strip Admin",
+  "short_name": "FAS Admin",
+  "description": "Admin dashboard for Flip and Strip",
+  "start_url": "/admin/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2d2d2d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/gallery/favicons/favicon-60x60.png",
+      "sizes": "60x60",
+      "type": "image/png"
+    },
+    {
+      "src": "/gallery/favicons/favicon-76x76.png",
+      "sizes": "76x76",
+      "type": "image/png"
+    },
+    {
+      "src": "/gallery/favicons/favicon-120x120.png",
+      "sizes": "120x120",
+      "type": "image/png"
+    },
+    {
+      "src": "/gallery/favicons/favicon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/gallery/favicons/favicon-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/gallery/favicons/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

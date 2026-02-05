@@ -17,14 +17,19 @@ CREATE TABLE IF NOT EXISTS products (
     model TEXT,
     condition_name TEXT,
     weight REAL,
+    length REAL,
+    width REAL,
+    height REAL,
     image_url TEXT,
     images TEXT, -- JSON stored as TEXT
     ebay_url TEXT,
     source TEXT DEFAULT 'manual', -- 'ebay' or 'manual'
     show_on_website INTEGER DEFAULT 1, -- 1 = visible, 0 = hidden
+    warehouse_id INTEGER,
     is_active INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
@@ -150,6 +155,26 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username);
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+
+-- Warehouses table
+CREATE TABLE IF NOT EXISTS warehouses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE,
+    location TEXT,
+    address_line1 TEXT,
+    address_line2 TEXT,
+    city TEXT,
+    state TEXT,
+    postal_code TEXT,
+    country_code TEXT DEFAULT 'US',
+    phone TEXT,
+    email TEXT,
+    is_default INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
 
 -- Insert default categories
 INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
