@@ -656,6 +656,26 @@ if ($action === 'list') {
         </div>
     </div>
 
+    <!-- Image Remove Confirmation Modal -->
+    <div class="modal fade" id="imgRemoveModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title">Remove Image</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-exclamation-triangle text-warning fs-1 mb-3"></i>
+                    <p class="mb-0">Remove this product image?</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Keep It</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="confirmImgRemove">Yes, Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include __DIR__ . '/includes/footer.php'; ?>
 
     <script>
@@ -699,115 +719,111 @@ if ($action === 'list') {
             });
         });
 
-        // Enhanced Image Management
-        // Show/hide delete button on hover for existing images
-        document.querySelectorAll('.image-hover-container').forEach(container => {
-            const deleteBtn = container.querySelector('.image-delete-btn');
+        // Enhanced Image Management with Modal Confirmation
+        let targetImgElement = null;
+        const imgRemovalDialog = new bootstrap.Modal(document.getElementById('imgRemoveModal'));
+        
+        // Setup existing image deletion with modal
+        document.querySelectorAll('.image-hover-container').forEach(wrapper => {
+            const trashIcon = wrapper.querySelector('.image-delete-btn');
             
-            container.addEventListener('mouseenter', function() {
-                if (deleteBtn) deleteBtn.style.display = 'block';
+            wrapper.addEventListener('mouseenter', () => {
+                if (trashIcon) trashIcon.style.display = 'block';
             });
             
-            container.addEventListener('mouseleave', function() {
-                if (deleteBtn) deleteBtn.style.display = 'none';
+            wrapper.addEventListener('mouseleave', () => {
+                if (trashIcon) trashIcon.style.display = 'none';
             });
             
-            // Handle delete button click for existing images
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', function() {
-                    if (confirm('Remove this image?')) {
-                        // Remove the hidden input so it won't be submitted
-                        const hiddenInput = container.querySelector('.existing-image-input');
-                        if (hiddenInput) {
-                            hiddenInput.remove();
-                        }
-                        // Remove the container from DOM
-                        container.remove();
-                    }
+            if (trashIcon) {
+                trashIcon.addEventListener('click', () => {
+                    targetImgElement = wrapper;
+                    imgRemovalDialog.show();
                 });
             }
         });
-
-        // Multiple file preview for new images
-        const additionalImagesInput = document.getElementById('additionalImagesInput');
-        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         
-        if (additionalImagesInput && imagePreviewContainer) {
-            let selectedFiles = [];
+        // Confirm image removal
+        document.getElementById('confirmImgRemove').addEventListener('click', () => {
+            if (targetImgElement) {
+                const formField = targetImgElement.querySelector('.existing-image-input');
+                if (formField) formField.remove();
+                targetImgElement.remove();
+                targetImgElement = null;
+            }
+            imgRemovalDialog.hide();
+        });
+
+        // Multi-file accumulation system for new uploads
+        const uploadField = document.getElementById('additionalImagesInput');
+        const previewZone = document.getElementById('imagePreviewContainer');
+        
+        if (uploadField && previewZone) {
+            let gatheredFiles = [];
             
-            additionalImagesInput.addEventListener('change', function(e) {
-                const files = Array.from(e.target.files);
+            uploadField.addEventListener('change', (evt) => {
+                const newBatch = Array.from(evt.target.files);
                 
-                if (files.length > 0) {
-                    selectedFiles = files;
-                    displayImagePreviews();
-                    imagePreviewContainer.style.display = 'flex';
-                } else {
-                    imagePreviewContainer.style.display = 'none';
-                }
+                // Accumulate instead of replace
+                gatheredFiles.push(...newBatch);
+                renderPreviews();
+                previewZone.style.display = gatheredFiles.length > 0 ? 'flex' : 'none';
+                
+                // Reset input to allow selecting same file again if needed
+                evt.target.value = '';
             });
             
-            function displayImagePreviews() {
-                imagePreviewContainer.innerHTML = '';
+            function renderPreviews() {
+                previewZone.innerHTML = '';
                 
-                selectedFiles.forEach((file, index) => {
-                    const reader = new FileReader();
+                gatheredFiles.forEach((fileObj, position) => {
+                    const loader = new FileReader();
                     
-                    reader.onload = function(e) {
-                        const previewDiv = document.createElement('div');
-                        previewDiv.className = 'position-relative image-hover-container';
-                        previewDiv.style.cssText = 'width: 80px; height: 80px;';
+                    loader.onload = (readEvt) => {
+                        const box = document.createElement('div');
+                        box.className = 'position-relative image-hover-container';
+                        box.style.cssText = 'width: 80px; height: 80px;';
                         
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.alt = file.name;
-                        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-                        img.className = 'border rounded';
+                        const thumbnail = document.createElement('img');
+                        thumbnail.src = readEvt.target.result;
+                        thumbnail.alt = fileObj.name;
+                        thumbnail.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                        thumbnail.className = 'border rounded';
                         
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.type = 'button';
-                        deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1';
-                        deleteBtn.style.cssText = 'display: none; padding: 0.25rem 0.4rem; z-index: 10;';
-                        deleteBtn.innerHTML = '<i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>';
-                        deleteBtn.dataset.fileIndex = index;
+                        const removeIcon = document.createElement('button');
+                        removeIcon.type = 'button';
+                        removeIcon.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1';
+                        removeIcon.style.cssText = 'display: none; padding: 0.25rem 0.4rem; z-index: 10;';
+                        removeIcon.innerHTML = '<i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>';
+                        removeIcon.dataset.pos = position;
                         
-                        // Show/hide delete button on hover
-                        previewDiv.addEventListener('mouseenter', function() {
-                            deleteBtn.style.display = 'block';
-                        });
+                        box.addEventListener('mouseenter', () => removeIcon.style.display = 'block');
+                        box.addEventListener('mouseleave', () => removeIcon.style.display = 'none');
                         
-                        previewDiv.addEventListener('mouseleave', function() {
-                            deleteBtn.style.display = 'none';
-                        });
-                        
-                        // Handle delete button click for new images
-                        deleteBtn.addEventListener('click', function() {
-                            const fileIndex = parseInt(this.dataset.fileIndex);
-                            selectedFiles.splice(fileIndex, 1);
-                            updateFileInput();
-                            displayImagePreviews();
+                        removeIcon.addEventListener('click', function() {
+                            const idx = parseInt(this.dataset.pos);
+                            gatheredFiles.splice(idx, 1);
+                            refreshInputField();
+                            renderPreviews();
                             
-                            if (selectedFiles.length === 0) {
-                                imagePreviewContainer.style.display = 'none';
+                            if (gatheredFiles.length === 0) {
+                                previewZone.style.display = 'none';
                             }
                         });
                         
-                        previewDiv.appendChild(img);
-                        previewDiv.appendChild(deleteBtn);
-                        imagePreviewContainer.appendChild(previewDiv);
+                        box.appendChild(thumbnail);
+                        box.appendChild(removeIcon);
+                        previewZone.appendChild(box);
                     };
                     
-                    reader.readAsDataURL(file);
+                    loader.readAsDataURL(fileObj);
                 });
             }
             
-            function updateFileInput() {
-                // Create a new DataTransfer object to update the file input
-                const dataTransfer = new DataTransfer();
-                selectedFiles.forEach(file => {
-                    dataTransfer.items.add(file);
-                });
-                additionalImagesInput.files = dataTransfer.files;
+            function refreshInputField() {
+                const transfer = new DataTransfer();
+                gatheredFiles.forEach(f => transfer.items.add(f));
+                uploadField.files = transfer.files;
             }
         }
     </script>
