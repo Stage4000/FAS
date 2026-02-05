@@ -248,7 +248,7 @@ document.getElementById('decrease-qty').addEventListener('click', function() {
 document.getElementById('increase-qty').addEventListener('click', function() {
     const input = document.getElementById('quantity-input');
     const currentValue = parseInt(input.value) || 1;
-    const maxValue = parseInt(input.getAttribute('max')) || 100;
+    const maxValue = parseInt(input.getAttribute('max')) || 999;
     if (currentValue < maxValue) {
         input.value = currentValue + 1;
     }
