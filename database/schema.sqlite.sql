@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS products (
     ebay_url TEXT,
     source TEXT DEFAULT 'manual', -- 'ebay' or 'manual'
     show_on_website INTEGER DEFAULT 1, -- 1 = visible, 0 = hidden
+    warehouse_id INTEGER,
     is_active INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);

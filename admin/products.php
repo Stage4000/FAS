@@ -562,7 +562,7 @@ if ($action === 'list') {
                                         foreach ($warehouses as $wh):
                                         ?>
                                             <option value="<?php echo $wh['id']; ?>" 
-                                                <?php echo $product && isset($product['warehouse_id']) && $product['warehouse_id'] == $wh['id'] ? 'selected' : ''; ?>>
+                                                <?php echo $product && $product['warehouse_id'] == $wh['id'] ? 'selected' : ''; ?>>
                                                 <?php echo htmlspecialchars($wh['name']); ?> (<?php echo htmlspecialchars($wh['code']); ?>)
                                                 <?php if ($wh['is_default']): ?> - Default<?php endif; ?>
                                             </option>
