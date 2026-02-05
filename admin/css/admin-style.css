@@ -17,10 +17,10 @@
 
 /* Dark mode for admin */
 [data-theme="dark"] {
-    --admin-bg: #1a1a1a;  /* rgb(26,26,26) - body background */
+    --admin-bg: #121212;  /* rgb(18,18,18) - darker body background */
     --admin-text: #e0e0e0;
-    --admin-card-bg: #363636;  /* rgb(54,54,54) - brighter card background for better contrast */
-    --admin-border: #4a4a4a;  /* Slightly lighter border for better visibility */
+    --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - lighter card background for strong contrast */
+    --admin-border: #555555;  /* Lighter border for better visibility */
 }
 
 body {
