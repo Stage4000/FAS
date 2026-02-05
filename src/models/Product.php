@@ -374,4 +374,12 @@ class Product
             return $this->create($productData);
         }
     }
+    
+    public function updateImages($prodId, $newImagesJson) {
+        $sql = "UPDATE products SET images = :imgs WHERE id = :pid";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->bindParam(':imgs', $newImagesJson);
+        $stmt->bindParam(':pid', $prodId);
+        return $stmt->execute();
+    }
 }

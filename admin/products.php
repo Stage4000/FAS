@@ -23,6 +23,50 @@ $error = '';
 $action = $_GET['action'] ?? 'list';
 $productId = $_GET['id'] ?? null;
 
+// AJAX endpoint for immediate image removal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image'])) {
+    header('Content-Type: application/json');
+    
+    $productIdToUpdate = $_POST['product_id'] ?? null;
+    $imagePathToRemove = $_POST['image_path'] ?? null;
+    
+    if ($productIdToUpdate && $imagePathToRemove) {
+        try {
+            $productData = $productModel->getById($productIdToUpdate);
+            if ($productData) {
+                $currentAdditionalImgs = is_string($productData['images']) ? 
+                    json_decode($productData['images'], true) : 
+                    ($productData['images'] ?? []);
+                
+                // Remove the specified image from the array
+                $updatedImgList = array_values(array_filter($currentAdditionalImgs, function($img) use ($imagePathToRemove) {
+                    return $img !== $imagePathToRemove;
+                }));
+                
+                // Update product with new image list
+                $updateSuccess = $productModel->updateImages($productIdToUpdate, json_encode($updatedImgList));
+                
+                // Try to delete the physical file if it's a local upload
+                if ($updateSuccess && strpos($imagePathToRemove, 'gallery/uploads/') === 0) {
+                    $physicalPath = __DIR__ . '/../' . $imagePathToRemove;
+                    if (file_exists($physicalPath)) {
+                        @unlink($physicalPath);
+                    }
+                }
+                
+                echo json_encode(['success' => $updateSuccess]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Product not found']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Missing parameters']);
+    }
+    exit;
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -602,10 +646,10 @@ if ($action === 'list') {
                                     
                                     <div class="mb-3">
                                         <label class="form-label small">Main Image (URL)</label>
-                                        <input type="url" class="form-control" name="image_url" 
+                                        <input type="text" class="form-control" name="image_url" 
                                                value="<?php echo $product ? htmlspecialchars($product['image_url']) : ''; ?>"
-                                               placeholder="https://example.com/image.jpg">
-                                        <small class="text-muted">Enter a URL to an external image</small>
+                                               placeholder="https://example.com/image.jpg or gallery/uploads/image.png">
+                                        <small class="text-muted">Enter a full URL or relative path to an image</small>
                                     </div>
                                     
                                     <hr class="my-3">
@@ -743,12 +787,43 @@ if ($action === 'list') {
             }
         });
         
-        // Confirm image removal
-        document.getElementById('confirmImgRemove').addEventListener('click', () => {
+        // Confirm image removal - now with immediate deletion via AJAX
+        document.getElementById('confirmImgRemove').addEventListener('click', async () => {
             if (targetImgElement) {
-                const formField = targetImgElement.querySelector('.existing-image-input');
-                if (formField) formField.remove();
-                targetImgElement.remove();
+                const deleteBtn = targetImgElement.querySelector('.image-delete-btn');
+                const imagePath = deleteBtn ? deleteBtn.dataset.imageUrl : null;
+                const prodId = <?php echo $product ? $product['id'] : 'null'; ?>;
+                
+                // If editing an existing product, delete immediately via AJAX
+                if (prodId && imagePath) {
+                    try {
+                        const response = await fetch('products.php', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: new URLSearchParams({
+                                ajax_remove_image: '1',
+                                product_id: prodId,
+                                image_path: imagePath
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            targetImgElement.remove();
+                        } else {
+                            alert('Failed to remove image: ' + (result.error || 'Unknown error'));
+                        }
+                    } catch (err) {
+                        alert('Error communicating with server');
+                    }
+                } else {
+                    // For new products or fallback, just remove from DOM
+                    const formField = targetImgElement.querySelector('.existing-image-input');
+                    if (formField) formField.remove();
+                    targetImgElement.remove();
+                }
+                
                 targetImgElement = null;
             }
             imgRemovalDialog.hide();
