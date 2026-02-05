@@ -847,11 +847,9 @@ if ($action === 'list') {
                 
                 // Accumulate instead of replace
                 gatheredFiles.push(...newBatch);
+                refreshInputField(); // Update the actual input with accumulated files
                 renderPreviews();
                 previewZone.style.display = gatheredFiles.length > 0 ? 'flex' : 'none';
-                
-                // Reset input to allow selecting same file again if needed
-                evt.target.value = '';
             });
             
             function renderPreviews() {
