@@ -29,6 +29,7 @@ database/backups/
 
 # Protect the actual database file from being overwritten by updates
 # This ensures user data persists through code updates
+# IMPORTANT: This file contains admin passwords and user data
 database/flipandstrip.db
 
 # SQL backup files
