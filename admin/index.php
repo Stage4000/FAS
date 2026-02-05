@@ -3,6 +3,11 @@ require_once __DIR__ . '/auth.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+
+// Load config to get the sync API key
+$configFile = __DIR__ . '/../src/config/config.php';
+$config = file_exists($configFile) ? require $configFile : [];
+$syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -186,7 +191,7 @@ $auth->requireLogin();
             statusDiv.innerHTML = '<div class="alert alert-info">Starting eBay synchronization...</div>';
             
             // Call sync API with date parameters
-            fetch(`../api/ebay-sync.php?key=fas_sync_key_2026&start_date=${startDate}&end_date=${endDate}`)
+            fetch(`../api/ebay-sync.php?key=<?php echo htmlspecialchars($syncApiKey, ENT_QUOTES, 'UTF-8'); ?>&start_date=${startDate}&end_date=${endDate}`)
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {
