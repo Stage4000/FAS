@@ -97,11 +97,12 @@ body {
 
 /* Cards */
 .card {
-    border-radius: var(--admin-border-radius);
+    border-radius: var(--admin-border-radius) !important;
     border: 1px solid var(--admin-border);
     transition: var(--admin-transition);
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
+    overflow: hidden; /* Clip children to border-radius */
 }
 
 /* Enhanced shadow for dark mode */
@@ -114,6 +115,7 @@ body {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-bottom: 1px solid var(--admin-border);
+    border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
 }
 
 .card-body {
@@ -121,10 +123,26 @@ body {
     color: var(--admin-text);
 }
 
+/* First card-body in a card without header gets top radius */
+.card > .card-body:first-child {
+    border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
+}
+
+/* Last card-body in a card without footer gets bottom radius */
+.card > .card-body:last-child {
+    border-radius: 0 0 var(--admin-border-radius) var(--admin-border-radius);
+}
+
+/* Single card-body gets all corners rounded */
+.card > .card-body:only-child {
+    border-radius: var(--admin-border-radius);
+}
+
 .card-footer {
     background-color: var(--admin-card-bg);
     color: var(--admin-text);
     border-top: 1px solid var(--admin-border);
+    border-radius: 0 0 var(--admin-border-radius) var(--admin-border-radius);
 }
 
 .card:hover {
