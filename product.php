@@ -171,7 +171,7 @@ if (empty($mainImage)) {
             
             <div class="mb-4">
                 <label class="form-label fw-bold">Quantity:</label>
-                <div class="input-group quantity-selector" style="max-width: 150px;">
+                <div class="input-group quantity-selector">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty">-</button>
                     <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo intval($product['quantity']); ?>" id="quantity-input">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>

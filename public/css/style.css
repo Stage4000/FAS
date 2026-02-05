@@ -1331,7 +1331,8 @@ footer a:hover {
 
 /* Product quantity selector custom styling */
 .quantity-selector {
-    max-width: 160px;
+    max-width: 180px;
+    flex-wrap: nowrap !important;
 }
 
 .quantity-selector .quantity-input {
