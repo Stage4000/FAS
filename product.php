@@ -251,6 +251,31 @@ document.getElementById('increase-qty').addEventListener('click', function() {
     const maxValue = parseInt(input.getAttribute('max')) || 999;
     if (currentValue < maxValue) {
         input.value = currentValue + 1;
+        // Remove tooltip if it exists
+        const tooltip = bootstrap.Tooltip.getInstance(this);
+        if (tooltip) {
+            tooltip.dispose();
+        }
+    } else {
+        // Show tooltip when max is reached
+        if (!this.hasAttribute('data-bs-toggle')) {
+            this.setAttribute('data-bs-toggle', 'tooltip');
+            this.setAttribute('data-bs-placement', 'top');
+            this.setAttribute('title', 'Maximum available quantity reached');
+            const tooltip = new bootstrap.Tooltip(this);
+            tooltip.show();
+            
+            // Hide and remove tooltip after 3 seconds
+            setTimeout(() => {
+                tooltip.hide();
+                setTimeout(() => {
+                    tooltip.dispose();
+                    this.removeAttribute('data-bs-toggle');
+                    this.removeAttribute('data-bs-placement');
+                    this.removeAttribute('title');
+                }, 300);
+            }, 3000);
+        }
     }
 });
 
