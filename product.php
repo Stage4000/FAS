@@ -173,7 +173,7 @@ if (empty($mainImage)) {
                 <label class="form-label fw-bold">Quantity:</label>
                 <div class="input-group quantity-selector">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty">-</button>
-                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo max(1, intval($product['quantity'] ?? 999)); ?>" id="quantity-input">
+                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo (isset($product['quantity']) && intval($product['quantity']) > 0) ? intval($product['quantity']) : 999; ?>" id="quantity-input">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>
                 </div>
             </div>
