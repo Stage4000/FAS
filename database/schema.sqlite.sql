@@ -151,6 +151,16 @@ CREATE TABLE IF NOT EXISTS admin_users (
 CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username);
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 
+-- Warehouses table
+CREATE TABLE IF NOT EXISTS warehouses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    location TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Insert default categories
 INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
 ('Motorcycle Parts', 'motorcycle', 'Parts for motorcycles from all major brands', 1),
