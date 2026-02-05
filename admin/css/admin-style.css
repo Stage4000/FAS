@@ -40,6 +40,8 @@ body {
 /* Navbar styling with red theme */
 .navbar {
     background-color: var(--admin-dark) !important;
+    border-radius: 0 0 1em 1em;
+    margin-bottom: 1rem;
 }
 
 .navbar-brand {
@@ -59,10 +61,14 @@ body {
     text-decoration: none !important;
     font-size: 1.1rem;
     padding: 0.5rem;
+    border-radius: 1em;
+    transition: var(--admin-transition);
 }
 
 #navbarThemeToggle:hover {
     color: var(--admin-primary) !important;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
 }
 
 /* Sidebar */
@@ -138,6 +144,11 @@ body {
     transition: var(--admin-transition);
 }
 
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .btn-primary {
     background-color: var(--admin-primary);
     border-color: var(--admin-primary);
@@ -146,7 +157,6 @@ body {
 .btn-primary:hover {
     background-color: #c10230;
     border-color: #c10230;
-    transform: translateY(-2px);
 }
 
 .btn-outline-danger {
@@ -157,6 +167,14 @@ body {
 .btn-outline-danger:hover {
     background-color: var(--admin-primary);
     border-color: var(--admin-primary);
+}
+
+.btn-outline-light {
+    border-radius: 1em;
+}
+
+.btn-sm {
+    border-radius: 1em;
 }
 
 /* Forms */
@@ -245,8 +263,111 @@ body {
     }
 }
 
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 .card {
     animation: fadeInUp 0.5s ease-out;
+}
+
+/* Sidebar animations */
+.list-group-item {
+    animation: slideInLeft 0.3s ease-out;
+}
+
+.list-group-item:nth-child(1) { animation-delay: 0.05s; }
+.list-group-item:nth-child(2) { animation-delay: 0.1s; }
+.list-group-item:nth-child(3) { animation-delay: 0.15s; }
+.list-group-item:nth-child(4) { animation-delay: 0.2s; }
+.list-group-item:nth-child(5) { animation-delay: 0.25s; }
+.list-group-item:nth-child(6) { animation-delay: 0.3s; }
+.list-group-item:nth-child(7) { animation-delay: 0.35s; }
+
+/* Navbar animations */
+.navbar {
+    animation: slideInRight 0.4s ease-out;
+}
+
+.navbar-brand {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Button animations */
+.btn {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Table row animations */
+.table tbody tr {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Form animations */
+.form-control,
+.form-select {
+    transition: all 0.3s ease, transform 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    transform: scale(1.02);
+}
+
+/* Badge animations */
+.badge {
+    transition: var(--admin-transition);
+}
+
+.badge:hover {
+    transform: scale(1.1);
+}
+
+/* Spinner animation for loading states */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner-border {
+    animation: spin 0.75s linear infinite;
 }
 
 /* Add border to cards in dark mode for better distinction */
@@ -262,6 +383,7 @@ body {
 /* Alert */
 .alert {
     border-radius: 1em;
+    animation: fadeInUp 0.5s ease-out;
 }
 
 [data-theme="dark"] .alert {
@@ -293,6 +415,34 @@ body {
     color: #ffd454;
 }
 
+/* Alert links - improved readability in dark mode */
+.alert-link {
+    font-weight: 600;
+    text-decoration: underline;
+    transition: var(--admin-transition);
+}
+
+[data-theme="dark"] .alert-success .alert-link {
+    color: #a8f5b0 !important;
+}
+
+[data-theme="dark"] .alert-danger .alert-link {
+    color: #ffa8ba !important;
+}
+
+[data-theme="dark"] .alert-info .alert-link {
+    color: #a8d3ff !important;
+}
+
+[data-theme="dark"] .alert-warning .alert-link {
+    color: #ffe89a !important;
+}
+
+.alert-link:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
 /* Badge */
 .badge {
     border-radius: 1em;
@@ -320,6 +470,21 @@ body {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Icon animations */
+.fas, .fab, .far {
+    transition: var(--admin-transition);
+}
+
+.list-group-item:hover i,
+.btn:hover i {
+    transform: scale(1.1);
+}
+
+/* Navbar brand icon animation */
+.navbar-brand:hover i {
+    transform: rotate(180deg);
 }
 
 /* Additional dark mode elements */
