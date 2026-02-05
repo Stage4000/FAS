@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Merge with existing images if updating
-                if ($_POST['action'] === 'update' && $product) {
+                if ($_POST['action'] === 'update' && isset($product) && $product) {
                     $existingImages = json_decode($product['images'] ?? '[]', true) ?: [];
                     $additionalImages = array_merge($existingImages, $additionalImages);
                 }
