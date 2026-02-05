@@ -308,46 +308,52 @@ body {
 }
 
 /* Sidebar animations */
-.list-group-item {
-    animation: slideInLeft 0.3s ease-out;
-}
+@media (prefers-reduced-motion: no-preference) {
+    .list-group-item {
+        animation: slideInLeft 0.3s ease-out;
+    }
 
-.list-group-item:nth-child(1) { animation-delay: 0.05s; }
-.list-group-item:nth-child(2) { animation-delay: 0.1s; }
-.list-group-item:nth-child(3) { animation-delay: 0.15s; }
-.list-group-item:nth-child(4) { animation-delay: 0.2s; }
-.list-group-item:nth-child(5) { animation-delay: 0.25s; }
-.list-group-item:nth-child(6) { animation-delay: 0.3s; }
-.list-group-item:nth-child(7) { animation-delay: 0.35s; }
+    .list-group-item:nth-child(1) { animation-delay: 0.05s; }
+    .list-group-item:nth-child(2) { animation-delay: 0.1s; }
+    .list-group-item:nth-child(3) { animation-delay: 0.15s; }
+    .list-group-item:nth-child(4) { animation-delay: 0.2s; }
+    .list-group-item:nth-child(5) { animation-delay: 0.25s; }
+    .list-group-item:nth-child(6) { animation-delay: 0.3s; }
+    .list-group-item:nth-child(7) { animation-delay: 0.35s; }
 
-/* Navbar animations */
-.navbar {
-    animation: slideInRight 0.4s ease-out;
-}
+    /* Navbar animations */
+    .navbar {
+        animation: slideInRight 0.4s ease-out;
+    }
 
-.navbar-brand {
-    animation: fadeIn 0.5s ease-out;
-}
+    .navbar-brand {
+        animation: fadeIn 0.5s ease-out;
+    }
 
-/* Button animations */
-.btn {
-    animation: fadeIn 0.4s ease-out;
-}
+    /* Button animations */
+    .btn {
+        animation: fadeIn 0.4s ease-out;
+    }
 
-/* Table row animations */
-.table tbody tr {
-    animation: fadeInUp 0.3s ease-out;
+    /* Table row animations - only first 10 rows for performance */
+    .table tbody tr:nth-child(-n+10) {
+        animation: fadeInUp 0.3s ease-out;
+    }
+
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+    }
 }
 
 /* Form animations */
 .form-control,
 .form-select {
-    transition: all 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .form-control:focus,
 .form-select:focus {
-    transform: scale(1.02);
+    box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Spinner animation for loading states */
