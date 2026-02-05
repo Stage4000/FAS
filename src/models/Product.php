@@ -302,11 +302,52 @@ class Product
     }
     
     /**
+     * Map eBay category to local category
+     * Maps eBay category names/IDs to our categories: motorcycle, atv, boat, automotive, gifts
+     */
+    private function mapEbayCategory($ebayCategoryName, $ebayCategoryId, $itemTitle)
+    {
+        // Default category
+        $category = 'automotive';
+        
+        // Convert to lowercase for case-insensitive matching
+        $categoryName = strtolower($ebayCategoryName ?? '');
+        $title = strtolower($itemTitle ?? '');
+        
+        // Category mapping based on keywords in category name and title
+        $mappings = [
+            'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
+            'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
+            'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
+            'automotive' => ['auto', 'car', 'truck', 'vehicle', 'ford', 'chevy', 'dodge', 'gmc'],
+            'gifts' => ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'collectible', 'memorabilia', 'keychain', 'accessory']
+        ];
+        
+        // Check category name and title for keywords
+        foreach ($mappings as $localCategory => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
+                    return $localCategory;
+                }
+            }
+        }
+        
+        return $category;
+    }
+    
+    /**
      * Sync product from eBay data
      */
     public function syncFromEbay($ebayData)
     {
         $existing = $this->getByEbayId($ebayData['id']);
+        
+        // Map eBay category to local category
+        $category = $this->mapEbayCategory(
+            $ebayData['ebay_category_name'] ?? null,
+            $ebayData['ebay_category_id'] ?? null,
+            $ebayData['title']
+        );
         
         $productData = [
             'ebay_item_id' => $ebayData['id'],
@@ -314,6 +355,7 @@ class Product
             'description' => $ebayData['description'] ?? '',
             'price' => $ebayData['price'],
             'quantity' => $ebayData['quantity'] ?? 1,
+            'category' => $category,
             'condition_name' => $ebayData['condition'] ?? 'Used',
             'image_url' => $ebayData['image'],
             'images' => $ebayData['images'] ?? [],
@@ -322,10 +364,12 @@ class Product
         ];
         
         if ($existing) {
-            // Don't update show_on_website on sync - preserve admin's setting
+            // Don't update category on sync - preserve admin's setting
+            // show_on_website is already excluded from productData for existing products
+            unset($productData['category']);
             return $this->update($existing['id'], $productData);
         } else {
-            // New eBay products default to visible
+            // New eBay products default to visible with auto-mapped category
             $productData['show_on_website'] = 1;
             return $this->create($productData);
         }

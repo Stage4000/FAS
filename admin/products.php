@@ -11,6 +11,9 @@ use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 
+// Configuration constants
+define('MAX_ADDITIONAL_IMAGES', 10);
+
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $warehouseModel = new Warehouse($db);
@@ -28,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'update':
                 // Handle image upload
                 $imageUrl = $_POST['image_url'] ?? '';
+                $additionalImages = [];
                 
                 if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
                     // Create uploads directory if it doesn't exist
@@ -65,6 +69,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
+                // Handle multiple additional images
+                if (isset($_FILES['additional_images'])) {
+                    $uploadDir = __DIR__ . '/../gallery/uploads/';
+                    if (!file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+                    
+                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    
+                    $fileCount = count($_FILES['additional_images']['name']);
+                    for ($i = 0; $i < $fileCount && $i < MAX_ADDITIONAL_IMAGES; $i++) {
+                        if ($_FILES['additional_images']['error'][$i] === UPLOAD_ERR_OK) {
+                            $extension = strtolower(pathinfo($_FILES['additional_images']['name'][$i], PATHINFO_EXTENSION));
+                            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                            $mimeType = finfo_file($finfo, $_FILES['additional_images']['tmp_name'][$i]);
+                            finfo_close($finfo);
+                            
+                            $imageInfo = @getimagesize($_FILES['additional_images']['tmp_name'][$i]);
+                            
+                            if (in_array($extension, $allowedExtensions) && 
+                                in_array($mimeType, $allowedMimeTypes) && 
+                                $imageInfo !== false) {
+                                $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
+                                $targetPath = $uploadDir . $filename;
+                                
+                                if (move_uploaded_file($_FILES['additional_images']['tmp_name'][$i], $targetPath)) {
+                                    $additionalImages[] = 'gallery/uploads/' . $filename;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Merge with existing images if updating
+                if ($_POST['action'] === 'update' && $product) {
+                    $existingImages = json_decode($product['images'] ?? '[]', true) ?: [];
+                    $additionalImages = array_merge($existingImages, $additionalImages);
+                }
+                
                 if (empty($error)) {
                     $productData = [
                         'name' => $_POST['name'] ?? '',
@@ -83,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'height' => !empty($_POST['height']) ? floatval($_POST['height']) : null,
                         'warehouse_id' => !empty($_POST['warehouse_id']) ? intval($_POST['warehouse_id']) : null,
                         'image_url' => $imageUrl,
+                        'images' => $additionalImages,
                         'source' => $_POST['source'] ?? 'manual',
                         'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
                     ];
@@ -241,7 +286,13 @@ if ($action === 'list') {
                                                 <tr>
                                                     <td>
                                                         <?php if ($prod['image_url']): ?>
-                                                            <img src="../<?php echo htmlspecialchars($prod['image_url']); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
+                                                            <?php 
+                                                            // Check if URL is external (starts with http:// or https://)
+                                                            $imgSrc = (strpos($prod['image_url'], 'http://') === 0 || strpos($prod['image_url'], 'https://') === 0) 
+                                                                ? $prod['image_url'] 
+                                                                : '../' . $prod['image_url'];
+                                                            ?>
+                                                            <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover;">
                                                         <?php else: ?>
                                                             <div style="width: 50px; height: 50px; background: #eee; display: flex; align-items: center; justify-content: center;">
                                                                 <i class="bi bi-image text-muted"></i>
@@ -469,32 +520,70 @@ if ($action === 'list') {
                                         </div>
 
                                         <div class="mb-3">
-                                            <label class="form-label">Product Image</label>
+                                            <label class="form-label">Product Images</label>
                                             
                                             <?php if ($product && $product['image_url']): ?>
                                                 <div class="mb-2">
-                                                    <img src="../<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                                    <?php 
+                                                    // Check if URL is external (starts with http:// or https://)
+                                                    $imgSrc = (strpos($product['image_url'], 'http://') === 0 || strpos($product['image_url'], 'https://') === 0) 
+                                                        ? $product['image_url'] 
+                                                        : '../' . $product['image_url'];
+                                                    ?>
+                                                    <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
                                                          alt="Current product image" 
                                                          style="max-width: 200px; max-height: 200px; object-fit: cover;"
                                                          class="border rounded">
-                                                    <div class="small text-muted mt-1">Current image</div>
+                                                    <div class="small text-muted mt-1">Main image</div>
                                                 </div>
                                             <?php endif; ?>
                                             
+                                            <?php if ($product && !empty($product['images'])): ?>
+                                                <?php 
+                                                $additionalImages = is_string($product['images']) ? json_decode($product['images'], true) : $product['images'];
+                                                if ($additionalImages && is_array($additionalImages) && count($additionalImages) > 0):
+                                                ?>
+                                                    <div class="mb-2">
+                                                        <div class="small fw-bold mb-1">Additional images (<?php echo count($additionalImages); ?>):</div>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            <?php foreach ($additionalImages as $img): ?>
+                                                                <?php 
+                                                                $imgSrc = (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) 
+                                                                    ? $img 
+                                                                    : '../' . $img;
+                                                                ?>
+                                                                <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
+                                                                     alt="" 
+                                                                     style="width: 80px; height: 80px; object-fit: cover;"
+                                                                     class="border rounded">
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                            
                                             <div class="mb-2">
-                                                <label class="form-label small">Upload Image File</label>
+                                                <label class="form-label small">Main Image (Upload File)</label>
                                                 <input type="file" class="form-control" name="image_file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                                                <small class="text-muted">Upload a product image (JPEG, PNG, GIF, or WebP)</small>
+                                                <small class="text-muted">Upload main product image (JPEG, PNG, GIF, or WebP)</small>
                                             </div>
                                             
                                             <div class="text-muted text-center my-2">OR</div>
                                             
-                                            <div>
-                                                <label class="form-label small">Image URL</label>
+                                            <div class="mb-3">
+                                                <label class="form-label small">Main Image (URL)</label>
                                                 <input type="url" class="form-control" name="image_url" 
                                                        value="<?php echo $product ? htmlspecialchars($product['image_url']) : ''; ?>"
                                                        placeholder="https://example.com/image.jpg">
                                                 <small class="text-muted">Enter a URL to an external image</small>
+                                            </div>
+                                            
+                                            <hr class="my-3">
+                                            
+                                            <div>
+                                                <label class="form-label small">Additional Images (Multiple)</label>
+                                                <input type="file" class="form-control" name="additional_images[]" multiple accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                                                <small class="text-muted">Upload up to <?php echo MAX_ADDITIONAL_IMAGES; ?> additional product images</small>
                                             </div>
                                         </div>
 

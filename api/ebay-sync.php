@@ -76,22 +76,8 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{
     exit;
 }
 
-// Validate date range is less than 120 days
 $start = new DateTime($startDate);
 $end = new DateTime($endDate);
-$interval = $start->diff($end);
-$daysDiff = $interval->days;
-
-if ($daysDiff > 120) {
-    SyncLogger::log("Date range exceeds 120 days: $daysDiff days");
-    http_response_code(400);
-    echo json_encode([
-        'error' => 'Invalid date range',
-        'message' => 'Date range must be less than 120 days (eBay requirement). Your range: ' . $daysDiff . ' days'
-    ]);
-    SyncLogger::finalize();
-    exit;
-}
 
 if ($end < $start) {
     SyncLogger::log("End date is before start date");
@@ -104,7 +90,42 @@ if ($end < $start) {
     exit;
 }
 
-SyncLogger::log("Date range validated: $startDate to $endDate ($daysDiff days)");
+$interval = $start->diff($end);
+$daysDiff = $interval->days;
+
+// Split date range into 120-day chunks if needed
+$dateRanges = [];
+if ($daysDiff > 120) {
+    SyncLogger::log("Date range exceeds 120 days ($daysDiff days). Splitting into multiple 120-day chunks...");
+    
+    $currentStart = clone $start;
+    while ($currentStart < $end) {
+        $currentEnd = clone $currentStart;
+        $currentEnd->modify('+119 days'); // 119 days to make 120 days inclusive (day 0 to day 119)
+        
+        if ($currentEnd > $end) {
+            $currentEnd = clone $end;
+        }
+        
+        $dateRanges[] = [
+            'start' => $currentStart->format('Y-m-d'),
+            'end' => $currentEnd->format('Y-m-d')
+        ];
+        
+        // Move to next chunk starting the day after current end
+        $currentStart = clone $currentEnd;
+        $currentStart->modify('+1 day');
+    }
+    
+    SyncLogger::log("Split into " . count($dateRanges) . " date ranges");
+} else {
+    SyncLogger::log("Date range validated: $startDate to $endDate ($daysDiff days)");
+    $dateRanges[] = [
+        'start' => $startDate,
+        'end' => $endDate
+    ];
+}
+
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -139,21 +160,29 @@ try {
     
     SyncLogger::log("Sync log created with ID: $syncLogId");
     
-    $page = 1;
     $totalProcessed = 0;
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
     
-    // Fetch items from eBay
-    do {
-        SyncLogger::log("Fetching page $page from eBay store");
-        $result = $ebayAPI->getStoreItems('moto800', $page, 100, $startDate, $endDate);
+    // Loop through each date range
+    foreach ($dateRanges as $rangeIndex => $dateRange) {
+        $rangeStartDate = $dateRange['start'];
+        $rangeEndDate = $dateRange['end'];
         
-        if (!$result || empty($result['items'])) {
-            // Log if no results on first page
-            if ($page === 1) {
-                // Check if this was due to rate limiting
+        SyncLogger::log("Processing date range " . ($rangeIndex + 1) . "/" . count($dateRanges) . ": $rangeStartDate to $rangeEndDate");
+        
+        $page = 1;
+        
+        // Fetch items from eBay for this date range
+        do {
+            SyncLogger::log("Fetching page $page from eBay store (range " . ($rangeIndex + 1) . ")");
+            $result = $ebayAPI->getStoreItems('moto800', $page, 100, $rangeStartDate, $rangeEndDate);
+            
+            if (!$result || empty($result['items'])) {
+                // Log if no results on first page
+                if ($page === 1) {
+                    // Check if this was due to rate limiting
                 if ($ebayAPI->wasRateLimited()) {
                     error_log('eBay Sync: Rate limit exceeded. Please wait and try again later.');
                     SyncLogger::logError('Rate limit exceeded on first page');
@@ -254,24 +283,40 @@ try {
         
     } while (true);
     
-    // Complete sync log
-    $stmt = $db->prepare("
-        UPDATE ebay_sync_log 
-        SET status = 'completed', completed_at = datetime('now')
-        WHERE id = ?
-    ");
-    $stmt->execute([$syncLogId]);
+    SyncLogger::log("Completed date range " . ($rangeIndex + 1) . "/" . count($dateRanges));
+    
+    // Add a longer delay between date ranges to respect rate limits
+    if ($rangeIndex < count($dateRanges) - 1) {
+        SyncLogger::log("Waiting 5 seconds before next date range...");
+        sleep(5);
+    }
+}
+
+// Complete sync log
+$stmt = $db->prepare("
+    UPDATE ebay_sync_log 
+    SET status = 'completed', completed_at = datetime('now')
+    WHERE id = ?
+");
+$stmt->execute([$syncLogId]);
     
     SyncLogger::log("Sync completed successfully");
     SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed");
     
-    echo json_encode([
+    $response = [
         'success' => true,
         'processed' => $totalProcessed,
         'added' => $totalAdded,
         'updated' => $totalUpdated,
         'failed' => $totalFailed
-    ]);
+    ];
+    
+    if (count($dateRanges) > 1) {
+        $response['date_ranges_processed'] = count($dateRanges);
+        $response['message'] = "Successfully processed " . count($dateRanges) . " date ranges (split from original range exceeding 120 days)";
+    }
+    
+    echo json_encode($response);
     
     SyncLogger::finalize();
     

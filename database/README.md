@@ -81,7 +81,23 @@ This will:
 - Insert default categories
 - Enable foreign key constraints
 
-### 2. Create Admin User
+### 2. Run Migrations
+
+After initializing the database, run any pending migrations:
+
+```bash
+# Add last_sync_timestamp column for CRON job (required for automated eBay sync)
+php database/migrate-add-sync-timestamp.php
+
+# Other migrations (if needed)
+php database/migrate-add-dimensions.php
+php database/migrate-add-product-columns.php
+php database/migrate-add-warehouses.php
+```
+
+**Note:** Migrations are idempotent - they can be run multiple times safely.
+
+### 3. Create Admin User
 
 After initializing the database, create the admin user:
 
@@ -91,7 +107,7 @@ php admin/init-admin.php
 
 Default credentials: `admin` / `admin123`
 
-### 3. Login and Configure
+### 4. Login and Configure
 
 1. Visit `/admin/` and login
 2. Change your password at `/admin/password.php`
