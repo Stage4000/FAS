@@ -37,5 +37,9 @@ $success = empty($errors);
 <?php foreach($errors as $e) echo "<div class='err'>✗ $e</div>"; ?>
 <?php if($success): ?>
 <div style="margin-top:20px"><a href="/admin/">→ Go to Admin</a></div>
-<?php unlink(__FILE__); endif; ?>
+<?php 
+if (!unlink(__FILE__)) {
+    echo "<div class='err' style='margin-top:10px'>⚠ Please manually delete install.php</div>";
+}
+endif; ?>
 </body></html>
