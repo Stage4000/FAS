@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Handle multiple additional images
-                if (isset($_FILES['additional_images'])) {
+                if (isset($_FILES['additional_images']) && isset($_FILES['additional_images']['name'])) {
                     $uploadDir = __DIR__ . '/../gallery/uploads/';
                     if (!file_exists($uploadDir)) {
                         mkdir($uploadDir, 0755, true);
@@ -123,8 +123,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
                     $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
                     
-                    $fileCount = count($_FILES['additional_images']['name']);
+                    // Check if files were actually uploaded (name array has non-empty values)
+                    $fileCount = is_array($_FILES['additional_images']['name']) ? count($_FILES['additional_images']['name']) : 0;
                     for ($i = 0; $i < $fileCount && $i < MAX_ADDITIONAL_IMAGES; $i++) {
+                        // Skip if no file was selected for this input
+                        if (empty($_FILES['additional_images']['name'][$i])) {
+                            continue;
+                        }
+                        
                         if ($_FILES['additional_images']['error'][$i] === UPLOAD_ERR_OK) {
                             $extension = strtolower(pathinfo($_FILES['additional_images']['name'][$i], PATHINFO_EXTENSION));
                             $finfo = finfo_open(FILEINFO_MIME_TYPE);
