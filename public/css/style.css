@@ -1315,3 +1315,16 @@ footer a:hover {
     background-color: var(--primary-color);
     color: white;
 }
+
+/* Product details table dark mode */
+[data-theme="dark"] [data-theme-card] {
+    background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] [data-theme-table] {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] [data-theme-table] .text-muted {
+    color: #999 !important;
+}

@@ -131,10 +131,10 @@ if (empty($mainImage)) {
                 <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
             </div>
             
-            <div class="card border-0 bg-light mb-4">
+            <div class="card border-0 bg-light mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Product Details</h6>
-                    <table class="table table-sm table-borderless mb-0">
+                    <table class="table table-sm table-borderless mb-0" data-theme-table>
                         <?php if (!empty($product['category'])): ?>
                         <tr>
                             <td class="text-muted">Category:</td>
