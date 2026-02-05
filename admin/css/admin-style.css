@@ -350,15 +350,6 @@ body {
     transform: scale(1.02);
 }
 
-/* Badge animations */
-.badge {
-    transition: var(--admin-transition);
-}
-
-.badge:hover {
-    transform: scale(1.1);
-}
-
 /* Spinner animation for loading states */
 @keyframes spin {
     to {
