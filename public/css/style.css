@@ -1317,6 +1317,10 @@ footer a:hover {
 }
 
 /* Product details table dark mode */
+[data-theme-card] {
+    background-color: #f8f9fa;
+}
+
 [data-bs-theme="dark"] [data-theme-card] {
     background-color: #2d2d2d !important;
     border-color: #444 !important;

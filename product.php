@@ -131,7 +131,7 @@ if (empty($mainImage)) {
                 <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
             </div>
             
-            <div class="card border-0 bg-light mb-4" data-theme-card>
+            <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Product Details</h6>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
@@ -173,7 +173,7 @@ if (empty($mainImage)) {
                 <label class="form-label fw-bold">Quantity:</label>
                 <div class="input-group quantity-selector">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty">-</button>
-                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo intval($product['quantity']); ?>" id="quantity-input">
+                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo max(1, intval($product['quantity'] ?? 100)); ?>" id="quantity-input">
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>
                 </div>
             </div>
