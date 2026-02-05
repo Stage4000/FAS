@@ -6,6 +6,11 @@
 # but any local changes should not be overwritten
 src/config/config.php
 src/config/config.production.php
+src/config/config.local.php
+
+# Admin settings and configurations
+admin/settings.json
+admin/config.json
 
 # Environment files
 .env
@@ -22,15 +27,15 @@ database/flipandstrip.db.local
 database/*.backup
 database/backups/
 
-
-# Keep the initial database structure in repo
-# but ignore it if it has been modified locally
-# Uncomment the line below after first deployment to prevent overwriting:
-# database/flipandstrip.db
+# Protect the actual database file from being overwritten by updates
+# This ensures user data persists through code updates
+database/flipandstrip.db
 
 # SQL backup files
 *.sql.backup
 *.sql.gz
+*.sql.bak
+database/*.sql
 
 # ========================================
 # Dependencies
@@ -72,6 +77,8 @@ error_log
 access_log
 /var/log/
 log.txt
+debug.log
+app.log
 
 # ========================================
 # Temporary Files
@@ -120,7 +127,18 @@ id_rsa.pub
 # ========================================
 # Session files
 /storage/sessions/
+/sessions/
+*.sess
+session_*
 
 # Image processing cache
 gallery/cache/
 gallery/thumbs/
+
+# Admin backups and exports
+admin/backups/
+admin/exports/
+
+# User data exports
+exports/
+backups/
