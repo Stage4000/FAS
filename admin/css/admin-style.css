@@ -309,7 +309,8 @@ body {
         animation: fadeInUp 0.5s ease-out;
     }
 
-    .list-group-item {
+    /* Sidebar items - limit animation to first 10 for performance */
+    .list-group-item:nth-child(-n+10) {
         animation: slideInLeft 0.3s ease-out;
     }
 
@@ -320,6 +321,9 @@ body {
     .list-group-item:nth-child(5) { animation-delay: 0.25s; }
     .list-group-item:nth-child(6) { animation-delay: 0.3s; }
     .list-group-item:nth-child(7) { animation-delay: 0.35s; }
+    .list-group-item:nth-child(8) { animation-delay: 0.4s; }
+    .list-group-item:nth-child(9) { animation-delay: 0.45s; }
+    .list-group-item:nth-child(10) { animation-delay: 0.5s; }
 
     /* Navbar animations */
     .navbar {
@@ -385,7 +389,12 @@ body {
 /* Alert */
 .alert {
     border-radius: 1em;
-    animation: fadeInUp 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .alert {
+        animation: fadeInUp 0.5s ease-out;
+    }
 }
 
 [data-theme="dark"] .alert {
