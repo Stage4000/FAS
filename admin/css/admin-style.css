@@ -303,12 +303,12 @@ body {
     }
 }
 
-.card {
-    animation: fadeInUp 0.5s ease-out;
-}
-
 /* Sidebar animations */
 @media (prefers-reduced-motion: no-preference) {
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
     .list-group-item {
         animation: slideInLeft 0.3s ease-out;
     }
@@ -339,10 +339,6 @@ body {
     .table tbody tr:nth-child(-n+10) {
         animation: fadeInUp 0.3s ease-out;
     }
-
-    .card {
-        animation: fadeInUp 0.5s ease-out;
-    }
 }
 
 /* Form animations */
@@ -363,8 +359,17 @@ body {
     }
 }
 
-.spinner-border {
-    animation: spin 0.75s linear infinite;
+@media (prefers-reduced-motion: no-preference) {
+    .spinner-border {
+        animation: spin 0.75s linear infinite;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner-border {
+        animation: none;
+        opacity: 0.6;
+    }
 }
 
 /* Add border to cards in dark mode for better distinction */
