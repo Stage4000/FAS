@@ -379,7 +379,7 @@ if ($action === 'list') {
                         <?php endif; ?>
 
                         <div class="row">
-                            <div class="col-md-8">
+                            <div class="col-md-5">
                                 <div class="mb-3">
                                     <label class="form-label">Product Name *</label>
                                     <input type="text" class="form-control" name="name" required 
@@ -469,7 +469,7 @@ if ($action === 'list') {
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Category</label>
                                     <select class="form-select" name="category">
@@ -521,6 +521,24 @@ if ($action === 'list') {
                                     <small class="text-muted">Used to calculate shipping costs from the warehouse location</small>
                                 </div>
 
+                                <?php if (!$product || $product['source'] === 'manual'): ?>
+                                    <input type="hidden" name="source" value="manual">
+                                <?php else: ?>
+                                    <input type="hidden" name="source" value="<?php echo $product['source']; ?>">
+                                <?php endif; ?>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="show_on_website" id="show_on_website" 
+                                               <?php echo (!$product || $product['show_on_website']) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="show_on_website">
+                                            Show on Website
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Product Images</label>
                                     
@@ -599,22 +617,6 @@ if ($action === 'list') {
                                         
                                         <!-- Preview container for newly selected images -->
                                         <div id="imagePreviewContainer" class="d-flex flex-wrap gap-2 mt-3" style="display: none !important;"></div>
-                                    </div>
-                                </div>
-
-                                <?php if (!$product || $product['source'] === 'manual'): ?>
-                                    <input type="hidden" name="source" value="manual">
-                                <?php else: ?>
-                                    <input type="hidden" name="source" value="<?php echo $product['source']; ?>">
-                                <?php endif; ?>
-
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="show_on_website" id="show_on_website" 
-                                               <?php echo (!$product || $product['show_on_website']) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="show_on_website">
-                                            Show on Website
-                                        </label>
                                     </div>
                                 </div>
                             </div>
