@@ -10,6 +10,26 @@ class Product
 {
     private $db;
     
+    /**
+     * Gift-specific keywords for category mapping (Priority 1)
+     * These should be checked first to prevent brand names from overriding gift classification
+     */
+    private const GIFT_KEYWORDS = [
+        'gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 
+        'collectible', 'memorabilia', 'keychain', 'accessory'
+    ];
+    
+    /**
+     * Parts-specific category mappings (Priority 2)
+     * Only checked if no gift keywords are found
+     */
+    private const PARTS_CATEGORY_MAPPINGS = [
+        'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
+        'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
+        'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
+        'automotive' => ['auto', 'automobile', 'car', 'ford', 'chevy', 'chevrolet', 'dodge', 'gmc']
+    ];
+    
     public function __construct($db)
     {
         $this->db = $db;
@@ -316,23 +336,14 @@ class Product
         
         // Priority 1: Check for gift-specific keywords first (highest priority)
         // These should override vehicle brand names (e.g., "Harley Davidson shirt" is a gift, not a motorcycle part)
-        $giftKeywords = ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 'collectible', 'memorabilia', 'keychain', 'accessory'];
-        foreach ($giftKeywords as $keyword) {
+        foreach (self::GIFT_KEYWORDS as $keyword) {
             if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
                 return 'gifts';
             }
         }
         
         // Priority 2: Check for parts-specific categories (motorcycle, ATV, boat, automotive)
-        $mappings = [
-            'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
-            'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
-            'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
-            'automotive' => ['auto', 'automobile', 'car', 'ford', 'chevy', 'chevrolet', 'dodge', 'gmc']
-        ];
-        
-        // Check category name and title for keywords
-        foreach ($mappings as $localCategory => $keywords) {
+        foreach (self::PARTS_CATEGORY_MAPPINGS as $localCategory => $keywords) {
             foreach ($keywords as $keyword) {
                 if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
                     return $localCategory;
