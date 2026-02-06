@@ -1328,11 +1328,51 @@ class EbayAPI
             $mpn = $item['Product']['BrandMPN']['MPN'];
         }
         
+        // Extract dimensions and weight from ShipPackageDetails
+        $weight = null;
+        $length = null;
+        $width = null;
+        $height = null;
+        
+        if (isset($item['ShippingPackageDetails'])) {
+            $packageDetails = $item['ShippingPackageDetails'];
+            
+            // Weight (convert to pounds if needed)
+            if (isset($packageDetails['WeightMajor']) || isset($packageDetails['WeightMinor'])) {
+                $weightMajor = floatval($packageDetails['WeightMajor']['__value__'] ?? $packageDetails['WeightMajor'] ?? 0);
+                $weightMinor = floatval($packageDetails['WeightMinor']['__value__'] ?? $packageDetails['WeightMinor'] ?? 0);
+                $measurementUnit = $packageDetails['WeightMajor']['@unit'] ?? $packageDetails['MeasurementUnit'] ?? 'lbs';
+                
+                // Convert to total weight (major + minor/16 for lbs/oz)
+                if ($measurementUnit === 'lbs' || $measurementUnit === 'oz') {
+                    $weight = $weightMajor + ($weightMinor / 16); // Convert ounces to pounds
+                } else {
+                    $weight = $weightMajor; // For kg or other units, use as-is
+                }
+            }
+            
+            // Dimensions (inches)
+            if (isset($packageDetails['PackageDepth'])) {
+                $length = floatval($packageDetails['PackageDepth']['__value__'] ?? $packageDetails['PackageDepth'] ?? 0);
+            }
+            if (isset($packageDetails['PackageWidth'])) {
+                $width = floatval($packageDetails['PackageWidth']['__value__'] ?? $packageDetails['PackageWidth'] ?? 0);
+            }
+            if (isset($packageDetails['PackageLength'])) {
+                $height = floatval($packageDetails['PackageLength']['__value__'] ?? $packageDetails['PackageLength'] ?? 0);
+            }
+        }
+        
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
+        SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
         return [
             'brand' => $brand,
             'mpn' => $mpn,
+            'weight' => $weight,
+            'length' => $length,
+            'width' => $width,
+            'height' => $height,
             'item' => $item // Return full item data for other uses if needed
         ];
     }
