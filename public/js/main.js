@@ -130,6 +130,7 @@ function setupImageGallery() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     setupImageGallery();
+    setupSearch();
     
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
