@@ -421,6 +421,8 @@ class EbayAPI
         $xml .= '<OutputSelector>PrimaryCategory</OutputSelector>';
         $xml .= '<OutputSelector>Storefront</OutputSelector>';
         $xml .= '<OutputSelector>ItemSpecifics</OutputSelector>';
+        $xml .= '<OutputSelector>ProductListingDetails</OutputSelector>';
+        $xml .= '<OutputSelector>Product</OutputSelector>';
         
         $xml .= '</GetSellerListRequest>';
         
@@ -461,6 +463,8 @@ class EbayAPI
         // Output selectors for specific fields
         $xml .= '<OutputSelector>ItemID</OutputSelector>';
         $xml .= '<OutputSelector>Title</OutputSelector>';
+        $xml .= '<OutputSelector>Description</OutputSelector>';
+        $xml .= '<OutputSelector>SKU</OutputSelector>';
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
@@ -469,6 +473,11 @@ class EbayAPI
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
         $xml .= '<OutputSelector>TimeLeft</OutputSelector>';
         $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
+        $xml .= '<OutputSelector>PrimaryCategory</OutputSelector>';
+        $xml .= '<OutputSelector>Storefront</OutputSelector>';
+        $xml .= '<OutputSelector>ItemSpecifics</OutputSelector>';
+        $xml .= '<OutputSelector>ProductListingDetails</OutputSelector>';
+        $xml .= '<OutputSelector>Product</OutputSelector>';
         
         $xml .= '</GetSellerEventsRequest>';
         
@@ -601,9 +610,11 @@ class EbayAPI
                 }
             }
             
-            // Extract Brand and MPN from ItemSpecifics
+            // Extract Brand and MPN - try multiple sources
             $brandName = null;
             $mpn = null;
+            
+            // Priority 1: Try ItemSpecifics (most common location)
             if (isset($item['ItemSpecifics']['NameValueList'])) {
                 $specifics = $item['ItemSpecifics']['NameValueList'];
                 // Handle single specific (not in array)
@@ -615,12 +626,28 @@ class EbayAPI
                     $name = strtolower($specific['Name'] ?? '');
                     $value = $specific['Value'] ?? '';
                     
-                    if ($name === 'brand' || $name === 'manufacturer') {
+                    if ($name === 'brand' || $name === 'manufacturer' || $name === 'make') {
                         $brandName = is_array($value) ? $value[0] : $value;
-                    } elseif ($name === 'mpn' || $name === 'manufacturer part number') {
+                    } elseif ($name === 'mpn' || $name === 'manufacturer part number' || $name === 'model' || $name === 'part number') {
                         $mpn = is_array($value) ? $value[0] : $value;
                     }
                 }
+            }
+            
+            // Priority 2: Try ProductListingDetails (eBay Catalog products)
+            if (!$brandName && isset($item['ProductListingDetails']['BrandMPN']['Brand'])) {
+                $brandName = $item['ProductListingDetails']['BrandMPN']['Brand'];
+            }
+            if (!$mpn && isset($item['ProductListingDetails']['BrandMPN']['MPN'])) {
+                $mpn = $item['ProductListingDetails']['BrandMPN']['MPN'];
+            }
+            
+            // Priority 3: Try deprecated Product field (older listings)
+            if (!$brandName && isset($item['Product']['BrandMPN']['Brand'])) {
+                $brandName = $item['Product']['BrandMPN']['Brand'];
+            }
+            if (!$mpn && isset($item['Product']['BrandMPN']['MPN'])) {
+                $mpn = $item['Product']['BrandMPN']['MPN'];
             }
             
             // Strip inline styles from description to respect dark mode
