@@ -476,6 +476,10 @@ class Product
             'source' => 'ebay'
         ];
         
+        // Check if product has required shipping dimensions/weight
+        // If missing, set show_on_website to 0 (unlisted) until admin adds them
+        $hasDimensions = !empty($weight) && !empty($length) && !empty($width) && !empty($height);
+        
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
             unset($productData['category']);
@@ -506,10 +510,21 @@ class Product
                 unset($productData['height']);
             }
             
+            // If this update removes dimensions/weight, hide from website
+            if (!$hasDimensions) {
+                $productData['show_on_website'] = 0;
+                error_log("[Product Sync] Item {$ebayData['id']} missing dimensions/weight - hiding from website");
+            }
+            
             return $this->update($existing['id'], $productData);
         } else {
-            // New eBay products default to visible with auto-mapped category and store data
-            $productData['show_on_website'] = 1;
+            // New eBay products: only show on website if they have complete dimensions/weight
+            if ($hasDimensions) {
+                $productData['show_on_website'] = 1;
+            } else {
+                $productData['show_on_website'] = 0;
+                error_log("[Product Sync] New item {$ebayData['id']} missing dimensions/weight - hiding from website");
+            }
             return $this->create($productData);
         }
     }
