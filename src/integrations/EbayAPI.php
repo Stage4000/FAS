@@ -610,9 +610,9 @@ class EbayAPI
                 }
             }
             
-            // Extract Brand and MPN - try multiple sources
+            // Extract Brand and Model/MPN - try multiple sources
             $brandName = null;
-            $mpn = null;
+            $modelNumber = null;
             
             // Priority 1: Try ItemSpecifics (most common location)
             if (isset($item['ItemSpecifics']['NameValueList'])) {
@@ -626,10 +626,15 @@ class EbayAPI
                     $name = strtolower($specific['Name'] ?? '');
                     $value = $specific['Value'] ?? '';
                     
-                    if ($name === 'brand' || $name === 'manufacturer' || $name === 'make') {
+                    // Only check for 'brand' field for manufacturer
+                    if ($name === 'brand') {
                         $brandName = is_array($value) ? $value[0] : $value;
-                    } elseif ($name === 'mpn' || $name === 'manufacturer part number' || $name === 'model' || $name === 'part number') {
-                        $mpn = is_array($value) ? $value[0] : $value;
+                    } 
+                    // For model: First try 'model', then fall back to 'mpn' or 'manufacturer part number'
+                    elseif (!$modelNumber && $name === 'model') {
+                        $modelNumber = is_array($value) ? $value[0] : $value;
+                    } elseif (!$modelNumber && ($name === 'mpn' || $name === 'manufacturer part number')) {
+                        $modelNumber = is_array($value) ? $value[0] : $value;
                     }
                 }
             }
@@ -638,16 +643,16 @@ class EbayAPI
             if (!$brandName && isset($item['ProductListingDetails']['BrandMPN']['Brand'])) {
                 $brandName = $item['ProductListingDetails']['BrandMPN']['Brand'];
             }
-            if (!$mpn && isset($item['ProductListingDetails']['BrandMPN']['MPN'])) {
-                $mpn = $item['ProductListingDetails']['BrandMPN']['MPN'];
+            if (!$modelNumber && isset($item['ProductListingDetails']['BrandMPN']['MPN'])) {
+                $modelNumber = $item['ProductListingDetails']['BrandMPN']['MPN'];
             }
             
             // Priority 3: Try deprecated Product field (older listings)
             if (!$brandName && isset($item['Product']['BrandMPN']['Brand'])) {
                 $brandName = $item['Product']['BrandMPN']['Brand'];
             }
-            if (!$mpn && isset($item['Product']['BrandMPN']['MPN'])) {
-                $mpn = $item['Product']['BrandMPN']['MPN'];
+            if (!$modelNumber && isset($item['Product']['BrandMPN']['MPN'])) {
+                $modelNumber = $item['Product']['BrandMPN']['MPN'];
             }
             
             // Strip inline styles from description to respect dark mode
@@ -675,7 +680,7 @@ class EbayAPI
                 'store_category_id' => $item['Storefront']['StoreCategoryID'] ?? null,
                 'store_category2_id' => $item['Storefront']['StoreCategory2ID'] ?? null,
                 'brand' => $brandName,
-                'mpn' => $mpn,
+                'mpn' => $modelNumber,
             ];
         }
         
