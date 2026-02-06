@@ -19,14 +19,15 @@
     RewriteRule ^ - [L]
 
     # Pretty URLs - Remove .php extension
+    # Product detail pages MUST come before products listing to avoid conflicts
     # Product detail pages: /product/123 or /product/item-slug
     RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
     
-    # Products listing: /products
-    RewriteRule ^products/?$ products.php [L,QSA]
-    
-    # Products listing by category: /products/motorcycle
+    # Products listing by category: /products/motorcycle (must come before general products)
     RewriteRule ^products/([a-zA-Z0-9_-]+)/?$ products.php?category=$1 [L,QSA]
+    
+    # Products listing: /products (must come after category to avoid conflicts)
+    RewriteRule ^products/?$ products.php [L,QSA]
     
     # About page: /about
     RewriteRule ^about/?$ about.php [L,QSA]
