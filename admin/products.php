@@ -529,6 +529,7 @@ if ($action === 'list') {
                                         <option value="boat" <?php echo $product && $product['category'] === 'boat' ? 'selected' : ''; ?>>Boat Parts</option>
                                         <option value="automotive" <?php echo $product && $product['category'] === 'automotive' ? 'selected' : ''; ?>>Automotive Parts</option>
                                         <option value="gifts" <?php echo $product && $product['category'] === 'gifts' ? 'selected' : ''; ?>>Biker Gifts</option>
+                                        <option value="other" <?php echo $product && $product['category'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                     </select>
                                 </div>
 

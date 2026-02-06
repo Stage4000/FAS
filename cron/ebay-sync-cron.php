@@ -94,10 +94,10 @@ try {
                 $existing = $productModel->getByEbayId($item['id']);
                 
                 if ($existing) {
-                    $productModel->syncFromEbay($item);
+                    $productModel->syncFromEbay($item, $ebayAPI);
                     $totalUpdated++;
                 } else {
-                    $productModel->syncFromEbay($item);
+                    $productModel->syncFromEbay($item, $ebayAPI);
                     $totalAdded++;
                 }
                 

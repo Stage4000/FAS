@@ -3,6 +3,11 @@ require_once __DIR__ . '/auth.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+
+// Load config to get the sync API key
+$configFile = __DIR__ . '/../src/config/config.php';
+$config = file_exists($configFile) ? require $configFile : [];
+$syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,7 +103,7 @@ $auth->requireLogin();
                             <ul class="mb-0 mt-2">
                                 <li>Configure your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a></li>
                                 <li>Be aware of eBay rate limits (5,000 calls/day). If you hit a rate limit, wait 5-10 minutes before retrying.</li>
-                                <li>eBay requires date ranges to be less than 120 days apart</li>
+                                <li>Date ranges over 120 days are automatically split into multiple 120-day chunks</li>
                             </ul>
                         </div>
                         
@@ -157,9 +162,12 @@ $auth->requireLogin();
                 return false;
             }
             
+            // Note: Date ranges over 120 days are automatically split into 120-day chunks by the API
             if (daysDiff > 120) {
-                alert('Date range must be less than 120 days (eBay requirement)');
-                return false;
+                const chunks = Math.ceil((daysDiff + 1) / 120);
+                if (!confirm(`This date range spans ${daysDiff} days and will be automatically split into ${chunks} chunks of 120 days each. Continue?`)) {
+                    return false;
+                }
             }
             
             return true;
@@ -186,7 +194,7 @@ $auth->requireLogin();
             statusDiv.innerHTML = '<div class="alert alert-info">Starting eBay synchronization...</div>';
             
             // Call sync API with date parameters
-            fetch(`../api/ebay-sync.php?key=fas_sync_key_2026&start_date=${startDate}&end_date=${endDate}`)
+            fetch(`../api/ebay-sync.php?key=<?php echo htmlspecialchars($syncApiKey, ENT_QUOTES, 'UTF-8'); ?>&start_date=${startDate}&end_date=${endDate}`)
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {
@@ -197,15 +205,28 @@ $auth->requireLogin();
                 })
                 .then(data => {
                     if (data.success) {
-                        statusDiv.innerHTML = `
+                        let syncDetails = `
                             <div class="alert alert-success">
                                 <strong>Sync Completed!</strong><br>
                                 Processed: ${data.processed}<br>
                                 Added: ${data.added}<br>
                                 Updated: ${data.updated}<br>
-                                Failed: ${data.failed}
-                            </div>
-                        `;
+                                Failed: ${data.failed}`;
+                        
+                        // Show additional info for multi-range syncs
+                        if (data.date_ranges_processed) {
+                            syncDetails += `<br>Date Ranges: ${data.date_ranges_processed}`;
+                            if (data.date_ranges_empty > 0) {
+                                syncDetails += ` (${data.date_ranges_empty} had no items)`;
+                            }
+                        }
+                        
+                        if (data.message) {
+                            syncDetails += `<br><small class="text-muted">${data.message}</small>`;
+                        }
+                        
+                        syncDetails += `</div>`;
+                        statusDiv.innerHTML = syncDetails;
                     } else if (data.error) {
                         let helpLink = '';
                         if (data.help) {
@@ -231,11 +252,6 @@ $auth->requireLogin();
                 .finally(() => {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Start eBay Sync';
-                    
-                    // Reload page after a successful sync to update stats
-                    if (statusDiv.querySelector('.alert-success')) {
-                        setTimeout(() => location.reload(), 3000);
-                    }
                 });
         });
     </script>
