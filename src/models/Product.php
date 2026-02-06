@@ -389,6 +389,7 @@ class Product
         
         $productData = [
             'ebay_item_id' => $ebayData['id'],
+            'sku' => $ebayData['sku'] ?? null,
             'name' => $ebayData['title'],
             'description' => $ebayData['description'] ?? '',
             'price' => $ebayData['price'],

@@ -409,6 +409,8 @@ class EbayAPI
         // Output selector for specific fields
         $xml .= '<OutputSelector>ItemID</OutputSelector>';
         $xml .= '<OutputSelector>Title</OutputSelector>';
+        $xml .= '<OutputSelector>Description</OutputSelector>';
+        $xml .= '<OutputSelector>SKU</OutputSelector>';
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
@@ -624,6 +626,8 @@ class EbayAPI
             $items[] = [
                 'id' => $item['ItemID'] ?? '',
                 'title' => $item['Title'] ?? 'Untitled',
+                'description' => $item['Description'] ?? '',
+                'sku' => $item['SKU'] ?? '',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'currency' => 'USD',
                 'image' => !empty($allImages) ? $allImages[0] : null,
