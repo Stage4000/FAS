@@ -197,22 +197,29 @@ $totalPages = ceil($totalProducts / $perPage);
                 $range = 2; // Number of pages to show on each side of current page
                 $showPages = [];
                 
-                // Always show first page
-                $showPages[] = 1;
-                
-                // Show pages around current page
-                for ($i = max(2, $page - $range); $i <= min($totalPages - 1, $page + $range); $i++) {
-                    $showPages[] = $i;
+                // For small page counts (7 or fewer), show all pages
+                if ($totalPages <= 7) {
+                    for ($i = 1; $i <= $totalPages; $i++) {
+                        $showPages[] = $i;
+                    }
+                } else {
+                    // Always show first page
+                    $showPages[] = 1;
+                    
+                    // Show pages around current page
+                    for ($i = max(2, $page - $range); $i <= min($totalPages - 1, $page + $range); $i++) {
+                        $showPages[] = $i;
+                    }
+                    
+                    // Always show last page
+                    if ($totalPages > 1) {
+                        $showPages[] = $totalPages;
+                    }
+                    
+                    // Remove duplicates and sort
+                    $showPages = array_unique($showPages);
+                    sort($showPages);
                 }
-                
-                // Always show last page
-                if ($totalPages > 1) {
-                    $showPages[] = $totalPages;
-                }
-                
-                // Remove duplicates and sort
-                $showPages = array_unique($showPages);
-                sort($showPages);
                 ?>
                 
                 <!-- Previous Button -->
