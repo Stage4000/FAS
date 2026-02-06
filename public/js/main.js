@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Search functionality
 function setupSearch() {
-    const searchInput = document.getElementById('search-input');
+    const searchInput = document.getElementById('product-search');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
             const query = e.target.value;

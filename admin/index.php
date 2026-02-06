@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -8,6 +10,15 @@ $auth->requireLogin();
 $configFile = __DIR__ . '/../src/config/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
 $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
+
+// Get product count
+$productModel = new \FAS\Models\Product($pdo);
+$totalProducts = $productModel->getCountAll();
+
+// Get last sync timestamp
+$lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
+$lastSyncRow = $lastSyncStmt->fetch(PDO::FETCH_ASSOC);
+$lastSync = $lastSyncRow ? date('M j, Y g:i A', strtotime($lastSyncRow['last_sync_timestamp'])) : 'Never';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,7 +45,7 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Total Products</h6>
-                                        <h3 class="mb-0">0</h3>
+                                        <h3 class="mb-0"><?php echo number_format($totalProducts); ?></h3>
                                     </div>
                                     <div class="text-primary">
                                         <i class="fas fa-box display-4"></i>
@@ -79,7 +90,7 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Last Sync</h6>
-                                        <h6 class="mb-0">Never</h6>
+                                        <h6 class="mb-0"><?php echo $lastSync; ?></h6>
                                     </div>
                                     <div class="text-info">
                                         <i class="fas fa-sync-alt display-4"></i>

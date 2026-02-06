@@ -47,7 +47,7 @@
                             <li><a class="dropdown-item" href="products.php?category=atv">ATV/UTV Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=gifts">Biker Gifts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=gifts">Gifts</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="products.php">All Products</a></li>
                         </ul>
@@ -76,6 +76,9 @@
     <!-- Hero Section -->
     <section class="hero-section parallax-section py-5">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
+            <div class="mb-4" data-aos="fade-down" data-aos-duration="800">
+                <img src="gallery/hero-image.png" alt="Flip and Strip" style="max-width: 300px; height: auto;" class="img-fluid">
+            </div>
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
             <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">High quality new & used, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more!</p>
@@ -140,7 +143,7 @@
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-gift display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Biker Gifts</h5>
+                            <h5 class="card-title">Gifts</h5>
                             <p class="card-text text-muted">Watches, Clothing & Accessories</p>
                             <a href="products.php?category=gifts" class="btn btn-outline-danger">Browse</a>
                         </div>
