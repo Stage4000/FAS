@@ -23,15 +23,20 @@
 chdir(__DIR__ . '/..');
 
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/SyncLogger.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../src/models/Product.php';
 
 use FAS\Config\Database;
+use FAS\Utils\SyncLogger;
 use FAS\Integrations\EbayAPI;
 use FAS\Models\Product;
 
 // Log start
 echo "[" . date('Y-m-d H:i:s') . "] Starting eBay synchronization (GetSellerEvents)...\n";
+
+// Initialize SyncLogger
+SyncLogger::init();
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -142,6 +147,7 @@ try {
     echo "  Updated: {$totalUpdated}\n";
     echo "  Failed: {$totalFailed}\n";
     
+    SyncLogger::finalize();
     exit(0);
     
 } catch (Exception $e) {
@@ -156,5 +162,6 @@ try {
     }
     
     echo "[ERROR] Synchronization failed: " . $e->getMessage() . "\n";
+    SyncLogger::finalize();
     exit(1);
 }
