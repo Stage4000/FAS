@@ -44,12 +44,17 @@ $totalPages = ceil($totalProducts / $perPage);
         </div>
         <div class="col-md-6">
             <!-- Search Box -->
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Search products..." id="product-search">
-                <button class="btn btn-danger" type="button">
-                    <i class="fas fa-search"></i> Search
-                </button>
-            </div>
+            <form method="get" action="/products<?php echo $category ? '/' . $category : ''; ?>" id="search-form">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
+                    <?php if ($manufacturer): ?>
+                        <input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>">
+                    <?php endif; ?>
+                    <button class="btn btn-danger" type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
