@@ -214,13 +214,18 @@ class EbayAPI
      */
     private function saveTokensToConfig()
     {
+        SyncLogger::log('[TOKEN_REFRESH] Attempting to save tokens to config file...');
+        
         if (!$this->configFile || !file_exists($this->configFile)) {
-            SyncLogger::logWarning('Config file not found, cannot save refreshed tokens');
+            SyncLogger::logWarning('[TOKEN_REFRESH] Config file not found: ' . ($this->configFile ?? 'null'));
             return;
         }
         
+        SyncLogger::log('[TOKEN_REFRESH] Config file path: ' . $this->configFile);
+        
         try {
             $config = require $this->configFile;
+            SyncLogger::log('[TOKEN_REFRESH] Config file loaded successfully');
             
             $config['ebay']['user_token'] = $this->userToken;
             $config['ebay']['token_expires_at'] = $this->tokenExpiresAt;
@@ -229,15 +234,26 @@ class EbayAPI
                 $config['ebay']['refresh_token'] = $this->refreshToken;
             }
             
+            SyncLogger::log('[TOKEN_REFRESH] Generating config content with var_export...');
+            
             $configContent = "<?php\n/**\n * Configuration File\n * Auto-updated by eBay token refresh\n */\n\nreturn " . var_export($config, true) . ";\n";
             
-            if (file_put_contents($this->configFile, $configContent)) {
-                SyncLogger::log('Updated tokens saved to config file');
+            SyncLogger::log('[TOKEN_REFRESH] Config content generated (length: ' . strlen($configContent) . ')');
+            SyncLogger::log('[TOKEN_REFRESH] Writing to file...');
+            
+            $bytesWritten = file_put_contents($this->configFile, $configContent);
+            
+            if ($bytesWritten !== false) {
+                SyncLogger::log('[TOKEN_REFRESH] Updated tokens saved to config file (' . $bytesWritten . ' bytes written)');
             } else {
-                SyncLogger::logWarning('Failed to save updated tokens to config file');
+                SyncLogger::logWarning('[TOKEN_REFRESH] file_put_contents returned false - check file permissions');
             }
-        } catch (\Exception $e) {
-            SyncLogger::logError('Error saving tokens to config', $e);
+        } catch (\Throwable $e) {
+            SyncLogger::logError('[TOKEN_REFRESH] Exception in saveTokensToConfig', $e);
+            SyncLogger::log('[TOKEN_REFRESH] Exception type: ' . get_class($e));
+            SyncLogger::log('[TOKEN_REFRESH] Exception message: ' . $e->getMessage());
+            SyncLogger::log('[TOKEN_REFRESH] Exception trace: ' . $e->getTraceAsString());
+            throw $e; // Re-throw so outer catch can handle it
         }
     }
     
