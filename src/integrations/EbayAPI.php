@@ -820,7 +820,7 @@ class EbayAPI
             $categoriesData = [$categoriesData];
         }
         
-        // Parse top-level categories (level 1 - will be ignored)
+        // Parse top-level categories (level 1 - website category mapping)
         foreach ($categoriesData as $topLevel) {
             $topCategoryId = $topLevel['CategoryID'] ?? null;
             $topCategoryName = $topLevel['Name'] ?? '';
@@ -829,7 +829,8 @@ class EbayAPI
                 $categoryMap[$topCategoryId] = [
                     'name' => $topCategoryName,
                     'level' => 1,
-                    'parent' => null
+                    'parent' => null,
+                    'topLevel' => $topCategoryName
                 ];
                 
                 // Parse level 2 categories (manufacturer)
@@ -847,7 +848,8 @@ class EbayAPI
                             $categoryMap[$level2Id] = [
                                 'name' => $level2Name,
                                 'level' => 2,
-                                'parent' => $topCategoryName
+                                'parent' => $topCategoryName,
+                                'topLevel' => $topCategoryName
                             ];
                             
                             // Parse level 3 categories (model)
@@ -865,7 +867,8 @@ class EbayAPI
                                         $categoryMap[$level3Id] = [
                                             'name' => $level3Name,
                                             'level' => 3,
-                                            'parent' => $level2Name
+                                            'parent' => $level2Name,
+                                            'topLevel' => $topCategoryName
                                         ];
                                     }
                                 }
@@ -880,37 +883,100 @@ class EbayAPI
     }
     
     /**
-     * Extract manufacturer and model from store category hierarchy
-     * Mapping: Level 1 (ignored) -> Level 2 (manufacturer) -> Level 3 (model)
+     * Map eBay store top-level category to website category
      */
-    public function extractMfgModelFromStoreCategory($storeCategoryId)
+    private function mapStoreCategoryToWebsite($storeCategoryName)
+    {
+        $normalized = strtoupper(trim($storeCategoryName));
+        
+        // Direct mapping from eBay store categories to website categories
+        $mappings = [
+            'MOTORCYCLE' => 'motorcycle',
+            'ATV 4 WHEELER / ATC 3 WHEELER' => 'atv',
+            'DIRT BIKE / MOTOCROSS' => 'motorcycle',
+            'MARINE / BOAT PARTS' => 'boat',
+            'PWC - PERSONAL WATER CRAFT' => 'boat',
+            'WATCHES / BIKER GIFTS' => 'gifts',
+            'CAR & TRUCK PARTS CLEARANCE' => 'automotive',
+            'SNOWMOBILE' => 'other',
+            'OTHER' => 'other'
+        ];
+        
+        // Check for exact match first
+        if (isset($mappings[$normalized])) {
+            return $mappings[$normalized];
+        }
+        
+        // Fallback: check partial matches
+        foreach ($mappings as $storeCategory => $websiteCategory) {
+            if (strpos($normalized, $storeCategory) !== false || strpos($storeCategory, $normalized) !== false) {
+                return $websiteCategory;
+            }
+        }
+        
+        // Default to 'other' if no match found
+        return 'other';
+    }
+    
+    /**
+     * Extract website category, manufacturer and model from store category hierarchy
+     * Mapping: Level 1 (website category) -> Level 2 (manufacturer) -> Level 3 (model)
+     */
+    public function extractCategoryMfgModelFromStoreCategory($storeCategoryId)
     {
         if (!$storeCategoryId) {
-            return ['manufacturer' => null, 'model' => null];
+            return ['category' => null, 'manufacturer' => null, 'model' => null];
         }
         
         $categories = $this->getStoreCategories();
         
         if (!isset($categories[$storeCategoryId])) {
-            return ['manufacturer' => null, 'model' => null];
+            return ['category' => null, 'manufacturer' => null, 'model' => null];
         }
         
         $category = $categories[$storeCategoryId];
+        $topLevelName = $category['topLevel'] ?? null;
+        $websiteCategory = $topLevelName ? $this->mapStoreCategoryToWebsite($topLevelName) : null;
         
-        // Level 2 = manufacturer, Level 3 = model
-        if ($category['level'] == 2) {
+        // Level 1 = website category only
+        if ($category['level'] == 1) {
             return [
+                'category' => $websiteCategory,
+                'manufacturer' => null,
+                'model' => null
+            ];
+        }
+        // Level 2 = website category + manufacturer
+        elseif ($category['level'] == 2) {
+            return [
+                'category' => $websiteCategory,
                 'manufacturer' => $category['name'],
                 'model' => null
             ];
-        } elseif ($category['level'] == 3) {
+        }
+        // Level 3 = website category + manufacturer (parent) + model
+        elseif ($category['level'] == 3) {
             return [
+                'category' => $websiteCategory,
                 'manufacturer' => $category['parent'], // Level 2 parent is manufacturer
                 'model' => $category['name']
             ];
         }
         
-        // Level 1 or other - return null
-        return ['manufacturer' => null, 'model' => null];
+        // Fallback
+        return ['category' => $websiteCategory, 'manufacturer' => null, 'model' => null];
+    }
+    
+    /**
+     * Extract manufacturer and model from store category hierarchy (backward compatibility)
+     * @deprecated Use extractCategoryMfgModelFromStoreCategory() instead
+     */
+    public function extractMfgModelFromStoreCategory($storeCategoryId)
+    {
+        $result = $this->extractCategoryMfgModelFromStoreCategory($storeCategoryId);
+        return [
+            'manufacturer' => $result['manufacturer'],
+            'model' => $result['model']
+        ];
     }
 }

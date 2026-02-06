@@ -344,28 +344,36 @@ class Product
     {
         $existing = $this->getByEbayId($ebayData['id']);
         
-        // Map eBay category to local category
+        // Default: Map eBay category to local category using standard mapping
         $category = $this->mapEbayCategory(
             $ebayData['ebay_category_name'] ?? null,
             $ebayData['ebay_category_id'] ?? null,
             $ebayData['title']
         );
         
-        // Extract manufacturer and model from store categories if available
+        // Extract category, manufacturer and model from store categories if available
         $manufacturer = null;
         $model = null;
+        $storeCategoryFound = false;
         
         if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
-            $mfgModel = $ebayAPI->extractMfgModelFromStoreCategory($ebayData['store_category_id']);
-            $manufacturer = $mfgModel['manufacturer'];
-            $model = $mfgModel['model'];
+            $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category_id']);
+            if ($extracted['category']) {
+                $category = $extracted['category'];
+                $manufacturer = $extracted['manufacturer'];
+                $model = $extracted['model'];
+                $storeCategoryFound = true;
+            }
         }
         
         // Try secondary store category if primary didn't yield results
-        if ($ebayAPI && !$manufacturer && isset($ebayData['store_category2_id']) && $ebayData['store_category2_id']) {
-            $mfgModel = $ebayAPI->extractMfgModelFromStoreCategory($ebayData['store_category2_id']);
-            $manufacturer = $mfgModel['manufacturer'];
-            $model = $mfgModel['model'];
+        if ($ebayAPI && !$storeCategoryFound && isset($ebayData['store_category2_id']) && $ebayData['store_category2_id']) {
+            $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category2_id']);
+            if ($extracted['category']) {
+                $category = $extracted['category'];
+                $manufacturer = $extracted['manufacturer'];
+                $model = $extracted['model'];
+            }
         }
         
         $productData = [
