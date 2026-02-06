@@ -212,7 +212,13 @@ if (empty($mainImage)) {
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h3 class="mb-4">Product Description</h3>
-                    <?php echo htmlspecialchars($product['description'], ENT_QUOTES, 'UTF-8'); ?>
+                    <?php 
+                    // Allow safe HTML tags in description (from eBay)
+                    // Remove potentially dangerous tags but keep formatting
+                    $allowedTags = '<p><br><b><strong><i><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><a><img><table><tr><td><th><tbody><thead><span><div>';
+                    $safeDescription = strip_tags($product['description'], $allowedTags);
+                    echo $safeDescription;
+                    ?>
                 </div>
             </div>
         </div>
