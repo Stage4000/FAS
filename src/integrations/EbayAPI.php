@@ -17,10 +17,13 @@ class EbayAPI
     private $certId;
     private $devId;
     private $userToken;
+    private $refreshToken;
+    private $tokenExpiresAt;
     private $sandbox;
     private $siteId;
     private $rateLimitExceeded = false;
     private $storeCategoriesCache = null; // Cache for store categories
+    private $configFile; // Store config file path for token updates
     
     // API Endpoints
     private $tradingApiUrl = 'https://api.ebay.com/ws/api.dll';
@@ -36,11 +39,11 @@ class EbayAPI
     public function __construct($config = null)
     {
         if ($config === null) {
-            $configFile = __DIR__ . '/../config/config.php';
-            if (!file_exists($configFile)) {
-                $configFile = __DIR__ . '/../config/config.example.php';
+            $this->configFile = __DIR__ . '/../config/config.php';
+            if (!file_exists($this->configFile)) {
+                $this->configFile = __DIR__ . '/../config/config.example.php';
             }
-            $config = require $configFile;
+            $config = require $this->configFile;
         }
         
         $ebayConfig = $config['ebay'];
@@ -48,8 +51,144 @@ class EbayAPI
         $this->certId = $ebayConfig['cert_id'];
         $this->devId = $ebayConfig['dev_id'];
         $this->userToken = $ebayConfig['user_token'];
+        $this->refreshToken = $ebayConfig['refresh_token'] ?? null;
+        $this->tokenExpiresAt = $ebayConfig['token_expires_at'] ?? null;
         $this->sandbox = $ebayConfig['sandbox'];
         $this->siteId = $ebayConfig['site_id'];
+        
+        // Auto-refresh token if expired
+        $this->ensureValidToken();
+    }
+    
+    /**
+     * Check if the access token is expired or about to expire
+     * @return bool True if token is expired or will expire in next 5 minutes
+     */
+    private function isTokenExpired()
+    {
+        if (!$this->tokenExpiresAt) {
+            return false; // No expiry info, assume it's valid
+        }
+        
+        // Consider token expired if it expires within 5 minutes (300 seconds buffer)
+        return time() >= ($this->tokenExpiresAt - 300);
+    }
+    
+    /**
+     * Ensure we have a valid access token, refresh if needed
+     * @return bool True if token is valid or was successfully refreshed
+     */
+    private function ensureValidToken()
+    {
+        if (!$this->isTokenExpired()) {
+            return true; // Token is still valid
+        }
+        
+        if (!$this->refreshToken) {
+            SyncLogger::logWarning('Access token expired and no refresh token available. Please re-authorize via admin panel.');
+            return false;
+        }
+        
+        SyncLogger::log('Access token expired or expiring soon. Attempting to refresh...');
+        return $this->refreshAccessToken();
+    }
+    
+    /**
+     * Refresh the access token using the refresh token
+     * @return bool True if refresh was successful
+     */
+    private function refreshAccessToken()
+    {
+        $tokenUrl = $this->sandbox 
+            ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+            : 'https://api.ebay.com/identity/v1/oauth2/token';
+        
+        $credentials = base64_encode($this->appId . ':' . $this->certId);
+        
+        $postData = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $this->refreshToken,
+            'scope' => 'https://api.ebay.com/oauth/api_scope'
+        ];
+        
+        $ch = curl_init($tokenUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($postData),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Basic ' . $credentials,
+                'Content-Type: application/x-www-form-urlencoded'
+            ]
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            SyncLogger::logError('Token refresh cURL error', new \Exception($error));
+            return false;
+        }
+        
+        if ($httpCode !== 200) {
+            SyncLogger::logError('Token refresh failed', new \Exception("HTTP $httpCode: $response"));
+            return false;
+        }
+        
+        $tokenData = json_decode($response, true);
+        if (!$tokenData || !isset($tokenData['access_token'])) {
+            SyncLogger::logError('Invalid token refresh response', new \Exception($response));
+            return false;
+        }
+        
+        // Update tokens
+        $this->userToken = $tokenData['access_token'];
+        $this->tokenExpiresAt = time() + ($tokenData['expires_in'] ?? 7200);
+        
+        // Update refresh token if a new one was provided
+        if (isset($tokenData['refresh_token'])) {
+            $this->refreshToken = $tokenData['refresh_token'];
+        }
+        
+        // Save updated tokens to config file
+        $this->saveTokensToConfig();
+        
+        SyncLogger::log('Access token refreshed successfully. New token expires at: ' . date('Y-m-d H:i:s', $this->tokenExpiresAt));
+        return true;
+    }
+    
+    /**
+     * Save updated tokens to the configuration file
+     */
+    private function saveTokensToConfig()
+    {
+        if (!$this->configFile || !file_exists($this->configFile)) {
+            SyncLogger::logWarning('Config file not found, cannot save refreshed tokens');
+            return;
+        }
+        
+        try {
+            $config = require $this->configFile;
+            
+            $config['ebay']['user_token'] = $this->userToken;
+            $config['ebay']['token_expires_at'] = $this->tokenExpiresAt;
+            
+            if ($this->refreshToken) {
+                $config['ebay']['refresh_token'] = $this->refreshToken;
+            }
+            
+            $configContent = "<?php\n/**\n * Configuration File\n * Auto-updated by eBay token refresh\n */\n\nreturn " . var_export($config, true) . ";\n";
+            
+            if (file_put_contents($this->configFile, $configContent)) {
+                SyncLogger::log('Updated tokens saved to config file');
+            } else {
+                SyncLogger::logWarning('Failed to save updated tokens to config file');
+            }
+        } catch (\Exception $e) {
+            SyncLogger::logError('Error saving tokens to config', $e);
+        }
     }
     
     /**
@@ -57,6 +196,12 @@ class EbayAPI
      */
     public function getStoreItems($storeName = 'moto800', $pageNumber = 1, $entriesPerPage = 100, $startDate = null, $endDate = null)
     {
+        // Ensure we have a valid token before making API call
+        if (!$this->ensureValidToken()) {
+            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
+            return null;
+        }
+        
         $this->rateLimitExceeded = false; // Reset flag
         
         // Default to last 120 days if no dates provided
@@ -103,6 +248,12 @@ class EbayAPI
      */
     public function getSellerEvents($modTimeFrom = null, $modTimeTo = null, $pageNumber = 1, $entriesPerPage = 200)
     {
+        // Ensure we have a valid token before making API call
+        if (!$this->ensureValidToken()) {
+            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
+            return null;
+        }
+        
         $this->rateLimitExceeded = false; // Reset flag
         
         // Default to last 48 hours if no time provided (eBay recommendation)
@@ -453,6 +604,12 @@ class EbayAPI
      */
     public function getItemDetails($itemId)
     {
+        // Ensure we have a valid token before making API call
+        if (!$this->ensureValidToken()) {
+            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
+            return null;
+        }
+        
         $url = $this->shoppingApiUrl;
         
         $params = [
@@ -801,6 +958,12 @@ class EbayAPI
         // Return cached categories if available
         if ($this->storeCategoriesCache !== null) {
             return $this->storeCategoriesCache;
+        }
+        
+        // Ensure we have a valid token before making API call
+        if (!$this->ensureValidToken()) {
+            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
+            return null;
         }
         
         SyncLogger::log("Fetching store categories from eBay");
