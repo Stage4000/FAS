@@ -90,7 +90,13 @@ class EbayAPI
         }
         
         SyncLogger::log('Access token expired or expiring soon. Attempting to refresh...');
-        return $this->refreshAccessToken();
+        
+        try {
+            return $this->refreshAccessToken();
+        } catch (\Exception $e) {
+            SyncLogger::logError('Token refresh failed with exception', $e);
+            return false;
+        }
     }
     
     /**
@@ -168,7 +174,12 @@ class EbayAPI
         }
         
         // Save updated tokens to config file
-        $this->saveTokensToConfig();
+        try {
+            $this->saveTokensToConfig();
+        } catch (\Exception $e) {
+            SyncLogger::logError('Failed to save tokens to config file', $e);
+            // Continue anyway - token is updated in memory
+        }
         
         SyncLogger::log('Access token refreshed successfully. New token expires at: ' . date('Y-m-d H:i:s', $this->tokenExpiresAt));
         return true;
