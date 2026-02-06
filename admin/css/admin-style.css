@@ -607,18 +607,8 @@ body {
 }
 
 /* Modal fixes - prevent hover transforms from affecting modals */
-.modal .modal-dialog,
-.modal .modal-content {
-    transform: none !important;
-}
-
 .modal .modal-dialog:hover,
-.modal .modal-content:hover {
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Keep buttons in modals from having transform animations */
+.modal .modal-content:hover,
 .modal .btn:hover {
     transform: none !important;
 }
