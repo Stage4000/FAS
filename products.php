@@ -175,7 +175,8 @@ $totalPages = ceil($totalProducts / $perPage);
                                     data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                     data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
                                     data-image="<?php echo htmlspecialchars($product['image_url'] ?? ''); ?>"
-                                    data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                                    data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                                    data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>">
                                 <i class="fas fa-cart-plus"></i> Add to Cart
                             </button>
                         </div>

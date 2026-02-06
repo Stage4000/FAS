@@ -100,7 +100,8 @@ document.addEventListener('click', (e) => {
             name: button.dataset.name,
             price: parseFloat(button.dataset.price),
             image: button.dataset.image || '',
-            sku: button.dataset.sku || ''
+            sku: button.dataset.sku || '',
+            weight: parseFloat(button.dataset.weight) || 1.0
         };
         cart.addItem(productData);
         

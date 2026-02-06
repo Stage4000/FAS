@@ -166,14 +166,16 @@ class EasyShipAPI
     
     /**
      * Build parcels array from cart items with validation
+     * Consolidates all items into a single parcel for accurate shipping calculation
      */
     private function buildParcels($items)
     {
-        $parcels = [];
-        
         // Default weight in lbs - should be configured or come from product data
         // This is a fallback value when product weight is not specified
         $defaultWeight = 1.0;
+        
+        $parcelItems = [];
+        $totalWeight = 0.0;
         
         foreach ($items as $item) {
             // Validate item structure
@@ -192,34 +194,39 @@ class EasyShipAPI
             $sku = isset($item['sku']) ? substr($item['sku'], 0, 100) : '';
             $description = substr($item['name'], 0, 255);
             
-            $parcels[] = [
+            // Add item to parcel items array
+            $parcelItems[] = [
+                'quantity' => (int)$item['quantity'],
+                'contains_battery_pi966' => false,
+                'contains_battery_pi967' => false,
+                'contains_liquids' => false,
+                'origin_country_alpha2' => 'US',
+                'declared_currency' => 'USD',
+                'description' => $description,
+                'hs_code' => '85171400', // Default HS code for electronics
+                'declared_customs_value' => (float)$item['price']
+            ];
+            
+            // Calculate total weight: item weight × quantity
+            $totalWeight += $weight * (int)$item['quantity'];
+        }
+        
+        if (empty($parcelItems)) {
+            throw new \Exception('No valid items to ship');
+        }
+        
+        // Return a single parcel containing all items with combined weight
+        return [
+            [
                 'box' => [
                     'length' => 10,
                     'width' => 10,
                     'height' => 10
                 ],
-                'items' => [
-                    [
-                        'quantity' => (int)$item['quantity'],
-                        'contains_battery_pi966' => false,
-                        'contains_battery_pi967' => false,
-                        'contains_liquids' => false,
-                        'origin_country_alpha2' => 'US',
-                        'declared_currency' => 'USD',
-                        'description' => $description,
-                        'hs_code' => '85171400', // Default HS code for electronics
-                        'declared_customs_value' => (float)$item['price']
-                    ]
-                ],
-                'total_actual_weight' => (float)$weight
-            ];
-        }
-        
-        if (empty($parcels)) {
-            throw new \Exception('No valid items to ship');
-        }
-        
-        return $parcels;
+                'items' => $parcelItems,
+                'total_actual_weight' => $totalWeight
+            ]
+        ];
     }
     
     /**
@@ -279,7 +286,6 @@ class EasyShipAPI
     
     /**
      * Format delivery time for display
-     * Adds 1 day processing time to all estimates
      */
     private function formatDeliveryTime($option)
     {
@@ -287,12 +293,8 @@ class EasyShipAPI
         $max = $option['max_delivery_time'] ?? null;
         
         if ($min && $max) {
-            // Add 1 day for processing to both min and max
-            $min = intval($min) + 1;
-            $max = intval($max) + 1;
             return "{$min}-{$max} business days";
         } elseif ($min) {
-            $min = intval($min) + 1;
             return "{$min}+ business days";
         }
         

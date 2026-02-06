@@ -160,6 +160,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 if (empty($error)) {
+                    // Validate required fields for shipping calculator
+                    if (empty($_POST['weight']) || floatval($_POST['weight']) <= 0) {
+                        $error = 'Weight is required for accurate shipping calculations';
+                    } elseif (empty($_POST['length']) || floatval($_POST['length']) <= 0) {
+                        $error = 'Length is required for accurate shipping calculations';
+                    } elseif (empty($_POST['width']) || floatval($_POST['width']) <= 0) {
+                        $error = 'Width is required for accurate shipping calculations';
+                    } elseif (empty($_POST['height']) || floatval($_POST['height']) <= 0) {
+                        $error = 'Height is required for accurate shipping calculations';
+                    }
+                }
+                
+                if (empty($error)) {
                     $productData = [
                         'name' => $_POST['name'] ?? '',
                         'sku' => $_POST['sku'] ?? '',
@@ -481,9 +494,10 @@ if ($action === 'list') {
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="form-label">Weight (lbs)</label>
+                                            <label class="form-label">Weight (lbs) <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="weight" step="0.01" 
-                                                   value="<?php echo $product && $product['weight'] ? $product['weight'] : ''; ?>">
+                                                   value="<?php echo $product && $product['weight'] ? $product['weight'] : ''; ?>" required>
+                                            <small class="text-muted">Required for shipping calculations</small>
                                         </div>
                                     </div>
                                 </div>
@@ -491,29 +505,29 @@ if ($action === 'list') {
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="form-label">Length (inches)</label>
+                                            <label class="form-label">Length (inches) <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="length" step="0.01" 
                                                    value="<?php echo $product && $product['length'] ? $product['length'] : ''; ?>"
-                                                   placeholder="Package length">
-                                            <small class="text-muted">For shipping calculations</small>
+                                                   placeholder="Package length" required>
+                                            <small class="text-muted">Required for shipping calculations</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="form-label">Width (inches)</label>
+                                            <label class="form-label">Width (inches) <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="width" step="0.01" 
                                                    value="<?php echo $product && $product['width'] ? $product['width'] : ''; ?>"
-                                                   placeholder="Package width">
-                                            <small class="text-muted">For shipping calculations</small>
+                                                   placeholder="Package width" required>
+                                            <small class="text-muted">Required for shipping calculations</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="form-label">Height (inches)</label>
+                                            <label class="form-label">Height (inches) <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="height" step="0.01" 
                                                    value="<?php echo $product && $product['height'] ? $product['height'] : ''; ?>"
-                                                   placeholder="Package height">
-                                            <small class="text-muted">For shipping calculations</small>
+                                                   placeholder="Package height" required>
+                                            <small class="text-muted">Required for shipping calculations</small>
                                         </div>
                                     </div>
                                 </div>
