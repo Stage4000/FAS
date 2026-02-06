@@ -202,7 +202,8 @@ if (empty($mainImage)) {
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
                         data-price="<?php echo $product['price']; ?>"
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
-                        data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                        data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                        data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
                 <a href="/cart" class="btn btn-outline-dark btn-lg">

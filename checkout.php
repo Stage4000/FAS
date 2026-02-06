@@ -494,7 +494,7 @@ async function calculateShipping() {
         sku: item.sku,
         price: item.price,
         quantity: item.quantity,
-        weight: 1.5 // Default weight, should come from product data
+        weight: item.weight || 1.0 // Use product weight from cart, fallback to 1.0 lb
     }));
     
     const btn = document.getElementById('calculate-shipping-btn');
