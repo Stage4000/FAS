@@ -94,9 +94,21 @@ try {
         
         echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " changed items...\n";
         
+        // Pre-fetch existing products in batch to reduce database queries
+        $itemIds = array_column($result['items'], 'id');
+        $existingProducts = [];
+        if (!empty($itemIds)) {
+            $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
+            $stmt = $db->prepare("SELECT id, ebay_item_id FROM products WHERE ebay_item_id IN ($placeholders)");
+            $stmt->execute($itemIds);
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $existingProducts[$row['ebay_item_id']] = $row;
+            }
+        }
+        
         foreach ($result['items'] as $item) {
             try {
-                $existing = $productModel->getByEbayId($item['id']);
+                $existing = $existingProducts[$item['id']] ?? null;
                 
                 if ($existing) {
                     $productModel->syncFromEbay($item, $ebayAPI);
@@ -128,8 +140,11 @@ try {
             break;
         }
         
-        // Brief delay between pages
-        sleep(1);
+        // Brief delay between pages only if processing many items
+        // (to avoid rate limiting if GetItem calls were made)
+        if (count($result['items']) > 50) {
+            usleep(500000); // 0.5 seconds for smaller batches
+        }
         
     } while (true);
     
