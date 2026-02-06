@@ -16,6 +16,7 @@ use FAS\Config\Database;
 $dbConnection = Database::getInstance()->getConnection();
 $operationComplete = false;
 $itemsRemoved = 0;
+$syncLogsRemoved = 0;
 $errorOccurred = '';
 
 // Handle purge request
@@ -29,12 +30,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_purge'])) {
             $countResult = $countQuery->fetch(PDO::FETCH_ASSOC);
             $itemsRemoved = $countResult['total'];
             
-            // Execute deletion
+            // Count sync logs before deletion
+            $syncLogCountQuery = $dbConnection->query("SELECT COUNT(*) as total FROM ebay_sync_log");
+            $syncLogCountResult = $syncLogCountQuery->fetch(PDO::FETCH_ASSOC);
+            $syncLogsRemoved = $syncLogCountResult['total'];
+            
+            // Execute deletion - use transaction for safety
+            $dbConnection->beginTransaction();
+            
+            // Delete eBay products
             $deleteQuery = $dbConnection->prepare("DELETE FROM products WHERE source = ?");
             $deleteQuery->execute(['ebay']);
             
+            // Delete sync logs
+            $deleteSyncLogQuery = $dbConnection->prepare("DELETE FROM ebay_sync_log");
+            $deleteSyncLogQuery->execute();
+            
+            $dbConnection->commit();
+            
             $operationComplete = true;
         } catch (Exception $ex) {
+            if ($dbConnection->inTransaction()) {
+                $dbConnection->rollBack();
+            }
             $errorOccurred = 'Deletion failed: ' . $ex->getMessage();
         }
     } else {
@@ -45,6 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_purge'])) {
 // Get current count
 $currentCountQuery = $dbConnection->query("SELECT COUNT(*) as total FROM products WHERE source = 'ebay'");
 $currentCount = $currentCountQuery->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Get current sync log count
+$currentSyncLogQuery = $dbConnection->query("SELECT COUNT(*) as total FROM ebay_sync_log");
+$currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
 
 ?>
 <!DOCTYPE html>
@@ -85,7 +107,8 @@ $currentCount = $currentCountQuery->fetch(PDO::FETCH_ASSOC)['total'];
                             <div class="alert alert-success">
                                 <i class="fas fa-check-circle me-2"></i>
                                 <strong>Purge Complete!</strong><br>
-                                Successfully removed <?php echo $itemsRemoved; ?> eBay store product(s) from the database.
+                                Successfully removed <?php echo $itemsRemoved; ?> eBay store product(s) from the database.<br>
+                                Successfully removed <?php echo $syncLogsRemoved; ?> sync log entr(y/ies) from ebay_sync_log table.
                             </div>
                             <a href="index.php" class="btn btn-primary">Return to Dashboard</a>
                             <a href="purgestore.php" class="btn btn-secondary">Purge More</a>
@@ -110,15 +133,17 @@ $currentCount = $currentCountQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                 <p><strong>Current Status:</strong></p>
                                 <ul>
                                     <li>eBay Store Products: <strong><?php echo $currentCount; ?></strong></li>
+                                    <li>eBay Sync Log Entries: <strong><?php echo $currentSyncLogCount; ?></strong></li>
                                     <li>Source Filter: <code>source = 'ebay'</code></li>
                                 </ul>
                                 
                                 <div class="alert alert-danger">
                                     <h6>⚠️ WARNING - Irreversible Action</h6>
-                                    <p>This will permanently delete all products with source='ebay' from your database.</p>
+                                    <p>This will permanently delete all products with source='ebay' from your database AND all sync logs from ebay_sync_log table.</p>
                                     <ul class="mb-0">
                                         <li>Manual products will NOT be affected</li>
                                         <li>Order history remains intact</li>
+                                        <li>eBay sync history will be cleared</li>
                                         <li>This action CANNOT be undone</li>
                                     </ul>
                                 </div>
