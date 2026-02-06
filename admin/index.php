@@ -205,15 +205,28 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                 })
                 .then(data => {
                     if (data.success) {
-                        statusDiv.innerHTML = `
+                        let syncDetails = `
                             <div class="alert alert-success">
                                 <strong>Sync Completed!</strong><br>
                                 Processed: ${data.processed}<br>
                                 Added: ${data.added}<br>
                                 Updated: ${data.updated}<br>
-                                Failed: ${data.failed}
-                            </div>
-                        `;
+                                Failed: ${data.failed}`;
+                        
+                        // Show additional info for multi-range syncs
+                        if (data.date_ranges_processed) {
+                            syncDetails += `<br>Date Ranges: ${data.date_ranges_processed}`;
+                            if (data.date_ranges_empty > 0) {
+                                syncDetails += ` (${data.date_ranges_empty} had no items)`;
+                            }
+                        }
+                        
+                        if (data.message) {
+                            syncDetails += `<br><small class="text-muted">${data.message}</small>`;
+                        }
+                        
+                        syncDetails += `</div>`;
+                        statusDiv.innerHTML = syncDetails;
                     } else if (data.error) {
                         let helpLink = '';
                         if (data.help) {

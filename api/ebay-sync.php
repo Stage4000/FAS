@@ -164,6 +164,7 @@ try {
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
+    $emptyRanges = 0;
     
     // Loop through each date range
     foreach ($dateRanges as $rangeIndex => $dateRange) {
@@ -183,57 +184,65 @@ try {
                 // Log if no results on first page
                 if ($page === 1) {
                     // Check if this was due to rate limiting
-                if ($ebayAPI->wasRateLimited()) {
-                    error_log('eBay Sync: Rate limit exceeded. Please wait and try again later.');
-                    SyncLogger::logError('Rate limit exceeded on first page');
+                    if ($ebayAPI->wasRateLimited()) {
+                        error_log('eBay Sync: Rate limit exceeded. Please wait and try again later.');
+                        SyncLogger::logError('Rate limit exceeded on first page');
+                        
+                        $totalWaitTime = $ebayAPI->getTotalRetryWaitTime();
+                        
+                        // Update sync log with error
+                        $stmt = $db->prepare("
+                            UPDATE ebay_sync_log 
+                            SET status = 'failed', 
+                                error_message = 'eBay API rate limit exceeded. Please wait 5-10 minutes before trying again.',
+                                completed_at = datetime('now')
+                            WHERE id = ?
+                        ");
+                        $stmt->execute([$syncLogId]);
+                        
+                        http_response_code(429); // Too Many Requests
+                        echo json_encode([
+                            'error' => 'Rate limit exceeded',
+                            'message' => "eBay API rate limit has been exceeded. The sync tried 3 times with exponential backoff ({$totalWaitTime} seconds total) but the limit persists.",
+                            'help' => 'Please wait 5-10 minutes before trying to sync again. eBay limits API calls to prevent abuse.',
+                            'next_action' => 'Wait a few minutes and click "Start eBay Sync" again.'
+                        ]);
+                        SyncLogger::finalize();
+                        exit;
+                    }
                     
-                    $totalWaitTime = $ebayAPI->getTotalRetryWaitTime();
+                    // When processing multiple date ranges, empty results in one range shouldn't stop the entire sync
+                    if (count($dateRanges) > 1) {
+                        SyncLogger::log("No items found in date range " . ($rangeIndex + 1) . "/" . count($dateRanges) . ". Continuing to next range.");
+                        $emptyRanges++;
+                        break; // Exit the do-while loop for this date range, continue to next range
+                    }
+                    
+                    // Only fail if this is a single date range and we get no results
+                    error_log('eBay Sync: No items found. Check eBay credentials and store name.');
+                    SyncLogger::logError('No items found on first page');
                     
                     // Update sync log with error
                     $stmt = $db->prepare("
                         UPDATE ebay_sync_log 
                         SET status = 'failed', 
-                            error_message = 'eBay API rate limit exceeded. Please wait 5-10 minutes before trying again.',
+                            error_message = 'No items found. Check eBay API credentials and store name.',
                             completed_at = datetime('now')
                         WHERE id = ?
                     ");
                     $stmt->execute([$syncLogId]);
                     
-                    http_response_code(429); // Too Many Requests
+                    http_response_code(400);
                     echo json_encode([
-                        'error' => 'Rate limit exceeded',
-                        'message' => "eBay API rate limit has been exceeded. The sync tried 3 times with exponential backoff ({$totalWaitTime} seconds total) but the limit persists.",
-                        'help' => 'Please wait 5-10 minutes before trying to sync again. eBay limits API calls to prevent abuse.',
-                        'next_action' => 'Wait a few minutes and click "Start eBay Sync" again.'
+                        'error' => 'No items found',
+                        'message' => 'Unable to fetch items from eBay. This may be due to invalid credentials, incorrect store name, or the store having no items.',
+                        'help' => 'Visit /admin/ebay-token-guide.php for help with eBay API configuration.'
                     ]);
                     SyncLogger::finalize();
                     exit;
                 }
-                
-                error_log('eBay Sync: No items found. Check eBay credentials and store name.');
-                SyncLogger::logError('No items found on first page');
-                
-                // Update sync log with error
-                $stmt = $db->prepare("
-                    UPDATE ebay_sync_log 
-                    SET status = 'failed', 
-                        error_message = 'No items found. Check eBay API credentials and store name.',
-                        completed_at = datetime('now')
-                    WHERE id = ?
-                ");
-                $stmt->execute([$syncLogId]);
-                
-                http_response_code(400);
-                echo json_encode([
-                    'error' => 'No items found',
-                    'message' => 'Unable to fetch items from eBay. This may be due to invalid credentials, incorrect store name, or the store having no items.',
-                    'help' => 'Visit /admin/ebay-token-guide.php for help with eBay API configuration.'
-                ]);
-                SyncLogger::finalize();
-                exit;
-            }
-            SyncLogger::log("No more items found, ending pagination at page $page");
-            break;
+                SyncLogger::log("No more items found, ending pagination at page $page for this range");
+                break;
         }
         
         SyncLogger::log("Retrieved " . count($result['items']) . " items from page $page");
@@ -301,7 +310,7 @@ $stmt = $db->prepare("
 $stmt->execute([$syncLogId]);
     
     SyncLogger::log("Sync completed successfully");
-    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed");
+    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, EmptyRanges=$emptyRanges");
     
     $response = [
         'success' => true,
@@ -313,7 +322,14 @@ $stmt->execute([$syncLogId]);
     
     if (count($dateRanges) > 1) {
         $response['date_ranges_processed'] = count($dateRanges);
-        $response['message'] = "Successfully processed " . count($dateRanges) . " date ranges (split from original range exceeding 120 days)";
+        $response['date_ranges_empty'] = $emptyRanges;
+        
+        $messageDetails = [];
+        $messageDetails[] = count($dateRanges) . " date ranges processed";
+        if ($emptyRanges > 0) {
+            $messageDetails[] = $emptyRanges . " ranges had no items";
+        }
+        $response['message'] = "Successfully completed sync: " . implode(", ", $messageDetails) . ".";
     }
     
     echo json_encode($response);
