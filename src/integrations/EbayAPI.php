@@ -1190,6 +1190,7 @@ class EbayAPI
             'WATCHES / BIKER GIFTS' => 'gifts',
             'CAR & TRUCK PARTS CLEARANCE' => 'automotive',
             'SNOWMOBILE' => 'atv',
+            'SIDE BY SIDE / SXS /UTV' => 'atv',
             'OTHER' => 'other'
         ];
         
