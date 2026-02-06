@@ -62,15 +62,15 @@ $totalPages = ceil($totalProducts / $perPage);
                    class="btn btn-sm <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All
                 <a href="/products/motorcycle<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
-                <a href="/products/atv<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/atv<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV/UTV</a>
-                <a href="/products/boat<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/boat<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'boat' ? 'btn-danger' : 'btn-outline-danger'; ?>">Boat</a>
-                <a href="/products/automotive<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/automotive<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
-                <a href="/products/gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/gifts<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
-                <a href="/products/other<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/other<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'other' ? 'btn-danger' : 'btn-outline-danger'; ?>">Other</a>
             </div>
         </div>
@@ -110,7 +110,7 @@ $totalPages = ceil($totalProducts / $perPage);
             ?>
             <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                 <div class="card product-card h-100">
-                    <a href="product.php?id=<?php echo $product['id']; ?>" class="text-decoration-none">
+                    <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none">
                         <div class="position-relative">
                             <?php 
                             // Check if image URL exists and is either external (http/https) or a local file
@@ -139,7 +139,7 @@ $totalPages = ceil($totalProducts / $perPage);
                     </a>
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title">
-                            <a href="product.php?id=<?php echo $product['id']; ?>" class="text-decoration-none text-dark">
+                            <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none text-dark">
                                 <?php echo htmlspecialchars($product['name']); ?>
                             </a>
                         </h6>
