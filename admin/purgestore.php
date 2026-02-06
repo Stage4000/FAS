@@ -108,7 +108,7 @@ $currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                 <i class="fas fa-check-circle me-2"></i>
                                 <strong>Purge Complete!</strong><br>
                                 Successfully removed <?php echo $itemsRemoved; ?> eBay store product(s) from the database.<br>
-                                Successfully removed <?php echo $syncLogsRemoved; ?> sync log entr(y/ies) from ebay_sync_log table.
+                                Successfully removed <?php echo $syncLogsRemoved; ?> sync log <?php echo $syncLogsRemoved === 1 ? 'entry' : 'entries'; ?> from ebay_sync_log table.
                             </div>
                             <a href="index.php" class="btn btn-primary">Return to Dashboard</a>
                             <a href="purgestore.php" class="btn btn-secondary">Purge More</a>
