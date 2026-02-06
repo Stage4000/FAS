@@ -307,20 +307,21 @@ class Product
      */
     private function mapEbayCategory($ebayCategoryName, $ebayCategoryId, $itemTitle)
     {
-        // Default category
-        $category = 'automotive';
+        // Default category - use 'other' as true fallback instead of 'automotive'
+        $category = 'other';
         
         // Convert to lowercase for case-insensitive matching
         $categoryName = strtolower($ebayCategoryName ?? '');
         $title = strtolower($itemTitle ?? '');
         
         // Category mapping based on keywords in category name and title
+        // Order matters: more specific categories first to prevent false matches
         $mappings = [
             'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
             'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
             'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
-            'automotive' => ['auto', 'car', 'truck', 'vehicle', 'ford', 'chevy', 'dodge', 'gmc'],
-            'gifts' => ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'collectible', 'memorabilia', 'keychain', 'accessory']
+            'gifts' => ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 'collectible', 'memorabilia', 'keychain', 'accessory'],
+            'automotive' => ['auto', 'automobile', 'car', 'ford', 'chevy', 'chevrolet', 'dodge', 'gmc']
         ];
         
         // Check category name and title for keywords
