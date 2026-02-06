@@ -20,13 +20,13 @@
     <link rel="stylesheet" href="public/css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg">
+    <link rel="icon" type="image/png" href="gallery/favicons/favicon.png">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php" aria-label="Flip and Strip Home">
+            <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Home">
                 <img src="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
                 FLIP AND STRIP
             </a>
@@ -36,31 +36,31 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="index.php">Home</a>
+                        <a class="nav-link active" href="/">Home</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Shop by Category
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="products.php?category=motorcycle">Motorcycle Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=atv">ATV/UTV Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=gifts">Gifts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=other">Other</a></li>
+                            <li><a class="dropdown-item" href="products/motorcycle">Motorcycle Parts</a></li>
+                            <li><a class="dropdown-item" href="products/atv">ATV/UTV Parts</a></li>
+                            <li><a class="dropdown-item" href="products/boat">Boat Parts</a></li>
+                            <li><a class="dropdown-item" href="products/automotive">Automotive Parts</a></li>
+                            <li><a class="dropdown-item" href="products/gifts">Gifts</a></li>
+                            <li><a class="dropdown-item" href="products/other">Other</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="products.php">All Products</a></li>
+                            <li><a class="dropdown-item" href="products">All Products</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="about.php">About</a>
+                        <a class="nav-link" href="about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="contact.php">Contact</a>
+                        <a class="nav-link" href="contact">Contact</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="cart.php">
+                        <a class="nav-link" href="cart">
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
@@ -84,7 +84,7 @@
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
             <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">High quality new & used, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more!</p>
             <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
-                <a href="products.php" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
+                <a href="products" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
                     <i class="fas fa-search me-2"></i>Shop Now
                 </a>
             </div>
@@ -103,7 +103,7 @@
                             <i class="fas fa-motorcycle display-3 text-danger mb-3"></i>
                             <h4 class="card-title fw-bold">Motorcycle Parts</h4>
                             <p class="card-text text-muted fs-5">Harley, Yamaha, Honda, Suzuki, Kawasaki & More</p>
-                            <a href="products.php?category=motorcycle" class="btn btn-danger btn-lg px-5">Browse Motorcycle Parts</a>
+                            <a href="products/motorcycle" class="btn btn-danger btn-lg px-5">Browse Motorcycle Parts</a>
                         </div>
                     </div>
                 </div>
@@ -116,7 +116,7 @@
                             <i class="fas fa-truck display-4 text-danger mb-3"></i>
                             <h5 class="card-title">ATV/UTV Parts</h5>
                             <p class="card-text text-muted">ATV & UTV parts</p>
-                            <a href="products.php?category=atv" class="btn btn-outline-danger">Browse</a>
+                            <a href="products/atv" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                             <i class="fas fa-ship display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Boat Parts</h5>
                             <p class="card-text text-muted">Marine & Boat Parts</p>
-                            <a href="products.php?category=boat" class="btn btn-outline-danger">Browse</a>
+                            <a href="products/boat" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
@@ -136,7 +136,7 @@
                             <i class="fas fa-car-side display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Automotive Parts</h5>
                             <p class="card-text text-muted">Auto & Truck Parts</p>
-                            <a href="products.php?category=automotive" class="btn btn-outline-danger">Browse</a>
+                            <a href="products/automotive" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
                             <i class="fas fa-gift display-4 text-danger mb-3"></i>
                             <h5 class="card-title">Gifts</h5>
                             <p class="card-text text-muted">Watches, Clothing & Accessories</p>
-                            <a href="products.php?category=gifts" class="btn btn-outline-danger">Browse</a>
+                            <a href="products/gifts" class="btn btn-outline-danger">Browse</a>
                         </div>
                     </div>
                 </div>
@@ -196,8 +196,8 @@
             <h2 class="mb-4">Find the Parts You Need</h2>
             <p class="lead mb-4">Browse our extensive inventory or contact us for specific parts</p>
             <div class="d-flex gap-3 justify-content-center">
-                <a href="products.php" class="btn btn-danger btn-lg">View All Products</a>
-                <a href="contact.php" class="btn btn-outline-danger btn-lg">Contact Us</a>
+                <a href="products" class="btn btn-danger btn-lg">View All Products</a>
+                <a href="contact" class="btn btn-outline-danger btn-lg">Contact Us</a>
             </div>
         </div>
     </section>

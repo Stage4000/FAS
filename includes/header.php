@@ -82,7 +82,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php" aria-label="Flip and Strip Home">
+            <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Home">
                 <img src="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
                 FLIP AND STRIP
             </a>
@@ -92,31 +92,31 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php">Home</a>
+                        <a class="nav-link" href="/">Home</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Shop by Category
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="products.php?category=motorcycle">Motorcycle Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=atv">ATV/UTV Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=gifts">Gifts</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=other">Other</a></li>
+                            <li><a class="dropdown-item" href="products/motorcycle">Motorcycle Parts</a></li>
+                            <li><a class="dropdown-item" href="products/atv">ATV/UTV Parts</a></li>
+                            <li><a class="dropdown-item" href="products/boat">Boat Parts</a></li>
+                            <li><a class="dropdown-item" href="products/automotive">Automotive Parts</a></li>
+                            <li><a class="dropdown-item" href="products/gifts">Gifts</a></li>
+                            <li><a class="dropdown-item" href="products/other">Other</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="products.php">All Products</a></li>
+                            <li><a class="dropdown-item" href="products">All Products</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="about.php">About</a>
+                        <a class="nav-link" href="about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="contact.php">Contact</a>
+                        <a class="nav-link" href="contact">Contact</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="cart.php">
+                        <a class="nav-link" href="cart">
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
