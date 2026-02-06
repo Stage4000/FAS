@@ -1366,6 +1366,28 @@ class EbayAPI
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
         SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
+        // Extract description
+        $description = $item['Description'] ?? '';
+        if ($description) {
+            // Remove style attributes from HTML tags to respect dark mode
+            $description = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $description);
+        }
+        
+        // Extract SKU
+        $sku = $item['SKU'] ?? '';
+        
+        // Extract all images from eBay
+        $allImages = [];
+        if (isset($item['PictureDetails']['PictureURL'])) {
+            $pictureUrls = $item['PictureDetails']['PictureURL'];
+            // If it's a single URL (string), wrap it in array
+            if (is_string($pictureUrls)) {
+                $allImages = [$pictureUrls];
+            } else if (is_array($pictureUrls)) {
+                $allImages = $pictureUrls;
+            }
+        }
+        
         return [
             'brand' => $brand,
             'mpn' => $mpn,
@@ -1373,6 +1395,10 @@ class EbayAPI
             'length' => $length,
             'width' => $width,
             'height' => $height,
+            'description' => $description,
+            'sku' => $sku,
+            'images' => $allImages,
+            'image' => !empty($allImages) ? $allImages[0] : null,
             'item' => $item // Return full item data for other uses if needed
         ];
     }

@@ -362,16 +362,24 @@ class Product
         error_log("[Product Sync Debug] eBay MPN from GetSellerList: " . ($ebayData['mpn'] ?? 'NULL'));
         
         // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
-        // Also get dimensions and weight from GetItem
+        // Also get dimensions, weight, description, SKU, and images from GetItem
         $weight = $ebayData['weight'] ?? null;
         $length = $ebayData['length'] ?? null;
         $width = $ebayData['width'] ?? null;
         $height = $ebayData['height'] ?? null;
+        $description = $ebayData['description'] ?? '';
+        $sku = $ebayData['sku'] ?? '';
+        $images = $ebayData['images'] ?? [];
+        $image = $ebayData['image'] ?? null;
         
-        if ((!$manufacturer || !$model || !$weight) && $ebayAPI && isset($ebayData['id'])) {
-            error_log("[Product Sync Debug] Brand/MPN/Dimensions missing, calling GetItem API for ItemID: " . $ebayData['id']);
+        // Call GetItem if we're missing any critical data
+        $needsGetItem = !$manufacturer || !$model || !$weight || empty($description) || empty($sku) || empty($images);
+        
+        if ($needsGetItem && $ebayAPI && isset($ebayData['id'])) {
+            error_log("[Product Sync Debug] Missing data, calling GetItem API for ItemID: " . $ebayData['id']);
             $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
             if ($itemDetails) {
+                // Get brand and model
                 if (!$manufacturer && $itemDetails['brand']) {
                     $manufacturer = $itemDetails['brand'];
                     error_log("[Product Sync Debug] Brand from GetItem: " . $manufacturer);
@@ -396,6 +404,20 @@ class Product
                 }
                 if ($length || $width || $height) {
                     error_log("[Product Sync Debug] Dimensions from GetItem: L:" . ($length ?? 'NULL') . " W:" . ($width ?? 'NULL') . " H:" . ($height ?? 'NULL') . " inches");
+                }
+                // Get description, SKU, and images from GetItem
+                if (empty($description) && !empty($itemDetails['description'])) {
+                    $description = $itemDetails['description'];
+                    error_log("[Product Sync Debug] Description from GetItem (length: " . strlen($description) . " chars)");
+                }
+                if (empty($sku) && !empty($itemDetails['sku'])) {
+                    $sku = $itemDetails['sku'];
+                    error_log("[Product Sync Debug] SKU from GetItem: " . $sku);
+                }
+                if (empty($images) && !empty($itemDetails['images'])) {
+                    $images = $itemDetails['images'];
+                    $image = $itemDetails['image'];
+                    error_log("[Product Sync Debug] Images from GetItem (count: " . count($images) . ")");
                 }
             }
         }
@@ -443,9 +465,9 @@ class Product
         
         $productData = [
             'ebay_item_id' => $ebayData['id'],
-            'sku' => $ebayData['sku'] ?? null,
+            'sku' => $sku,
             'name' => $ebayData['title'],
-            'description' => $ebayData['description'] ?? '',
+            'description' => $description,
             'price' => $ebayData['price'],
             'quantity' => $ebayData['quantity'] ?? 1,
             'category' => $category,
@@ -456,8 +478,8 @@ class Product
             'length' => $length,
             'width' => $width,
             'height' => $height,
-            'image_url' => $ebayData['image'],
-            'images' => $ebayData['images'] ?? [],
+            'image_url' => $image,
+            'images' => $images,
             'ebay_url' => $ebayData['url'] ?? null,
             'source' => 'ebay'
         ];
