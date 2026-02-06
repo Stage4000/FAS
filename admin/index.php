@@ -103,7 +103,7 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                             <ul class="mb-0 mt-2">
                                 <li>Configure your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a></li>
                                 <li>Be aware of eBay rate limits (5,000 calls/day). If you hit a rate limit, wait 5-10 minutes before retrying.</li>
-                                <li>eBay requires date ranges to be less than 120 days apart</li>
+                                <li>Date ranges over 120 days are automatically split into multiple 120-day chunks</li>
                             </ul>
                         </div>
                         
@@ -162,9 +162,12 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                 return false;
             }
             
+            // Note: Date ranges over 120 days are automatically split into 120-day chunks by the API
             if (daysDiff > 120) {
-                alert('Date range must be less than 120 days (eBay requirement)');
-                return false;
+                const chunks = Math.ceil((daysDiff + 1) / 120);
+                if (!confirm(`This date range spans ${daysDiff} days and will be automatically split into ${chunks} chunks of 120 days each. Continue?`)) {
+                    return false;
+                }
             }
             
             return true;
@@ -236,11 +239,6 @@ $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
                 .finally(() => {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Start eBay Sync';
-                    
-                    // Reload page after a successful sync to update stats
-                    if (statusDiv.querySelector('.alert-success')) {
-                        setTimeout(() => location.reload(), 3000);
-                    }
                 });
         });
     </script>
