@@ -623,10 +623,17 @@ class EbayAPI
                 }
             }
             
+            // Strip inline styles from description to respect dark mode
+            $description = $item['Description'] ?? '';
+            if ($description) {
+                // Remove style attributes from HTML tags
+                $description = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $description);
+            }
+            
             $items[] = [
                 'id' => $item['ItemID'] ?? '',
                 'title' => $item['Title'] ?? 'Untitled',
-                'description' => $item['Description'] ?? '',
+                'description' => $description,
                 'sku' => $item['SKU'] ?? '',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'currency' => 'USD',

@@ -144,7 +144,12 @@ $totalPages = ceil($totalProducts / $perPage);
                             </a>
                         </h6>
                         <p class="card-text text-muted small flex-grow-1">
-                            <?php echo htmlspecialchars(substr($product['description'], 0, 80)) . '...'; ?>
+                            <?php if (!empty($product['manufacturer'])): ?>
+                                <strong>Mfg:</strong> <?php echo htmlspecialchars($product['manufacturer']); ?><br>
+                            <?php endif; ?>
+                            <?php if (!empty($product['model'])): ?>
+                                <strong>Model:</strong> <?php echo htmlspecialchars($product['model']); ?>
+                            <?php endif; ?>
                         </p>
                         <div class="mt-auto">
                             <div class="d-flex justify-content-between align-items-center mb-2">
