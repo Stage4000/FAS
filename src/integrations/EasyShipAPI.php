@@ -286,7 +286,6 @@ class EasyShipAPI
     
     /**
      * Format delivery time for display
-     * Adds 1 day processing time to all estimates
      */
     private function formatDeliveryTime($option)
     {
@@ -294,12 +293,8 @@ class EasyShipAPI
         $max = $option['max_delivery_time'] ?? null;
         
         if ($min && $max) {
-            // Add 1 day for processing to both min and max
-            $min = intval($min) + 1;
-            $max = intval($max) + 1;
             return "{$min}-{$max} business days";
         } elseif ($min) {
-            $min = intval($min) + 1;
             return "{$min}+ business days";
         }
         
