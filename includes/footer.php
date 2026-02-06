@@ -90,9 +90,9 @@
         });
     </script>
     <!-- Custom JS -->
-    <script src="public/js/main.js"></script>
+    <script src="/public/js/main.js"></script>
     <!-- Animation & UX Enhancement JS -->
-    <script src="public/js/animations.js"></script>
+    <script src="/public/js/animations.js"></script>
     
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
@@ -100,6 +100,6 @@
     </button>
     
     <!-- Theme Toggle Script -->
-    <script src="public/js/theme-toggle.js"></script>
+    <script src="/public/js/theme-toggle.js"></script>
 </body>
 </html>

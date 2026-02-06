@@ -44,10 +44,10 @@
     <!-- AOS (Animate On Scroll) -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="public/css/style.css">
+    <link rel="stylesheet" href="/public/css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="gallery/favicons/favicon.png">
+    <link rel="icon" type="image/png" href="/gallery/favicons/favicon.png">
     
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#db0335">
@@ -83,7 +83,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Home">
-                <img src="gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
+                <img src="/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
                 FLIP AND STRIP
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
