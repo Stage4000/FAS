@@ -149,14 +149,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // Search functionality
 function setupSearch() {
     const searchInput = document.getElementById('product-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce((e) => {
-            const query = e.target.value;
-            if (query.length >= 3) {
-                // Perform search
-                window.location.href = `products.php?search=${encodeURIComponent(query)}`;
+    const searchForm = document.getElementById('search-form');
+    
+    if (searchInput && searchForm) {
+        // Remove auto-search on input to avoid conflicts with form submission
+        // Users can now type and press Enter or click the Search button
+        searchForm.addEventListener('submit', (e) => {
+            const query = searchInput.value.trim();
+            if (query.length === 0) {
+                e.preventDefault();
+                // If empty search, reload without search param
+                const form = e.target;
+                const action = form.action;
+                window.location.href = action;
             }
-        }, 500));
+        });
     }
 }
 

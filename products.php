@@ -44,12 +44,17 @@ $totalPages = ceil($totalProducts / $perPage);
         </div>
         <div class="col-md-6">
             <!-- Search Box -->
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Search products..." id="product-search">
-                <button class="btn btn-danger" type="button">
-                    <i class="fas fa-search"></i> Search
-                </button>
-            </div>
+            <form method="get" action="/products<?php echo $category ? '/' . $category : ''; ?>" id="search-form">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
+                    <?php if ($manufacturer): ?>
+                        <input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>">
+                    <?php endif; ?>
+                    <button class="btn btn-danger" type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -130,10 +135,12 @@ $totalPages = ceil($totalProducts / $perPage);
                                     <i class="fas fa-image text-muted display-4"></i>
                                 </div>
                             <?php endif; ?>
-                            <span class="badge bg-success product-badge">In Stock</span>
+                            <?php if (!empty($product['condition_name'])): ?>
+                                <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                            <?php endif; ?>
                             <?php if (isset($product['sale_price']) && $product['sale_price']): ?>
                                 <?php $discount = round((($product['price'] - $product['sale_price']) / $product['price']) * 100); ?>
-                                <span class="badge bg-danger product-badge" style="top: 50px;">Save <?php echo $discount; ?>%</span>
+                                <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;">Save <?php echo $discount; ?>%</span>
                             <?php endif; ?>
                         </div>
                     </a>
@@ -181,7 +188,7 @@ $totalPages = ceil($totalProducts / $perPage);
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>
         <nav aria-label="Product pagination" class="mt-5">
-            <ul class="pagination justify-content-center">
+            <ul class="pagination justify-content-center flex-wrap">
                 <?php
                 // Build base URL for pagination
                 $baseUrl = '/products';
@@ -190,17 +197,66 @@ $totalPages = ceil($totalProducts / $perPage);
                 if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
                 if ($search) $queryParams[] = 'search=' . urlencode($search);
                 $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
+                
+                // Smart pagination: show first, last, current and nearby pages with ellipsis
+                $paginationRange = 2; // Number of pages to show on each side of current page
+                $maxPagesToShowAll = 7; // Show all pages if total is less than or equal to this
+                $showPages = [];
+                
+                // For small page counts, show all pages
+                if ($totalPages <= $maxPagesToShowAll) {
+                    for ($i = 1; $i <= $totalPages; $i++) {
+                        $showPages[] = $i;
+                    }
+                } else {
+                    // Always show first page
+                    $showPages[] = 1;
+                    
+                    // Show pages around current page
+                    for ($i = max(2, $page - $paginationRange); $i <= min($totalPages - 1, $page + $paginationRange); $i++) {
+                        $showPages[] = $i;
+                    }
+                    
+                    // Always show last page
+                    if ($totalPages > 1) {
+                        $showPages[] = $totalPages;
+                    }
+                    
+                    // Remove duplicates and sort
+                    $showPages = array_unique($showPages);
+                    sort($showPages);
+                }
                 ?>
+                
+                <!-- Previous Button -->
                 <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page - 1; ?><?php echo $queryString; ?>">Previous</a>
+                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
                 </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                
+                <?php 
+                $prevPage = 0;
+                foreach ($showPages as $i): 
+                    // Add ellipsis if there's a gap
+                    if ($i - $prevPage > 1): ?>
+                        <li class="page-item disabled d-none d-sm-block">
+                            <span class="page-link">...</span>
+                        </li>
+                    <?php endif; ?>
+                    
                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
                         <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
                     </li>
-                <?php endfor; ?>
+                    
+                    <?php $prevPage = $i; ?>
+                <?php endforeach; ?>
+                
+                <!-- Next Button -->
                 <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page + 1; ?><?php echo $queryString; ?>">Next</a>
+                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
                 </li>
             </ul>
         </nav>
