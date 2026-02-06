@@ -406,14 +406,20 @@ class Product
         
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
-            // Don't update manufacturer/model if they're already set (preserve admin's changes)
             unset($productData['category']);
-            if (!empty($existing['manufacturer'])) {
+            
+            // Always update manufacturer if we have Brand from eBay (most reliable source)
+            // Only preserve existing manufacturer if we don't have Brand from eBay
+            if (empty($ebayData['brand']) && !empty($existing['manufacturer'])) {
                 unset($productData['manufacturer']);
             }
-            if (!empty($existing['model'])) {
+            
+            // Always update model if we have MPN from eBay (most reliable source)
+            // Only preserve existing model if we don't have MPN from eBay
+            if (empty($ebayData['mpn']) && !empty($existing['model'])) {
                 unset($productData['model']);
             }
+            
             return $this->update($existing['id'], $productData);
         } else {
             // New eBay products default to visible with auto-mapped category and store data
