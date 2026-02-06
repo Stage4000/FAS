@@ -658,10 +658,15 @@ class EbayAPI
             // Strip ALL HTML, CSS, and JS from description
             $description = $item['Description'] ?? '';
             if ($description) {
-                // Strip all HTML tags completely to prevent CSS/JS injection
+                // First remove script and style tags with their content
+                $description = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $description);
+                $description = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $description);
+                // Strip all remaining HTML tags completely to prevent CSS/JS injection
                 $description = strip_tags($description);
                 // Decode HTML entities
                 $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                // Replace non-breaking spaces and other special spaces with regular spaces
+                $description = str_replace(["\xc2\xa0", "\xe2\x80\x89", "\xe2\x80\x8a"], ' ', $description);
                 // Remove excessive whitespace and normalize line breaks
                 $description = preg_replace('/\s+/', ' ', $description);
                 $description = trim($description);
@@ -1374,10 +1379,15 @@ class EbayAPI
         // Extract description and strip ALL HTML, CSS, and JS
         $description = $item['Description'] ?? '';
         if ($description) {
-            // Strip all HTML tags completely to prevent CSS/JS injection
+            // First remove script and style tags with their content
+            $description = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $description);
+            $description = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $description);
+            // Strip all remaining HTML tags completely to prevent CSS/JS injection
             $description = strip_tags($description);
             // Decode HTML entities
             $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            // Replace non-breaking spaces and other special spaces with regular spaces
+            $description = str_replace(["\xc2\xa0", "\xe2\x80\x89", "\xe2\x80\x8a"], ' ', $description);
             // Remove excessive whitespace and normalize line breaks
             $description = preg_replace('/\s+/', ' ', $description);
             $description = trim($description);
