@@ -1189,7 +1189,8 @@ class EbayAPI
             'PWC - PERSONAL WATER CRAFT' => 'boat',
             'WATCHES / BIKER GIFTS' => 'gifts',
             'CAR & TRUCK PARTS CLEARANCE' => 'automotive',
-            'SNOWMOBILE' => 'other',
+            'SNOWMOBILE' => 'atv',
+            'SIDE BY SIDE / SXS /UTV' => 'atv',
             'OTHER' => 'other'
         ];
         
@@ -1198,11 +1199,23 @@ class EbayAPI
             return $mappings[$normalized];
         }
         
-        // Fallback: check partial matches
+        // Fallback: check partial matches, prioritizing longest matches
+        $bestMatch = null;
+        $longestMatchLength = 0;
+        
         foreach ($mappings as $storeCategory => $websiteCategory) {
+            // Check if pattern matches (bidirectional for flexibility)
             if (strpos($normalized, $storeCategory) !== false || strpos($storeCategory, $normalized) !== false) {
-                return $websiteCategory;
+                // Found a match - keep it if it's longer than previous best
+                if (strlen($storeCategory) > $longestMatchLength) {
+                    $bestMatch = $websiteCategory;
+                    $longestMatchLength = strlen($storeCategory);
+                }
             }
+        }
+        
+        if ($bestMatch !== null) {
+            return $bestMatch;
         }
         
         // Default to 'other' if no match found
