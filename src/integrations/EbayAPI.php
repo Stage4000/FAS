@@ -655,11 +655,16 @@ class EbayAPI
                 $modelNumber = $item['Product']['BrandMPN']['MPN'];
             }
             
-            // Strip inline styles from description to respect dark mode
+            // Strip ALL HTML, CSS, and JS from description
             $description = $item['Description'] ?? '';
             if ($description) {
-                // Remove style attributes from HTML tags
-                $description = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $description);
+                // Strip all HTML tags completely to prevent CSS/JS injection
+                $description = strip_tags($description);
+                // Decode HTML entities
+                $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                // Remove excessive whitespace and normalize line breaks
+                $description = preg_replace('/\s+/', ' ', $description);
+                $description = trim($description);
             }
             
             // Log brand/mpn extraction for debugging
@@ -1366,11 +1371,16 @@ class EbayAPI
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
         SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
-        // Extract description
+        // Extract description and strip ALL HTML, CSS, and JS
         $description = $item['Description'] ?? '';
         if ($description) {
-            // Remove style attributes from HTML tags to respect dark mode
-            $description = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $description);
+            // Strip all HTML tags completely to prevent CSS/JS injection
+            $description = strip_tags($description);
+            // Decode HTML entities
+            $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            // Remove excessive whitespace and normalize line breaks
+            $description = preg_replace('/\s+/', ' ', $description);
+            $description = trim($description);
         }
         
         // Extract SKU

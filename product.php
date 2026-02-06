@@ -36,8 +36,27 @@ if (!empty($product['images'])) {
     }
 }
 
+// Normalize image paths to ensure they start with / for local images
+function normalizeImagePath($path) {
+    if (empty($path)) {
+        return $path;
+    }
+    // If it's an external URL, return as-is
+    if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+        return $path;
+    }
+    // If it's a local path without leading /, add it
+    if (strpos($path, '/') !== 0) {
+        return '/' . $path;
+    }
+    return $path;
+}
+
+// Normalize all image paths
+$images = array_map('normalizeImagePath', $images);
+
 // Use main image or first from images array
-$mainImage = $product['image_url'] ?? null;
+$mainImage = normalizeImagePath($product['image_url'] ?? null);
 if (empty($mainImage) && !empty($images)) {
     $mainImage = $images[0];
 }
@@ -49,7 +68,7 @@ if ($mainImage && !in_array($mainImage, $images)) {
 
 // Fallback to default if no images
 if (empty($mainImage)) {
-    $mainImage = 'gallery/default.jpg';
+    $mainImage = '/gallery/default.jpg';
 }
 ?>
 
@@ -68,10 +87,10 @@ if (empty($mainImage)) {
                 <div class="card-body p-0">
                     <?php 
                     // Check if image is external or local
+                    $isExternal = strpos($mainImage, 'http://') === 0 || strpos($mainImage, 'https://') === 0;
                     $hasMainImage = !empty($mainImage) && (
-                        strpos($mainImage, 'http://') === 0 || 
-                        strpos($mainImage, 'https://') === 0 || 
-                        file_exists($mainImage)
+                        $isExternal || 
+                        file_exists(__DIR__ . $mainImage)
                     );
                     ?>
                     <?php if ($hasMainImage): ?>
@@ -93,10 +112,10 @@ if (empty($mainImage)) {
                     <?php foreach ($images as $index => $image): ?>
                         <?php 
                         // Check if image is external or local
+                        $isExternal = strpos($image, 'http://') === 0 || strpos($image, 'https://') === 0;
                         $hasImage = !empty($image) && (
-                            strpos($image, 'http://') === 0 || 
-                            strpos($image, 'https://') === 0 || 
-                            file_exists($image)
+                            $isExternal || 
+                            file_exists(__DIR__ . $image)
                         );
                         ?>
                         <?php if ($hasImage): ?>
@@ -211,11 +230,14 @@ if (empty($mainImage)) {
                 <div class="card-body p-4">
                     <h3 class="mb-4">Product Description</h3>
                     <?php 
-                    // Allow safe HTML tags in description (from eBay)
-                    // Remove potentially dangerous tags but keep formatting
-                    $allowedTags = '<p><br><b><strong><i><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><a><img><table><tr><td><th><tbody><thead><span><div>';
-                    $safeDescription = strip_tags($product['description'], $allowedTags);
-                    echo $safeDescription;
+                    // Description should already be sanitized on import (all HTML stripped)
+                    // Just display as plain text with proper escaping and preserve line breaks
+                    $description = $product['description'] ?? '';
+                    if (!empty($description)) {
+                        echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
+                    } else {
+                        echo '<p class="text-muted">No description available.</p>';
+                    }
                     ?>
                 </div>
             </div>

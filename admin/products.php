@@ -47,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image']))
                 $updateSuccess = $productModel->updateImages($productIdToUpdate, json_encode($updatedImgList));
                 
                 // Try to delete the physical file if it's a local upload
-                if ($updateSuccess && strpos($imagePathToRemove, 'gallery/uploads/') === 0) {
-                    $physicalPath = __DIR__ . '/../' . $imagePathToRemove;
+                if ($updateSuccess && (strpos($imagePathToRemove, 'gallery/uploads/') === 0 || strpos($imagePathToRemove, '/gallery/uploads/') === 0)) {
+                    $physicalPath = __DIR__ . '/../' . ltrim($imagePathToRemove, '/');
                     if (file_exists($physicalPath)) {
                         @unlink($physicalPath);
                     }
@@ -103,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $targetPath = $uploadDir . $filename;
                         
                         if (move_uploaded_file($_FILES['image_file']['tmp_name'], $targetPath)) {
-                            // Use relative path from document root
-                            $imageUrl = 'gallery/uploads/' . $filename;
+                            // Use absolute path from document root
+                            $imageUrl = '/gallery/uploads/' . $filename;
                         } else {
                             $error = 'Failed to upload image file';
                         }
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $targetPath = $uploadDir . $filename;
                                 
                                 if (move_uploaded_file($_FILES['additional_images']['tmp_name'][$i], $targetPath)) {
-                                    $additionalImages[] = 'gallery/uploads/' . $filename;
+                                    $additionalImages[] = '/gallery/uploads/' . $filename;
                                 }
                             }
                         }
