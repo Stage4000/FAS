@@ -104,6 +104,7 @@
                             <li><a class="dropdown-item" href="products.php?category=boat">Boat Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=automotive">Automotive Parts</a></li>
                             <li><a class="dropdown-item" href="products.php?category=gifts">Biker Gifts</a></li>
+                            <li><a class="dropdown-item" href="products.php?category=other">Other</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="products.php">All Products</a></li>
                         </ul>

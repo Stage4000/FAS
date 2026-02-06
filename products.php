@@ -70,6 +70,8 @@ $totalPages = ceil($totalProducts / $perPage);
                    class="btn btn-sm <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
                 <a href="products.php?category=gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
+                <a href="products.php?category=other<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                   class="btn btn-sm <?php echo $category === 'other' ? 'btn-danger' : 'btn-outline-danger'; ?>">Other</a>
             </div>
         </div>
         <div class="col-md-6">
