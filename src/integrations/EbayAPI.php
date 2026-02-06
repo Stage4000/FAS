@@ -137,9 +137,24 @@ class EbayAPI
             return false;
         }
         
+        // Check if response is empty
+        if (empty($response)) {
+            SyncLogger::logError('Token refresh response is empty', new \Exception('Empty response from eBay OAuth endpoint'));
+            return false;
+        }
+        
+        // Check for JSON decode errors
         $tokenData = json_decode($response, true);
+        $jsonError = json_last_error();
+        
+        if ($jsonError !== JSON_ERROR_NONE) {
+            $errorMsg = 'JSON decode error: ' . json_last_error_msg() . '. Response: ' . substr($response, 0, 500);
+            SyncLogger::logError('Token refresh JSON parse error', new \Exception($errorMsg));
+            return false;
+        }
+        
         if (!$tokenData || !isset($tokenData['access_token'])) {
-            SyncLogger::logError('Invalid token refresh response', new \Exception($response));
+            SyncLogger::logError('Invalid token refresh response', new \Exception('No access_token in response: ' . substr($response, 0, 500)));
             return false;
         }
         
