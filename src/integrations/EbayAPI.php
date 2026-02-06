@@ -1292,4 +1292,83 @@ class EbayAPI
             'model' => $result['model']
         ];
     }
+    
+    /**
+     * Get detailed item information using GetItem API
+     * This reliably returns ItemSpecifics including Brand and MPN
+     */
+    public function getItemDetails($itemId)
+    {
+        SyncLogger::log("[GetItem Debug] Fetching detailed item info for ItemID: {$itemId}");
+        
+        // Build GetItem XML request
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
+        $xml .= '<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<RequesterCredentials>';
+        $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
+        $xml .= '</RequesterCredentials>';
+        $xml .= '<ItemID>' . htmlspecialchars($itemId) . '</ItemID>';
+        $xml .= '<DetailLevel>ItemReturnDescription</DetailLevel>';
+        $xml .= '<IncludeItemSpecifics>true</IncludeItemSpecifics>';
+        $xml .= '</GetItemRequest>';
+        
+        $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : 'https://api.ebay.com/ws/api.dll';
+        
+        $response = $this->makeTradingApiRequest($url, $xml, 0, self::RATE_LIMIT_MAX_RETRIES, 'GetItem');
+        
+        if (!$response || !isset($response['Item'])) {
+            SyncLogger::log("[GetItem Debug] No item data returned for ItemID: {$itemId}");
+            return null;
+        }
+        
+        $item = $response['Item'];
+        
+        // Extract Brand and MPN from ItemSpecifics
+        $brand = null;
+        $mpn = null;
+        
+        if (isset($item['ItemSpecifics']['NameValueList'])) {
+            $specifics = $item['ItemSpecifics']['NameValueList'];
+            
+            // Handle single specific vs array of specifics
+            if (isset($specifics['Name'])) {
+                $specifics = [$specifics];
+            }
+            
+            foreach ($specifics as $specific) {
+                $name = strtolower($specific['Name'] ?? '');
+                $value = $specific['Value'] ?? null;
+                
+                if ($name === 'brand' && !$brand) {
+                    $brand = $value;
+                } elseif (in_array($name, ['mpn', 'model', 'manufacturer part number']) && !$mpn) {
+                    $mpn = $value;
+                }
+            }
+        }
+        
+        // Also check ProductListingDetails as fallback
+        if (!$brand && isset($item['ProductListingDetails']['BrandMPN']['Brand'])) {
+            $brand = $item['ProductListingDetails']['BrandMPN']['Brand'];
+        }
+        if (!$mpn && isset($item['ProductListingDetails']['BrandMPN']['MPN'])) {
+            $mpn = $item['ProductListingDetails']['BrandMPN']['MPN'];
+        }
+        
+        // Also check deprecated Product field as fallback
+        if (!$brand && isset($item['Product']['BrandMPN']['Brand'])) {
+            $brand = $item['Product']['BrandMPN']['Brand'];
+        }
+        if (!$mpn && isset($item['Product']['BrandMPN']['MPN'])) {
+            $mpn = $item['Product']['BrandMPN']['MPN'];
+        }
+        
+        SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
+        
+        return [
+            'brand' => $brand,
+            'mpn' => $mpn,
+            'item' => $item // Return full item data for other uses if needed
+        ];
+    }
 }

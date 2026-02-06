@@ -358,12 +358,29 @@ class Product
         // Debug logging
         error_log("[Product Sync Debug] Item ID: " . $ebayData['id']);
         error_log("[Product Sync Debug] Title: " . $ebayData['title']);
-        error_log("[Product Sync Debug] eBay Brand: " . ($ebayData['brand'] ?? 'NULL'));
-        error_log("[Product Sync Debug] eBay MPN: " . ($ebayData['mpn'] ?? 'NULL'));
-        error_log("[Product Sync Debug] Initial manufacturer: " . ($manufacturer ?? 'NULL'));
-        error_log("[Product Sync Debug] Initial model: " . ($model ?? 'NULL'));
+        error_log("[Product Sync Debug] eBay Brand from GetSellerList: " . ($ebayData['brand'] ?? 'NULL'));
+        error_log("[Product Sync Debug] eBay MPN from GetSellerList: " . ($ebayData['mpn'] ?? 'NULL'));
         
-        // Priority 2: Extract category, manufacturer and model from store categories
+        // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
+        if ((!$manufacturer || !$model) && $ebayAPI && isset($ebayData['id'])) {
+            error_log("[Product Sync Debug] Brand/MPN missing, calling GetItem API for ItemID: " . $ebayData['id']);
+            $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
+            if ($itemDetails) {
+                if (!$manufacturer && $itemDetails['brand']) {
+                    $manufacturer = $itemDetails['brand'];
+                    error_log("[Product Sync Debug] Brand from GetItem: " . $manufacturer);
+                }
+                if (!$model && $itemDetails['mpn']) {
+                    $model = $itemDetails['mpn'];
+                    error_log("[Product Sync Debug] MPN from GetItem: " . $model);
+                }
+            }
+        }
+        
+        error_log("[Product Sync Debug] After GetItem - manufacturer: " . ($manufacturer ?? 'NULL'));
+        error_log("[Product Sync Debug] After GetItem - model: " . ($model ?? 'NULL'));
+        
+        // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
         $storeCategoryFound = false;
         if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
             $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category_id']);
