@@ -6,6 +6,22 @@ require_once __DIR__ . '/src/models/Product.php';
 use FAS\Config\Database;
 use FAS\Models\Product;
 
+// Normalize image paths to ensure they start with / for local images
+function normalizeImagePath($path) {
+    if (empty($path)) {
+        return $path;
+    }
+    // If it's an external URL, return as-is
+    if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+        return $path;
+    }
+    // If it's a local path without leading /, add it
+    if (strpos($path, '/') !== 0) {
+        return '/' . $path;
+    }
+    return $path;
+}
+
 // Get filter parameters
 $category = $_GET['category'] ?? null;
 $manufacturer = $_GET['manufacturer'] ?? null;
@@ -112,21 +128,27 @@ $totalPages = ceil($totalProducts / $perPage);
             <?php 
             // Staggered animation with max delay cap of 400ms
             $delay = min(($index % 8) * 50, 400); 
+            
+            // Normalize image path for display
+            $imageUrl = normalizeImagePath($product['image_url'] ?? null);
+            if (empty($imageUrl)) {
+                $imageUrl = '/gallery/default.jpg';
+            }
             ?>
             <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                 <div class="card product-card h-100">
                     <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none">
                         <div class="position-relative">
                             <?php 
-                            // Check if image URL exists and is either external (http/https) or a local file
-                            $hasImage = !empty($product['image_url']) && (
-                                strpos($product['image_url'], 'http://') === 0 || 
-                                strpos($product['image_url'], 'https://') === 0 || 
-                                file_exists($product['image_url'])
+                            // Check if image is external or local
+                            $isExternal = strpos($imageUrl, 'http://') === 0 || strpos($imageUrl, 'https://') === 0;
+                            $hasImage = !empty($imageUrl) && (
+                                $isExternal || 
+                                file_exists(__DIR__ . $imageUrl)
                             );
                             ?>
                             <?php if ($hasImage): ?>
-                                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
                                      class="card-img-top product-image" 
                                      alt="<?php echo htmlspecialchars($product['name']); ?>"
                                      style="cursor: pointer;">
@@ -174,9 +196,8 @@ $totalPages = ceil($totalProducts / $perPage);
                                     data-id="<?php echo $product['id']; ?>"
                                     data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                     data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
-                                    data-image="<?php echo htmlspecialchars($product['image_url'] ?? ''); ?>"
-                                    data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
-                                    data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>">
+                                    data-image="<?php echo htmlspecialchars($imageUrl); ?>"
+                                    data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
                                 <i class="fas fa-cart-plus"></i> Add to Cart
                             </button>
                         </div>
