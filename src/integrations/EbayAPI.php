@@ -662,9 +662,18 @@ class EbayAPI
                 $description = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $description);
             }
             
+            // Log brand/mpn extraction for debugging
+            $itemId = $item['ItemID'] ?? 'unknown';
+            $itemTitle = $item['Title'] ?? 'Untitled';
+            if ($brandName || $modelNumber) {
+                error_log("[eBay Sync Debug] Item: $itemId - Title: $itemTitle");
+                error_log("[eBay Sync Debug]   Brand: " . ($brandName ? $brandName : 'NULL'));
+                error_log("[eBay Sync Debug]   MPN: " . ($modelNumber ? $modelNumber : 'NULL'));
+            }
+            
             $items[] = [
-                'id' => $item['ItemID'] ?? '',
-                'title' => $item['Title'] ?? 'Untitled',
+                'id' => $itemId,
+                'title' => $itemTitle,
                 'description' => $description,
                 'sku' => $item['SKU'] ?? '',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',

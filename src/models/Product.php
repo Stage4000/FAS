@@ -355,6 +355,14 @@ class Product
         $manufacturer = $ebayData['brand'] ?? null;
         $model = $ebayData['mpn'] ?? null;
         
+        // Debug logging
+        error_log("[Product Sync Debug] Item ID: " . $ebayData['id']);
+        error_log("[Product Sync Debug] Title: " . $ebayData['title']);
+        error_log("[Product Sync Debug] eBay Brand: " . ($ebayData['brand'] ?? 'NULL'));
+        error_log("[Product Sync Debug] eBay MPN: " . ($ebayData['mpn'] ?? 'NULL'));
+        error_log("[Product Sync Debug] Initial manufacturer: " . ($manufacturer ?? 'NULL'));
+        error_log("[Product Sync Debug] Initial model: " . ($model ?? 'NULL'));
+        
         // Priority 2: Extract category, manufacturer and model from store categories
         $storeCategoryFound = false;
         if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
@@ -386,6 +394,12 @@ class Product
                 }
             }
         }
+        
+        // Debug: Log final values before database operation
+        error_log("[Product Sync Debug] Final manufacturer for DB: " . ($manufacturer ?? 'NULL'));
+        error_log("[Product Sync Debug] Final model for DB: " . ($model ?? 'NULL'));
+        error_log("[Product Sync Debug] Store category ID: " . ($ebayData['store_category_id'] ?? 'NULL'));
+        error_log("[Product Sync Debug] Store category 2 ID: " . ($ebayData['store_category2_id'] ?? 'NULL'));
         
         $productData = [
             'ebay_item_id' => $ebayData['id'],
