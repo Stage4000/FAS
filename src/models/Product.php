@@ -351,28 +351,39 @@ class Product
             $ebayData['title']
         );
         
-        // Extract category, manufacturer and model from store categories if available
-        $manufacturer = null;
-        $model = null;
-        $storeCategoryFound = false;
+        // Priority 1: Use eBay's Brand and MPN fields if available (most reliable)
+        $manufacturer = $ebayData['brand'] ?? null;
+        $model = $ebayData['mpn'] ?? null;
         
+        // Priority 2: Extract category, manufacturer and model from store categories
+        $storeCategoryFound = false;
         if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
             $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category_id']);
             if ($extracted['category']) {
                 $category = $extracted['category'];
-                $manufacturer = $extracted['manufacturer'];
-                $model = $extracted['model'];
+                // Only use store category mfg/model if eBay fields are not available
+                if (!$manufacturer) {
+                    $manufacturer = $extracted['manufacturer'];
+                }
+                if (!$model) {
+                    $model = $extracted['model'];
+                }
                 $storeCategoryFound = true;
             }
         }
         
-        // Try secondary store category if primary didn't yield results
+        // Try secondary store category if primary didn't yield category
         if ($ebayAPI && !$storeCategoryFound && isset($ebayData['store_category2_id']) && $ebayData['store_category2_id']) {
             $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category2_id']);
             if ($extracted['category']) {
                 $category = $extracted['category'];
-                $manufacturer = $extracted['manufacturer'];
-                $model = $extracted['model'];
+                // Only use store category mfg/model if eBay fields are not available
+                if (!$manufacturer) {
+                    $manufacturer = $extracted['manufacturer'];
+                }
+                if (!$model) {
+                    $model = $extracted['model'];
+                }
             }
         }
         

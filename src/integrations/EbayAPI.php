@@ -194,6 +194,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
         $xml .= '<OutputSelector>PrimaryCategory</OutputSelector>';
         $xml .= '<OutputSelector>Storefront</OutputSelector>';
+        $xml .= '<OutputSelector>ItemSpecifics</OutputSelector>';
         
         $xml .= '</GetSellerListRequest>';
         
@@ -374,6 +375,28 @@ class EbayAPI
                 }
             }
             
+            // Extract Brand and MPN from ItemSpecifics
+            $brandName = null;
+            $mpn = null;
+            if (isset($item['ItemSpecifics']['NameValueList'])) {
+                $specifics = $item['ItemSpecifics']['NameValueList'];
+                // Handle single specific (not in array)
+                if (isset($specifics['Name'])) {
+                    $specifics = [$specifics];
+                }
+                
+                foreach ($specifics as $specific) {
+                    $name = strtolower($specific['Name'] ?? '');
+                    $value = $specific['Value'] ?? '';
+                    
+                    if ($name === 'brand' || $name === 'manufacturer') {
+                        $brandName = is_array($value) ? $value[0] : $value;
+                    } elseif ($name === 'mpn' || $name === 'manufacturer part number') {
+                        $mpn = is_array($value) ? $value[0] : $value;
+                    }
+                }
+            }
+            
             $items[] = [
                 'id' => $item['ItemID'] ?? '',
                 'title' => $item['Title'] ?? 'Untitled',
@@ -389,6 +412,8 @@ class EbayAPI
                 'ebay_category_name' => $item['PrimaryCategory']['CategoryName'] ?? null,
                 'store_category_id' => $item['Storefront']['StoreCategoryID'] ?? null,
                 'store_category2_id' => $item['Storefront']['StoreCategory2ID'] ?? null,
+                'brand' => $brandName,
+                'mpn' => $mpn,
             ];
         }
         
