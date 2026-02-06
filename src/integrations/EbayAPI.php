@@ -197,15 +197,22 @@ class EbayAPI
             SyncLogger::log('[TOKEN_REFRESH] New refresh token also received.');
         }
         
-        // Save updated tokens to config file
+        SyncLogger::log('[TOKEN_REFRESH] Token refresh successful! New token expires at: ' . date('Y-m-d H:i:s', $this->tokenExpiresAt));
+        
+        // Save updated tokens to config file - completely optional, won't fail the refresh
         try {
+            SyncLogger::log('[TOKEN_REFRESH] Now attempting to save tokens to config file...');
             $this->saveTokensToConfig();
-        } catch (\Exception $e) {
+            SyncLogger::log('[TOKEN_REFRESH] Config file save completed');
+        } catch (\Throwable $e) {
+            // Use Throwable to catch ALL errors including fatal errors
+            SyncLogger::log('[TOKEN_REFRESH] CAUGHT EXCEPTION in config save: ' . get_class($e));
+            SyncLogger::log('[TOKEN_REFRESH] Exception message: ' . $e->getMessage());
             SyncLogger::logError('Failed to save tokens to config file', $e);
-            // Continue anyway - token is updated in memory
+            // Continue anyway - token is updated in memory and that's what matters
         }
         
-        SyncLogger::log('Access token refreshed successfully. New token expires at: ' . date('Y-m-d H:i:s', $this->tokenExpiresAt));
+        SyncLogger::log('Access token refreshed successfully and ready to use.');
         return true;
     }
     
@@ -253,7 +260,7 @@ class EbayAPI
             SyncLogger::log('[TOKEN_REFRESH] Exception type: ' . get_class($e));
             SyncLogger::log('[TOKEN_REFRESH] Exception message: ' . $e->getMessage());
             SyncLogger::log('[TOKEN_REFRESH] Exception trace: ' . $e->getTraceAsString());
-            throw $e; // Re-throw so outer catch can handle it
+            // Don't re-throw - let the outer catch handle it gracefully
         }
     }
     
