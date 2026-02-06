@@ -525,29 +525,15 @@ class Product
         }
         
         // Create gallery directory if it doesn't exist
-        $galleryDir = __DIR__ . '/../../gallery';
-        if (!file_exists($galleryDir)) {
-            mkdir($galleryDir, 0755, true);
-        }
-        
-        // Generate filename: ebayItemId.jpg or ebayItemId_1.jpg, ebayItemId_2.jpg, etc.
-        $extension = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION);
-        if (empty($extension) || !in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-            $extension = 'jpg'; // Default to jpg if extension not found or invalid
-        }
-        
-        if ($imageIndex === 0) {
-            $filename = $ebayItemId . '.' . $extension;
-        } else {
-            $filename = $ebayItemId . '_' . $imageIndex . '.' . $extension;
-        }
-        
-        $localPath = $galleryDir . '/' . $filename;
-        $relativePath = 'gallery/' . $filename;
-        
-        // Skip if file already exists
-        if (file_exists($localPath)) {
-            return $relativePath;
+        $galleryDir = realpath(__DIR__ . '/../../gallery');
+        if ($galleryDir === false) {
+            // Gallery doesn't exist, create it
+            $galleryDir = __DIR__ . '/../../gallery';
+            if (!mkdir($galleryDir, 0755, true)) {
+                error_log("[Image Download] Failed to create gallery directory");
+                return false;
+            }
+            $galleryDir = realpath($galleryDir);
         }
         
         // Download the image using cURL
@@ -556,6 +542,7 @@ class Product
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Verify SSL certificates for security
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2); // Verify hostname matches certificate
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         
         $imageData = curl_exec($ch);
@@ -568,7 +555,7 @@ class Product
             return false;
         }
         
-        // Validate that the downloaded data is a valid image
+        // Validate that the downloaded data is a valid image and get actual image type
         $tempFile = tempnam(sys_get_temp_dir(), 'img_validate_');
         file_put_contents($tempFile, $imageData);
         $imageInfo = @getimagesize($tempFile);
@@ -577,6 +564,27 @@ class Product
         if ($imageInfo === false) {
             error_log("[Image Download] Downloaded data is not a valid image from $imageUrl");
             return false;
+        }
+        
+        // Determine extension from actual image type (more reliable than URL)
+        $extension = image_type_to_extension($imageInfo[2], false);
+        if (empty($extension)) {
+            $extension = 'jpg'; // Fallback to jpg
+        }
+        
+        // Generate filename: ebayItemId.ext or ebayItemId_1.ext, ebayItemId_2.ext, etc.
+        if ($imageIndex === 0) {
+            $filename = $ebayItemId . '.' . $extension;
+        } else {
+            $filename = $ebayItemId . '_' . $imageIndex . '.' . $extension;
+        }
+        
+        $localPath = $galleryDir . '/' . $filename;
+        $relativePath = 'gallery/' . $filename;
+        
+        // Skip if file already exists and has valid size
+        if (file_exists($localPath) && filesize($localPath) > 0) {
+            return $relativePath;
         }
         
         // Save the validated image to the gallery directory
