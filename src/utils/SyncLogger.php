@@ -68,6 +68,14 @@ class SyncLogger
     }
     
     /**
+     * Log a warning
+     */
+    public static function logWarning($message)
+    {
+        self::log("WARNING: $message", 'WARNING');
+    }
+    
+    /**
      * Log an error
      */
     public static function logError($message, $exception = null)
