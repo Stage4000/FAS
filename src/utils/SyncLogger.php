@@ -69,9 +69,6 @@ class SyncLogger
     
     /**
      * Log a warning
-     * 
-     * @param string $message The warning message to log
-     * @return void
      */
     public static function logWarning($message)
     {
