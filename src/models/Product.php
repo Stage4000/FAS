@@ -555,7 +555,7 @@ class Product
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // eBay uses HTTPS
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Verify SSL certificates for security
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         
         $imageData = curl_exec($ch);
@@ -568,7 +568,18 @@ class Product
             return false;
         }
         
-        // Save the image to the gallery directory
+        // Validate that the downloaded data is a valid image
+        $tempFile = tempnam(sys_get_temp_dir(), 'img_validate_');
+        file_put_contents($tempFile, $imageData);
+        $imageInfo = @getimagesize($tempFile);
+        unlink($tempFile);
+        
+        if ($imageInfo === false) {
+            error_log("[Image Download] Downloaded data is not a valid image from $imageUrl");
+            return false;
+        }
+        
+        // Save the validated image to the gallery directory
         $result = file_put_contents($localPath, $imageData);
         if ($result === false) {
             error_log("[Image Download] Failed to save image to $localPath");
@@ -601,7 +612,7 @@ class Product
         // Download additional images
         if (!empty($productData['images']) && is_array($productData['images'])) {
             $localImages = [];
-            $imageIndex = 0;
+            $imageIndex = 1; // Start at 1 since 0 is used for main image
             
             foreach ($productData['images'] as $imageUrl) {
                 if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
