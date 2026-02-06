@@ -1189,7 +1189,7 @@ class EbayAPI
             'PWC - PERSONAL WATER CRAFT' => 'boat',
             'WATCHES / BIKER GIFTS' => 'gifts',
             'CAR & TRUCK PARTS CLEARANCE' => 'automotive',
-            'SNOWMOBILE' => 'other',
+            'SNOWMOBILE' => 'atv',
             'OTHER' => 'other'
         ];
         
