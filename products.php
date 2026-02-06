@@ -58,19 +58,19 @@ $totalPages = ceil($totalProducts / $perPage);
         <div class="col-12 mb-3">
             <label class="form-label fw-bold">Category</label>
             <div class="btn-group-responsive" role="group">
-                <a href="products.php<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
-                   class="btn btn-sm <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All</a>
-                <a href="products.php?category=motorcycle<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                   class="btn btn-sm <?php echo !$category ? 'btn-danger' : 'btn-outline-danger'; ?>">All
+                <a href="/products/motorcycle<?php echo $manufacturer ? '?manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'motorcycle' ? 'btn-danger' : 'btn-outline-danger'; ?>">Motorcycle</a>
-                <a href="products.php?category=atv<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/atv<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'atv' ? 'btn-danger' : 'btn-outline-danger'; ?>">ATV/UTV</a>
-                <a href="products.php?category=boat<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/boat<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'boat' ? 'btn-danger' : 'btn-outline-danger'; ?>">Boat</a>
-                <a href="products.php?category=automotive<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/automotive<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'automotive' ? 'btn-danger' : 'btn-outline-danger'; ?>">Automotive</a>
-                <a href="products.php?category=gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/gifts<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'gifts' ? 'btn-danger' : 'btn-outline-danger'; ?>">Gifts</a>
-                <a href="products.php?category=other<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
+                <a href="/products/other<?php echo $manufacturer ? '&manufacturer=' . urlencode($manufacturer) : ''; ?>" 
                    class="btn btn-sm <?php echo $category === 'other' ? 'btn-danger' : 'btn-outline-danger'; ?>">Other</a>
             </div>
         </div>
@@ -92,9 +92,9 @@ $totalPages = ceil($totalProducts / $perPage);
     document.getElementById('manufacturerFilter').addEventListener('change', function() {
         const mfg = this.value;
         const category = '<?php echo $category ?? ''; ?>';
-        let url = 'products.php';
+        let url = '/products';
+        if (category) url += '/' + category;
         const params = [];
-        if (category) params.push('category=' + category);
         if (mfg) params.push('manufacturer=' + encodeURIComponent(mfg));
         if (params.length > 0) url += '?' + params.join('&');
         window.location.href = url;
@@ -177,16 +177,25 @@ $totalPages = ceil($totalProducts / $perPage);
     <?php if ($totalPages > 1): ?>
         <nav aria-label="Product pagination" class="mt-5">
             <ul class="pagination justify-content-center">
+                <?php
+                // Build base URL for pagination
+                $baseUrl = '/products';
+                if ($category) $baseUrl .= '/' . $category;
+                $queryParams = [];
+                if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
+                if ($search) $queryParams[] = 'search=' . urlencode($search);
+                $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
+                ?>
                 <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo $page - 1; ?><?php echo $category ? '&category=' . $category : ''; ?>">Previous</a>
+                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page - 1; ?><?php echo $queryString; ?>">Previous</a>
                 </li>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $i; ?><?php echo $category ? '&category=' . $category : ''; ?>"><?php echo $i; ?></a>
+                        <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
                     </li>
                 <?php endfor; ?>
                 <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo $page + 1; ?><?php echo $category ? '&category=' . $category : ''; ?>">Next</a>
+                    <a class="page-link" href="<?php echo $baseUrl; ?>?page=<?php echo $page + 1; ?><?php echo $queryString; ?>">Next</a>
                 </li>
             </ul>
         </nav>
