@@ -337,8 +337,10 @@ class Product
     
     /**
      * Sync product from eBay data
+     * @param array $ebayData Product data from eBay API
+     * @param \FAS\Integrations\EbayAPI|null $ebayAPI Optional EbayAPI instance for store category extraction
      */
-    public function syncFromEbay($ebayData)
+    public function syncFromEbay($ebayData, $ebayAPI = null)
     {
         $existing = $this->getByEbayId($ebayData['id']);
         
@@ -349,6 +351,23 @@ class Product
             $ebayData['title']
         );
         
+        // Extract manufacturer and model from store categories if available
+        $manufacturer = null;
+        $model = null;
+        
+        if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
+            $mfgModel = $ebayAPI->extractMfgModelFromStoreCategory($ebayData['store_category_id']);
+            $manufacturer = $mfgModel['manufacturer'];
+            $model = $mfgModel['model'];
+        }
+        
+        // Try secondary store category if primary didn't yield results
+        if ($ebayAPI && !$manufacturer && isset($ebayData['store_category2_id']) && $ebayData['store_category2_id']) {
+            $mfgModel = $ebayAPI->extractMfgModelFromStoreCategory($ebayData['store_category2_id']);
+            $manufacturer = $mfgModel['manufacturer'];
+            $model = $mfgModel['model'];
+        }
+        
         $productData = [
             'ebay_item_id' => $ebayData['id'],
             'name' => $ebayData['title'],
@@ -356,6 +375,8 @@ class Product
             'price' => $ebayData['price'],
             'quantity' => $ebayData['quantity'] ?? 1,
             'category' => $category,
+            'manufacturer' => $manufacturer,
+            'model' => $model,
             'condition_name' => $ebayData['condition'] ?? 'Used',
             'image_url' => $ebayData['image'],
             'images' => $ebayData['images'] ?? [],
@@ -365,11 +386,17 @@ class Product
         
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
-            // show_on_website is already excluded from productData for existing products
+            // Don't update manufacturer/model if they're already set (preserve admin's changes)
             unset($productData['category']);
+            if (!empty($existing['manufacturer'])) {
+                unset($productData['manufacturer']);
+            }
+            if (!empty($existing['model'])) {
+                unset($productData['model']);
+            }
             return $this->update($existing['id'], $productData);
         } else {
-            // New eBay products default to visible with auto-mapped category
+            // New eBay products default to visible with auto-mapped category and store data
             $productData['show_on_website'] = 1;
             return $this->create($productData);
         }

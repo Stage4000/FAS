@@ -252,11 +252,11 @@ try {
                 $existing = $productModel->getByEbayId($item['id']);
                 
                 if ($existing) {
-                    $productModel->syncFromEbay($item);
+                    $productModel->syncFromEbay($item, $ebayAPI);
                     $totalUpdated++;
                     SyncLogger::log("Updated item: {$item['id']} - {$item['title']}");
                 } else {
-                    $productModel->syncFromEbay($item);
+                    $productModel->syncFromEbay($item, $ebayAPI);
                     $totalAdded++;
                     SyncLogger::log("Added new item: {$item['id']} - {$item['title']}");
                 }

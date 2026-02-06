@@ -20,6 +20,7 @@ class EbayAPI
     private $sandbox;
     private $siteId;
     private $rateLimitExceeded = false;
+    private $storeCategoriesCache = null; // Cache for store categories
     
     // API Endpoints
     private $tradingApiUrl = 'https://api.ebay.com/ws/api.dll';
@@ -192,6 +193,7 @@ class EbayAPI
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
         $xml .= '<OutputSelector>PaginationResult</OutputSelector>';
         $xml .= '<OutputSelector>PrimaryCategory</OutputSelector>';
+        $xml .= '<OutputSelector>Storefront</OutputSelector>';
         
         $xml .= '</GetSellerListRequest>';
         
@@ -385,6 +387,8 @@ class EbayAPI
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
                 'ebay_category_name' => $item['PrimaryCategory']['CategoryName'] ?? null,
+                'store_category_id' => $item['Storefront']['StoreCategoryID'] ?? null,
+                'store_category2_id' => $item['Storefront']['StoreCategory2ID'] ?? null,
             ];
         }
         
@@ -761,5 +765,152 @@ class EbayAPI
             'shipping' => $item['ShippingCostSummary'] ?? [],
             'specifics' => $item['ItemSpecifics'] ?? []
         ];
+    }
+    
+    /**
+     * Get store categories from eBay using GetStore API
+     * Returns a hierarchical structure of store categories
+     */
+    public function getStoreCategories()
+    {
+        // Return cached categories if available
+        if ($this->storeCategoriesCache !== null) {
+            return $this->storeCategoriesCache;
+        }
+        
+        SyncLogger::log("Fetching store categories from eBay");
+        
+        $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : $this->tradingApiUrl;
+        
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
+        $xml .= '<GetStoreRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<RequesterCredentials>';
+        $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
+        $xml .= '</RequesterCredentials>';
+        $xml .= '<Version>967</Version>';
+        $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
+        $xml .= '<WarningLevel>High</WarningLevel>';
+        $xml .= '<CategoryStructureOnly>true</CategoryStructureOnly>';
+        $xml .= '</GetStoreRequest>';
+        
+        $response = $this->makeTradingApiRequest($url, $xml, 0, 1, 'GetStore');
+        
+        if ($response && isset($response['Store']['CustomCategories']['CustomCategory'])) {
+            $categories = $this->parseStoreCategories($response['Store']['CustomCategories']['CustomCategory']);
+            $this->storeCategoriesCache = $categories;
+            SyncLogger::log("Retrieved " . count($categories) . " store categories");
+            return $categories;
+        }
+        
+        SyncLogger::log("No store categories found");
+        $this->storeCategoriesCache = [];
+        return [];
+    }
+    
+    /**
+     * Parse store categories into a flat map for easy lookup
+     * Returns array: CategoryID => ['name' => name, 'level' => level, 'parent' => parentName]
+     */
+    private function parseStoreCategories($categoriesData)
+    {
+        $categoryMap = [];
+        
+        // Handle single category (not in array)
+        if (isset($categoriesData['CategoryID'])) {
+            $categoriesData = [$categoriesData];
+        }
+        
+        // Parse top-level categories (level 1 - will be ignored)
+        foreach ($categoriesData as $topLevel) {
+            $topCategoryId = $topLevel['CategoryID'] ?? null;
+            $topCategoryName = $topLevel['Name'] ?? '';
+            
+            if ($topCategoryId) {
+                $categoryMap[$topCategoryId] = [
+                    'name' => $topCategoryName,
+                    'level' => 1,
+                    'parent' => null
+                ];
+                
+                // Parse level 2 categories (manufacturer)
+                if (isset($topLevel['ChildCategory'])) {
+                    $level2Categories = $topLevel['ChildCategory'];
+                    if (isset($level2Categories['CategoryID'])) {
+                        $level2Categories = [$level2Categories];
+                    }
+                    
+                    foreach ($level2Categories as $level2) {
+                        $level2Id = $level2['CategoryID'] ?? null;
+                        $level2Name = $level2['Name'] ?? '';
+                        
+                        if ($level2Id) {
+                            $categoryMap[$level2Id] = [
+                                'name' => $level2Name,
+                                'level' => 2,
+                                'parent' => $topCategoryName
+                            ];
+                            
+                            // Parse level 3 categories (model)
+                            if (isset($level2['ChildCategory'])) {
+                                $level3Categories = $level2['ChildCategory'];
+                                if (isset($level3Categories['CategoryID'])) {
+                                    $level3Categories = [$level3Categories];
+                                }
+                                
+                                foreach ($level3Categories as $level3) {
+                                    $level3Id = $level3['CategoryID'] ?? null;
+                                    $level3Name = $level3['Name'] ?? '';
+                                    
+                                    if ($level3Id) {
+                                        $categoryMap[$level3Id] = [
+                                            'name' => $level3Name,
+                                            'level' => 3,
+                                            'parent' => $level2Name
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $categoryMap;
+    }
+    
+    /**
+     * Extract manufacturer and model from store category hierarchy
+     * Mapping: Level 1 (ignored) -> Level 2 (manufacturer) -> Level 3 (model)
+     */
+    public function extractMfgModelFromStoreCategory($storeCategoryId)
+    {
+        if (!$storeCategoryId) {
+            return ['manufacturer' => null, 'model' => null];
+        }
+        
+        $categories = $this->getStoreCategories();
+        
+        if (!isset($categories[$storeCategoryId])) {
+            return ['manufacturer' => null, 'model' => null];
+        }
+        
+        $category = $categories[$storeCategoryId];
+        
+        // Level 2 = manufacturer, Level 3 = model
+        if ($category['level'] == 2) {
+            return [
+                'manufacturer' => $category['name'],
+                'model' => null
+            ];
+        } elseif ($category['level'] == 3) {
+            return [
+                'manufacturer' => $category['parent'], // Level 2 parent is manufacturer
+                'model' => $category['name']
+            ];
+        }
+        
+        // Level 1 or other - return null
+        return ['manufacturer' => null, 'model' => null];
     }
 }
