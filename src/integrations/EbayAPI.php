@@ -1198,11 +1198,22 @@ class EbayAPI
             return $mappings[$normalized];
         }
         
-        // Fallback: check partial matches
+        // Fallback: check partial matches, prioritizing longest matches
+        $bestMatch = null;
+        $longestMatchLength = 0;
+        
         foreach ($mappings as $storeCategory => $websiteCategory) {
-            if (strpos($normalized, $storeCategory) !== false || strpos($storeCategory, $normalized) !== false) {
-                return $websiteCategory;
+            if (strpos($normalized, $storeCategory) !== false) {
+                // Found a match - keep it if it's longer than previous best
+                if (strlen($storeCategory) > $longestMatchLength) {
+                    $bestMatch = $websiteCategory;
+                    $longestMatchLength = strlen($storeCategory);
+                }
             }
+        }
+        
+        if ($bestMatch !== null) {
+            return $bestMatch;
         }
         
         // Default to 'other' if no match found
