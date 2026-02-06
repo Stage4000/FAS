@@ -38,12 +38,8 @@
     # Admin area - keep as-is (don't rewrite admin URLs)
     RewriteRule ^admin - [L]
 
-    # If the file/directory doesn't exist, don't rewrite
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    
-    # Remove trailing .php extension from all URLs
-    RewriteCond %{REQUEST_URI} \.php$
+    # Redirect .php URLs to extensionless versions (for external requests only)
+    RewriteCond %{THE_REQUEST} ^GET\ /(.*)\.php(\?.*)?\ HTTP
     RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 </IfModule>
 
