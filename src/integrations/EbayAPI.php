@@ -725,41 +725,6 @@ class EbayAPI
     }
     
     /**
-     * Get single item details
-     */
-    public function getItemDetails($itemId)
-    {
-        // Ensure we have a valid token before making API call
-        if (!$this->ensureValidToken()) {
-            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
-            return null;
-        }
-        
-        $url = $this->shoppingApiUrl;
-        
-        $params = [
-            'callname' => 'GetSingleItem',
-            'responseencoding' => 'JSON',
-            'appid' => $this->appId,
-            'siteid' => $this->siteId,
-            'version' => '967',
-            'ItemID' => $itemId,
-            'IncludeSelector' => 'Details,Description,ItemSpecifics'
-        ];
-        
-        $queryString = http_build_query($params);
-        $fullUrl = $url . '?' . $queryString;
-        
-        $response = $this->makeRequest($fullUrl);
-        
-        if ($response && isset($response['Item'])) {
-            return $this->parseItemDetails($response['Item']);
-        }
-        
-        return null;
-    }
-    
-    /**
      * Search items by keywords
      */
     public function searchItems($keywords, $categoryId = null, $pageNumber = 1, $entriesPerPage = 100)
