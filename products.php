@@ -194,11 +194,12 @@ $totalPages = ceil($totalProducts / $perPage);
                 $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
                 
                 // Smart pagination: show first, last, current and nearby pages with ellipsis
-                $range = 2; // Number of pages to show on each side of current page
+                $paginationRange = 2; // Number of pages to show on each side of current page
+                $maxPagesToShowAll = 7; // Show all pages if total is less than or equal to this
                 $showPages = [];
                 
-                // For small page counts (7 or fewer), show all pages
-                if ($totalPages <= 7) {
+                // For small page counts, show all pages
+                if ($totalPages <= $maxPagesToShowAll) {
                     for ($i = 1; $i <= $totalPages; $i++) {
                         $showPages[] = $i;
                     }
@@ -207,7 +208,7 @@ $totalPages = ceil($totalProducts / $perPage);
                     $showPages[] = 1;
                     
                     // Show pages around current page
-                    for ($i = max(2, $page - $range); $i <= min($totalPages - 1, $page + $range); $i++) {
+                    for ($i = max(2, $page - $paginationRange); $i <= min($totalPages - 1, $page + $paginationRange); $i++) {
                         $showPages[] = $i;
                     }
                     
