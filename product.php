@@ -230,11 +230,11 @@ if (empty($mainImage)) {
                 <div class="card-body p-4">
                     <h3 class="mb-4">Product Description</h3>
                     <?php 
-                    // Description should already be sanitized on import (all HTML stripped)
-                    // Display as plain text with proper escaping
+                    // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
+                    // Display as plain text with proper escaping and preserve line breaks
                     $description = $product['description'] ?? '';
                     if (!empty($description)) {
-                        echo '<p>' . htmlspecialchars($description) . '</p>';
+                        echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
                     } else {
                         echo '<p class="text-muted">No description available.</p>';
                     }

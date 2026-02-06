@@ -655,20 +655,23 @@ class EbayAPI
                 $modelNumber = $item['Product']['BrandMPN']['MPN'];
             }
             
-            // Strip ALL HTML, CSS, and JS from description
+            // Strip HTML, CSS, and JS from description but preserve line breaks
             $description = $item['Description'] ?? '';
             if ($description) {
                 // First remove script and style tags with their content
                 $description = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $description);
                 $description = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $description);
+                // Convert <br> tags to newlines for better eBay compatibility
+                $description = preg_replace('/<br\s*\/?>/i', "\n", $description);
                 // Strip all remaining HTML tags completely to prevent CSS/JS injection
                 $description = strip_tags($description);
                 // Decode HTML entities
                 $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 // Replace non-breaking spaces and other special spaces with regular spaces
                 $description = str_replace(["\xc2\xa0", "\xe2\x80\x89", "\xe2\x80\x8a"], ' ', $description);
-                // Remove excessive whitespace and normalize line breaks
-                $description = preg_replace('/\s+/', ' ', $description);
+                // Normalize excessive whitespace but preserve newlines
+                $description = preg_replace('/[ \t]+/', ' ', $description);
+                $description = preg_replace('/\n\s*\n/', "\n\n", $description);
                 $description = trim($description);
             }
             
@@ -1376,20 +1379,23 @@ class EbayAPI
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
         SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
-        // Extract description and strip ALL HTML, CSS, and JS
+        // Extract description and strip HTML, CSS, and JS but preserve line breaks
         $description = $item['Description'] ?? '';
         if ($description) {
             // First remove script and style tags with their content
             $description = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $description);
             $description = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $description);
+            // Convert <br> tags to newlines for better eBay compatibility
+            $description = preg_replace('/<br\s*\/?>/i', "\n", $description);
             // Strip all remaining HTML tags completely to prevent CSS/JS injection
             $description = strip_tags($description);
             // Decode HTML entities
             $description = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             // Replace non-breaking spaces and other special spaces with regular spaces
             $description = str_replace(["\xc2\xa0", "\xe2\x80\x89", "\xe2\x80\x8a"], ' ', $description);
-            // Remove excessive whitespace and normalize line breaks
-            $description = preg_replace('/\s+/', ' ', $description);
+            // Normalize excessive whitespace but preserve newlines
+            $description = preg_replace('/[ \t]+/', ' ', $description);
+            $description = preg_replace('/\n\s*\n/', "\n\n", $description);
             $description = trim($description);
         }
         
