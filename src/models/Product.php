@@ -372,7 +372,12 @@ class Product
         $images = $ebayData['images'] ?? [];
         $image = $ebayData['image'] ?? null;
         
-        // Call GetItem if we're missing any critical data
+        // Call GetItem if we're missing any critical data:
+        // - Brand/Manufacturer or Model/MPN (for product identification)
+        // - Weight (for shipping calculations)
+        // - Description (for product details)
+        // - SKU (for inventory management)
+        // - Images (for product display)
         $needsGetItem = !$manufacturer || !$model || !$weight || empty($description) || empty($sku) || empty($images);
         
         if ($needsGetItem && $ebayAPI && isset($ebayData['id'])) {

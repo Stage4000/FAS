@@ -1383,7 +1383,7 @@ class EbayAPI
             // If it's a single URL (string), wrap it in array
             if (is_string($pictureUrls)) {
                 $allImages = [$pictureUrls];
-            } else if (is_array($pictureUrls)) {
+            } elseif (is_array($pictureUrls)) {
                 $allImages = $pictureUrls;
             }
         }
