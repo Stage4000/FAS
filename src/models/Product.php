@@ -314,13 +314,20 @@ class Product
         $categoryName = strtolower($ebayCategoryName ?? '');
         $title = strtolower($itemTitle ?? '');
         
-        // Category mapping based on keywords in category name and title
-        // Order matters: more specific categories first to prevent false matches
+        // Priority 1: Check for gift-specific keywords first (highest priority)
+        // These should override vehicle brand names (e.g., "Harley Davidson shirt" is a gift, not a motorcycle part)
+        $giftKeywords = ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 'collectible', 'memorabilia', 'keychain', 'accessory'];
+        foreach ($giftKeywords as $keyword) {
+            if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
+                return 'gifts';
+            }
+        }
+        
+        // Priority 2: Check for parts-specific categories (motorcycle, ATV, boat, automotive)
         $mappings = [
             'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
             'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
             'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
-            'gifts' => ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 'collectible', 'memorabilia', 'keychain', 'accessory'],
             'automotive' => ['auto', 'automobile', 'car', 'ford', 'chevy', 'chevrolet', 'dodge', 'gmc']
         ];
         
