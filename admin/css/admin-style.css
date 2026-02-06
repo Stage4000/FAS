@@ -605,3 +605,20 @@ body {
     color: var(--admin-text);
     border-color: var(--admin-border);
 }
+
+/* Modal fixes - prevent hover transforms from affecting modals and background elements */
+.modal .modal-dialog:hover,
+.modal .modal-content:hover,
+.modal .btn:hover {
+    transform: none !important;
+}
+
+/* Prevent cards from responding to hover when modal is open */
+.modal-open .card:hover {
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="dark"] .modal-open .card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
