@@ -1203,7 +1203,8 @@ class EbayAPI
         $longestMatchLength = 0;
         
         foreach ($mappings as $storeCategory => $websiteCategory) {
-            if (strpos($normalized, $storeCategory) !== false) {
+            // Check if pattern matches (bidirectional for flexibility)
+            if (strpos($normalized, $storeCategory) !== false || strpos($storeCategory, $normalized) !== false) {
                 // Found a match - keep it if it's longer than previous best
                 if (strlen($storeCategory) > $longestMatchLength) {
                     $bestMatch = $websiteCategory;
