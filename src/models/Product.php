@@ -462,6 +462,9 @@ class Product
             'source' => 'ebay'
         ];
         
+        // Download images from eBay to local gallery directory
+        $productData = $this->downloadProductImages($productData, $ebayData['id']);
+        
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
             unset($productData['category']);
@@ -506,5 +509,119 @@ class Product
         $stmt->bindParam(':imgs', $newImagesJson);
         $stmt->bindParam(':pid', $prodId);
         return $stmt->execute();
+    }
+    
+    /**
+     * Download image from URL and save to gallery directory
+     * 
+     * @param string $imageUrl The URL of the image to download
+     * @param string $ebayItemId The eBay item ID (used for filename)
+     * @param int $imageIndex The index of the image (for multiple images)
+     * @return string|false The local path to the saved image, or false on failure
+     */
+    public function downloadImage($imageUrl, $ebayItemId, $imageIndex = 0) {
+        if (empty($imageUrl) || empty($ebayItemId)) {
+            return false;
+        }
+        
+        // Create gallery directory if it doesn't exist
+        $galleryDir = __DIR__ . '/../../gallery';
+        if (!file_exists($galleryDir)) {
+            mkdir($galleryDir, 0755, true);
+        }
+        
+        // Generate filename: ebayItemId.jpg or ebayItemId_1.jpg, ebayItemId_2.jpg, etc.
+        $extension = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION);
+        if (empty($extension) || !in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+            $extension = 'jpg'; // Default to jpg if extension not found or invalid
+        }
+        
+        if ($imageIndex === 0) {
+            $filename = $ebayItemId . '.' . $extension;
+        } else {
+            $filename = $ebayItemId . '_' . $imageIndex . '.' . $extension;
+        }
+        
+        $localPath = $galleryDir . '/' . $filename;
+        $relativePath = 'gallery/' . $filename;
+        
+        // Skip if file already exists
+        if (file_exists($localPath)) {
+            return $relativePath;
+        }
+        
+        // Download the image using cURL
+        $ch = curl_init($imageUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // eBay uses HTTPS
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        
+        $imageData = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($imageData === false || $httpCode !== 200) {
+            error_log("[Image Download] Failed to download image from $imageUrl: HTTP $httpCode, Error: $error");
+            return false;
+        }
+        
+        // Save the image to the gallery directory
+        $result = file_put_contents($localPath, $imageData);
+        if ($result === false) {
+            error_log("[Image Download] Failed to save image to $localPath");
+            return false;
+        }
+        
+        return $relativePath;
+    }
+    
+    /**
+     * Download all images for a product from eBay
+     * 
+     * @param array $productData The product data containing image URLs
+     * @param string $ebayItemId The eBay item ID
+     * @return array Updated product data with local image paths
+     */
+    public function downloadProductImages($productData, $ebayItemId) {
+        if (empty($ebayItemId)) {
+            return $productData;
+        }
+        
+        // Download main image
+        if (!empty($productData['image_url']) && filter_var($productData['image_url'], FILTER_VALIDATE_URL)) {
+            $localPath = $this->downloadImage($productData['image_url'], $ebayItemId, 0);
+            if ($localPath !== false) {
+                $productData['image_url'] = $localPath;
+            }
+        }
+        
+        // Download additional images
+        if (!empty($productData['images']) && is_array($productData['images'])) {
+            $localImages = [];
+            $imageIndex = 0;
+            
+            foreach ($productData['images'] as $imageUrl) {
+                if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                    $localPath = $this->downloadImage($imageUrl, $ebayItemId, $imageIndex);
+                    if ($localPath !== false) {
+                        $localImages[] = $localPath;
+                    } else {
+                        // Keep original URL if download failed
+                        $localImages[] = $imageUrl;
+                    }
+                } else {
+                    // Already a local path
+                    $localImages[] = $imageUrl;
+                }
+                $imageIndex++;
+            }
+            
+            $productData['images'] = $localImages;
+        }
+        
+        return $productData;
     }
 }
