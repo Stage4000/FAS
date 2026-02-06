@@ -293,6 +293,11 @@ html {
     color: var(--primary-color) !important;
 }
 
+/* Fix product name readability in dark mode */
+[data-theme="dark"] .card-title a.text-dark {
+    color: var(--text-color) !important;
+}
+
 /* Buttons */
 .btn {
     border-radius: var(--border-radius);

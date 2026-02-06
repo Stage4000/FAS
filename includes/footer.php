@@ -10,13 +10,13 @@
                 <div class="col-md-4 mb-3">
                     <h6>Quick Links</h6>
                     <ul class="list-unstyled">
-                        <li><a href="products.php" class="text-white-50 text-decoration-none">Shop All Products</a></li>
-                        <li><a href="products.php?category=motorcycle" class="text-white-50 text-decoration-none">Motorcycle Parts</a></li>
-                        <li><a href="products.php?category=atv" class="text-white-50 text-decoration-none">ATV/UTV Parts</a></li>
-                        <li><a href="products.php?category=boat" class="text-white-50 text-decoration-none">Boat Parts</a></li>
-                        <li><a href="about.php" class="text-white-50 text-decoration-none">About Us</a></li>
-                        <li><a href="contact.php" class="text-white-50 text-decoration-none">Contact</a></li>
-                        <li><a href="cart.php" class="text-white-50 text-decoration-none">Shopping Cart</a></li>
+                        <li><a href="/products" class="text-white-50 text-decoration-none">Shop All Products</a></li>
+                        <li><a href="/products/motorcycle" class="text-white-50 text-decoration-none">Motorcycle Parts</a></li>
+                        <li><a href="/products/atv" class="text-white-50 text-decoration-none">ATV/UTV Parts</a></li>
+                        <li><a href="/products/boat" class="text-white-50 text-decoration-none">Boat Parts</a></li>
+                        <li><a href="/about" class="text-white-50 text-decoration-none">About Us</a></li>
+                        <li><a href="/contact" class="text-white-50 text-decoration-none">Contact</a></li>
+                        <li><a href="/cart" class="text-white-50 text-decoration-none">Shopping Cart</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-3">
@@ -90,9 +90,9 @@
         });
     </script>
     <!-- Custom JS -->
-    <script src="public/js/main.js"></script>
+    <script src="/public/js/main.js"></script>
     <!-- Animation & UX Enhancement JS -->
-    <script src="public/js/animations.js"></script>
+    <script src="/public/js/animations.js"></script>
     
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
@@ -100,6 +100,6 @@
     </button>
     
     <!-- Theme Toggle Script -->
-    <script src="public/js/theme-toggle.js"></script>
+    <script src="/public/js/theme-toggle.js"></script>
 </body>
 </html>

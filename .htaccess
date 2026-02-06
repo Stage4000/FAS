@@ -13,14 +13,21 @@
     RedirectMatch 403 ^/database/.*\.db$
     RedirectMatch 403 ^/composer\.(json|lock)$
 
+    # Don't rewrite existing files and directories (includes images, CSS, JS, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Pretty URLs - Remove .php extension
+    # Product detail pages MUST come before products listing to avoid conflicts
     # Product detail pages: /product/123 or /product/item-slug
     RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
     
-    # Products listing: /products
-    RewriteRule ^products/?$ products.php [L,QSA]
-    
-    # Products listing by category: /products/motorcycle
+    # Products listing by category: /products/motorcycle (must come before general products)
     RewriteRule ^products/([a-zA-Z0-9_-]+)/?$ products.php?category=$1 [L,QSA]
+    
+    # Products listing: /products (must come after category to avoid conflicts)
+    RewriteRule ^products/?$ products.php [L,QSA]
     
     # About page: /about
     RewriteRule ^about/?$ about.php [L,QSA]
@@ -37,14 +44,11 @@
     # Admin area - keep as-is (don't rewrite admin URLs)
     RewriteRule ^admin - [L]
 
-    # If the file/directory doesn't exist, don't rewrite
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    
-    # Remove .php extension from URLs (optional)
-    # RewriteCond %{REQUEST_URI} ^/[^\.]+$
-    # RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.php -f
-    # RewriteRule ^(.*)$ $1.php [L]
+    # Redirect .php URLs to extensionless versions (for external requests only)
+    # But skip this for files in gallery, uploads, public directories
+    RewriteCond %{THE_REQUEST} ^GET\ /(.*)\.php(\?.*)?\ HTTP
+    RewriteCond %{REQUEST_URI} !^/(gallery|uploads|public|images|assets)/
+    RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 </IfModule>
 
 # Security Headers

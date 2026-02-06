@@ -355,7 +355,55 @@ class Product
         $manufacturer = $ebayData['brand'] ?? null;
         $model = $ebayData['mpn'] ?? null;
         
-        // Priority 2: Extract category, manufacturer and model from store categories
+        // Debug logging
+        error_log("[Product Sync Debug] Item ID: " . $ebayData['id']);
+        error_log("[Product Sync Debug] Title: " . $ebayData['title']);
+        error_log("[Product Sync Debug] eBay Brand from GetSellerList: " . ($ebayData['brand'] ?? 'NULL'));
+        error_log("[Product Sync Debug] eBay MPN from GetSellerList: " . ($ebayData['mpn'] ?? 'NULL'));
+        
+        // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
+        // Also get dimensions and weight from GetItem
+        $weight = $ebayData['weight'] ?? null;
+        $length = $ebayData['length'] ?? null;
+        $width = $ebayData['width'] ?? null;
+        $height = $ebayData['height'] ?? null;
+        
+        if ((!$manufacturer || !$model || !$weight) && $ebayAPI && isset($ebayData['id'])) {
+            error_log("[Product Sync Debug] Brand/MPN/Dimensions missing, calling GetItem API for ItemID: " . $ebayData['id']);
+            $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
+            if ($itemDetails) {
+                if (!$manufacturer && $itemDetails['brand']) {
+                    $manufacturer = $itemDetails['brand'];
+                    error_log("[Product Sync Debug] Brand from GetItem: " . $manufacturer);
+                }
+                if (!$model && $itemDetails['mpn']) {
+                    $model = $itemDetails['mpn'];
+                    error_log("[Product Sync Debug] MPN from GetItem: " . $model);
+                }
+                // Get dimensions and weight from GetItem
+                if (!$weight && $itemDetails['weight']) {
+                    $weight = $itemDetails['weight'];
+                    error_log("[Product Sync Debug] Weight from GetItem: " . $weight . " lbs");
+                }
+                if (!$length && $itemDetails['length']) {
+                    $length = $itemDetails['length'];
+                }
+                if (!$width && $itemDetails['width']) {
+                    $width = $itemDetails['width'];
+                }
+                if (!$height && $itemDetails['height']) {
+                    $height = $itemDetails['height'];
+                }
+                if ($length || $width || $height) {
+                    error_log("[Product Sync Debug] Dimensions from GetItem: L:" . ($length ?? 'NULL') . " W:" . ($width ?? 'NULL') . " H:" . ($height ?? 'NULL') . " inches");
+                }
+            }
+        }
+        
+        error_log("[Product Sync Debug] After GetItem - manufacturer: " . ($manufacturer ?? 'NULL'));
+        error_log("[Product Sync Debug] After GetItem - model: " . ($model ?? 'NULL'));
+        
+        // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
         $storeCategoryFound = false;
         if ($ebayAPI && isset($ebayData['store_category_id']) && $ebayData['store_category_id']) {
             $extracted = $ebayAPI->extractCategoryMfgModelFromStoreCategory($ebayData['store_category_id']);
@@ -387,8 +435,15 @@ class Product
             }
         }
         
+        // Debug: Log final values before database operation
+        error_log("[Product Sync Debug] Final manufacturer for DB: " . ($manufacturer ?? 'NULL'));
+        error_log("[Product Sync Debug] Final model for DB: " . ($model ?? 'NULL'));
+        error_log("[Product Sync Debug] Store category ID: " . ($ebayData['store_category_id'] ?? 'NULL'));
+        error_log("[Product Sync Debug] Store category 2 ID: " . ($ebayData['store_category2_id'] ?? 'NULL'));
+        
         $productData = [
             'ebay_item_id' => $ebayData['id'],
+            'sku' => $ebayData['sku'] ?? null,
             'name' => $ebayData['title'],
             'description' => $ebayData['description'] ?? '',
             'price' => $ebayData['price'],
@@ -397,6 +452,10 @@ class Product
             'manufacturer' => $manufacturer,
             'model' => $model,
             'condition_name' => $ebayData['condition'] ?? 'Used',
+            'weight' => $weight,
+            'length' => $length,
+            'width' => $width,
+            'height' => $height,
             'image_url' => $ebayData['image'],
             'images' => $ebayData['images'] ?? [],
             'ebay_url' => $ebayData['url'] ?? null,
@@ -405,14 +464,34 @@ class Product
         
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
-            // Don't update manufacturer/model if they're already set (preserve admin's changes)
             unset($productData['category']);
-            if (!empty($existing['manufacturer'])) {
+            
+            // Always update manufacturer if we have Brand from eBay (most reliable source)
+            // Only preserve existing manufacturer if we don't have Brand from eBay
+            if (empty($ebayData['brand']) && !empty($existing['manufacturer'])) {
                 unset($productData['manufacturer']);
             }
-            if (!empty($existing['model'])) {
+            
+            // Always update model if we have MPN from eBay (most reliable source)
+            // Only preserve existing model if we don't have MPN from eBay
+            if (empty($ebayData['mpn']) && !empty($existing['model'])) {
                 unset($productData['model']);
             }
+            
+            // Preserve existing dimensions/weight if eBay doesn't provide them
+            if (empty($weight) && !empty($existing['weight'])) {
+                unset($productData['weight']);
+            }
+            if (empty($length) && !empty($existing['length'])) {
+                unset($productData['length']);
+            }
+            if (empty($width) && !empty($existing['width'])) {
+                unset($productData['width']);
+            }
+            if (empty($height) && !empty($existing['height'])) {
+                unset($productData['height']);
+            }
+            
             return $this->update($existing['id'], $productData);
         } else {
             // New eBay products default to visible with auto-mapped category and store data

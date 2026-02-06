@@ -11,7 +11,7 @@ use FAS\Models\Product;
 $productId = $_GET['id'] ?? null;
 
 if (!$productId) {
-    header('Location: products.php');
+    header('Location: /products');
     exit;
 }
 
@@ -23,7 +23,7 @@ $productModel = new Product($db);
 $product = $productModel->getById($productId);
 
 if (!$product) {
-    header('Location: products.php');
+    header('Location: /products');
     exit;
 }
 
@@ -56,12 +56,11 @@ if (empty($mainImage)) {
 <div class="container my-5">
     <nav aria-label="breadcrumb" data-aos="fade-down">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-            <li class="breadcrumb-item"><a href="products.php">Products</a></li>
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/products">Products</a></li>
             <li class="breadcrumb-item active"><?php echo htmlspecialchars($product['name']); ?></li>
         </ol>
     </nav>
-
     <div class="row">
         <!-- Product Images -->
         <div class="col-lg-6 mb-4" data-aos="fade-right">
@@ -187,10 +186,9 @@ if (empty($mainImage)) {
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
-                <a href="cart.php" class="btn btn-outline-dark btn-lg">
+                <a href="/cart" class="btn btn-outline-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
-                </a>
-            </div>
+                </a>            </div>
             
             <div class="alert alert-info">
                 <i class="bi bi-truck me-2"></i>
@@ -212,7 +210,13 @@ if (empty($mainImage)) {
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h3 class="mb-4">Product Description</h3>
-                    <?php echo htmlspecialchars($product['description'], ENT_QUOTES, 'UTF-8'); ?>
+                    <?php 
+                    // Allow safe HTML tags in description (from eBay)
+                    // Remove potentially dangerous tags but keep formatting
+                    $allowedTags = '<p><br><b><strong><i><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><a><img><table><tr><td><th><tbody><thead><span><div>';
+                    $safeDescription = strip_tags($product['description'], $allowedTags);
+                    echo $safeDescription;
+                    ?>
                 </div>
             </div>
         </div>

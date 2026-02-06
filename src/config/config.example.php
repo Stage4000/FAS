@@ -33,7 +33,9 @@ return [
         'app_id' => 'YOUR_EBAY_APP_ID',
         'cert_id' => 'YOUR_EBAY_CERT_ID',
         'dev_id' => 'YOUR_EBAY_DEV_ID',
-        'user_token' => 'YOUR_EBAY_USER_TOKEN', // OAuth 2.0 token with sell.inventory.readonly scope for Inventory API
+        'user_token' => 'YOUR_EBAY_USER_TOKEN', // OAuth 2.0 access token (expires in 2 hours)
+        'refresh_token' => '', // OAuth 2.0 refresh token (expires in 18 months)
+        'token_expires_at' => null, // Unix timestamp when access token expires
         'sandbox' => false,
         'site_id' => 0, // 0 = US
         'store_name' => 'moto800'
