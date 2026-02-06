@@ -1,18 +1,24 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
-require_once __DIR__ . '/../includes/db.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+
+use FAS\Config\Database;
+use FAS\Models\Product;
 
 // Load config to get the sync API key
 $configFile = __DIR__ . '/../src/config/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
 $syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
 
+// Get database connection
+$pdo = Database::getInstance()->getConnection();
+
 // Get product count
-$productModel = new \FAS\Models\Product($pdo);
+$productModel = new Product($pdo);
 $totalProducts = $productModel->getCountAll();
 
 // Get last sync timestamp
