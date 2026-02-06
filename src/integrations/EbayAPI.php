@@ -56,8 +56,8 @@ class EbayAPI
         $this->sandbox = $ebayConfig['sandbox'];
         $this->siteId = $ebayConfig['site_id'];
         
-        // Auto-refresh token if expired
-        $this->ensureValidToken();
+        // DON'T auto-refresh in constructor to avoid blocking object creation
+        // Token refresh will happen before first API call
     }
     
     /**
@@ -105,17 +105,26 @@ class EbayAPI
      */
     private function refreshAccessToken()
     {
+        SyncLogger::log('[TOKEN_REFRESH] Starting token refresh process...');
+        
         $tokenUrl = $this->sandbox 
             ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
             : 'https://api.ebay.com/identity/v1/oauth2/token';
         
+        SyncLogger::log('[TOKEN_REFRESH] Token URL: ' . $tokenUrl);
+        SyncLogger::log('[TOKEN_REFRESH] Sandbox mode: ' . ($this->sandbox ? 'true' : 'false'));
+        
         $credentials = base64_encode($this->appId . ':' . $this->certId);
+        SyncLogger::log('[TOKEN_REFRESH] Credentials encoded (length: ' . strlen($credentials) . ')');
         
         $postData = [
             'grant_type' => 'refresh_token',
             'refresh_token' => $this->refreshToken,
             'scope' => 'https://api.ebay.com/oauth/api_scope'
         ];
+        
+        SyncLogger::log('[TOKEN_REFRESH] Refresh token length: ' . strlen($this->refreshToken ?? ''));
+        SyncLogger::log('[TOKEN_REFRESH] Making cURL request...');
         
         $ch = curl_init($tokenUrl);
         curl_setopt_array($ch, [
@@ -125,44 +134,58 @@ class EbayAPI
             CURLOPT_HTTPHEADER => [
                 'Authorization: Basic ' . $credentials,
                 'Content-Type: application/x-www-form-urlencoded'
-            ]
+            ],
+            CURLOPT_VERBOSE => false,
+            CURLOPT_SSL_VERIFYPEER => true
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
+        $curlInfo = curl_getinfo($ch);
         curl_close($ch);
         
+        SyncLogger::log('[TOKEN_REFRESH] cURL completed. HTTP Code: ' . $httpCode);
+        SyncLogger::log('[TOKEN_REFRESH] Response length: ' . strlen($response));
+        SyncLogger::log('[TOKEN_REFRESH] Response (first 1000 chars): ' . substr($response, 0, 1000));
+        
         if ($error) {
-            SyncLogger::logError('Token refresh cURL error', new \Exception($error));
+            SyncLogger::logError('Token refresh cURL error', new \Exception('cURL Error: ' . $error));
             return false;
         }
         
         if ($httpCode !== 200) {
-            SyncLogger::logError('Token refresh failed', new \Exception("HTTP $httpCode: $response"));
+            SyncLogger::logError('Token refresh HTTP error', new \Exception("HTTP $httpCode. Response: $response"));
             return false;
         }
         
         // Check if response is empty
         if (empty($response)) {
-            SyncLogger::logError('Token refresh response is empty', new \Exception('Empty response from eBay OAuth endpoint'));
+            SyncLogger::logError('Token refresh empty response', new \Exception('Empty response from eBay OAuth endpoint'));
             return false;
         }
+        
+        SyncLogger::log('[TOKEN_REFRESH] Attempting to decode JSON...');
         
         // Check for JSON decode errors
         $tokenData = json_decode($response, true);
         $jsonError = json_last_error();
         
+        SyncLogger::log('[TOKEN_REFRESH] JSON decode error code: ' . $jsonError);
+        SyncLogger::log('[TOKEN_REFRESH] JSON decode error message: ' . json_last_error_msg());
+        
         if ($jsonError !== JSON_ERROR_NONE) {
-            $errorMsg = 'JSON decode error: ' . json_last_error_msg() . '. Response: ' . substr($response, 0, 500);
+            $errorMsg = 'JSON decode error: ' . json_last_error_msg() . '. Response: ' . $response;
             SyncLogger::logError('Token refresh JSON parse error', new \Exception($errorMsg));
             return false;
         }
         
         if (!$tokenData || !isset($tokenData['access_token'])) {
-            SyncLogger::logError('Invalid token refresh response', new \Exception('No access_token in response: ' . substr($response, 0, 500)));
+            SyncLogger::logError('Invalid token refresh response', new \Exception('No access_token in response. Decoded data: ' . print_r($tokenData, true)));
             return false;
         }
+        
+        SyncLogger::log('[TOKEN_REFRESH] Token refresh successful! New access token received.');
         
         // Update tokens
         $this->userToken = $tokenData['access_token'];
@@ -171,6 +194,7 @@ class EbayAPI
         // Update refresh token if a new one was provided
         if (isset($tokenData['refresh_token'])) {
             $this->refreshToken = $tokenData['refresh_token'];
+            SyncLogger::log('[TOKEN_REFRESH] New refresh token also received.');
         }
         
         // Save updated tokens to config file
