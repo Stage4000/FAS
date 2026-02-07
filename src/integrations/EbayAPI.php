@@ -684,12 +684,30 @@ class EbayAPI
                 error_log("[eBay Sync Debug]   MPN: " . ($modelNumber ? $modelNumber : 'NULL'));
             }
             
+            // Extract quantity and listing status
+            $quantity = (int)($item['Quantity'] ?? 0);
+            $listingStatus = $item['SellingStatus']['ListingStatus'] ?? '';
+            
+            // Skip ended/sold items - only import active listings
+            // Filter out items that are not active or have no quantity available
+            if ($listingStatus && strtolower($listingStatus) !== 'active') {
+                error_log("[eBay Sync Debug] Skipping item $itemId - Status: $listingStatus (not active)");
+                continue;
+            }
+            
+            // Also skip if quantity is 0 (sold out) - these shouldn't be imported
+            if ($quantity <= 0) {
+                error_log("[eBay Sync Debug] Skipping item $itemId - Quantity: 0 (sold out)");
+                continue;
+            }
+            
             $items[] = [
                 'id' => $itemId,
                 'title' => $itemTitle,
                 'description' => $description,
                 'sku' => $item['SKU'] ?? '',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
+                'quantity' => $quantity,
                 'currency' => 'USD',
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
