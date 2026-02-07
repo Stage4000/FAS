@@ -375,6 +375,7 @@ class Product
         $model = $ebayData['mpn'] ?? null;
         
         // Defensive: Ensure manufacturer and model are strings (handle arrays)
+        // eBay can return arrays when there are multiple values for the same field
         if (is_array($manufacturer)) {
             $manufacturer = implode(', ', $manufacturer);
         }
@@ -392,6 +393,7 @@ class Product
         $sku = $ebayData['sku'] ?? '';
         
         // Defensive: Ensure sku is a string (handle arrays)
+        // eBay can return arrays when there are multiple SKUs for the same item
         if (is_array($sku)) {
             $sku = implode(', ', $sku);
         }

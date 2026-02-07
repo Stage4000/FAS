@@ -1395,6 +1395,8 @@ class EbayAPI
         }
         
         // Ensure brand and mpn are strings (handle case where they might still be arrays from fallback sources)
+        // Note: This is needed because ProductListingDetails and Product fields (lines 1347-1360) 
+        // can also contain arrays, independent of the ItemSpecifics array handling above
         if (is_array($brand)) {
             $brand = implode(', ', $brand);
         }
