@@ -398,8 +398,9 @@ class Product
             $sku = implode(', ', $sku);
         }
         
-        // If SKU is empty, use ebay_item_id as fallback for SKU field
-        if (empty($sku)) {
+        // If SKU is empty or null (but not '0'), use ebay_item_id as fallback
+        // Only use fallback when eBay genuinely doesn't provide a SKU
+        if ($sku === '' || $sku === null) {
             $sku = $ebayData['id'];
         }
         
