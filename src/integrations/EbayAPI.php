@@ -1330,6 +1330,11 @@ class EbayAPI
                 $name = strtolower($specific['Name'] ?? '');
                 $value = $specific['Value'] ?? null;
                 
+                // Handle Value being an array (multiple values) - convert to string
+                if (is_array($value)) {
+                    $value = implode(', ', $value);
+                }
+                
                 if ($name === 'brand' && !$brand) {
                     $brand = $value;
                 } elseif (in_array($name, ['mpn', 'model', 'manufacturer part number']) && !$mpn) {
@@ -1389,6 +1394,14 @@ class EbayAPI
             }
         }
         
+        // Ensure brand and mpn are strings (handle case where they might still be arrays from fallback sources)
+        if (is_array($brand)) {
+            $brand = implode(', ', $brand);
+        }
+        if (is_array($mpn)) {
+            $mpn = implode(', ', $mpn);
+        }
+        
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
         SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
@@ -1414,6 +1427,10 @@ class EbayAPI
         
         // Extract SKU
         $sku = $item['SKU'] ?? '';
+        // Handle SKU being an array - convert to string
+        if (is_array($sku)) {
+            $sku = implode(', ', $sku);
+        }
         
         // Extract all images from eBay
         $allImages = [];

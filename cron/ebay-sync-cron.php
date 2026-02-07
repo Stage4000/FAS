@@ -61,9 +61,10 @@ try {
         $modTimeFrom->modify('-2 minutes');
         echo "[" . date('Y-m-d H:i:s') . "] Syncing changes since: " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
     } else {
-        // First sync - get last 48 hours (eBay recommendation for GetSellerEvents)
-        $modTimeFrom = new DateTime('-48 hours');
-        echo "[" . date('Y-m-d H:i:s') . "] First sync - fetching last 48 hours\n";
+        // First sync - get last 120 days to import all active listings
+        // This ensures purged databases get all items, not just recent changes
+        $modTimeFrom = new DateTime('-120 days');
+        echo "[" . date('Y-m-d H:i:s') . "] First sync - fetching last 120 days (all active listings)\n";
     }
     
     // ModTimeTo: current time minus 2 minutes (eBay recommendation)

@@ -374,6 +374,14 @@ class Product
         $manufacturer = $ebayData['brand'] ?? null;
         $model = $ebayData['mpn'] ?? null;
         
+        // Defensive: Ensure manufacturer and model are strings (handle arrays)
+        if (is_array($manufacturer)) {
+            $manufacturer = implode(', ', $manufacturer);
+        }
+        if (is_array($model)) {
+            $model = implode(', ', $model);
+        }
+        
         // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
         // Also get dimensions, weight, description, SKU, and images from GetItem
         $weight = $ebayData['weight'] ?? null;
@@ -382,6 +390,12 @@ class Product
         $height = $ebayData['height'] ?? null;
         $description = $ebayData['description'] ?? '';
         $sku = $ebayData['sku'] ?? '';
+        
+        // Defensive: Ensure sku is a string (handle arrays)
+        if (is_array($sku)) {
+            $sku = implode(', ', $sku);
+        }
+        
         $images = $ebayData['images'] ?? [];
         $image = $ebayData['image'] ?? null;
         
