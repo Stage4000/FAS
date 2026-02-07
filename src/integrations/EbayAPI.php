@@ -414,6 +414,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
@@ -468,6 +469,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
@@ -704,6 +706,44 @@ class EbayAPI
                 continue;
             }
             
+            // Extract condition - try multiple possible locations
+            $condition = null;
+            
+            // Priority 1: ConditionDisplayName at root level
+            if (!empty($item['ConditionDisplayName'])) {
+                $condition = $item['ConditionDisplayName'];
+            }
+            // Priority 2: Try nested under Condition
+            elseif (!empty($item['Condition']['ConditionDisplayName'])) {
+                $condition = $item['Condition']['ConditionDisplayName'];
+            }
+            // Priority 3: Map ConditionID to display name if available
+            elseif (!empty($item['ConditionID'])) {
+                $conditionId = (int)$item['ConditionID'];
+                // eBay condition IDs: 1000=New, 1500=New other, 2000=Manufacturer refurbished, 
+                // 2500=Seller refurbished, 3000=Used, 4000=Very Good, 5000=Good, 6000=Acceptable, 7000=For parts
+                $conditionMap = [
+                    1000 => 'New',
+                    1500 => 'New other',
+                    1750 => 'New with defects',
+                    2000 => 'Manufacturer refurbished',
+                    2500 => 'Seller refurbished',
+                    3000 => 'Used',
+                    4000 => 'Very Good',
+                    5000 => 'Good',
+                    6000 => 'Acceptable',
+                    7000 => 'For parts or not working'
+                ];
+                $condition = $conditionMap[$conditionId] ?? null;
+            }
+            
+            // Only use 'Used' as fallback if we truly couldn't determine condition
+            // This preserves actual condition from eBay
+            if ($condition === null) {
+                $condition = 'Used';
+                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition, defaulting to 'Used'");
+            }
+            
             $items[] = [
                 'id' => $itemId,
                 'title' => $itemTitle,
@@ -715,7 +755,7 @@ class EbayAPI
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => $item['ConditionDisplayName'] ?? 'Used',
+                'condition' => $condition,
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
