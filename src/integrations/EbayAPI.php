@@ -589,6 +589,7 @@ class EbayAPI
     private function parseTradingApiResponse($response, $pageNumber, $entriesPerPage)
     {
         $items = [];
+        $inactiveItemIds = []; // Track inactive items to hide them in database
         
         // Handle single item (not in array)
         $itemsData = $response['ItemArray']['Item'] ?? [];
@@ -692,12 +693,14 @@ class EbayAPI
             // Filter out items that are not active or have no quantity available
             if ($listingStatus && strtolower($listingStatus) !== 'active') {
                 error_log("[eBay Sync Debug] Skipping item $itemId - Status: $listingStatus (not active)");
+                $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
             
             // Also skip if quantity is 0 (sold out) - these shouldn't be imported
             if ($quantity <= 0) {
                 error_log("[eBay Sync Debug] Skipping item $itemId - Quantity: 0 (sold out)");
+                $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
             
@@ -730,6 +733,7 @@ class EbayAPI
         
         return [
             'items' => $items,
+            'inactive_item_ids' => $inactiveItemIds, // Return IDs of inactive items
             'total' => $totalEntries,
             'pages' => $totalPages
         ];

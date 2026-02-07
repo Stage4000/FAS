@@ -95,6 +95,28 @@ try {
         
         echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " changed items...\n";
         
+        // Handle inactive items - hide them on website
+        if (!empty($result['inactive_item_ids'])) {
+            echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to hide...\n";
+            foreach ($result['inactive_item_ids'] as $inactiveItemId) {
+                try {
+                    // Check if item exists in database
+                    $stmt = $db->prepare("SELECT id FROM products WHERE ebay_item_id = ?");
+                    $stmt->execute([$inactiveItemId]);
+                    $existingItem = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($existingItem) {
+                        // Hide from website since item is no longer active on eBay
+                        $stmt = $db->prepare("UPDATE products SET show_on_website = 0 WHERE id = ?");
+                        $stmt->execute([$existingItem['id']]);
+                        echo "[" . date('Y-m-d H:i:s') . "] Hidden inactive item {$inactiveItemId} from website\n";
+                    }
+                } catch (Exception $e) {
+                    echo "[ERROR] Failed to hide inactive item {$inactiveItemId}: " . $e->getMessage() . "\n";
+                }
+            }
+        }
+        
         // Pre-fetch existing products in batch to reduce database queries
         $itemIds = array_column($result['items'], 'id');
         $existingProducts = [];

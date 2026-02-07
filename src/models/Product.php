@@ -398,6 +398,11 @@ class Product
             $sku = implode(', ', $sku);
         }
         
+        // If SKU is empty, use ebay_item_id as fallback for SKU field
+        if (empty($sku)) {
+            $sku = $ebayData['id'];
+        }
+        
         $images = $ebayData['images'] ?? [];
         $image = $ebayData['image'] ?? null;
         
