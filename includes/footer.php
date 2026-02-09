@@ -23,6 +23,7 @@
                     <h6>Connect</h6>
                     <p><a href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-facebook"></i> Facebook</a></p>
                     <p><a href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-instagram"></i> Instagram</a></p>
+                    <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
                     <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
                     <div class="mt-3">
                         <h6 class="small">Secure Payment & Shipping</h6>
