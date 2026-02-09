@@ -414,6 +414,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
@@ -468,6 +469,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
         $xml .= '<OutputSelector>ViewItemURL</OutputSelector>';
@@ -589,6 +591,7 @@ class EbayAPI
     private function parseTradingApiResponse($response, $pageNumber, $entriesPerPage)
     {
         $items = [];
+        $inactiveItemIds = []; // Track inactive items to hide them in database
         
         // Handle single item (not in array)
         $itemsData = $response['ItemArray']['Item'] ?? [];
@@ -684,17 +687,75 @@ class EbayAPI
                 error_log("[eBay Sync Debug]   MPN: " . ($modelNumber ? $modelNumber : 'NULL'));
             }
             
+            // Extract quantity and listing status
+            $quantity = (int)($item['Quantity'] ?? 0);
+            $listingStatus = $item['SellingStatus']['ListingStatus'] ?? '';
+            
+            // Skip ended/sold items - only import active listings
+            // Filter out items that are not active or have no quantity available
+            if ($listingStatus && strtolower($listingStatus) !== 'active') {
+                error_log("[eBay Sync Debug] Skipping item $itemId - Status: $listingStatus (not active)");
+                $inactiveItemIds[] = $itemId; // Track for hiding in database
+                continue;
+            }
+            
+            // Also skip if quantity is 0 (sold out) - these shouldn't be imported
+            if ($quantity <= 0) {
+                error_log("[eBay Sync Debug] Skipping item $itemId - Quantity: 0 (sold out)");
+                $inactiveItemIds[] = $itemId; // Track for hiding in database
+                continue;
+            }
+            
+            // Extract condition - try multiple possible locations
+            $condition = null;
+            
+            // Priority 1: ConditionDisplayName at root level
+            if (!empty($item['ConditionDisplayName'])) {
+                $condition = $item['ConditionDisplayName'];
+            }
+            // Priority 2: Try nested under Condition
+            elseif (!empty($item['Condition']['ConditionDisplayName'])) {
+                $condition = $item['Condition']['ConditionDisplayName'];
+            }
+            // Priority 3: Map ConditionID to display name if available
+            elseif (!empty($item['ConditionID'])) {
+                $conditionId = (int)$item['ConditionID'];
+                // eBay condition IDs: 1000=New, 1500=New other, 2000=Manufacturer refurbished, 
+                // 2500=Seller refurbished, 3000=Used, 4000=Very Good, 5000=Good, 6000=Acceptable, 7000=For parts
+                $conditionMap = [
+                    1000 => 'New',
+                    1500 => 'New other',
+                    1750 => 'New with defects',
+                    2000 => 'Manufacturer refurbished',
+                    2500 => 'Seller refurbished',
+                    3000 => 'Used',
+                    4000 => 'Very Good',
+                    5000 => 'Good',
+                    6000 => 'Acceptable',
+                    7000 => 'For parts or not working'
+                ];
+                $condition = $conditionMap[$conditionId] ?? null;
+            }
+            
+            // Only use 'Used' as fallback if we truly couldn't determine condition
+            // This preserves actual condition from eBay
+            if ($condition === null) {
+                $condition = 'Used';
+                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition, defaulting to 'Used'");
+            }
+            
             $items[] = [
                 'id' => $itemId,
                 'title' => $itemTitle,
                 'description' => $description,
                 'sku' => $item['SKU'] ?? '',
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
+                'quantity' => $quantity,
                 'currency' => 'USD',
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => $item['ConditionDisplayName'] ?? 'Used',
+                'condition' => $condition,
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
@@ -712,6 +773,7 @@ class EbayAPI
         
         return [
             'items' => $items,
+            'inactive_item_ids' => $inactiveItemIds, // Return IDs of inactive items
             'total' => $totalEntries,
             'pages' => $totalPages
         ];
@@ -1330,6 +1392,11 @@ class EbayAPI
                 $name = strtolower($specific['Name'] ?? '');
                 $value = $specific['Value'] ?? null;
                 
+                // Handle Value being an array (multiple values) - convert to string
+                if (is_array($value)) {
+                    $value = implode(', ', $value);
+                }
+                
                 if ($name === 'brand' && !$brand) {
                     $brand = $value;
                 } elseif (in_array($name, ['mpn', 'model', 'manufacturer part number']) && !$mpn) {
@@ -1389,6 +1456,16 @@ class EbayAPI
             }
         }
         
+        // Ensure brand and mpn are strings (handle case where they might still be arrays from fallback sources)
+        // Note: This is needed because ProductListingDetails and Product fields (lines 1347-1360) 
+        // can also contain arrays, independent of the ItemSpecifics array handling above
+        if (is_array($brand)) {
+            $brand = implode(', ', $brand);
+        }
+        if (is_array($mpn)) {
+            $mpn = implode(', ', $mpn);
+        }
+        
         SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
         SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
@@ -1414,6 +1491,10 @@ class EbayAPI
         
         // Extract SKU
         $sku = $item['SKU'] ?? '';
+        // Handle SKU being an array - convert to string
+        if (is_array($sku)) {
+            $sku = implode(', ', $sku);
+        }
         
         // Extract all images from eBay
         $allImages = [];

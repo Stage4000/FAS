@@ -10,6 +10,26 @@ class Product
 {
     private $db;
     
+    /**
+     * Gift-specific keywords for category mapping (Priority 1)
+     * These should be checked first to prevent brand names from overriding gift classification
+     */
+    private const GIFT_KEYWORDS = [
+        'gift', 'apparel', 'clothing', 'shirt', 'hat', 'watch', 
+        'collectible', 'memorabilia', 'keychain', 'accessory'
+    ];
+    
+    /**
+     * Parts-specific category mappings (Priority 2)
+     * Only checked if no gift keywords are found
+     */
+    private const PARTS_CATEGORY_MAPPINGS = [
+        'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
+        'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
+        'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
+        'automotive' => ['auto', 'automobile', 'car', 'ford', 'chevy', 'chevrolet', 'dodge', 'gmc']
+    ];
+    
     public function __construct($db)
     {
         $this->db = $db;
@@ -307,24 +327,23 @@ class Product
      */
     private function mapEbayCategory($ebayCategoryName, $ebayCategoryId, $itemTitle)
     {
-        // Default category
-        $category = 'automotive';
+        // Default category - use 'other' as true fallback instead of 'automotive'
+        $category = 'other';
         
         // Convert to lowercase for case-insensitive matching
         $categoryName = strtolower($ebayCategoryName ?? '');
         $title = strtolower($itemTitle ?? '');
         
-        // Category mapping based on keywords in category name and title
-        $mappings = [
-            'motorcycle' => ['motorcycle', 'motorbike', 'bike', 'harley', 'honda', 'yamaha', 'kawasaki', 'suzuki', 'ducati', 'triumph'],
-            'atv' => ['atv', 'utv', 'quad', 'four wheeler', 'side by side', 'polaris', 'can-am', 'arctic cat'],
-            'boat' => ['boat', 'marine', 'watercraft', 'jet ski', 'outboard', 'inboard', 'yacht', 'fishing', 'nautical'],
-            'automotive' => ['auto', 'car', 'truck', 'vehicle', 'ford', 'chevy', 'dodge', 'gmc'],
-            'gifts' => ['gift', 'apparel', 'clothing', 'shirt', 'hat', 'collectible', 'memorabilia', 'keychain', 'accessory']
-        ];
+        // Priority 1: Check for gift-specific keywords first (highest priority)
+        // These should override vehicle brand names (e.g., "Harley Davidson shirt" is a gift, not a motorcycle part)
+        foreach (self::GIFT_KEYWORDS as $keyword) {
+            if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
+                return 'gifts';
+            }
+        }
         
-        // Check category name and title for keywords
-        foreach ($mappings as $localCategory => $keywords) {
+        // Priority 2: Check for parts-specific categories (motorcycle, ATV, boat, automotive)
+        foreach (self::PARTS_CATEGORY_MAPPINGS as $localCategory => $keywords) {
             foreach ($keywords as $keyword) {
                 if (strpos($categoryName, $keyword) !== false || strpos($title, $keyword) !== false) {
                     return $localCategory;
@@ -355,6 +374,15 @@ class Product
         $manufacturer = $ebayData['brand'] ?? null;
         $model = $ebayData['mpn'] ?? null;
         
+        // Defensive: Ensure manufacturer and model are strings (handle arrays)
+        // eBay can return arrays when there are multiple values for the same field
+        if (is_array($manufacturer)) {
+            $manufacturer = implode(', ', $manufacturer);
+        }
+        if (is_array($model)) {
+            $model = implode(', ', $model);
+        }
+        
         // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
         // Also get dimensions, weight, description, SKU, and images from GetItem
         $weight = $ebayData['weight'] ?? null;
@@ -363,6 +391,19 @@ class Product
         $height = $ebayData['height'] ?? null;
         $description = $ebayData['description'] ?? '';
         $sku = $ebayData['sku'] ?? '';
+        
+        // Defensive: Ensure sku is a string (handle arrays)
+        // eBay can return arrays when there are multiple SKUs for the same item
+        if (is_array($sku)) {
+            $sku = implode(', ', $sku);
+        }
+        
+        // If SKU is empty or null (but not '0'), use ebay_item_id as fallback
+        // Only use fallback when eBay genuinely doesn't provide a SKU
+        if ($sku === '' || $sku === null) {
+            $sku = $ebayData['id'];
+        }
+        
         $images = $ebayData['images'] ?? [];
         $image = $ebayData['image'] ?? null;
         
