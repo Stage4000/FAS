@@ -20,10 +20,21 @@ class Coupon
      */
     public function validateCoupon($code, $subtotal = 0)
     {
+        // Get database driver to use appropriate datetime function
+        $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        
+        // Use appropriate datetime function based on database driver
+        if ($driver === 'mysql') {
+            $dateTimeCheck = "expires_at > NOW()";
+        } else {
+            // SQLite
+            $dateTimeCheck = "expires_at > datetime('now')";
+        }
+        
         $sql = "SELECT * FROM coupons 
                 WHERE code = ? 
                 AND is_active = 1 
-                AND (expires_at IS NULL OR expires_at > datetime('now'))
+                AND (expires_at IS NULL OR $dateTimeCheck)
                 AND (max_uses IS NULL OR times_used < max_uses)";
         
         $stmt = $this->db->prepare($sql);
