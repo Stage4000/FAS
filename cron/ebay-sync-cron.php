@@ -66,6 +66,7 @@ try {
     $useFullSync = !$lastSync; // Use full sync if no previous sync exists
     
     // Always define modTimeTo for timestamp consistency
+    // Use 2-minute buffer as recommended by eBay to avoid missing recent changes during processing
     $modTimeTo = new DateTime('-2 minutes');
     
     if ($lastSync) {
@@ -96,9 +97,11 @@ try {
     do {
         if ($useFullSync) {
             // Use GetSellerList to get ALL active listings
+            // Page size: 100 (GetSellerList limit)
             $result = $ebayAPI->getStoreItems($storeName, $page, 100, $startDate, $endDate);
         } else {
             // Use GetSellerEvents to get only changed items
+            // Page size: 200 (GetSellerEvents limit, higher throughput for incremental syncs)
             $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         }
         
