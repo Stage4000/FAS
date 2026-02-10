@@ -135,7 +135,7 @@ require_once __DIR__ . '/includes/header.php';
                         <span>Subtotal:</span>
                         <span id="checkout-subtotal">$0.00</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2" id="discount-row" style="display: none;">
+                    <div class="d-flex justify-content-between mb-2" id="discount-row" style="display: none !important;">
                         <span>
                             Discount (<span id="discount-code"></span>)
                             <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeCoupon()" style="font-size: 0.8rem;">Remove</button>
@@ -341,29 +341,35 @@ function setupPayPalButton() {
             const total = subtotal - discount + tax + shipping;
             
             // Create PayPal order
+            const orderBreakdown = {
+                item_total: {
+                    currency_code: 'USD',
+                    value: subtotal.toFixed(2)
+                },
+                shipping: {
+                    currency_code: 'USD',
+                    value: shipping.toFixed(2)
+                },
+                tax_total: {
+                    currency_code: 'USD',
+                    value: tax.toFixed(2)
+                }
+            };
+            
+            // Only add discount if it exists
+            if (discount > 0) {
+                orderBreakdown.discount = {
+                    currency_code: 'USD',
+                    value: discount.toFixed(2)
+                };
+            }
+            
             return actions.order.create({
                 purchase_units: [{
                     amount: {
                         currency_code: 'USD',
                         value: total.toFixed(2),
-                        breakdown: {
-                            item_total: {
-                                currency_code: 'USD',
-                                value: subtotal.toFixed(2)
-                            },
-                            shipping: {
-                                currency_code: 'USD',
-                                value: shipping.toFixed(2)
-                            },
-                            tax_total: {
-                                currency_code: 'USD',
-                                value: tax.toFixed(2)
-                            },
-                            discount: discount > 0 ? {
-                                currency_code: 'USD',
-                                value: discount.toFixed(2)
-                            } : undefined
-                        }
+                        breakdown: orderBreakdown
                     },
                     items: cart.map(item => ({
                         name: item.name,
