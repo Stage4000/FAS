@@ -64,27 +64,27 @@ try {
     $stmt->execute();
     $lastSync = $stmt->fetchColumn();
     
-    // Determine sync strategy based on whether we have a last sync timestamp
-    $useFullSync = !$lastSync; // Use full sync if no previous sync exists
-    
+    // Determine time range for GetSellerEvents
     // Always define modTimeTo for timestamp consistency
     // Use 2-minute buffer as recommended by eBay to avoid missing recent changes during processing
     $modTimeTo = new DateTime('-2 minutes');
     
     if ($lastSync) {
-        // Incremental sync - use GetSellerEvents to track changes
+        // Incremental sync - use GetSellerEvents to track changes since last sync
         $modTimeFrom = new DateTime($lastSync);
         $modTimeFrom->modify('-2 minutes');
         echo "[" . date('Y-m-d H:i:s') . "] Incremental sync: changes since " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
     } else {
-        // First sync or after purge - use GetSellerList to import ALL active listings
-        $startDate = (new DateTime('-120 days'))->format('Y-m-d');
-        $endDate = (new DateTime())->format('Y-m-d');
-        echo "[" . date('Y-m-d H:i:s') . "] Full sync: fetching all active listings (last 120 days)\n";
+        // First sync or after purge - use GetSellerEvents with 120-day window
+        // eBay listings are renewed every 30 days, so 120 days captures all active listings
+        $modTimeFrom = new DateTime('-120 days');
+        echo "[" . date('Y-m-d H:i:s') . "] Full sync: fetching all events from last 120 days\n";
     }
     
+    echo "[" . date('Y-m-d H:i:s') . "] Sync time range: " . $modTimeFrom->format('Y-m-d H:i:s') . " to " . $modTimeTo->format('Y-m-d H:i:s') . "\n";
+    
     // Start sync log
-    $syncType = $useFullSync ? 'scheduled_full_sync' : 'scheduled_events_sync';
+    $syncType = !$lastSync ? 'scheduled_full_sync' : 'scheduled_events_sync';
     $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES (?, 'running')");
     $stmt->execute([$syncType]);
     $syncLogId = $db->lastInsertId();
@@ -95,22 +95,15 @@ try {
     $totalUpdated = 0;
     $totalFailed = 0;
     
-    // Fetch items from eBay using appropriate method
+    // Fetch items from eBay using GetSellerEvents
+    // This works for both full and incremental sync based on the time range
     do {
-        if ($useFullSync) {
-            // Use GetSellerList to get ALL active listings
-            // Page size: 100 (GetSellerList limit)
-            $result = $ebayAPI->getStoreItems($storeName, $page, 100, $startDate, $endDate);
-        } else {
-            // Use GetSellerEvents to get only changed items
-            // Page size: 200 (GetSellerEvents limit, higher throughput for incremental syncs)
-            $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
-        }
+        $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         
         if (!$result || empty($result['items'])) {
             if ($page == 1) {
-                if ($useFullSync) {
-                    echo "[" . date('Y-m-d H:i:s') . "] No active listings found in store\n";
+                if (!$lastSync) {
+                    echo "[" . date('Y-m-d H:i:s') . "] No events found in 120-day range\n";
                 } else {
                     echo "[" . date('Y-m-d H:i:s') . "] No changes detected in time range\n";
                 }
@@ -118,11 +111,11 @@ try {
             break;
         }
         
-        $itemLabel = $useFullSync ? "items" : "changed items";
+        $itemLabel = !$lastSync ? "items" : "changed items";
         echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " {$itemLabel}...\n";
         
-        // Handle inactive items - only returned by GetSellerEvents
-        if (!$useFullSync && !empty($result['inactive_item_ids'])) {
+        // Handle inactive items - returned by GetSellerEvents
+        if (!empty($result['inactive_item_ids'])) {
             echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to hide...\n";
             foreach ($result['inactive_item_ids'] as $inactiveItemId) {
                 try {
