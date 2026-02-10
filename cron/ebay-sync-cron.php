@@ -44,7 +44,11 @@ try {
     $productModel = new Product($db);
     
     // Load config to get store name
-    $config = require __DIR__ . '/../src/config/config.php';
+    $configFile = __DIR__ . '/../src/config/config.php';
+    if (!file_exists($configFile) || !is_readable($configFile)) {
+        throw new Exception("Config file not found or not readable: $configFile");
+    }
+    $config = require $configFile;
     $storeName = $config['ebay']['store_name'] ?? 'moto800';
     
     // Get last successful sync timestamp
@@ -61,16 +65,18 @@ try {
     // Determine sync strategy based on whether we have a last sync timestamp
     $useFullSync = !$lastSync; // Use full sync if no previous sync exists
     
+    // Always define modTimeTo for timestamp consistency
+    $modTimeTo = new DateTime('-2 minutes');
+    
     if ($lastSync) {
         // Incremental sync - use GetSellerEvents to track changes
         $modTimeFrom = new DateTime($lastSync);
         $modTimeFrom->modify('-2 minutes');
-        $modTimeTo = new DateTime('-2 minutes');
         echo "[" . date('Y-m-d H:i:s') . "] Incremental sync: changes since " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
     } else {
         // First sync or after purge - use GetSellerList to import ALL active listings
-        $startDate = date('Y-m-d', strtotime('-120 days'));
-        $endDate = date('Y-m-d');
+        $startDate = (new DateTime('-120 days'))->format('Y-m-d');
+        $endDate = (new DateTime())->format('Y-m-d');
         echo "[" . date('Y-m-d H:i:s') . "] Full sync: fetching all active listings (last 120 days)\n";
     }
     
@@ -187,14 +193,13 @@ try {
     } while (true);
     
     // Complete sync log with timestamp
-    // For full sync, use current time. For incremental, use the modTimeTo value
-    $lastSyncTimestamp = $useFullSync ? (new DateTime('-2 minutes'))->format('Y-m-d H:i:s') : $modTimeTo->format('Y-m-d H:i:s');
+    // Use modTimeTo for both sync types to ensure consistency
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
         SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?
         WHERE id = ?
     ");
-    $stmt->execute([$lastSyncTimestamp, $syncLogId]);
+    $stmt->execute([$modTimeTo->format('Y-m-d H:i:s'), $syncLogId]);
     
     echo "[" . date('Y-m-d H:i:s') . "] Synchronization completed successfully!\n";
     echo "  Processed: {$totalProcessed}\n";
