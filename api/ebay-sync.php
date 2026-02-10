@@ -132,7 +132,8 @@ try {
     SyncLogger::log("Database connection established");
     
     // Load config to check credentials
-    $config = require __DIR__ . '/../src/config/config.php';
+    $configFile = __DIR__ . '/../src/config/config.php';
+    $config = require $configFile;
     
     // Validate eBay credentials are configured
     if ($config['ebay']['app_id'] === 'YOUR_EBAY_APP_ID' || 
@@ -150,7 +151,7 @@ try {
     
     SyncLogger::log("eBay API credentials validated");
     
-    $ebayAPI = new EbayAPI($config);
+    $ebayAPI = new EbayAPI($config, $configFile);
     $productModel = new Product($db);
     
     // Start sync log

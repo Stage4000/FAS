@@ -40,7 +40,17 @@ SyncLogger::init();
 
 try {
     $db = Database::getInstance()->getConnection();
-    $ebayAPI = new EbayAPI();
+    
+    // Load config for store name and to pass to EbayAPI
+    $configFile = __DIR__ . '/../src/config/config.php';
+    if (!file_exists($configFile) || !is_readable($configFile)) {
+        throw new Exception("Config file not found or not readable: $configFile");
+    }
+    $config = require $configFile;
+    $storeName = $config['ebay']['store_name'] ?? 'moto800';
+    
+    // Initialize EbayAPI with config and config file path
+    $ebayAPI = new EbayAPI($config, $configFile);
     $productModel = new Product($db);
     
     // Get last successful sync timestamp
@@ -55,25 +65,28 @@ try {
     $lastSync = $stmt->fetchColumn();
     
     // Determine time range for GetSellerEvents
+    // Always define modTimeTo for timestamp consistency
+    // Use 2-minute buffer as recommended by eBay to avoid missing recent changes during processing
+    $modTimeTo = new DateTime('-2 minutes');
+    
     if ($lastSync) {
-        // Use last sync time with 2-minute overlap (eBay recommendation)
+        // Incremental sync - use GetSellerEvents to track changes since last sync
         $modTimeFrom = new DateTime($lastSync);
         $modTimeFrom->modify('-2 minutes');
-        echo "[" . date('Y-m-d H:i:s') . "] Syncing changes since: " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
+        echo "[" . date('Y-m-d H:i:s') . "] Incremental sync: changes since " . $modTimeFrom->format('Y-m-d H:i:s') . "\n";
     } else {
-        // First sync - get last 120 days to import all active listings
-        // This ensures purged databases get all items, not just recent changes
+        // First sync or after purge - use GetSellerEvents with 120-day window
+        // eBay listings are renewed every 30 days, so 120 days captures all active listings
         $modTimeFrom = new DateTime('-120 days');
-        echo "[" . date('Y-m-d H:i:s') . "] First sync - fetching last 120 days (all active listings)\n";
+        echo "[" . date('Y-m-d H:i:s') . "] Full sync: fetching all events from last 120 days\n";
     }
     
-    // ModTimeTo: current time minus 2 minutes (eBay recommendation)
-    $modTimeTo = new DateTime('-2 minutes');
     echo "[" . date('Y-m-d H:i:s') . "] Sync time range: " . $modTimeFrom->format('Y-m-d H:i:s') . " to " . $modTimeTo->format('Y-m-d H:i:s') . "\n";
     
     // Start sync log
-    $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES ('scheduled_events_sync', 'running')");
-    $stmt->execute();
+    $syncType = !$lastSync ? 'scheduled_full_sync' : 'scheduled_events_sync';
+    $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES (?, 'running')");
+    $stmt->execute([$syncType]);
     $syncLogId = $db->lastInsertId();
     
     $page = 1;
@@ -82,20 +95,26 @@ try {
     $totalUpdated = 0;
     $totalFailed = 0;
     
-    // Fetch changed items from eBay using GetSellerEvents
+    // Fetch items from eBay using GetSellerEvents
+    // This works for both full and incremental sync based on the time range
     do {
         $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         
         if (!$result || empty($result['items'])) {
             if ($page == 1) {
-                echo "[" . date('Y-m-d H:i:s') . "] No changes detected in time range\n";
+                if (!$lastSync) {
+                    echo "[" . date('Y-m-d H:i:s') . "] No events found in 120-day range\n";
+                } else {
+                    echo "[" . date('Y-m-d H:i:s') . "] No changes detected in time range\n";
+                }
             }
             break;
         }
         
-        echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " changed items...\n";
+        $itemLabel = !$lastSync ? "items" : "changed items";
+        echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " {$itemLabel}...\n";
         
-        // Handle inactive items - hide them on website
+        // Handle inactive items - returned by GetSellerEvents
         if (!empty($result['inactive_item_ids'])) {
             echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to hide...\n";
             foreach ($result['inactive_item_ids'] as $inactiveItemId) {
@@ -172,6 +191,7 @@ try {
     } while (true);
     
     // Complete sync log with timestamp
+    // Use modTimeTo for both sync types to ensure consistency
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
         SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?

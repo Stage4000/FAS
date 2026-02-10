@@ -148,7 +148,7 @@ $currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                     </ul>
                                 </div>
                                 
-                                <?php if ($currentCount > 0): ?>
+                                <?php if ($currentCount > 0 || $currentSyncLogCount > 0): ?>
                                     <form method="POST" onsubmit="return confirmDeletion();">
                                         <div class="mb-3">
                                             <label class="form-label">Type <strong>DELETE ALL STORE ITEMS</strong> to confirm:</label>
@@ -163,14 +163,22 @@ $currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                         <button type="submit" 
                                                 name="confirm_purge" 
                                                 class="btn btn-danger btn-lg">
-                                            <i class="fas fa-trash-alt me-2"></i>Purge <?php echo $currentCount; ?> Store Products
+                                            <i class="fas fa-trash-alt me-2"></i>Purge <?php 
+                                                if ($currentCount > 0 && $currentSyncLogCount > 0) {
+                                                    echo "$currentCount Products & $currentSyncLogCount Sync Logs";
+                                                } elseif ($currentCount > 0) {
+                                                    echo "$currentCount Store Products";
+                                                } else {
+                                                    echo "$currentSyncLogCount Sync Logs";
+                                                }
+                                            ?>
                                         </button>
                                         <a href="index.php" class="btn btn-secondary btn-lg">Cancel</a>
                                     </form>
                                 <?php else: ?>
                                     <div class="alert alert-info">
                                         <i class="fas fa-info-circle me-2"></i>
-                                        No eBay store products found in the database.
+                                        No eBay store products or sync logs found in the database.
                                     </div>
                                     <a href="index.php" class="btn btn-primary">Return to Dashboard</a>
                                 <?php endif; ?>

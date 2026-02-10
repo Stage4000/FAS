@@ -36,7 +36,7 @@ class EbayAPI
     private const RATE_LIMIT_BASE_WAIT = 5; // Base wait time in seconds
     private const RATE_LIMIT_MULTIPLIER = 3; // Exponential multiplier
     
-    public function __construct($config = null)
+    public function __construct($config = null, $configFilePath = null)
     {
         if ($config === null) {
             $this->configFile = __DIR__ . '/../config/config.php';
@@ -44,6 +44,14 @@ class EbayAPI
                 $this->configFile = __DIR__ . '/../config/config.example.php';
             }
             $config = require $this->configFile;
+        } else {
+            // When config is provided, use the provided config file path or default
+            if ($configFilePath !== null) {
+                $this->configFile = $configFilePath;
+            } else {
+                // Fallback to default path relative to EbayAPI location
+                $this->configFile = __DIR__ . '/../config/config.php';
+            }
         }
         
         $ebayConfig = $config['ebay'];
@@ -681,11 +689,6 @@ class EbayAPI
             // Log brand/mpn extraction for debugging
             $itemId = $item['ItemID'] ?? 'unknown';
             $itemTitle = $item['Title'] ?? 'Untitled';
-            if ($brandName || $modelNumber) {
-                error_log("[eBay Sync Debug] Item: $itemId - Title: $itemTitle");
-                error_log("[eBay Sync Debug]   Brand: " . ($brandName ? $brandName : 'NULL'));
-                error_log("[eBay Sync Debug]   MPN: " . ($modelNumber ? $modelNumber : 'NULL'));
-            }
             
             // Extract quantity and listing status
             $quantity = (int)($item['Quantity'] ?? 0);
@@ -694,68 +697,32 @@ class EbayAPI
             // Skip ended/sold items - only import active listings
             // Filter out items that are not active or have no quantity available
             if ($listingStatus && strtolower($listingStatus) !== 'active') {
-                error_log("[eBay Sync Debug] Skipping item $itemId - Status: $listingStatus (not active)");
                 $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
             
             // Also skip if quantity is 0 (sold out) - these shouldn't be imported
             if ($quantity <= 0) {
-                error_log("[eBay Sync Debug] Skipping item $itemId - Quantity: 0 (sold out)");
                 $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
             
-            // Extract condition - try multiple possible locations
-            $condition = null;
-            
-            // Priority 1: ConditionDisplayName at root level
-            if (!empty($item['ConditionDisplayName'])) {
-                $condition = $item['ConditionDisplayName'];
-            }
-            // Priority 2: Try nested under Condition
-            elseif (!empty($item['Condition']['ConditionDisplayName'])) {
-                $condition = $item['Condition']['ConditionDisplayName'];
-            }
-            // Priority 3: Map ConditionID to display name if available
-            elseif (!empty($item['ConditionID'])) {
-                $conditionId = (int)$item['ConditionID'];
-                // eBay condition IDs: 1000=New, 1500=New other, 2000=Manufacturer refurbished, 
-                // 2500=Seller refurbished, 3000=Used, 4000=Very Good, 5000=Good, 6000=Acceptable, 7000=For parts
-                $conditionMap = [
-                    1000 => 'New',
-                    1500 => 'New other',
-                    1750 => 'New with defects',
-                    2000 => 'Manufacturer refurbished',
-                    2500 => 'Seller refurbished',
-                    3000 => 'Used',
-                    4000 => 'Very Good',
-                    5000 => 'Good',
-                    6000 => 'Acceptable',
-                    7000 => 'For parts or not working'
-                ];
-                $condition = $conditionMap[$conditionId] ?? null;
-            }
-            
-            // Only use 'Used' as fallback if we truly couldn't determine condition
-            // This preserves actual condition from eBay
-            if ($condition === null) {
-                $condition = 'Used';
-                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition, defaulting to 'Used'");
-            }
+            // Note: Condition and SKU are fetched from GetItem API in syncFromEbay method
+            // These fields are not reliable in GetSellerEvents response
             
             $items[] = [
                 'id' => $itemId,
                 'title' => $itemTitle,
                 'description' => $description,
-                'sku' => $item['SKU'] ?? '',
+                'sku' => '', // Will be fetched from GetItem API
+                'condition' => '', // Will be fetched from GetItem API
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'quantity' => $quantity,
                 'currency' => 'USD',
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => $condition,
+                'condition' => '', // Will be fetched from GetItem API
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
@@ -1352,8 +1319,6 @@ class EbayAPI
      */
     public function getItemDetails($itemId)
     {
-        SyncLogger::log("[GetItem Debug] Fetching detailed item info for ItemID: {$itemId}");
-        
         // Build GetItem XML request
         $xml = '<?xml version="1.0" encoding="utf-8"?>';
         $xml .= '<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
@@ -1370,7 +1335,6 @@ class EbayAPI
         $response = $this->makeTradingApiRequest($url, $xml, 0, self::RATE_LIMIT_MAX_RETRIES, 'GetItem');
         
         if (!$response || !isset($response['Item'])) {
-            SyncLogger::log("[GetItem Debug] No item data returned for ItemID: {$itemId}");
             return null;
         }
         
@@ -1466,9 +1430,6 @@ class EbayAPI
             $mpn = implode(', ', $mpn);
         }
         
-        SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
-        SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
-        
         // Extract description and strip HTML, CSS, and JS but preserve line breaks
         $description = $item['Description'] ?? '';
         if ($description) {
@@ -1496,6 +1457,41 @@ class EbayAPI
             $sku = implode(', ', $sku);
         }
         
+        // Extract Condition - try multiple possible locations
+        $condition = null;
+        
+        // Priority 1: ConditionDisplayName at root level
+        if (!empty($item['ConditionDisplayName'])) {
+            $condition = $item['ConditionDisplayName'];
+        }
+        // Priority 2: Try nested under Condition
+        elseif (!empty($item['Condition']['ConditionDisplayName'])) {
+            $condition = $item['Condition']['ConditionDisplayName'];
+        }
+        // Priority 3: Map ConditionID to display name if available
+        elseif (!empty($item['ConditionID'])) {
+            $conditionId = (int)$item['ConditionID'];
+            // eBay condition IDs mapping
+            $conditionMap = [
+                1000 => 'New',
+                1500 => 'New other',
+                1750 => 'New with defects',
+                2000 => 'Manufacturer refurbished',
+                2500 => 'Seller refurbished',
+                3000 => 'Used',
+                4000 => 'Very Good',
+                5000 => 'Good',
+                6000 => 'Acceptable',
+                7000 => 'For parts or not working'
+            ];
+            $condition = $conditionMap[$conditionId] ?? null;
+        }
+        
+        // Default to 'Used' if condition cannot be determined
+        if ($condition === null) {
+            $condition = 'Used';
+        }
+        
         // Extract all images from eBay
         $allImages = [];
         if (isset($item['PictureDetails']['PictureURL'])) {
@@ -1517,6 +1513,7 @@ class EbayAPI
             'height' => $height,
             'description' => $description,
             'sku' => $sku,
+            'condition' => $condition,
             'images' => $allImages,
             'image' => !empty($allImages) ? $allImages[0] : null,
             'item' => $item // Return full item data for other uses if needed

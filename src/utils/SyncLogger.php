@@ -23,48 +23,40 @@ class SyncLogger
         self::$logFile = $logFilePath;
         self::$isEnabled = true;
         
-        // Write session start marker
-        self::log("========================================");
-        self::log("eBay Sync Session Started");
-        self::log("Time: " . date('Y-m-d H:i:s'));
-        self::log("========================================");
-    }
-    
-    /**
-     * Log a message to the file
-     */
-    public static function log($message, $context = '')
-    {
-        if (!self::$isEnabled || self::$logFile === null) {
-            return;
-        }
-        
+        // Write minimal session start marker
         $timestamp = date('Y-m-d H:i:s');
-        $contextStr = $context ? "[$context] " : '';
-        $logLine = "[$timestamp] {$contextStr}{$message}\n";
-        
-        // Append to file
+        $logLine = "[$timestamp] ========== eBay Sync Session Started ==========\n";
         file_put_contents(self::$logFile, $logLine, FILE_APPEND);
     }
     
     /**
+     * Log a message to the file
+     * NOTE: Only errors and warnings should be logged. Informational messages are ignored.
+     */
+    public static function log($message, $context = '')
+    {
+        // Intentionally do nothing - only errors and warnings should be logged
+        return;
+    }
+    
+    /**
      * Log an API request
+     * NOTE: Requests are not logged to reduce log file size
      */
     public static function logRequest($url, $method = 'GET')
     {
-        self::log("API Request: $method $url", 'REQUEST');
+        // Intentionally do nothing - only errors are logged
+        return;
     }
     
     /**
      * Log an API response
+     * NOTE: Responses are not logged to reduce log file size
      */
     public static function logResponse($response, $httpCode = null)
     {
-        $codeStr = $httpCode ? " (HTTP $httpCode)" : '';
-        self::log("API Response$codeStr:", 'RESPONSE');
-        self::log("--- BEGIN RESPONSE ---", 'RESPONSE');
-        self::log($response, 'RESPONSE');
-        self::log("--- END RESPONSE ---", 'RESPONSE');
+        // Intentionally do nothing - only errors are logged
+        return;
     }
     
     /**
@@ -72,7 +64,13 @@ class SyncLogger
      */
     public static function logWarning($message)
     {
-        self::log("WARNING: $message", 'WARNING');
+        if (!self::$isEnabled || self::$logFile === null) {
+            return;
+        }
+        
+        $timestamp = date('Y-m-d H:i:s');
+        $logLine = "[$timestamp] [WARNING] {$message}\n";
+        file_put_contents(self::$logFile, $logLine, FILE_APPEND);
     }
     
     /**
@@ -80,13 +78,21 @@ class SyncLogger
      */
     public static function logError($message, $exception = null)
     {
-        self::log("ERROR: $message", 'ERROR');
-        if ($exception instanceof \Exception) {
-            self::log("Exception: " . $exception->getMessage(), 'ERROR');
-            self::log("File: " . $exception->getFile() . " Line: " . $exception->getLine(), 'ERROR');
-            self::log("Stack trace:", 'ERROR');
-            self::log($exception->getTraceAsString(), 'ERROR');
+        if (!self::$isEnabled || self::$logFile === null) {
+            return;
         }
+        
+        $timestamp = date('Y-m-d H:i:s');
+        $logLine = "[$timestamp] [ERROR] {$message}\n";
+        
+        if ($exception instanceof \Exception) {
+            $logLine .= "[$timestamp] [ERROR] Exception: " . $exception->getMessage() . "\n";
+            $logLine .= "[$timestamp] [ERROR] File: " . $exception->getFile() . " Line: " . $exception->getLine() . "\n";
+            $logLine .= "[$timestamp] [ERROR] Stack trace:\n";
+            $logLine .= $exception->getTraceAsString() . "\n";
+        }
+        
+        file_put_contents(self::$logFile, $logLine, FILE_APPEND);
     }
     
     /**
@@ -94,26 +100,26 @@ class SyncLogger
      */
     public static function logPhpError($errno, $errstr, $errfile, $errline)
     {
+        if (!self::$isEnabled || self::$logFile === null) {
+            return;
+        }
+        
+        // Only log actual errors, not notices or deprecations
+        if ($errno !== E_ERROR && $errno !== E_WARNING && $errno !== E_USER_ERROR && $errno !== E_USER_WARNING) {
+            return;
+        }
+        
         $errorTypes = [
             E_ERROR => 'ERROR',
             E_WARNING => 'WARNING',
-            E_PARSE => 'PARSE',
-            E_NOTICE => 'NOTICE',
-            E_CORE_ERROR => 'CORE_ERROR',
-            E_CORE_WARNING => 'CORE_WARNING',
-            E_COMPILE_ERROR => 'COMPILE_ERROR',
-            E_COMPILE_WARNING => 'COMPILE_WARNING',
             E_USER_ERROR => 'USER_ERROR',
             E_USER_WARNING => 'USER_WARNING',
-            E_USER_NOTICE => 'USER_NOTICE',
-            E_STRICT => 'STRICT',
-            E_RECOVERABLE_ERROR => 'RECOVERABLE_ERROR',
-            E_DEPRECATED => 'DEPRECATED',
-            E_USER_DEPRECATED => 'USER_DEPRECATED',
         ];
         
         $errorType = $errorTypes[$errno] ?? 'UNKNOWN';
-        self::log("PHP $errorType: $errstr in $errfile on line $errline", 'PHP_ERROR');
+        $timestamp = date('Y-m-d H:i:s');
+        $logLine = "[$timestamp] [PHP_$errorType] $errstr in $errfile on line $errline\n";
+        file_put_contents(self::$logFile, $logLine, FILE_APPEND);
     }
     
     /**
@@ -121,10 +127,12 @@ class SyncLogger
      */
     public static function finalize()
     {
-        self::log("========================================");
-        self::log("eBay Sync Session Ended");
-        self::log("Time: " . date('Y-m-d H:i:s'));
-        self::log("========================================");
-        self::log(""); // Empty line for readability
+        if (!self::$isEnabled || self::$logFile === null) {
+            return;
+        }
+        
+        $timestamp = date('Y-m-d H:i:s');
+        $logLine = "[$timestamp] ========== eBay Sync Session Ended ==========\n\n";
+        file_put_contents(self::$logFile, $logLine, FILE_APPEND);
     }
 }

@@ -383,52 +383,31 @@ class Product
             $model = implode(', ', $model);
         }
         
-        // Priority 1.5: If Brand/MPN not found in GetSellerList, try GetItem API (more reliable)
-        // Also get dimensions, weight, description, SKU, and images from GetItem
+        // Priority 1.5: Always fetch Condition and SKU from GetItem API (most reliable)
+        // GetSellerEvents does not reliably return these fields
+        // Also get dimensions, weight, description, brand, MPN, and images from GetItem
         $weight = $ebayData['weight'] ?? null;
         $length = $ebayData['length'] ?? null;
         $width = $ebayData['width'] ?? null;
         $height = $ebayData['height'] ?? null;
         $description = $ebayData['description'] ?? '';
-        $sku = $ebayData['sku'] ?? '';
-        
-        // Defensive: Ensure sku is a string (handle arrays)
-        // eBay can return arrays when there are multiple SKUs for the same item
-        if (is_array($sku)) {
-            $sku = implode(', ', $sku);
-        }
-        
-        // If SKU is empty or null (but not '0'), use ebay_item_id as fallback
-        // Only use fallback when eBay genuinely doesn't provide a SKU
-        if ($sku === '' || $sku === null) {
-            $sku = $ebayData['id'];
-        }
+        $sku = '';  // Will be fetched from GetItem
+        $condition = '';  // Will be fetched from GetItem
         
         $images = $ebayData['images'] ?? [];
         $image = $ebayData['image'] ?? null;
         
-        // Call GetItem only if we're missing critical data that affects functionality:
-        // Priority order: Only call GetItem if missing high-priority data
-        // - Description is important but not critical (can be empty)
-        // - SKU is important but not critical (we have eBay ID)
-        // - Images should be fetched but GetSellerEvents often has them
-        // Critical: Brand, Model, Weight (affects shipping)
-        $needsGetItem = (!$manufacturer || !$model || !$weight);
-        
-        // Secondary check: if we have critical data but missing description/SKU/images
-        // Only call GetItem if we're missing at least 2 of these secondary fields
-        if (!$needsGetItem) {
-            $missingSecondary = 0;
-            if (empty($description)) $missingSecondary++;
-            if (empty($sku)) $missingSecondary++;
-            if (empty($images)) $missingSecondary++;
-            $needsGetItem = ($missingSecondary >= 2);
-        }
-        
-        if ($needsGetItem && $ebayAPI && isset($ebayData['id'])) {
-            error_log("[Product Sync Debug] Missing critical data, calling GetItem API for ItemID: " . $ebayData['id']);
+        // ALWAYS call GetItem to fetch Condition and SKU (required fields)
+        // Also fetch other fields if missing from GetSellerEvents
+        if ($ebayAPI && isset($ebayData['id'])) {
             $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
             if ($itemDetails) {
+                // Get condition (REQUIRED - always from GetItem)
+                $condition = $itemDetails['condition'] ?? 'Used';
+                
+                // Get SKU (REQUIRED - always from GetItem)
+                $sku = $itemDetails['sku'] ?? '';
+                
                 // Get brand and model
                 if (!$manufacturer && $itemDetails['brand']) {
                     $manufacturer = $itemDetails['brand'];
@@ -449,18 +428,25 @@ class Product
                 if (!$height && $itemDetails['height']) {
                     $height = $itemDetails['height'];
                 }
-                // Get description, SKU, and images from GetItem
+                // Get description and images from GetItem
                 if (empty($description) && !empty($itemDetails['description'])) {
                     $description = $itemDetails['description'];
-                }
-                if (empty($sku) && !empty($itemDetails['sku'])) {
-                    $sku = $itemDetails['sku'];
                 }
                 if (empty($images) && !empty($itemDetails['images'])) {
                     $images = $itemDetails['images'];
                     $image = $itemDetails['image'];
                 }
             }
+        }
+        
+        // Defensive: Ensure sku is a string (handle arrays)
+        if (is_array($sku)) {
+            $sku = implode(', ', $sku);
+        }
+        
+        // If SKU is empty or null (but not '0'), use ebay_item_id as fallback
+        if ($sku === '' || $sku === null) {
+            $sku = $ebayData['id'];
         }
         
         // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
@@ -506,7 +492,7 @@ class Product
             'category' => $category,
             'manufacturer' => $manufacturer,
             'model' => $model,
-            'condition_name' => $ebayData['condition'] ?? 'Used',
+            'condition_name' => $condition,  // Fetched from GetItem API
             'weight' => $weight,
             'length' => $length,
             'width' => $width,
