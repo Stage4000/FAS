@@ -711,6 +711,15 @@ class EbayAPI
             $condition = null;
             $conditionSource = 'unknown';
             
+            // Debug: Log available condition-related fields
+            $availableFields = [];
+            if (isset($item['ConditionID'])) $availableFields[] = "ConditionID={$item['ConditionID']}";
+            if (isset($item['ConditionDisplayName'])) $availableFields[] = "ConditionDisplayName={$item['ConditionDisplayName']}";
+            if (isset($item['Condition'])) $availableFields[] = "Condition(array)";
+            if (empty($availableFields)) {
+                SyncLogger::log("[Condition Debug] Item $itemId: No condition fields found. Available keys: " . implode(', ', array_keys($item)));
+            }
+            
             // Priority 1: ConditionDisplayName at root level
             if (!empty($item['ConditionDisplayName'])) {
                 $condition = $item['ConditionDisplayName'];
