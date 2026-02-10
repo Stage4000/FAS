@@ -175,14 +175,22 @@ html {
 
 /* Mobile navbar - cart, socials, and theme toggle on same row */
 @media (max-width: 991px) {
-    /* Keep regular nav items stacked */
+    /* Use flex-wrap to allow inline items */
     .navbar-collapse .navbar-nav {
-        flex-direction: column;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
     
-    /* Make items with navbar-inline-mobile class display inline */
+    /* Regular nav items take full width */
+    .navbar-collapse .navbar-nav > li:not(.navbar-inline-mobile) {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+    
+    /* Inline items stay on same row */
     .navbar-collapse .navbar-nav > li.navbar-inline-mobile {
-        display: inline-block;
+        flex: 0 0 auto;
         width: auto;
     }
     
