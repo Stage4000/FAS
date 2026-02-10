@@ -59,32 +59,32 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/contact">Contact</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="/cart">
                             <i class="fas fa-shopping-cart"></i> Cart <span class="badge bg-danger" id="cart-count">0</span>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                             <i class="fab fa-facebook"></i>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                             <i class="fab fa-instagram"></i>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
                             <i class="fab fa-tiktok"></i>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" aria-label="eBay Store">
                             <i class="fas fa-store"></i>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item navbar-inline-mobile">
                         <button class="nav-link btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
                             <i class="fas fa-moon"></i>
                         </button>

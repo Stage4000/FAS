@@ -180,14 +180,14 @@ html {
         flex-direction: column;
     }
     
-    /* Make the last items (cart onwards) display inline */
-    .navbar-collapse .navbar-nav > li:nth-last-child(-n+6) {
+    /* Make items with navbar-inline-mobile class display inline */
+    .navbar-collapse .navbar-nav > li.navbar-inline-mobile {
         display: inline-block;
         width: auto;
     }
     
-    /* Ensure these items stay on same line */
-    .navbar-collapse .navbar-nav > li:nth-last-child(-n+6) .nav-link {
+    /* Ensure these items stay on same line with appropriate spacing */
+    .navbar-collapse .navbar-nav > li.navbar-inline-mobile .nav-link {
         padding: 0.5rem 0.75rem;
     }
 }
