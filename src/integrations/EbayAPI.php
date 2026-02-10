@@ -44,6 +44,9 @@ class EbayAPI
                 $this->configFile = __DIR__ . '/../config/config.example.php';
             }
             $config = require $this->configFile;
+        } else {
+            // When config is provided, still set the config file path for token updates
+            $this->configFile = __DIR__ . '/../config/config.php';
         }
         
         $ebayConfig = $config['ebay'];

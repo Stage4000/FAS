@@ -40,16 +40,18 @@ SyncLogger::init();
 
 try {
     $db = Database::getInstance()->getConnection();
-    $ebayAPI = new EbayAPI();
-    $productModel = new Product($db);
     
-    // Load config to get store name
+    // Load config for store name and to pass to EbayAPI
     $configFile = __DIR__ . '/../src/config/config.php';
     if (!file_exists($configFile) || !is_readable($configFile)) {
         throw new Exception("Config file not found or not readable: $configFile");
     }
     $config = require $configFile;
     $storeName = $config['ebay']['store_name'] ?? 'moto800';
+    
+    // Initialize EbayAPI with config
+    $ebayAPI = new EbayAPI($config);
+    $productModel = new Product($db);
     
     // Get last successful sync timestamp
     $stmt = $db->prepare("
