@@ -117,9 +117,30 @@ require_once __DIR__ . '/includes/header.php';
                     
                     <hr>
                     
+                    <!-- Coupon Code Section -->
+                    <div class="mb-3">
+                        <label class="form-label small">Have a coupon code?</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="coupon-code" placeholder="Enter code" style="text-transform: uppercase;">
+                            <button class="btn btn-outline-danger" type="button" id="apply-coupon-btn" onclick="applyCoupon()">
+                                Apply
+                            </button>
+                        </div>
+                        <div id="coupon-message" class="small mt-1"></div>
+                    </div>
+                    
+                    <hr>
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
                         <span id="checkout-subtotal">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="discount-row" style="display: none;">
+                        <span>
+                            Discount (<span id="discount-code"></span>)
+                            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeCoupon()" style="font-size: 0.8rem;">Remove</button>
+                        </span>
+                        <span class="text-success" id="checkout-discount">-$0.00</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Shipping:</span>
@@ -157,6 +178,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <script type="text/javascript">
 let selectedShippingRate = null;
+let appliedCoupon = null; // Store applied coupon data
 
 // Function to check if form is ready for payment
 function isFormReadyForPayment() {
@@ -315,7 +337,8 @@ function setupPayPalButton() {
             const subtotal = window.cart.getTotal();
             const tax = 0; // Tax removed - will be implemented based on customer location in future
             const shipping = selectedShippingRate.cost;
-            const total = subtotal + tax + shipping;
+            const discount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+            const total = subtotal - discount + tax + shipping;
             
             // Create PayPal order
             return actions.order.create({
@@ -335,7 +358,11 @@ function setupPayPalButton() {
                             tax_total: {
                                 currency_code: 'USD',
                                 value: tax.toFixed(2)
-                            }
+                            },
+                            discount: discount > 0 ? {
+                                currency_code: 'USD',
+                                value: discount.toFixed(2)
+                            } : undefined
                         }
                     },
                     items: cart.map(item => ({
@@ -601,7 +628,21 @@ function updateCheckoutSummary() {
     const subtotal = window.cart.getTotal();
     const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
-    const total = subtotal + tax + shipping;
+    
+    // Calculate discount
+    const discount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+    
+    // Update discount display
+    const discountRow = document.getElementById('discount-row');
+    if (appliedCoupon) {
+        discountRow.style.display = 'flex';
+        document.getElementById('discount-code').textContent = appliedCoupon.code;
+        document.getElementById('checkout-discount').textContent = `-$${discount.toFixed(2)}`;
+    } else {
+        discountRow.style.display = 'none';
+    }
+    
+    const total = subtotal - discount + tax + shipping;
     
     document.getElementById('checkout-subtotal').textContent = `$${subtotal.toFixed(2)}`;
     document.getElementById('checkout-tax').textContent = `$${tax.toFixed(2)}`;
@@ -634,7 +675,8 @@ async function createOrder() {
     const subtotal = window.cart.getTotal();
     const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
-    const total = subtotal + tax + shipping;
+    const discount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+    const total = subtotal - discount + tax + shipping;
     
     const orderData = {
         action: 'create_order',
@@ -659,6 +701,8 @@ async function createOrder() {
         subtotal: subtotal,
         shipping_cost: shipping,
         tax_amount: tax,
+        discount_code: appliedCoupon ? appliedCoupon.code : null,
+        discount_amount: discount,
         total_amount: total,
         notes: form.notes.value,
         paypal_order_id: 'PENDING-' + Date.now() // Will be updated with actual PayPal order ID
@@ -721,6 +765,87 @@ async function completeOrder(paypalOrderId, paypalTransactionId) {
         console.error('Order completion error:', error);
         alert('Payment was successful but there was an issue completing your order. Please contact support.');
     }
+}
+/**
+ * Apply coupon code
+ */
+async function applyCoupon() {
+    const input = document.getElementById('coupon-code');
+    const code = input.value.trim().toUpperCase();
+    const messageDiv = document.getElementById('coupon-message');
+    const btn = document.getElementById('apply-coupon-btn');
+    
+    if (!code) {
+        messageDiv.className = 'small mt-1 text-danger';
+        messageDiv.textContent = 'Please enter a coupon code';
+        return;
+    }
+    
+    const subtotal = window.cart.getTotal();
+    
+    btn.disabled = true;
+    btn.textContent = 'Applying...';
+    messageDiv.className = 'small mt-1';
+    messageDiv.textContent = '';
+    
+    try {
+        const response = await fetch('/api/validate-coupon.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ code, subtotal })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.valid) {
+            appliedCoupon = {
+                code: data.code,
+                discount_type: data.discount_type,
+                discount_value: data.discount_value,
+                discount_amount: data.discount_amount,
+                description: data.description
+            };
+            
+            messageDiv.className = 'small mt-1 text-success';
+            messageDiv.textContent = '✓ Coupon applied successfully!';
+            input.disabled = true;
+            btn.style.display = 'none';
+            
+            updateCheckoutSummary();
+        } else {
+            messageDiv.className = 'small mt-1 text-danger';
+            messageDiv.textContent = data.message || 'Invalid coupon code';
+            appliedCoupon = null;
+        }
+    } catch (error) {
+        console.error('Coupon validation error:', error);
+        messageDiv.className = 'small mt-1 text-danger';
+        messageDiv.textContent = 'Failed to validate coupon. Please try again.';
+        appliedCoupon = null;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply';
+    }
+}
+
+/**
+ * Remove applied coupon
+ */
+function removeCoupon() {
+    appliedCoupon = null;
+    
+    const input = document.getElementById('coupon-code');
+    const btn = document.getElementById('apply-coupon-btn');
+    const messageDiv = document.getElementById('coupon-message');
+    
+    input.value = '';
+    input.disabled = false;
+    btn.style.display = '';
+    messageDiv.textContent = '';
+    
+    updateCheckoutSummary();
 }
 
 </script>
