@@ -716,14 +716,17 @@ class EbayAPI
             
             // Extract condition - try multiple possible locations
             $condition = null;
+            $conditionSource = 'unknown';
             
             // Priority 1: ConditionDisplayName at root level
             if (!empty($item['ConditionDisplayName'])) {
                 $condition = $item['ConditionDisplayName'];
+                $conditionSource = 'ConditionDisplayName';
             }
             // Priority 2: Try nested under Condition
             elseif (!empty($item['Condition']['ConditionDisplayName'])) {
                 $condition = $item['Condition']['ConditionDisplayName'];
+                $conditionSource = 'Condition.ConditionDisplayName';
             }
             // Priority 3: Map ConditionID to display name if available
             elseif (!empty($item['ConditionID'])) {
@@ -743,13 +746,17 @@ class EbayAPI
                     7000 => 'For parts or not working'
                 ];
                 $condition = $conditionMap[$conditionId] ?? null;
+                $conditionSource = $condition ? "ConditionID:{$conditionId}" : "ConditionID:{$conditionId}(unmapped)";
             }
+            
+            // Log the extracted condition for debugging
+            error_log("[eBay Sync Debug] Item $itemId - Condition: " . ($condition ?? 'null') . " (source: $conditionSource)");
             
             // Only use 'Used' as fallback if we truly couldn't determine condition
             // This preserves actual condition from eBay
             if ($condition === null) {
                 $condition = 'Used';
-                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition, defaulting to 'Used'");
+                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition from any source, defaulting to 'Used'");
             }
             
             $items[] = [
