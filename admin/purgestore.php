@@ -163,7 +163,15 @@ $currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                         <button type="submit" 
                                                 name="confirm_purge" 
                                                 class="btn btn-danger btn-lg">
-                                            <i class="fas fa-trash-alt me-2"></i>Purge <?php echo $currentCount > 0 ? "$currentCount Store Products" : "Sync Logs"; ?>
+                                            <i class="fas fa-trash-alt me-2"></i>Purge <?php 
+                                                if ($currentCount > 0 && $currentSyncLogCount > 0) {
+                                                    echo "$currentCount Products & $currentSyncLogCount Sync Logs";
+                                                } elseif ($currentCount > 0) {
+                                                    echo "$currentCount Store Products";
+                                                } else {
+                                                    echo "$currentSyncLogCount Sync Logs";
+                                                }
+                                            ?>
                                         </button>
                                         <a href="index.php" class="btn btn-secondary btn-lg">Cancel</a>
                                     </form>
