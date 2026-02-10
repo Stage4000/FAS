@@ -689,11 +689,6 @@ class EbayAPI
             // Log brand/mpn extraction for debugging
             $itemId = $item['ItemID'] ?? 'unknown';
             $itemTitle = $item['Title'] ?? 'Untitled';
-            if ($brandName || $modelNumber) {
-                error_log("[eBay Sync Debug] Item: $itemId - Title: $itemTitle");
-                error_log("[eBay Sync Debug]   Brand: " . ($brandName ? $brandName : 'NULL'));
-                error_log("[eBay Sync Debug]   MPN: " . ($modelNumber ? $modelNumber : 'NULL'));
-            }
             
             // Extract quantity and listing status
             $quantity = (int)($item['Quantity'] ?? 0);
@@ -702,14 +697,12 @@ class EbayAPI
             // Skip ended/sold items - only import active listings
             // Filter out items that are not active or have no quantity available
             if ($listingStatus && strtolower($listingStatus) !== 'active') {
-                error_log("[eBay Sync Debug] Skipping item $itemId - Status: $listingStatus (not active)");
                 $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
             
             // Also skip if quantity is 0 (sold out) - these shouldn't be imported
             if ($quantity <= 0) {
-                error_log("[eBay Sync Debug] Skipping item $itemId - Quantity: 0 (sold out)");
                 $inactiveItemIds[] = $itemId; // Track for hiding in database
                 continue;
             }
@@ -750,13 +743,13 @@ class EbayAPI
             }
             
             // Log the extracted condition for debugging
-            error_log("[eBay Sync Debug] Item $itemId - Condition: " . ($condition ?? 'null') . " (source: $conditionSource)");
+            SyncLogger::log("[Condition] Item $itemId: " . ($condition ?? 'null') . " (from: $conditionSource)");
             
             // Only use 'Used' as fallback if we truly couldn't determine condition
             // This preserves actual condition from eBay
             if ($condition === null) {
                 $condition = 'Used';
-                error_log("[eBay Sync Debug] Item $itemId - Could not determine condition from any source, defaulting to 'Used'");
+                SyncLogger::log("[Condition] Item $itemId: Defaulting to 'Used' - no condition data from eBay");
             }
             
             $items[] = [
@@ -1367,8 +1360,6 @@ class EbayAPI
      */
     public function getItemDetails($itemId)
     {
-        SyncLogger::log("[GetItem Debug] Fetching detailed item info for ItemID: {$itemId}");
-        
         // Build GetItem XML request
         $xml = '<?xml version="1.0" encoding="utf-8"?>';
         $xml .= '<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
@@ -1385,7 +1376,6 @@ class EbayAPI
         $response = $this->makeTradingApiRequest($url, $xml, 0, self::RATE_LIMIT_MAX_RETRIES, 'GetItem');
         
         if (!$response || !isset($response['Item'])) {
-            SyncLogger::log("[GetItem Debug] No item data returned for ItemID: {$itemId}");
             return null;
         }
         
@@ -1480,9 +1470,6 @@ class EbayAPI
         if (is_array($mpn)) {
             $mpn = implode(', ', $mpn);
         }
-        
-        SyncLogger::log("[GetItem Debug] Extracted - Brand: " . ($brand ?? 'NULL') . ", MPN: " . ($mpn ?? 'NULL'));
-        SyncLogger::log("[GetItem Debug] Dimensions - Weight: " . ($weight ?? 'NULL') . " lbs, L: " . ($length ?? 'NULL') . ", W: " . ($width ?? 'NULL') . ", H: " . ($height ?? 'NULL') . " inches");
         
         // Extract description and strip HTML, CSS, and JS but preserve line breaks
         $description = $item['Description'] ?? '';
