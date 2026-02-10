@@ -173,6 +173,33 @@ html {
     }
 }
 
+/* Mobile navbar - cart, socials, and theme toggle on same row */
+@media (max-width: 991px) {
+    /* Use flex-wrap to allow inline items */
+    .navbar-collapse .navbar-nav {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    /* Regular nav items take full width */
+    .navbar-collapse .navbar-nav > li:not(.navbar-inline-mobile) {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+    
+    /* Inline items stay on same row */
+    .navbar-collapse .navbar-nav > li.navbar-inline-mobile {
+        flex: 0 0 auto;
+        width: auto;
+    }
+    
+    /* Ensure these items stay on same line with appropriate spacing */
+    .navbar-collapse .navbar-nav > li.navbar-inline-mobile .nav-link {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
 /* Hero Section */
 .hero-section {
     min-height: 700px;
