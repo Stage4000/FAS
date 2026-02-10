@@ -173,6 +173,25 @@ html {
     }
 }
 
+/* Mobile navbar - cart, socials, and theme toggle on same row */
+@media (max-width: 991px) {
+    /* Keep regular nav items stacked */
+    .navbar-collapse .navbar-nav {
+        flex-direction: column;
+    }
+    
+    /* Make the last items (cart onwards) display inline */
+    .navbar-collapse .navbar-nav > li:nth-last-child(-n+6) {
+        display: inline-block;
+        width: auto;
+    }
+    
+    /* Ensure these items stay on same line */
+    .navbar-collapse .navbar-nav > li:nth-last-child(-n+6) .nav-link {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
 /* Hero Section */
 .hero-section {
     min-height: 700px;
