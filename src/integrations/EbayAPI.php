@@ -707,72 +707,22 @@ class EbayAPI
                 continue;
             }
             
-            // Extract condition - try multiple possible locations
-            $condition = null;
-            $conditionSource = 'unknown';
-            
-            // Debug: Log available condition-related fields
-            $availableFields = [];
-            if (isset($item['ConditionID'])) $availableFields[] = "ConditionID={$item['ConditionID']}";
-            if (isset($item['ConditionDisplayName'])) $availableFields[] = "ConditionDisplayName={$item['ConditionDisplayName']}";
-            if (isset($item['Condition'])) $availableFields[] = "Condition(array)";
-            if (empty($availableFields)) {
-                SyncLogger::log("[Condition Debug] Item $itemId: No condition fields found. Available keys: " . implode(', ', array_keys($item)));
-            }
-            
-            // Priority 1: ConditionDisplayName at root level
-            if (!empty($item['ConditionDisplayName'])) {
-                $condition = $item['ConditionDisplayName'];
-                $conditionSource = 'ConditionDisplayName';
-            }
-            // Priority 2: Try nested under Condition
-            elseif (!empty($item['Condition']['ConditionDisplayName'])) {
-                $condition = $item['Condition']['ConditionDisplayName'];
-                $conditionSource = 'Condition.ConditionDisplayName';
-            }
-            // Priority 3: Map ConditionID to display name if available
-            elseif (!empty($item['ConditionID'])) {
-                $conditionId = (int)$item['ConditionID'];
-                // eBay condition IDs: 1000=New, 1500=New other, 2000=Manufacturer refurbished, 
-                // 2500=Seller refurbished, 3000=Used, 4000=Very Good, 5000=Good, 6000=Acceptable, 7000=For parts
-                $conditionMap = [
-                    1000 => 'New',
-                    1500 => 'New other',
-                    1750 => 'New with defects',
-                    2000 => 'Manufacturer refurbished',
-                    2500 => 'Seller refurbished',
-                    3000 => 'Used',
-                    4000 => 'Very Good',
-                    5000 => 'Good',
-                    6000 => 'Acceptable',
-                    7000 => 'For parts or not working'
-                ];
-                $condition = $conditionMap[$conditionId] ?? null;
-                $conditionSource = $condition ? "ConditionID:{$conditionId}" : "ConditionID:{$conditionId}(unmapped)";
-            }
-            
-            // Log the extracted condition for debugging
-            SyncLogger::log("[Condition] Item $itemId: " . ($condition ?? 'null') . " (from: $conditionSource)");
-            
-            // Only use 'Used' as fallback if we truly couldn't determine condition
-            // This preserves actual condition from eBay
-            if ($condition === null) {
-                $condition = 'Used';
-                SyncLogger::log("[Condition] Item $itemId: Defaulting to 'Used' - no condition data from eBay");
-            }
+            // Note: Condition and SKU are fetched from GetItem API in syncFromEbay method
+            // These fields are not reliable in GetSellerEvents response
             
             $items[] = [
                 'id' => $itemId,
                 'title' => $itemTitle,
                 'description' => $description,
-                'sku' => $item['SKU'] ?? '',
+                'sku' => '', // Will be fetched from GetItem API
+                'condition' => '', // Will be fetched from GetItem API
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'quantity' => $quantity,
                 'currency' => 'USD',
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => $condition,
+                'condition' => '', // Will be fetched from GetItem API
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
@@ -1507,6 +1457,41 @@ class EbayAPI
             $sku = implode(', ', $sku);
         }
         
+        // Extract Condition - try multiple possible locations
+        $condition = null;
+        
+        // Priority 1: ConditionDisplayName at root level
+        if (!empty($item['ConditionDisplayName'])) {
+            $condition = $item['ConditionDisplayName'];
+        }
+        // Priority 2: Try nested under Condition
+        elseif (!empty($item['Condition']['ConditionDisplayName'])) {
+            $condition = $item['Condition']['ConditionDisplayName'];
+        }
+        // Priority 3: Map ConditionID to display name if available
+        elseif (!empty($item['ConditionID'])) {
+            $conditionId = (int)$item['ConditionID'];
+            // eBay condition IDs mapping
+            $conditionMap = [
+                1000 => 'New',
+                1500 => 'New other',
+                1750 => 'New with defects',
+                2000 => 'Manufacturer refurbished',
+                2500 => 'Seller refurbished',
+                3000 => 'Used',
+                4000 => 'Very Good',
+                5000 => 'Good',
+                6000 => 'Acceptable',
+                7000 => 'For parts or not working'
+            ];
+            $condition = $conditionMap[$conditionId] ?? null;
+        }
+        
+        // Default to 'Used' if condition cannot be determined
+        if ($condition === null) {
+            $condition = 'Used';
+        }
+        
         // Extract all images from eBay
         $allImages = [];
         if (isset($item['PictureDetails']['PictureURL'])) {
@@ -1528,6 +1513,7 @@ class EbayAPI
             'height' => $height,
             'description' => $description,
             'sku' => $sku,
+            'condition' => $condition,
             'images' => $allImages,
             'image' => !empty($allImages) ? $allImages[0] : null,
             'item' => $item // Return full item data for other uses if needed
