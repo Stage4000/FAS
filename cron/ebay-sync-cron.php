@@ -43,6 +43,10 @@ try {
     $ebayAPI = new EbayAPI();
     $productModel = new Product($db);
     
+    // Load config to get store name
+    $config = require __DIR__ . '/../src/config/config.php';
+    $storeName = $config['ebay']['store_name'] ?? 'moto800';
+    
     // Get last successful sync timestamp
     $stmt = $db->prepare("
         SELECT last_sync_timestamp 
@@ -86,7 +90,7 @@ try {
     do {
         if ($useFullSync) {
             // Use GetSellerList to get ALL active listings
-            $result = $ebayAPI->getStoreItems('moto800', $page, 100, $startDate, $endDate);
+            $result = $ebayAPI->getStoreItems($storeName, $page, 100, $startDate, $endDate);
         } else {
             // Use GetSellerEvents to get only changed items
             $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
@@ -184,7 +188,7 @@ try {
     
     // Complete sync log with timestamp
     // For full sync, use current time. For incremental, use the modTimeTo value
-    $lastSyncTimestamp = $useFullSync ? date('Y-m-d H:i:s', strtotime('-2 minutes')) : $modTimeTo->format('Y-m-d H:i:s');
+    $lastSyncTimestamp = $useFullSync ? (new DateTime('-2 minutes'))->format('Y-m-d H:i:s') : $modTimeTo->format('Y-m-d H:i:s');
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
         SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?
