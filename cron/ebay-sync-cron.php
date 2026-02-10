@@ -49,8 +49,8 @@ try {
     $config = require $configFile;
     $storeName = $config['ebay']['store_name'] ?? 'moto800';
     
-    // Initialize EbayAPI with config
-    $ebayAPI = new EbayAPI($config);
+    // Initialize EbayAPI with config and config file path
+    $ebayAPI = new EbayAPI($config, $configFile);
     $productModel = new Product($db);
     
     // Get last successful sync timestamp

@@ -36,7 +36,7 @@ class EbayAPI
     private const RATE_LIMIT_BASE_WAIT = 5; // Base wait time in seconds
     private const RATE_LIMIT_MULTIPLIER = 3; // Exponential multiplier
     
-    public function __construct($config = null)
+    public function __construct($config = null, $configFilePath = null)
     {
         if ($config === null) {
             $this->configFile = __DIR__ . '/../config/config.php';
@@ -45,8 +45,13 @@ class EbayAPI
             }
             $config = require $this->configFile;
         } else {
-            // When config is provided, still set the config file path for token updates
-            $this->configFile = __DIR__ . '/../config/config.php';
+            // When config is provided, use the provided config file path or default
+            if ($configFilePath !== null) {
+                $this->configFile = $configFilePath;
+            } else {
+                // Fallback to default path relative to EbayAPI location
+                $this->configFile = __DIR__ . '/../config/config.php';
+            }
         }
         
         $ebayConfig = $config['ebay'];
