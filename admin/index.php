@@ -183,7 +183,6 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Convert last sync timestamp to local time
         const lastSyncElement = document.getElementById('last-sync-time');
