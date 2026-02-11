@@ -41,7 +41,9 @@ $lastSync = $lastSyncRow ? date('M j, Y g:i A', strtotime($lastSyncRow['last_syn
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <h1 class="mb-4" data-aos="fade-down">Dashboard</h1>
+                <h1 class="mb-4" data-aos="fade-down">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </h1>
 
                 <!-- Stats Cards -->
                 <div class="row mb-4">

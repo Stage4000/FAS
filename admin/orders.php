@@ -76,7 +76,9 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
-    <h1 class="mb-4">Orders Management</h1>
+    <h1 class="mb-4">
+        <i class="fas fa-shopping-cart me-2"></i>Orders Management
+    </h1>
     
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -121,7 +123,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
             <li>Log in to your <a href="https://www.paypal.com" target="_blank" class="alert-link">PayPal account</a></li>
             <li>Go to <strong>Settings</strong> (gear icon) → <strong>Notifications</strong></li>
             <li>Under <strong>Instant payment notifications</strong>, click <strong>Update</strong></li>
-            <li>Enter your IPN URL: <code><?php echo htmlspecialchars($siteUrl . '/api/paypal-ipn.php'); ?></code></li>
+            <li>Enter your IPN URL: <code><?php echo htmlspecialchars($siteUrl . '/api/paypal-webhook.php'); ?></code></li>
             <li>Select <strong>Receive IPN messages (Enabled)</strong></li>
             <li>Click <strong>Save</strong></li>
         </ol>
