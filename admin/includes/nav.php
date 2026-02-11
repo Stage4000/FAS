@@ -16,16 +16,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <i class="fas fa-moon"></i>
                 </button>
                 <!-- PWA Install Button (hidden by default, shown by JS when available) -->
-                <button class="btn btn-outline-info btn-sm me-lg-2 mb-2 mb-lg-0" id="pwaInstallBtn" style="display: none;" title="Install Admin App">
+                <button class="btn btn-outline-info btn-sm me-lg-2 mb-2 mb-lg-0" id="pwaInstallBtn" style="display: none;" title="Install Admin App" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
                     <i class="fas fa-download me-1"></i>Install App
                 </button>
                 <span class="navbar-text text-white me-lg-3 mb-2 mb-lg-0">
                     <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                 </span>
-                <a href="../index.php" class="btn btn-outline-light btn-sm me-lg-2 mb-2 mb-lg-0">
+                <a href="../index.php" class="btn btn-outline-light btn-sm me-lg-2 mb-2 mb-lg-0" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
                     <i class="fas fa-arrow-left me-1"></i>Back to Site
                 </a>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm mb-2 mb-lg-0">
+                <a href="logout.php" class="btn btn-outline-danger btn-sm mb-2 mb-lg-0" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                 </a>
             </div>
