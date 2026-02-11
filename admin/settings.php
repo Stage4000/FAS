@@ -114,7 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <h1 class="mb-4">Settings</h1>
+                <h1 class="mb-4">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </h1>
 
                 <?php if ($success): ?>
                     <div class="alert alert-success alert-dismissible fade show">

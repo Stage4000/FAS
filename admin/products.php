@@ -279,7 +279,9 @@ if ($action === 'list') {
     <?php if ($action === 'list'): ?>
         <!-- Product List View -->
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2">Products</h1>
+            <h1 class="mb-4">
+                <i class="fas fa-box me-2"></i>Products
+            </h1>
             <div class="btn-toolbar mb-2 mb-md-0">
                 <a href="?action=create" class="btn btn-primary">
                     <i class="fas fa-plus-circle me-1"></i> Add Product
@@ -420,7 +422,9 @@ if ($action === 'list') {
     <?php elseif ($action === 'create' || $action === 'edit'): ?>
     <!-- Product Form -->
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><?php echo $action === 'create' ? 'Add' : 'Edit'; ?> Product</h1>
+                <h1 class="mb-4">
+                    <i class="fas fa-box me-2"></i><?php echo $action === 'create' ? 'Add' : 'Edit'; ?> Product
+                </h1>
                 <a href="?action=list" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Back to List
                 </a>
