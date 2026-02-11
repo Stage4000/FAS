@@ -18,27 +18,32 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const navbarCollapse = document.getElementById('adminNavbar');
-        const navbarToggler = document.querySelector('.navbar-toggler');
         
-        if (navbarCollapse && navbarToggler) {
-            // Close navbar when clicking any link or button inside the navbar
-            const clickableItems = navbarCollapse.querySelectorAll('a, button:not(#navbarThemeToggle)');
+        if (navbarCollapse) {
+            // Get the Bootstrap Collapse instance (will be created by Bootstrap on first toggle)
+            // Close navbar when clicking navigation links or action buttons
+            const navigationItems = navbarCollapse.querySelectorAll('a, button');
             
-            clickableItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    // Only collapse if navbar is shown (mobile view)
+            navigationItems.forEach(item => {
+                // Don't auto-collapse for theme toggle button
+                if (item.id === 'navbarThemeToggle') {
+                    return;
+                }
+                
+                item.addEventListener('click', function(e) {
+                    // Only collapse if navbar is currently shown (mobile expanded state)
                     if (navbarCollapse.classList.contains('show')) {
-                        const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
-                            toggle: false
-                        });
-                        bsCollapse.hide();
+                        // Get the existing Bootstrap Collapse instance
+                        const collapseInstance = bootstrap.Collapse.getInstance(navbarCollapse);
+                        if (collapseInstance) {
+                            collapseInstance.hide();
+                        } else {
+                            // If instance doesn't exist yet, create one and hide
+                            const newCollapse = new bootstrap.Collapse(navbarCollapse, { toggle: false });
+                            newCollapse.hide();
+                        }
                     }
                 });
-            });
-            
-            // Also allow clicking the toggler button when expanded to close it
-            navbarToggler.addEventListener('click', function() {
-                // Bootstrap will handle the toggle automatically
             });
         }
     });
