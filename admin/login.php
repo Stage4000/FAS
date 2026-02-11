@@ -25,6 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Admin Login - Flip and Strip</title>
     <link rel="shortcut icon" href="../gallery/favicons/favicon.png">
     <link rel="manifest" href="/admin/manifest.json">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#db0335">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FAS Admin">
+    <link rel="apple-touch-icon" href="/gallery/favicons/favicon-180x180.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/admin-style.css">
@@ -107,5 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     
     <script src="../public/js/theme-toggle.js"></script>
+    <!-- PWA Installer Script -->
+    <script src="/admin/js/pwa-installer.js"></script>
 </body>
 </html>

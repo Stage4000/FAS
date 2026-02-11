@@ -11,6 +11,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <button class="btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
                 <i class="fas fa-moon"></i>
             </button>
+            <!-- PWA Install Button (hidden by default, shown by JS when available) -->
+            <button class="btn btn-outline-info btn-sm me-2" id="pwaInstallBtn" style="display: none;" title="Install Admin App">
+                <i class="fas fa-download me-1"></i>Install App
+            </button>
             <span class="navbar-text text-white me-3">
                 <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
             </span>

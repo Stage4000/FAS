@@ -2,10 +2,11 @@
   "name": "Flip and Strip Admin",
   "short_name": "FAS Admin",
   "description": "Admin dashboard for Flip and Strip",
-  "start_url": "/admin/",
+  "start_url": "/admin/index.php",
+  "scope": "/admin/",
   "display": "standalone",
   "background_color": "#1a1a1a",
-  "theme_color": "#2d2d2d",
+  "theme_color": "#db0335",
   "orientation": "any",
   "icons": [
     {
@@ -38,6 +39,12 @@
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/gallery/favicons/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
