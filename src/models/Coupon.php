@@ -119,8 +119,8 @@ class Coupon
             $data['discount_type'],
             $data['discount_value'],
             $data['minimum_purchase'] ?? 0,
-            $data['max_uses'] ?? null,
-            $data['expires_at'] ?? null,
+            !empty($data['max_uses']) ? $data['max_uses'] : null,
+            !empty($data['expires_at']) ? $data['expires_at'] : null,
             $data['is_active'] ?? 1
         ]);
     }
@@ -146,8 +146,8 @@ class Coupon
             $data['discount_type'],
             $data['discount_value'],
             $data['minimum_purchase'] ?? 0,
-            $data['max_uses'] ?? null,
-            $data['expires_at'] ?? null,
+            !empty($data['max_uses']) ? $data['max_uses'] : null,
+            !empty($data['expires_at']) ? $data['expires_at'] : null,
             $data['is_active'] ?? 1,
             $id
         ]);
