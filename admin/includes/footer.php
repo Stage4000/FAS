@@ -14,6 +14,36 @@
     });
 </script>
 
+<!-- Auto-collapse navbar on mobile when clicking links/buttons -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const navbarCollapse = document.getElementById('adminNavbar');
+        const navbarToggler = document.querySelector('.navbar-toggler');
+        
+        if (navbarCollapse && navbarToggler) {
+            // Close navbar when clicking any link or button inside the navbar
+            const clickableItems = navbarCollapse.querySelectorAll('a, button:not(#navbarThemeToggle)');
+            
+            clickableItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Only collapse if navbar is shown (mobile view)
+                    if (navbarCollapse.classList.contains('show')) {
+                        const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                            toggle: false
+                        });
+                        bsCollapse.hide();
+                    }
+                });
+            });
+            
+            // Also allow clicking the toggler button when expanded to close it
+            navbarToggler.addEventListener('click', function() {
+                // Bootstrap will handle the toggle automatically
+            });
+        }
+    });
+</script>
+
 <!-- Theme Toggle Button -->
 <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">
     <i class="fas fa-moon"></i>
