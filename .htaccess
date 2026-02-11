@@ -70,7 +70,7 @@
 <FilesMatch "manifest\.json$">
     <IfModule mod_headers.c>
         Header set Content-Type "application/manifest+json"
-        Header set Cache-Control "public, max-age=31536000"
+        Header set Cache-Control "public, max-age=86400"
     </IfModule>
 </FilesMatch>
 

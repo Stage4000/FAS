@@ -78,8 +78,18 @@ window.addEventListener('appinstalled', () => {
   `;
   document.body.appendChild(successMsg);
   
-  // Auto-dismiss after 5 seconds
-  setTimeout(() => {
-    successMsg.remove();
+  // Auto-dismiss after 5 seconds, but clear timeout if manually dismissed
+  const timeoutId = setTimeout(() => {
+    if (successMsg.parentElement) {
+      successMsg.remove();
+    }
   }, 5000);
+  
+  // Clear timeout when close button is clicked
+  const closeBtn = successMsg.querySelector('.btn-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      clearTimeout(timeoutId);
+    });
+  }
 });
