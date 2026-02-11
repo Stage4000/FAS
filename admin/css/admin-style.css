@@ -53,6 +53,41 @@ body {
     transform: translateY(-2px);
 }
 
+/* Navbar toggler styling */
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.3);
+    border-radius: 0.5rem;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.5);
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Mobile navbar collapse styling */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        background-color: var(--admin-dark);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .navbar-nav .btn,
+    .navbar-nav .navbar-text {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .navbar-nav .btn {
+        margin: 0.25rem 0;
+    }
+}
+
 /* Admin navbar theme toggle */
 #navbarThemeToggle {
     color: white !important;
