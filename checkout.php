@@ -158,8 +158,8 @@ require_once __DIR__ . '/includes/header.php';
                     
                     <!-- PayPal Button Container -->
                     <!-- Instructional message for incomplete form -->
-                    <div id="paypal-instructions" class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-info-circle me-2"></i>
+                    <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
                         <strong>Please complete all required fields and select a shipping method to proceed with payment.</strong>
                     </div>
                     <div id="paypal-button-container" class="mb-3"></div>
