@@ -68,6 +68,12 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
     <title>Orders - Admin Panel</title>
     <link rel="shortcut icon" href="../gallery/favicons/favicon.png">
     <link rel="manifest" href="/admin/manifest.json">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#db0335">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FAS Admin">
+    <link rel="apple-touch-icon" href="/gallery/favicons/favicon-180x180.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
