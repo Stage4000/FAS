@@ -24,7 +24,17 @@ $totalProducts = $productModel->getCountAll();
 // Get last sync timestamp
 $lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
 $lastSyncRow = $lastSyncStmt->fetch(PDO::FETCH_ASSOC);
-$lastSyncTimestamp = $lastSyncRow ? $lastSyncRow['last_sync_timestamp'] : null;
+// Convert timestamp to ISO 8601 format for JavaScript compatibility
+$lastSyncTimestamp = null;
+if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
+    try {
+        $dt = new DateTime($lastSyncRow['last_sync_timestamp']);
+        $lastSyncTimestamp = $dt->format('c'); // ISO 8601 format (e.g., 2026-02-11T18:30:00+00:00)
+    } catch (Exception $e) {
+        error_log('Failed to parse last_sync_timestamp: ' . $e->getMessage());
+        $lastSyncTimestamp = null;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -174,16 +184,27 @@ $lastSyncTimestamp = $lastSyncRow ? $lastSyncRow['last_sync_timestamp'] : null;
         if (lastSyncElement) {
             const timestamp = lastSyncElement.getAttribute('data-timestamp');
             if (timestamp) {
-                const date = new Date(timestamp);
-                const options = { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric', 
-                    hour: 'numeric', 
-                    minute: '2-digit',
-                    hour12: true 
-                };
-                lastSyncElement.textContent = date.toLocaleString('en-US', options);
+                try {
+                    const date = new Date(timestamp);
+                    // Check if date is valid
+                    if (isNaN(date.getTime())) {
+                        console.error('Invalid date:', timestamp);
+                        lastSyncElement.textContent = 'Invalid date';
+                    } else {
+                        const options = { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric', 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                        };
+                        lastSyncElement.textContent = date.toLocaleString('en-US', options);
+                    }
+                } catch (error) {
+                    console.error('Error parsing date:', error);
+                    lastSyncElement.textContent = 'Error';
+                }
             }
         }
         
