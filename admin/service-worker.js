@@ -66,30 +66,42 @@ self.addEventListener('fetch', event => {
           return response;
         }
 
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200) {
-            return response;
-          }
-          
-          // Only cache same-origin responses (basic and cors types)
-          if (response.type !== 'basic' && response.type !== 'cors') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
+        // Clone the request with explicit redirect mode
+        const fetchRequest = new Request(event.request, {
+          redirect: 'follow'
         });
+
+        return fetch(fetchRequest)
+          .then(response => {
+            // Check if valid response
+            if (!response || response.status !== 200) {
+              return response;
+            }
+            
+            // Only cache same-origin responses (basic and cors types)
+            // Opaque responses (from redirects) won't be cached
+            if (response.type !== 'basic' && response.type !== 'cors') {
+              return response;
+            }
+
+            // Clone the response
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              })
+              .catch(err => {
+                console.log('Admin SW: Cache put failed', err);
+              });
+
+            return response;
+          })
+          .catch(error => {
+            console.log('Admin SW: Fetch failed', error);
+            // Return a fallback response or re-throw
+            return caches.match('/admin/login.php');
+          });
       })
   );
 });
