@@ -22,3 +22,6 @@
 <!-- Theme Toggle Script -->
 <script src="../public/js/theme-toggle.js"></script>
 
+
+<!-- PWA Installer Script (Admin only) -->
+<script src="/admin/js/pwa-installer.js"></script>
