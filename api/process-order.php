@@ -146,6 +146,8 @@ function createOrder($input, $orderModel, $productModel)
         'subtotal' => $input['subtotal'],
         'shipping_cost' => $input['shipping_cost'] ?? 0,
         'tax_amount' => $input['tax_amount'] ?? 0,
+        'discount_code' => $input['discount_code'] ?? null,
+        'discount_amount' => $input['discount_amount'] ?? 0,
         'total_amount' => $input['total_amount'],
         'payment_method' => 'paypal',
         'payment_status' => 'pending',
@@ -273,6 +275,14 @@ function completeOrder($input, $orderModel, $productModel)
         foreach ($productsToUpdate as $product) {
             $productModel->update($product['id'], ['quantity' => $product['new_quantity']]);
             error_log("Deducted {$product['quantity']} units from product #{$product['id']} ({$product['name']}). New quantity: {$product['new_quantity']}");
+        }
+        
+        // Increment coupon usage if a coupon was applied
+        if (!empty($order['discount_code'])) {
+            require_once __DIR__ . '/../src/models/Coupon.php';
+            $couponModel = new \FAS\Models\Coupon($db);
+            $couponModel->incrementUsage($order['discount_code']);
+            error_log("Incremented usage for coupon: {$order['discount_code']}");
         }
         
         // Commit transaction

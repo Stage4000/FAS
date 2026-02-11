@@ -20,9 +20,9 @@ class Order
      * 
      * @param array $data Order data with keys: order_number, customer_email, customer_name, 
      *                    customer_phone, billing_address, shipping_address, subtotal, 
-     *                    shipping_cost, tax_amount, total_amount, payment_method, 
-     *                    payment_status, paypal_order_id, paypal_transaction_id, 
-     *                    order_status, notes
+     *                    shipping_cost, tax_amount, discount_code, discount_amount,
+     *                    total_amount, payment_method, payment_status, paypal_order_id, 
+     *                    paypal_transaction_id, order_status, notes
      * @return int|false Order ID on success, false on failure
      */
     public function create($data)
@@ -30,9 +30,9 @@ class Order
         $sql = "INSERT INTO orders (
             order_number, customer_email, customer_name, customer_phone,
             billing_address, shipping_address, subtotal, shipping_cost, tax_amount,
-            total_amount, payment_method, payment_status, paypal_order_id,
-            paypal_transaction_id, order_status, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            discount_code, discount_amount, total_amount, payment_method, payment_status,
+            paypal_order_id, paypal_transaction_id, order_status, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
@@ -45,6 +45,8 @@ class Order
             $data['subtotal'],
             $data['shipping_cost'] ?? 0,
             $data['tax_amount'] ?? 0,
+            $data['discount_code'] ?? null,
+            $data['discount_amount'] ?? 0,
             $data['total_amount'],
             $data['payment_method'] ?? 'paypal',
             $data['payment_status'] ?? 'pending',

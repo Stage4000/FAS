@@ -20,10 +20,32 @@ class Coupon
      */
     public function validateCoupon($code, $subtotal = 0)
     {
+        // Get database driver to use appropriate datetime function
+        $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        
+        // Use appropriate datetime function based on database driver
+        // This is safe as we're using a whitelist approach with predefined strings
+        switch ($driver) {
+            case 'mysql':
+                $dateTimeCheck = "expires_at > NOW()";
+                break;
+            case 'sqlite':
+                $dateTimeCheck = "expires_at > datetime('now')";
+                break;
+            case 'pgsql':
+                $dateTimeCheck = "expires_at > NOW()";
+                break;
+            default:
+                // Fallback to SQLite syntax for unknown drivers
+                $dateTimeCheck = "expires_at > datetime('now')";
+                error_log("Unknown database driver: $driver. Using SQLite datetime syntax.");
+                break;
+        }
+        
         $sql = "SELECT * FROM coupons 
                 WHERE code = ? 
                 AND is_active = 1 
-                AND (expires_at IS NULL OR expires_at > datetime('now'))
+                AND (expires_at IS NULL OR $dateTimeCheck)
                 AND (max_uses IS NULL OR times_used < max_uses)";
         
         $stmt = $this->db->prepare($sql);
@@ -97,8 +119,8 @@ class Coupon
             $data['discount_type'],
             $data['discount_value'],
             $data['minimum_purchase'] ?? 0,
-            $data['max_uses'] ?? null,
-            $data['expires_at'] ?? null,
+            !empty($data['max_uses']) ? $data['max_uses'] : null,
+            !empty($data['expires_at']) ? $data['expires_at'] : null,
             $data['is_active'] ?? 1
         ]);
     }
@@ -124,8 +146,8 @@ class Coupon
             $data['discount_type'],
             $data['discount_value'],
             $data['minimum_purchase'] ?? 0,
-            $data['max_uses'] ?? null,
-            $data['expires_at'] ?? null,
+            !empty($data['max_uses']) ? $data['max_uses'] : null,
+            !empty($data['expires_at']) ? $data['expires_at'] : null,
             $data['is_active'] ?? 1,
             $id
         ]);
