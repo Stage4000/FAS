@@ -622,3 +622,27 @@ body {
 [data-theme="dark"] .modal-open .card:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
 }
+
+/* Button group fix for warehouse management buttons */
+/* When buttons are in forms with d-inline inside a btn-group, remove all border radius first */
+.btn-group .d-inline .btn {
+    border-radius: 0 !important;
+}
+
+/* First child (button or link with btn class) should have left border radius */
+.btn-group > .btn:first-child,
+.btn-group > a.btn:first-child {
+    border-top-left-radius: 1rem !important;
+    border-bottom-left-radius: 1rem !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* Last form's button should have right border radius */
+.btn-group > .d-inline:last-child .btn,
+.btn-group > form:last-child .btn {
+    border-top-right-radius: 1rem !important;
+    border-bottom-right-radius: 1rem !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
