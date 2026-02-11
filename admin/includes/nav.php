@@ -2,33 +2,28 @@
 // Determine active page
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="index.php">
             <i class="fas fa-cog me-2"></i>Flip and Strip Admin
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="adminNavbar">
-            <div class="navbar-nav ms-auto d-flex align-items-lg-center flex-column flex-lg-row">
-                <button class="btn btn-link nav-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <!-- PWA Install Button (hidden by default, shown by JS when available) -->
-                <button class="btn btn-outline-info btn-sm me-lg-2 mb-2 mb-lg-0" id="pwaInstallBtn" style="display: none;" title="Install Admin App" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
-                    <i class="fas fa-download me-1"></i>Install App
-                </button>
-                <span class="navbar-text text-white me-lg-3 mb-2 mb-lg-0">
-                    <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                </span>
-                <a href="../index.php" class="btn btn-outline-light btn-sm me-lg-2 mb-2 mb-lg-0" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Site
-                </a>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm mb-2 mb-lg-0" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
-                    <i class="fas fa-sign-out-alt me-1"></i>Logout
-                </a>
-            </div>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link" id="navbarThemeToggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <!-- PWA Install Button (hidden by default, shown by JS when available) -->
+            <button class="btn btn-outline-info btn-sm me-2" id="pwaInstallBtn" style="display: none;" title="Install Admin App">
+                <i class="fas fa-download me-1"></i>Install App
+            </button>
+            <span class="navbar-text text-white me-3">
+                <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['admin_username']); ?>
+            </span>
+            <a href="../index.php" class="btn btn-outline-light btn-sm me-2">
+                <i class="fas fa-arrow-left me-1"></i>Back to Site
+            </a>
+            <a href="logout.php" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i>Logout
+            </a>
         </div>
     </div>
 </nav>
