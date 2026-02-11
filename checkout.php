@@ -157,6 +157,11 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     
                     <!-- PayPal Button Container -->
+                    <!-- Instructional message for incomplete form -->
+                    <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Please complete all required fields and select a shipping method to proceed with payment.</strong>
+                    </div>
                     <div id="paypal-button-container" class="mb-3"></div>
                     
                     <div class="text-center mt-3">
@@ -204,11 +209,17 @@ function isFormReadyForPayment() {
 // Function to update payment button state
 function updatePaymentButtonState() {
     const container = document.getElementById('paypal-button-container');
+    const instructions = document.getElementById('paypal-instructions');
     const isReady = isFormReadyForPayment();
     
     if (container) {
         container.style.opacity = isReady ? '1' : '0.5';
         container.style.pointerEvents = isReady ? 'auto' : 'none';
+    }
+    
+    // Show instructions when form is not ready, hide when ready
+    if (instructions) {
+        instructions.style.display = isReady ? 'none' : 'block';
     }
 }
 

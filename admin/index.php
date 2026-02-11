@@ -24,7 +24,17 @@ $totalProducts = $productModel->getCountAll();
 // Get last sync timestamp
 $lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
 $lastSyncRow = $lastSyncStmt->fetch(PDO::FETCH_ASSOC);
-$lastSync = $lastSyncRow ? date('M j, Y g:i A', strtotime($lastSyncRow['last_sync_timestamp'])) : 'Never';
+// Convert timestamp to ISO 8601 format for JavaScript compatibility
+$lastSyncTimestamp = null;
+if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
+    try {
+        $dt = new DateTime($lastSyncRow['last_sync_timestamp']);
+        $lastSyncTimestamp = $dt->format('c'); // ISO 8601 format (e.g., 2026-02-11T18:30:00+00:00)
+    } catch (Exception $e) {
+        error_log('Failed to parse last_sync_timestamp: ' . $e->getMessage());
+        $lastSyncTimestamp = null;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,7 +108,9 @@ $lastSync = $lastSyncRow ? date('M j, Y g:i A', strtotime($lastSyncRow['last_syn
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Last Sync</h6>
-                                        <h6 class="mb-0"><?php echo $lastSync; ?></h6>
+                                        <h6 class="mb-0" id="last-sync-time" data-timestamp="<?php echo htmlspecialchars($lastSyncTimestamp ?? ''); ?>">
+                                            <?php echo $lastSyncTimestamp ? 'Loading...' : 'Never'; ?>
+                                        </h6>
                                     </div>
                                     <div class="text-info">
                                         <i class="fas fa-sync-alt display-4"></i>
@@ -167,6 +179,35 @@ $lastSync = $lastSyncRow ? date('M j, Y g:i A', strtotime($lastSyncRow['last_syn
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Convert last sync timestamp to local time
+        const lastSyncElement = document.getElementById('last-sync-time');
+        if (lastSyncElement) {
+            const timestamp = lastSyncElement.getAttribute('data-timestamp');
+            if (timestamp) {
+                try {
+                    const date = new Date(timestamp);
+                    // Check if date is valid
+                    if (isNaN(date.getTime())) {
+                        console.error('Invalid date:', timestamp);
+                        lastSyncElement.textContent = 'Invalid date';
+                    } else {
+                        const options = { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric', 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                        };
+                        lastSyncElement.textContent = date.toLocaleString('en-US', options);
+                    }
+                } catch (error) {
+                    console.error('Error parsing date:', error);
+                    lastSyncElement.textContent = 'Error';
+                }
+            }
+        }
+        
         // Date range validation
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
