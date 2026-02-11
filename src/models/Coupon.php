@@ -24,11 +24,22 @@ class Coupon
         $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
         
         // Use appropriate datetime function based on database driver
-        if ($driver === 'mysql') {
-            $dateTimeCheck = "expires_at > NOW()";
-        } else {
-            // SQLite
-            $dateTimeCheck = "expires_at > datetime('now')";
+        // This is safe as we're using a whitelist approach with predefined strings
+        switch ($driver) {
+            case 'mysql':
+                $dateTimeCheck = "expires_at > NOW()";
+                break;
+            case 'sqlite':
+                $dateTimeCheck = "expires_at > datetime('now')";
+                break;
+            case 'pgsql':
+                $dateTimeCheck = "expires_at > NOW()";
+                break;
+            default:
+                // Fallback to SQLite syntax for unknown drivers
+                $dateTimeCheck = "expires_at > datetime('now')";
+                error_log("Unknown database driver: $driver. Using SQLite datetime syntax.");
+                break;
         }
         
         $sql = "SELECT * FROM coupons 
