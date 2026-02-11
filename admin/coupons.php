@@ -64,7 +64,7 @@ $coupons = $couponModel->getAll();
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="mb-4">
+            <h1>
                 <i class="fas fa-tags me-2"></i>Coupon Management
             </h1>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCouponModal">

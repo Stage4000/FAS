@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-4">
+        <h1>
             <i class="fas fa-shopping-cart me-2"></i>Order Details
         </h1>
         <a href="orders.php" class="btn btn-outline-secondary">
