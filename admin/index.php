@@ -98,7 +98,7 @@ $lastSyncTimestamp = $lastSyncRow ? $lastSyncRow['last_sync_timestamp'] : null;
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Last Sync</h6>
-                                        <h6 class="mb-0" id="last-sync-time" data-timestamp="<?php echo $lastSyncTimestamp ? htmlspecialchars($lastSyncTimestamp) : ''; ?>">
+                                        <h6 class="mb-0" id="last-sync-time" data-timestamp="<?php echo htmlspecialchars($lastSyncTimestamp ?? ''); ?>">
                                             <?php echo $lastSyncTimestamp ? 'Loading...' : 'Never'; ?>
                                         </h6>
                                     </div>
@@ -183,7 +183,7 @@ $lastSyncTimestamp = $lastSyncRow ? $lastSyncRow['last_sync_timestamp'] : null;
                     minute: '2-digit',
                     hour12: true 
                 };
-                lastSyncElement.textContent = date.toLocaleDateString('en-US', options);
+                lastSyncElement.textContent = date.toLocaleString('en-US', options);
             }
         }
         
