@@ -4,10 +4,8 @@
  */
 
 const CACHE_NAME = 'fas-admin-v1';
+// Only cache static resources that won't redirect
 const urlsToCache = [
-  '/admin/',
-  '/admin/index.php',
-  '/admin/login.php',
   '/admin/css/admin-style.css',
   '/admin/manifest.json',
   '/gallery/favicons/favicon.png',
@@ -20,10 +18,11 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Admin SW: Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => {
-        console.log('Admin SW: Cache failed', err);
+        // Cache static resources that won't redirect
+        return cache.addAll(urlsToCache).catch(err => {
+          console.log('Admin SW: Some resources failed to cache', err);
+          // Continue even if some resources fail
+        });
       })
   );
   self.skipWaiting();
@@ -66,12 +65,8 @@ self.addEventListener('fetch', event => {
           return response;
         }
 
-        // Clone the request with explicit redirect mode
-        const fetchRequest = new Request(event.request, {
-          redirect: 'follow'
-        });
-
-        return fetch(fetchRequest)
+        // Network-first strategy for admin pages
+        return fetch(event.request, { redirect: 'follow' })
           .then(response => {
             // Check if valid response
             if (!response || response.status !== 200) {
@@ -87,6 +82,7 @@ self.addEventListener('fetch', event => {
             // Clone the response
             const responseToCache = response.clone();
 
+            // Cache the response asynchronously
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
@@ -99,8 +95,16 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.log('Admin SW: Fetch failed', error);
-            // Return a fallback response or re-throw
-            return caches.match('/admin/login.php');
+            // Try to return cached login page or a basic offline page
+            return caches.match('/admin/login.php').then(cachedResponse => {
+              return cachedResponse || new Response('Offline', {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: new Headers({
+                  'Content-Type': 'text/plain'
+                })
+              });
+            });
           });
       })
   );
