@@ -580,7 +580,7 @@ class EbayAPI
                 SyncLogger::logError('Trading API returned error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
                 
                 // Check for rate limit (error code 21919300)
-                if ($errorCode == '21919300') {
+                if ($errorCode === '21919300') {
                     if ($retryCount < $maxRetries) {
                         $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                         SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
