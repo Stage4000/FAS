@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/src/utils/SyncLogger.php';
 require_once __DIR__ . '/src/integrations/EbayAPI.php';
 
 use FAS\Config\Database;
