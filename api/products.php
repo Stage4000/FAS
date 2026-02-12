@@ -43,8 +43,10 @@ $productModel = new Product($db);
 try {
     $config = require __DIR__ . '/../src/config/config.php';
     $ebayAPI = new EbayAPI($config);
+    $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
 } catch (Exception $e) {
     $ebayAPI = null;
+    $ebayCategories = [];
 }
 
 // Get products from database
@@ -289,9 +291,61 @@ ob_start();
 <?php
 $html = ob_get_clean();
 
+// Build sidebar HTML if requested
+$sidebarHtml = '';
+if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
+    ob_start();
+    ?>
+    <!-- All Products Link -->
+    <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3) ? 'active' : ''; ?>">
+        <i class="fas fa-th"></i> All Products
+        <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3): ?>
+            <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
+        <?php endif; ?>
+    </a>
+    
+    <?php if (!empty($ebayCategories)): ?>
+        <?php foreach ($ebayCategories as $cat1): ?>
+            <!-- Level 1 Category -->
+            <a href="#" data-cat1="<?php echo $cat1['id']; ?>" 
+               class="category-link list-group-item list-group-item-action <?php echo $ebayCat1 == $cat1['id'] && !$ebayCat2 ? 'active' : ''; ?>"
+               style="font-weight: bold;">
+                <i class="fas fa-folder"></i> <?php echo htmlspecialchars($cat1['name']); ?>
+            </a>
+            
+            <!-- Level 2 Categories (show if level 1 is selected) -->
+            <?php if (($ebayCat1 == $cat1['id'] || $ebayCat2 || $ebayCat3) && !empty($cat1['children'])): ?>
+                <?php foreach ($cat1['children'] as $cat2): ?>
+                    <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" 
+                       class="category-link list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
+                        <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($cat2['name']); ?>
+                    </a>
+                    
+                    <!-- Level 3 Categories (show if level 2 is selected) -->
+                    <?php if ($ebayCat2 == $cat2['id'] && !empty($cat2['children'])): ?>
+                        <?php foreach ($cat2['children'] as $cat3): ?>
+                            <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>" 
+                               class="category-link list-group-item list-group-item-action ps-5 <?php echo $ebayCat3 == $cat3['id'] ? 'active' : ''; ?>">
+                                <i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat3['name']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <div class="list-group-item text-muted">
+            <small>Categories will appear after eBay sync</small>
+        </div>
+    <?php endif; ?>
+    <?php
+    $sidebarHtml = ob_get_clean();
+}
+
 // Return JSON response
 echo json_encode([
     'html' => $html,
+    'sidebar' => $sidebarHtml,
     'totalProducts' => $totalProducts,
     'currentPage' => $page,
     'totalPages' => $totalPages

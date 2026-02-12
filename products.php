@@ -383,61 +383,69 @@ document.getElementById('categoryToggle').addEventListener('click', function() {
 });
 
 // AJAX category filtering
-document.querySelectorAll('.category-link').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Build URL parameters
-        const params = new URLSearchParams(window.location.search);
-        
-        // Reset category parameters
-        params.delete('cat1');
-        params.delete('cat2');
-        params.delete('cat3');
-        params.delete('page'); // Reset to first page
-        
-        // Add new category parameters
-        const cat1 = this.dataset.cat1;
-        const cat2 = this.dataset.cat2;
-        const cat3 = this.dataset.cat3;
-        
-        if (cat1) params.set('cat1', cat1);
-        if (cat2) params.set('cat2', cat2);
-        if (cat3) params.set('cat3', cat3);
-        
-        // Update browser URL without refresh
-        const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
-        window.history.pushState({}, '', newUrl);
-        
-        // Load products via AJAX
-        loadProducts(params);
-        
-        // Update active state
-        document.querySelectorAll('.category-link').forEach(l => l.classList.remove('active'));
-        this.classList.add('active');
-        
-        // On mobile, close the menu after selection
-        if (window.innerWidth < 768) {
-            const menu = document.getElementById('categoryMenu');
-            const icon = document.querySelector('#categoryToggle i');
-            menu.classList.remove('show');
-            icon.classList.remove('fa-chevron-down');
-            icon.classList.add('fa-chevron-up');
-        }
+function attachCategoryHandlers() {
+    document.querySelectorAll('.category-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Build URL parameters
+            const params = new URLSearchParams(window.location.search);
+            
+            // Reset category parameters
+            params.delete('cat1');
+            params.delete('cat2');
+            params.delete('cat3');
+            params.delete('page'); // Reset to first page
+            
+            // Add new category parameters
+            const cat1 = this.dataset.cat1;
+            const cat2 = this.dataset.cat2;
+            const cat3 = this.dataset.cat3;
+            
+            if (cat1) params.set('cat1', cat1);
+            if (cat2) params.set('cat2', cat2);
+            if (cat3) params.set('cat3', cat3);
+            
+            // Update browser URL without refresh
+            const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+            window.history.pushState({}, '', newUrl);
+            
+            // Load products AND sidebar via AJAX
+            loadProductsAndSidebar(params);
+            
+            // On mobile, close the menu after selection
+            if (window.innerWidth < 768) {
+                const menu = document.getElementById('categoryMenu');
+                const icon = document.querySelector('#categoryToggle i');
+                menu.classList.remove('show');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        });
     });
-});
+}
 
-// Load products via AJAX
-function loadProducts(params) {
+// Initialize category handlers on page load
+attachCategoryHandlers();
+
+// Load products and sidebar via AJAX
+function loadProductsAndSidebar(params) {
     // Show loading state
     const content = document.getElementById('productsContent');
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
     
-    // Fetch products
-    fetch('/api/products.php?' + params.toString())
+    // Fetch products with sidebar
+    fetch('/api/products.php?' + params.toString() + '&include_sidebar=1')
         .then(response => response.json())
         .then(data => {
             content.innerHTML = data.html;
+            
+            // Update sidebar if provided
+            if (data.sidebar) {
+                document.querySelector('#categoryMenu .list-group').innerHTML = data.sidebar;
+                // Reattach category click handlers
+                attachCategoryHandlers();
+            }
             
             // Reinitialize AOS animations if available
             if (typeof AOS !== 'undefined') {
