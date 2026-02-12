@@ -43,9 +43,23 @@ try {
     $config = require __DIR__ . '/src/config/config.php';
     $ebayAPI = new EbayAPI($config);
     $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
+    
+    // Debug logging
+    if (empty($ebayCategories)) {
+        error_log("DEBUG: eBay categories are empty after getStoreCategoriesHierarchical()");
+        $flatCategories = $ebayAPI->getStoreCategories();
+        if ($flatCategories === null) {
+            error_log("DEBUG: getStoreCategories() returned NULL - likely token/API issue");
+        } elseif (empty($flatCategories)) {
+            error_log("DEBUG: getStoreCategories() returned empty array - no categories in eBay store");
+        } else {
+            error_log("DEBUG: getStoreCategories() returned " . count($flatCategories) . " categories but hierarchy is empty");
+        }
+    }
 } catch (Exception $e) {
     $ebayCategories = [];
     error_log("Failed to load eBay categories: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
 }
 
 // Get products from database using eBay category filter
