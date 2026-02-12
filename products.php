@@ -469,6 +469,23 @@ function loadProductsAndSidebar(params) {
                 console.log('Products HTML updated successfully');
                 console.log('Content element childElementCount after update:', content.childElementCount);
                 
+                // Remove AOS attributes from dynamically loaded content to prevent visibility issues
+                // AOS keeps elements hidden until they animate in, which doesn't work well with AJAX
+                const aosElements = content.querySelectorAll('[data-aos]');
+                aosElements.forEach(el => {
+                    el.removeAttribute('data-aos');
+                    el.removeAttribute('data-aos-delay');
+                    el.removeAttribute('data-aos-duration');
+                    el.removeAttribute('data-aos-offset');
+                    // Remove AOS classes that hide elements
+                    el.classList.remove('aos-init', 'aos-animate');
+                    // Force visibility by removing any AOS inline styles
+                    el.style.removeProperty('opacity');
+                    el.style.removeProperty('transform');
+                    el.style.removeProperty('transition-property');
+                });
+                console.log('Removed AOS attributes from', aosElements.length, 'dynamically loaded elements');
+                
                 // Update sidebar if provided
                 if (data.sidebar) {
                     const sidebarContainer = document.querySelector('#categoryMenu .list-group');
@@ -480,17 +497,6 @@ function loadProductsAndSidebar(params) {
                     } else {
                         console.warn('Sidebar container not found');
                     }
-                }
-                
-                // Reinitialize AOS animations if available
-                if (typeof AOS !== 'undefined') {
-                    // Force AOS to reinitialize and show elements immediately
-                    setTimeout(() => {
-                        AOS.refresh();
-                        // Trigger AOS on all elements immediately by scrolling
-                        window.dispatchEvent(new Event('scroll'));
-                        console.log('AOS refreshed and triggered');
-                    }, 100);
                 }
                 
                 // Reattach pagination click handlers
