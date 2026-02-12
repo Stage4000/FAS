@@ -378,7 +378,17 @@ if ($action === 'list') {
                                                     <td><?php echo $prod['quantity']; ?></td>
                                                     <td>
                                                         <?php if ($prod['source'] === 'ebay'): ?>
-                                                            <span class="badge bg-primary">eBay</span>
+                                                            <?php 
+                                                            $ebayCategory = $productModel->getEbayStoreCategoryPath($prod);
+                                                            ?>
+                                                            <span class="badge bg-primary" 
+                                                                  <?php if ($ebayCategory): ?>
+                                                                  title="<?php echo htmlspecialchars($ebayCategory); ?>"
+                                                                  data-bs-toggle="tooltip" 
+                                                                  data-bs-placement="top"
+                                                                  <?php endif; ?>>
+                                                                eBay
+                                                            </span>
                                                         <?php else: ?>
                                                             <span class="badge bg-success">Manual</span>
                                                         <?php endif; ?>
@@ -556,6 +566,21 @@ if ($action === 'list') {
                                         <option value="other" <?php echo $product && $product['category'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                     </select>
                                 </div>
+                                
+                                <?php if ($product && $product['source'] === 'ebay'): ?>
+                                    <?php $ebayCategories = $productModel->getEbayStoreCategoryArray($product); ?>
+                                    <?php if (!empty($ebayCategories)): ?>
+                                        <div class="alert alert-info mb-3">
+                                            <small>
+                                                <strong>eBay Store Categories:</strong><br>
+                                                <?php foreach ($ebayCategories as $level => $catName): ?>
+                                                    <span class="badge bg-info me-1">L<?php echo $level; ?>: <?php echo htmlspecialchars($catName); ?></span><br>
+                                                <?php endforeach; ?>
+                                                <em class="text-muted d-block mt-1">Synced from eBay store</em>
+                                            </small>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
 
                                 <div class="mb-3">
                                     <label class="form-label">Manufacturer</label>

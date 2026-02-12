@@ -159,6 +159,16 @@ if (empty($mainImage)) {
                             <td><?php echo htmlspecialchars(ucfirst($product['category']) . ($product['category'] === 'gifts' ? '' : ' Parts')); ?></td>
                         </tr>
                         <?php endif; ?>
+                        <?php 
+                        // Display eBay store category hierarchy if available
+                        $ebayCategory = $productModel->getEbayStoreCategoryPath($product);
+                        if (!empty($ebayCategory)): 
+                        ?>
+                        <tr>
+                            <td class="text-muted">eBay Category:</td>
+                            <td><small class="text-muted"><?php echo htmlspecialchars($ebayCategory); ?></small></td>
+                        </tr>
+                        <?php endif; ?>
                         <?php if (!empty($product['manufacturer'])): ?>
                         <tr>
                             <td class="text-muted">Manufacturer:</td>
