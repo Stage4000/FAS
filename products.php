@@ -92,13 +92,16 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
         <!-- Sidebar with eBay Categories -->
         <div class="col-lg-3 col-md-4 mb-4">
             <div class="card">
-                <div class="card-header bg-danger text-white">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-list"></i> Categories</h5>
+                    <button class="btn btn-sm btn-outline-light d-md-none" type="button" id="categoryToggle">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
                 </div>
-                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                <div class="card-body p-0 collapse show" id="categoryMenu" style="max-height: 600px; overflow-y: auto;">
                     <div class="list-group list-group-flush">
                         <!-- All Products Link -->
-                        <a href="/products" class="list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3) ? 'active' : ''; ?>">
+                        <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3) ? 'active' : ''; ?>">
                             <i class="fas fa-th"></i> All Products
                             <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3): ?>
                                 <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
@@ -108,8 +111,8 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                         <?php if (!empty($ebayCategories)): ?>
                             <?php foreach ($ebayCategories as $cat1): ?>
                                 <!-- Level 1 Category -->
-                                <a href="/products?cat1=<?php echo $cat1['id']; ?>" 
-                                   class="list-group-item list-group-item-action <?php echo $ebayCat1 == $cat1['id'] && !$ebayCat2 ? 'active' : ''; ?>"
+                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>" 
+                                   class="category-link list-group-item list-group-item-action <?php echo $ebayCat1 == $cat1['id'] && !$ebayCat2 ? 'active' : ''; ?>"
                                    style="font-weight: bold;">
                                     <i class="fas fa-folder"></i> <?php echo htmlspecialchars($cat1['name']); ?>
                                 </a>
@@ -117,16 +120,16 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                 <!-- Level 2 Categories (show if level 1 is selected) -->
                                 <?php if (($ebayCat1 == $cat1['id'] || $ebayCat2 || $ebayCat3) && !empty($cat1['children'])): ?>
                                     <?php foreach ($cat1['children'] as $cat2): ?>
-                                        <a href="/products?cat1=<?php echo $cat1['id']; ?>&cat2=<?php echo $cat2['id']; ?>" 
-                                           class="list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
+                                        <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" 
+                                           class="category-link list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
                                             <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($cat2['name']); ?>
                                         </a>
                                         
                                         <!-- Level 3 Categories (show if level 2 is selected) -->
                                         <?php if ($ebayCat2 == $cat2['id'] && !empty($cat2['children'])): ?>
                                             <?php foreach ($cat2['children'] as $cat3): ?>
-                                                <a href="/products?cat1=<?php echo $cat1['id']; ?>&cat2=<?php echo $cat2['id']; ?>&cat3=<?php echo $cat3['id']; ?>" 
-                                                   class="list-group-item list-group-item-action ps-5 <?php echo $ebayCat3 == $cat3['id'] ? 'active' : ''; ?>">
+                                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>" 
+                                                   class="category-link list-group-item list-group-item-action ps-5 <?php echo $ebayCat3 == $cat3['id'] ? 'active' : ''; ?>">
                                                     <i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat3['name']); ?>
                                                 </a>
                                             <?php endforeach; ?>
@@ -145,7 +148,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
         </div>
         
         <!-- Main Content -->
-        <div class="col-lg-9 col-md-8">
+        <div class="col-lg-9 col-md-8" id="productsContent">
             <!-- Page Header -->
             <div class="row mb-4">
                 <div class="col-md-6">
@@ -191,20 +194,6 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                     </select>
                 </div>
             </div>
-
-            <script>
-            document.getElementById('manufacturerFilter').addEventListener('change', function() {
-                const mfg = this.value;
-                const params = new URLSearchParams(window.location.search);
-                if (mfg) {
-                    params.set('manufacturer', mfg);
-                } else {
-                    params.delete('manufacturer');
-                }
-                params.delete('page'); // Reset to first page
-                window.location.href = '/products?' + params.toString();
-            });
-            </script>
             <?php endif; ?>
 
             <!-- Products Grid -->
@@ -375,5 +364,190 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
         </div>
     </div>
 </div>
+
+<script>
+// Mobile category menu toggle
+document.getElementById('categoryToggle').addEventListener('click', function() {
+    const menu = document.getElementById('categoryMenu');
+    const icon = this.querySelector('i');
+    
+    if (menu.classList.contains('show')) {
+        menu.classList.remove('show');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        menu.classList.add('show');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+});
+
+// AJAX category filtering
+document.querySelectorAll('.category-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Build URL parameters
+        const params = new URLSearchParams(window.location.search);
+        
+        // Reset category parameters
+        params.delete('cat1');
+        params.delete('cat2');
+        params.delete('cat3');
+        params.delete('page'); // Reset to first page
+        
+        // Add new category parameters
+        const cat1 = this.dataset.cat1;
+        const cat2 = this.dataset.cat2;
+        const cat3 = this.dataset.cat3;
+        
+        if (cat1) params.set('cat1', cat1);
+        if (cat2) params.set('cat2', cat2);
+        if (cat3) params.set('cat3', cat3);
+        
+        // Update browser URL without refresh
+        const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+        window.history.pushState({}, '', newUrl);
+        
+        // Load products via AJAX
+        loadProducts(params);
+        
+        // Update active state
+        document.querySelectorAll('.category-link').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+        
+        // On mobile, close the menu after selection
+        if (window.innerWidth < 768) {
+            const menu = document.getElementById('categoryMenu');
+            const icon = document.querySelector('#categoryToggle i');
+            menu.classList.remove('show');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        }
+    });
+});
+
+// Load products via AJAX
+function loadProducts(params) {
+    // Show loading state
+    const content = document.getElementById('productsContent');
+    content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    // Fetch products
+    fetch('/api/products.php?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            content.innerHTML = data.html;
+            
+            // Reinitialize AOS animations if available
+            if (typeof AOS !== 'undefined') {
+                AOS.refresh();
+            }
+            
+            // Reattach pagination click handlers
+            attachPaginationHandlers();
+        })
+        .catch(error => {
+            console.error('Error loading products:', error);
+            content.innerHTML = '<div class="alert alert-danger">Error loading products. Please refresh the page.</div>';
+        });
+}
+
+// Attach pagination handlers
+function attachPaginationHandlers() {
+    document.querySelectorAll('.pagination .page-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.parentElement.classList.contains('disabled')) {
+                e.preventDefault();
+                return;
+            }
+            
+            e.preventDefault();
+            const url = new URL(this.href);
+            const params = new URLSearchParams(url.search);
+            
+            // Update browser URL
+            window.history.pushState({}, '', url.pathname + url.search);
+            
+            // Load products
+            loadProducts(params);
+            
+            // Scroll to top of products
+            document.getElementById('productsContent').scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+}
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', function() {
+    const params = new URLSearchParams(window.location.search);
+    loadProducts(params);
+});
+
+// Handle manufacturer filter change
+document.getElementById('manufacturerFilter')?.addEventListener('change', function() {
+    const params = new URLSearchParams(window.location.search);
+    const mfg = this.value;
+    
+    if (mfg) {
+        params.set('manufacturer', mfg);
+    } else {
+        params.delete('manufacturer');
+    }
+    params.delete('page'); // Reset to first page
+    
+    // Update URL and load products
+    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState({}, '', newUrl);
+    loadProducts(params);
+});
+
+// Handle search form submission
+document.getElementById('search-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const params = new URLSearchParams(window.location.search);
+    const searchTerm = document.getElementById('product-search').value;
+    
+    if (searchTerm) {
+        params.set('search', searchTerm);
+    } else {
+        params.delete('search');
+    }
+    params.delete('page'); // Reset to first page
+    
+    // Update URL and load products
+    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState({}, '', newUrl);
+    loadProducts(params);
+});
+
+// Initial pagination handlers
+attachPaginationHandlers();
+</script>
+
+<style>
+/* Mobile category menu styles */
+@media (max-width: 767px) {
+    #categoryMenu.collapse:not(.show) {
+        display: none;
+    }
+    
+    #categoryMenu.collapse.show {
+        display: block;
+    }
+}
+
+/* Smooth transition for category menu */
+#categoryMenu {
+    transition: all 0.3s ease;
+}
+
+/* Loading spinner styles */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+</style>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
