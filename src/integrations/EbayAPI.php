@@ -1609,6 +1609,15 @@ class EbayAPI
             }
         }
         
+        // Extract Store Category IDs from Storefront
+        // GetItem API returns Storefront data with StoreCategoryID and StoreCategory2ID
+        $storeCategoryId = null;
+        $storeCategory2Id = null;
+        if (isset($item['Storefront'])) {
+            $storeCategoryId = $item['Storefront']['StoreCategoryID'] ?? null;
+            $storeCategory2Id = $item['Storefront']['StoreCategory2ID'] ?? null;
+        }
+        
         return [
             'brand' => $brand,
             'mpn' => $mpn,
@@ -1621,6 +1630,8 @@ class EbayAPI
             'condition' => $condition,
             'images' => $allImages,
             'image' => !empty($allImages) ? $allImages[0] : null,
+            'store_category_id' => $storeCategoryId,
+            'store_category2_id' => $storeCategory2Id,
             'item' => $item // Return full item data for other uses if needed
         ];
     }

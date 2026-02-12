@@ -541,6 +541,7 @@ class Product
         
         // ALWAYS call GetItem to fetch Condition and SKU (required fields)
         // Also fetch other fields if missing from GetSellerEvents
+        // IMPORTANT: GetItem also provides store_category_id and store_category2_id
         if ($ebayAPI && isset($ebayData['id'])) {
             $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
             if ($itemDetails) {
@@ -549,6 +550,15 @@ class Product
                 
                 // Get SKU (REQUIRED - always from GetItem)
                 $sku = $itemDetails['sku'] ?? '';
+                
+                // Get store category IDs from GetItem (more reliable than GetSellerEvents)
+                // Override any values from GetSellerEvents with GetItem data
+                if (isset($itemDetails['store_category_id'])) {
+                    $ebayData['store_category_id'] = $itemDetails['store_category_id'];
+                }
+                if (isset($itemDetails['store_category2_id'])) {
+                    $ebayData['store_category2_id'] = $itemDetails['store_category2_id'];
+                }
                 
                 // Get brand and model
                 if (!$manufacturer && $itemDetails['brand']) {
