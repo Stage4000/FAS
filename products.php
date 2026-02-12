@@ -451,6 +451,8 @@ function loadProductsAndSidebar(params) {
                 console.log('Parsed data keys:', Object.keys(data));
                 console.log('HTML length:', data.html ? data.html.length : 'null');
                 console.log('Sidebar length:', data.sidebar ? data.sidebar.length : 'null');
+                console.log('HTML preview (first 200 chars):', data.html ? data.html.substring(0, 200) : 'null');
+                console.log('HTML preview (last 200 chars):', data.html ? data.html.substring(Math.max(0, data.html.length - 200)) : 'null');
                 
                 if (data.error) {
                     throw new Error(data.message || 'Server error');
@@ -460,8 +462,12 @@ function loadProductsAndSidebar(params) {
                     throw new Error('No HTML content in response');
                 }
                 
+                console.log('Setting content.innerHTML...');
+                console.log('Content element:', content);
+                console.log('Content element ID:', content ? content.id : 'null');
                 content.innerHTML = data.html;
                 console.log('Products HTML updated successfully');
+                console.log('Content element childElementCount after update:', content.childElementCount);
                 
                 // Update sidebar if provided
                 if (data.sidebar) {
