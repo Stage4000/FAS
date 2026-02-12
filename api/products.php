@@ -1,5 +1,22 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors in output
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json');
+
+// Catch any PHP errors and return them as JSON
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'PHP Error',
+        'message' => $errstr,
+        'file' => $errfile,
+        'line' => $errline
+    ]);
+    exit;
+});
 
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
@@ -343,10 +360,22 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
 }
 
 // Return JSON response
-echo json_encode([
-    'html' => $html,
-    'sidebar' => $sidebarHtml,
-    'totalProducts' => $totalProducts,
-    'currentPage' => $page,
-    'totalPages' => $totalPages
-]);
+try {
+    $response = [
+        'html' => $html,
+        'sidebar' => $sidebarHtml,
+        'totalProducts' => $totalProducts,
+        'currentPage' => $page,
+        'totalPages' => $totalPages,
+        'success' => true
+    ];
+    
+    echo json_encode($response);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Failed to encode response',
+        'message' => $e->getMessage(),
+        'success' => false
+    ]);
+}

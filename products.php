@@ -435,35 +435,51 @@ function loadProductsAndSidebar(params) {
     // Fetch products with sidebar
     fetch('/api/products.php?' + params.toString() + '&include_sidebar=1')
         .then(response => {
+            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
             }
             return response.text();
         })
         .then(text => {
-            console.log('API Response:', text.substring(0, 200)); // Log first 200 chars for debugging
+            console.log('API Response length:', text.length);
+            console.log('API Response (first 500 chars):', text.substring(0, 500));
+            console.log('API Response (last 100 chars):', text.substring(Math.max(0, text.length - 100)));
+            
             try {
                 const data = JSON.parse(text);
+                console.log('Parsed data keys:', Object.keys(data));
+                console.log('HTML length:', data.html ? data.html.length : 'null');
+                console.log('Sidebar length:', data.sidebar ? data.sidebar.length : 'null');
+                
+                if (data.error) {
+                    throw new Error(data.message || 'Server error');
+                }
                 
                 if (!data.html) {
                     throw new Error('No HTML content in response');
                 }
                 
                 content.innerHTML = data.html;
+                console.log('Products HTML updated successfully');
                 
                 // Update sidebar if provided
                 if (data.sidebar) {
                     const sidebarContainer = document.querySelector('#categoryMenu .list-group');
                     if (sidebarContainer) {
                         sidebarContainer.innerHTML = data.sidebar;
+                        console.log('Sidebar updated successfully');
                         // Reattach category click handlers
                         attachCategoryHandlers();
+                    } else {
+                        console.warn('Sidebar container not found');
                     }
                 }
                 
                 // Reinitialize AOS animations if available
                 if (typeof AOS !== 'undefined') {
                     AOS.refresh();
+                    console.log('AOS refreshed');
                 }
                 
                 // Reattach pagination click handlers
@@ -471,12 +487,13 @@ function loadProductsAndSidebar(params) {
             } catch (parseError) {
                 console.error('JSON Parse Error:', parseError);
                 console.error('Response text:', text);
+                content.innerHTML = '<div class="alert alert-danger">Error parsing server response. Check console for details.</div>';
                 throw parseError;
             }
         })
         .catch(error => {
             console.error('Error loading products:', error);
-            content.innerHTML = '<div class="alert alert-danger">Error loading products. Please refresh the page.</div>';
+            content.innerHTML = '<div class="alert alert-danger">Error loading products: ' + error.message + '. Please refresh the page.</div>';
         });
 }
 
