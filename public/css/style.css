@@ -1438,6 +1438,17 @@ footer a:hover {
     box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.25);
 }
 
+/* Category sidebar styling - Light mode */
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+}
+
+.list-group-item-action:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+}
+
 /* Dark mode support for category sidebar */
 [data-theme="dark"] .list-group-item {
     background-color: #2a2d31;

@@ -313,15 +313,15 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
                 <i class="fas fa-folder"></i> <?php echo htmlspecialchars($cat1['name']); ?>
             </a>
             
-            <!-- Level 2 Categories (show if level 1 is selected) -->
-            <?php if (($ebayCat1 == $cat1['id'] || $ebayCat2 || $ebayCat3) && !empty($cat1['children'])): ?>
+            <!-- Level 2 Categories (show ONLY if THIS level 1 is selected) -->
+            <?php if ($ebayCat1 == $cat1['id'] && !empty($cat1['children'])): ?>
                 <?php foreach ($cat1['children'] as $cat2): ?>
                     <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" 
                        class="category-link list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
                         <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($cat2['name']); ?>
                     </a>
                     
-                    <!-- Level 3 Categories (show if level 2 is selected) -->
+                    <!-- Level 3 Categories (show ONLY if THIS level 2 is selected) -->
                     <?php if ($ebayCat2 == $cat2['id'] && !empty($cat2['children'])): ?>
                         <?php foreach ($cat2['children'] as $cat3): ?>
                             <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>" 
