@@ -413,13 +413,11 @@ function attachCategoryHandlers() {
             // Load products AND sidebar via AJAX
             loadProductsAndSidebar(params);
             
-            // On mobile, close the menu after selection
+            // Scroll to products on mobile for better UX
             if (window.innerWidth < 768) {
-                const menu = document.getElementById('categoryMenu');
-                const icon = document.querySelector('#categoryToggle i');
-                menu.classList.remove('show');
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
+                setTimeout(() => {
+                    document.getElementById('productsContent').scrollIntoView({ behavior: 'smooth' });
+                }, 100);
             }
         });
     });
@@ -478,7 +476,7 @@ function attachPaginationHandlers() {
             window.history.pushState({}, '', url.pathname + url.search);
             
             // Load products
-            loadProducts(params);
+            loadProductsAndSidebar(params);
             
             // Scroll to top of products
             document.getElementById('productsContent').scrollIntoView({ behavior: 'smooth' });
@@ -489,7 +487,7 @@ function attachPaginationHandlers() {
 // Handle browser back/forward buttons
 window.addEventListener('popstate', function() {
     const params = new URLSearchParams(window.location.search);
-    loadProducts(params);
+    loadProductsAndSidebar(params);
 });
 
 // Handle manufacturer filter change
@@ -507,7 +505,7 @@ document.getElementById('manufacturerFilter')?.addEventListener('change', functi
     // Update URL and load products
     const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
     window.history.pushState({}, '', newUrl);
-    loadProducts(params);
+    loadProductsAndSidebar(params);
 });
 
 // Handle search form submission
@@ -527,7 +525,7 @@ document.getElementById('search-form')?.addEventListener('submit', function(e) {
     // Update URL and load products
     const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
     window.history.pushState({}, '', newUrl);
-    loadProducts(params);
+    loadProductsAndSidebar(params);
 });
 
 // Initial pagination handlers
