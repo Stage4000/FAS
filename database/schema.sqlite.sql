@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS products (
     show_on_website INTEGER DEFAULT 1, -- 1 = visible, 0 = hidden
     warehouse_id INTEGER,
     is_active INTEGER DEFAULT 1,
+    -- eBay store category hierarchy (exact 3-level mapping)
+    ebay_store_cat1_id INTEGER,
+    ebay_store_cat1_name TEXT,
+    ebay_store_cat2_id INTEGER,
+    ebay_store_cat2_name TEXT,
+    ebay_store_cat3_id INTEGER,
+    ebay_store_cat3_name TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
@@ -39,6 +46,9 @@ CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 CREATE INDEX IF NOT EXISTS idx_products_manufacturer ON products(manufacturer);
 CREATE INDEX IF NOT EXISTS idx_products_source ON products(source);
 CREATE INDEX IF NOT EXISTS idx_products_show_on_website ON products(show_on_website);
+CREATE INDEX IF NOT EXISTS idx_products_ebay_store_cat1 ON products(ebay_store_cat1_id);
+CREATE INDEX IF NOT EXISTS idx_products_ebay_store_cat2 ON products(ebay_store_cat2_id);
+CREATE INDEX IF NOT EXISTS idx_products_ebay_store_cat3 ON products(ebay_store_cat3_id);
 
 -- Categories table
 CREATE TABLE IF NOT EXISTS categories (

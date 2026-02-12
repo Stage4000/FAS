@@ -1437,3 +1437,50 @@ footer a:hover {
 .quantity-selector .quantity-btn:focus {
     box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.25);
 }
+
+/* Category sidebar styling - Light mode */
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+}
+
+.list-group-item-action:hover {
+    background-color: rgba(219, 3, 53, 0.1);
+}
+
+/* Dark mode support for category sidebar */
+[data-theme="dark"] .list-group-item {
+    background-color: #2a2d31;
+    border-color: #3a3d41;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .list-group-item:hover {
+    background-color: #3a3d41;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .list-group-item-action {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .list-group-item-action:hover {
+    color: #ffffff;
+    background-color: #3a3d41;
+}
+
+[data-theme="dark"] .card-header.bg-danger {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .text-muted {
+    color: #9ca3af !important;
+}

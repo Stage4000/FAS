@@ -38,20 +38,8 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="/">Home</a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Shop by Category
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/products/motorcycle">Motorcycle Parts</a></li>
-                            <li><a class="dropdown-item" href="/products/atv">ATV/UTV Parts</a></li>
-                            <li><a class="dropdown-item" href="/products/boat">Boat Parts</a></li>
-                            <li><a class="dropdown-item" href="/products/automotive">Automotive Parts</a></li>
-                            <li><a class="dropdown-item" href="/products/gifts">Gifts</a></li>
-                            <li><a class="dropdown-item" href="/products/other">Other</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/products">All Products</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/products">Products</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/about">About</a>

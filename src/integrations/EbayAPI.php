@@ -547,12 +547,40 @@ class EbayAPI
             
             // Check for API errors
             if (isset($data['Ack']) && ($data['Ack'] === 'Failure' || $data['Ack'] === 'PartialFailure')) {
-                $errorMsg = $data['Errors']['LongMessage'] ?? $data['Errors']['ShortMessage'] ?? 'Unknown error';
-                error_log('eBay Trading API Error: ' . $errorMsg);
-                SyncLogger::logError('Trading API returned error: ' . $errorMsg);
+                // Extract error message(s) - handle both single error and array of errors
+                $errorMsg = 'Unknown error';
+                $errorCode = null;
                 
-                // Check for rate limit
-                if (isset($data['Errors']['ErrorCode']) && $data['Errors']['ErrorCode'] == '21919300') {
+                if (isset($data['Errors'])) {
+                    $errors = $data['Errors'];
+                    
+                    // Handle array of errors (multiple errors)
+                    if (isset($errors[0])) {
+                        $firstError = $errors[0];
+                        $errorMsg = $firstError['LongMessage'] ?? $firstError['ShortMessage'] ?? 'Unknown error';
+                        $errorCode = $firstError['ErrorCode'] ?? null;
+                        
+                        // If multiple errors, include count
+                        if (count($errors) > 1) {
+                            $errorMsg .= ' (and ' . (count($errors) - 1) . ' more errors)';
+                        }
+                    } else {
+                        // Single error object
+                        $errorMsg = $errors['LongMessage'] ?? $errors['ShortMessage'] ?? 'Unknown error';
+                        $errorCode = $errors['ErrorCode'] ?? null;
+                    }
+                    
+                    // If still unknown, log the full error structure for debugging
+                    if ($errorMsg === 'Unknown error') {
+                        SyncLogger::log('DEBUG - Full error structure: ' . print_r($errors, true));
+                    }
+                }
+                
+                error_log('eBay Trading API Error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
+                SyncLogger::logError('Trading API returned error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
+                
+                // Check for rate limit (error code 21919300)
+                if ($errorCode === '21919300') {
                     if ($retryCount < $maxRetries) {
                         $waitTime = self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $retryCount);
                         SyncLogger::log("Rate limit hit. Retrying {$retryCount}/{$maxRetries} after {$waitTime} seconds");
@@ -1314,6 +1342,83 @@ class EbayAPI
     }
     
     /**
+     * Get store categories in hierarchical structure for navigation display
+     * Returns array organized by level 1 categories with their children
+     * 
+     * @return array Hierarchical category structure
+     */
+    public function getStoreCategoriesHierarchical()
+    {
+        $flatCategories = $this->getStoreCategories();
+        
+        if (empty($flatCategories)) {
+            return [];
+        }
+        
+        $hierarchical = [];
+        
+        // First pass: collect all level 1 categories
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 1) {
+                $hierarchical[$catId] = [
+                    'id' => $catId,
+                    'name' => $cat['name'],
+                    'level' => 1,
+                    'children' => []
+                ];
+            }
+        }
+        
+        // Second pass: collect level 2 categories and attach to parents
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 2) {
+                $topLevelName = $cat['topLevel'] ?? null;
+                
+                // Find parent level 1 category
+                foreach ($hierarchical as $parentId => &$parent) {
+                    if ($parent['name'] === $topLevelName) {
+                        $parent['children'][$catId] = [
+                            'id' => $catId,
+                            'name' => $cat['name'],
+                            'level' => 2,
+                            'parent_id' => $parentId,
+                            'children' => []
+                        ];
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Third pass: collect level 3 categories and attach to level 2 parents
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 3) {
+                $parentName = $cat['parent'] ?? null;
+                $topLevelName = $cat['topLevel'] ?? null;
+                
+                // Find parent level 2 category
+                foreach ($hierarchical as $l1Id => &$l1Cat) {
+                    if ($l1Cat['name'] === $topLevelName) {
+                        foreach ($l1Cat['children'] as $l2Id => &$l2Cat) {
+                            if ($l2Cat['name'] === $parentName) {
+                                $l2Cat['children'][$catId] = [
+                                    'id' => $catId,
+                                    'name' => $cat['name'],
+                                    'level' => 3,
+                                    'parent_id' => $l2Id
+                                ];
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $hierarchical;
+    }
+    
+    /**
      * Get detailed item information using GetItem API
      * This reliably returns ItemSpecifics including Brand and MPN
      */
@@ -1504,6 +1609,15 @@ class EbayAPI
             }
         }
         
+        // Extract Store Category IDs from Storefront
+        // GetItem API returns Storefront data with StoreCategoryID and StoreCategory2ID
+        $storeCategoryId = null;
+        $storeCategory2Id = null;
+        if (isset($item['Storefront'])) {
+            $storeCategoryId = $item['Storefront']['StoreCategoryID'] ?? null;
+            $storeCategory2Id = $item['Storefront']['StoreCategory2ID'] ?? null;
+        }
+        
         return [
             'brand' => $brand,
             'mpn' => $mpn,
@@ -1516,6 +1630,8 @@ class EbayAPI
             'condition' => $condition,
             'images' => $allImages,
             'image' => !empty($allImages) ? $allImages[0] : null,
+            'store_category_id' => $storeCategoryId,
+            'store_category2_id' => $storeCategory2Id,
             'item' => $item // Return full item data for other uses if needed
         ];
     }

@@ -378,7 +378,17 @@ if ($action === 'list') {
                                                     <td><?php echo $prod['quantity']; ?></td>
                                                     <td>
                                                         <?php if ($prod['source'] === 'ebay'): ?>
-                                                            <span class="badge bg-primary">eBay</span>
+                                                            <?php 
+                                                            $ebayCategory = $productModel->getEbayStoreCategoryPath($prod);
+                                                            ?>
+                                                            <span class="badge bg-primary" 
+                                                                  <?php if ($ebayCategory): ?>
+                                                                  title="<?php echo htmlspecialchars($ebayCategory); ?>"
+                                                                  data-bs-toggle="tooltip" 
+                                                                  data-bs-placement="top"
+                                                                  <?php endif; ?>>
+                                                                eBay
+                                                            </span>
                                                         <?php else: ?>
                                                             <span class="badge bg-success">Manual</span>
                                                         <?php endif; ?>
@@ -545,7 +555,7 @@ if ($action === 'list') {
 
                             <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label class="form-label">Category</label>
+                                    <label class="form-label">Website Category (Legacy)</label>
                                     <select class="form-select" name="category">
                                         <option value="">Select Category</option>
                                         <option value="motorcycle" <?php echo $product && $product['category'] === 'motorcycle' ? 'selected' : ''; ?>>Motorcycle Parts</option>
@@ -555,7 +565,42 @@ if ($action === 'list') {
                                         <option value="gifts" <?php echo $product && $product['category'] === 'gifts' ? 'selected' : ''; ?>>Gifts</option>
                                         <option value="other" <?php echo $product && $product['category'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                     </select>
+                                    <small class="text-muted">For manual products only. eBay products use store categories below.</small>
                                 </div>
+                                
+                                <?php if ($product && $product['source'] === 'ebay'): ?>
+                                    <?php $ebayCategories = $productModel->getEbayStoreCategoryArray($product); ?>
+                                    <?php if (!empty($ebayCategories)): ?>
+                                        <div class="alert alert-info mb-3">
+                                            <strong><i class="fas fa-store"></i> eBay Store Categories (3-tier):</strong><br>
+                                            <div class="mt-2">
+                                                <?php if (isset($ebayCategories[1])): ?>
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-primary">Level 1:</span>
+                                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($ebayCategories[1]); ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (isset($ebayCategories[2])): ?>
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-primary">Level 2:</span>
+                                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($ebayCategories[2]); ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (isset($ebayCategories[3])): ?>
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-primary">Level 3:</span>
+                                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($ebayCategories[3]); ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <small class="text-muted d-block mt-2"><em>Automatically synced from eBay store during product sync</em></small>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-warning mb-3">
+                                            <small><i class="fas fa-exclamation-triangle"></i> No eBay store categories found. Run sync to update.</small>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
 
                                 <div class="mb-3">
                                     <label class="form-label">Manufacturer</label>

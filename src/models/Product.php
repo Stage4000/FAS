@@ -228,8 +228,9 @@ class Product
     {
         $sql = "INSERT INTO products (
             ebay_item_id, sku, name, description, price, sale_price, quantity, category,
-            manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website,
+            ebay_store_cat1_id, ebay_store_cat1_name, ebay_store_cat2_id, ebay_store_cat2_name, ebay_store_cat3_id, ebay_store_cat3_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
@@ -252,7 +253,13 @@ class Product
             isset($data['images']) ? json_encode($data['images']) : null,
             $data['ebay_url'] ?? null,
             $data['source'] ?? 'manual',
-            isset($data['show_on_website']) ? $data['show_on_website'] : 1
+            isset($data['show_on_website']) ? $data['show_on_website'] : 1,
+            $data['ebay_store_cat1_id'] ?? null,
+            $data['ebay_store_cat1_name'] ?? null,
+            $data['ebay_store_cat2_id'] ?? null,
+            $data['ebay_store_cat2_name'] ?? null,
+            $data['ebay_store_cat3_id'] ?? null,
+            $data['ebay_store_cat3_name'] ?? null
         ]);
         
         if ($result) {
@@ -273,7 +280,9 @@ class Product
         $allowedFields = [
             'sku', 'name', 'description', 'price', 'sale_price', 'quantity', 'category',
             'manufacturer', 'model', 'condition_name', 'weight', 'length', 'width', 'height', 
-            'image_url', 'images', 'ebay_url', 'source', 'show_on_website'
+            'image_url', 'images', 'ebay_url', 'source', 'show_on_website',
+            'ebay_store_cat1_id', 'ebay_store_cat1_name', 'ebay_store_cat2_id', 'ebay_store_cat2_name', 
+            'ebay_store_cat3_id', 'ebay_store_cat3_name'
         ];
         
         foreach ($allowedFields as $field) {
@@ -355,6 +364,139 @@ class Product
     }
     
     /**
+     * Extract full 3-level eBay store category hierarchy
+     * Returns array with category IDs and names for all 3 levels
+     * 
+     * @param int|null $storeCategoryId Primary store category ID from eBay
+     * @param int|null $storeCategory2Id Secondary store category ID from eBay
+     * @param \FAS\Integrations\EbayAPI|null $ebayAPI EbayAPI instance
+     * @return array Array with cat1_id, cat1_name, cat2_id, cat2_name, cat3_id, cat3_name
+     */
+    private function extractStoreCategoryHierarchy($storeCategoryId, $storeCategory2Id, $ebayAPI)
+    {
+        $hierarchy = [
+            'cat1_id' => null,
+            'cat1_name' => null,
+            'cat2_id' => null,
+            'cat2_name' => null,
+            'cat3_id' => null,
+            'cat3_name' => null
+        ];
+        
+        if (!$ebayAPI || !$storeCategoryId) {
+            if (!$ebayAPI) {
+                error_log("[Category Extraction] No EbayAPI instance provided");
+            }
+            if (!$storeCategoryId) {
+                error_log("[Category Extraction] No store_category_id provided (store_category_id: " . var_export($storeCategoryId, true) . ", store_category2_id: " . var_export($storeCategory2Id, true) . ")");
+            }
+            return $hierarchy;
+        }
+        
+        // Get all store categories (cached in EbayAPI)
+        // This calls eBay GetStore API
+        $storeCategories = $ebayAPI->getStoreCategories();
+        if (empty($storeCategories)) {
+            if ($storeCategories === null) {
+                error_log("[Category Extraction] getStoreCategories() returned NULL - API/token issue");
+            } else {
+                error_log("[Category Extraction] getStoreCategories() returned empty array - no categories in store");
+            }
+            return $hierarchy;
+        }
+        
+        error_log("[Category Extraction] Retrieved " . count($storeCategories) . " store categories from eBay");
+        
+        // Look up the category by ID
+        if (!isset($storeCategories[$storeCategoryId])) {
+            error_log("[Category Extraction] Primary category ID $storeCategoryId not found in store categories");
+            // Try secondary category if primary not found
+            if ($storeCategory2Id && isset($storeCategories[$storeCategory2Id])) {
+                error_log("[Category Extraction] Using secondary category ID $storeCategory2Id");
+                $storeCategoryId = $storeCategory2Id;
+            } else {
+                error_log("[Category Extraction] Secondary category ID also not found. Available IDs: " . implode(', ', array_keys($storeCategories)));
+                return $hierarchy;
+            }
+        }
+        
+        $category = $storeCategories[$storeCategoryId];
+        $level = $category['level'] ?? 0;
+        
+        error_log("[Category Extraction] Processing category ID $storeCategoryId: '" . ($category['name'] ?? 'unnamed') . "' at level $level");
+        
+        // Build indexed lookups to avoid O(n) searches
+        // Group categories by level and name for fast lookup
+        static $levelIndex = [];
+        if (empty($levelIndex)) {
+            foreach ($storeCategories as $catId => $cat) {
+                $levelKey = $cat['level'] . ':' . $cat['name'] . ':' . ($cat['topLevel'] ?? '');
+                $levelIndex[$levelKey] = ['id' => $catId, 'name' => $cat['name']];
+            }
+        }
+        
+        // Based on the level, extract the hierarchy
+        if ($level == 1) {
+            // Level 1: Only top-level category
+            $hierarchy['cat1_id'] = $storeCategoryId;
+            $hierarchy['cat1_name'] = $category['name'];
+            error_log("[Category Extraction] Extracted Level 1: " . $category['name']);
+        } elseif ($level == 2) {
+            // Level 2: Top-level + manufacturer
+            $hierarchy['cat2_id'] = $storeCategoryId;
+            $hierarchy['cat2_name'] = $category['name'];
+            
+            // Find parent (level 1) by looking for topLevel
+            $topLevelName = $category['topLevel'] ?? null;
+            if ($topLevelName) {
+                $key = '1:' . $topLevelName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
+                    error_log("[Category Extraction] Extracted Level 1: " . $hierarchy['cat1_name'] . ", Level 2: " . $hierarchy['cat2_name']);
+                } else {
+                    error_log("[Category Extraction] Could not find parent Level 1 for: $topLevelName");
+                }
+            }
+        } elseif ($level == 3) {
+            // Level 3: Complete hierarchy
+            $hierarchy['cat3_id'] = $storeCategoryId;
+            $hierarchy['cat3_name'] = $category['name'];
+            
+            // Get parent (level 2) name
+            $parentName = $category['parent'] ?? null;
+            $topLevelName = $category['topLevel'] ?? null;
+            
+            // Find level 2 parent
+            if ($parentName && $topLevelName) {
+                $key = '2:' . $parentName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat2_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat2_name'] = $levelIndex[$key]['name'];
+                } else {
+                    error_log("[Category Extraction] Could not find Level 2 parent: $parentName");
+                }
+            }
+            
+            // Find level 1 (top-level)
+            if ($topLevelName) {
+                $key = '1:' . $topLevelName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
+                    error_log("[Category Extraction] Extracted complete hierarchy: L1={$hierarchy['cat1_name']}, L2={$hierarchy['cat2_name']}, L3={$hierarchy['cat3_name']}");
+                } else {
+                    error_log("[Category Extraction] Could not find Level 1 top-level: $topLevelName");
+                }
+            }
+        } else {
+            error_log("[Category Extraction] Unknown category level: $level");
+        }
+        
+        return $hierarchy;
+    }
+    
+    /**
      * Sync product from eBay data
      * @param array $ebayData Product data from eBay API
      * @param \FAS\Integrations\EbayAPI|null $ebayAPI Optional EbayAPI instance for store category extraction
@@ -399,6 +541,7 @@ class Product
         
         // ALWAYS call GetItem to fetch Condition and SKU (required fields)
         // Also fetch other fields if missing from GetSellerEvents
+        // IMPORTANT: GetItem also provides store_category_id and store_category2_id
         if ($ebayAPI && isset($ebayData['id'])) {
             $itemDetails = $ebayAPI->getItemDetails($ebayData['id']);
             if ($itemDetails) {
@@ -407,6 +550,15 @@ class Product
                 
                 // Get SKU (REQUIRED - always from GetItem)
                 $sku = $itemDetails['sku'] ?? '';
+                
+                // Get store category IDs from GetItem (more reliable than GetSellerEvents)
+                // Override any values from GetSellerEvents with GetItem data
+                if (isset($itemDetails['store_category_id'])) {
+                    $ebayData['store_category_id'] = $itemDetails['store_category_id'];
+                }
+                if (isset($itemDetails['store_category2_id'])) {
+                    $ebayData['store_category2_id'] = $itemDetails['store_category2_id'];
+                }
                 
                 // Get brand and model
                 if (!$manufacturer && $itemDetails['brand']) {
@@ -448,6 +600,18 @@ class Product
         if ($sku === '' || $sku === null) {
             $sku = $ebayData['id'];
         }
+        
+        // Extract full 3-level eBay store category hierarchy
+        // Uses eBay GetStore API to fetch custom store categories
+        error_log("[Product Sync] Item {$ebayData['id']}: Extracting category hierarchy from store_category_id=" . ($ebayData['store_category_id'] ?? 'null') . ", store_category2_id=" . ($ebayData['store_category2_id'] ?? 'null'));
+        
+        $storeCategoryHierarchy = $this->extractStoreCategoryHierarchy(
+            $ebayData['store_category_id'] ?? null,
+            $ebayData['store_category2_id'] ?? null,
+            $ebayAPI
+        );
+        
+        error_log("[Product Sync] Item {$ebayData['id']}: Category hierarchy extracted - L1: " . ($storeCategoryHierarchy['cat1_name'] ?? 'none') . ", L2: " . ($storeCategoryHierarchy['cat2_name'] ?? 'none') . ", L3: " . ($storeCategoryHierarchy['cat3_name'] ?? 'none'));
         
         // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
         $storeCategoryFound = false;
@@ -500,7 +664,14 @@ class Product
             'image_url' => $image,
             'images' => $images,
             'ebay_url' => $ebayData['url'] ?? null,
-            'source' => 'ebay'
+            'source' => 'ebay',
+            // Store exact eBay store category hierarchy (all 3 levels)
+            'ebay_store_cat1_id' => $storeCategoryHierarchy['cat1_id'],
+            'ebay_store_cat1_name' => $storeCategoryHierarchy['cat1_name'],
+            'ebay_store_cat2_id' => $storeCategoryHierarchy['cat2_id'],
+            'ebay_store_cat2_name' => $storeCategoryHierarchy['cat2_name'],
+            'ebay_store_cat3_id' => $storeCategoryHierarchy['cat3_id'],
+            'ebay_store_cat3_name' => $storeCategoryHierarchy['cat3_name']
         ];
         
         // Check if product has required shipping dimensions/weight
@@ -510,6 +681,9 @@ class Product
         if ($existing) {
             // Don't update category on sync - preserve admin's setting
             unset($productData['category']);
+            
+            // ALWAYS update eBay store category hierarchy - this must stay in sync with eBay
+            // These fields represent the exact eBay store structure and should always reflect current state
             
             // Always update manufacturer if we have Brand from eBay (most reliable source)
             // Only preserve existing manufacturer if we don't have Brand from eBay
@@ -562,5 +736,138 @@ class Product
         $stmt->bindParam(':imgs', $newImagesJson);
         $stmt->bindParam(':pid', $prodId);
         return $stmt->execute();
+    }
+    
+    /**
+     * Get full eBay store category path for a product
+     * Returns formatted string like "Motorcycle > Honda > CR500"
+     * 
+     * @param array $product Product data array
+     * @return string|null Category path or null if no eBay categories
+     */
+    public function getEbayStoreCategoryPath($product)
+    {
+        $path = [];
+        
+        if (!empty($product['ebay_store_cat1_name'])) {
+            $path[] = $product['ebay_store_cat1_name'];
+        }
+        if (!empty($product['ebay_store_cat2_name'])) {
+            $path[] = $product['ebay_store_cat2_name'];
+        }
+        if (!empty($product['ebay_store_cat3_name'])) {
+            $path[] = $product['ebay_store_cat3_name'];
+        }
+        
+        return !empty($path) ? implode(' > ', $path) : null;
+    }
+    
+    /**
+     * Get eBay store categories as an array
+     * Returns array with level => name mapping
+     * 
+     * @param array $product Product data array
+     * @return array Array of categories [1 => 'Level 1', 2 => 'Level 2', 3 => 'Level 3']
+     */
+    public function getEbayStoreCategoryArray($product)
+    {
+        $categories = [];
+        
+        if (!empty($product['ebay_store_cat1_name'])) {
+            $categories[1] = $product['ebay_store_cat1_name'];
+        }
+        if (!empty($product['ebay_store_cat2_name'])) {
+            $categories[2] = $product['ebay_store_cat2_name'];
+        }
+        if (!empty($product['ebay_store_cat3_name'])) {
+            $categories[3] = $product['ebay_store_cat3_name'];
+        }
+        
+        return $categories;
+    }
+    
+    /**
+     * Get all products with pagination, filtered by eBay store category IDs
+     */
+    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT * FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $params = [];
+        
+        // Filter by eBay category (most specific first)
+        if ($cat3Id) {
+            $sql .= " AND ebay_store_cat3_id = ?";
+            $params[] = $cat3Id;
+        } elseif ($cat2Id) {
+            $sql .= " AND ebay_store_cat2_id = ?";
+            $params[] = $cat2Id;
+        } elseif ($cat1Id) {
+            $sql .= " AND ebay_store_cat1_id = ?";
+            $params[] = $cat1Id;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
+        }
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params[] = $perPage;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get count of products filtered by eBay store category IDs
+     */
+    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $params = [];
+        
+        // Filter by eBay category (most specific first)
+        if ($cat3Id) {
+            $sql .= " AND ebay_store_cat3_id = ?";
+            $params[] = $cat3Id;
+        } elseif ($cat2Id) {
+            $sql .= " AND ebay_store_cat2_id = ?";
+            $params[] = $cat2Id;
+        } elseif ($cat1Id) {
+            $sql .= " AND ebay_store_cat1_id = ?";
+            $params[] = $cat1Id;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
+        }
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['total'];
     }
 }
