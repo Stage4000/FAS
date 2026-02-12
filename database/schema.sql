@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS products (
     source VARCHAR(20) DEFAULT 'manual', -- 'ebay' or 'manual'
     show_on_website BOOLEAN DEFAULT TRUE, -- TRUE = visible, FALSE = hidden
     is_active BOOLEAN DEFAULT TRUE,
+    -- eBay store category hierarchy (exact 3-level mapping)
+    ebay_store_cat1_id INT,
+    ebay_store_cat1_name VARCHAR(255),
+    ebay_store_cat2_id INT,
+    ebay_store_cat2_name VARCHAR(255),
+    ebay_store_cat3_id INT,
+    ebay_store_cat3_name VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_category (category),
@@ -29,7 +36,10 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_is_active (is_active),
     INDEX idx_manufacturer (manufacturer),
     INDEX idx_source (source),
-    INDEX idx_show_on_website (show_on_website)
+    INDEX idx_show_on_website (show_on_website),
+    INDEX idx_ebay_store_cat1 (ebay_store_cat1_id),
+    INDEX idx_ebay_store_cat2 (ebay_store_cat2_id),
+    INDEX idx_ebay_store_cat3 (ebay_store_cat3_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Categories table
