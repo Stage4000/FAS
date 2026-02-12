@@ -434,24 +434,45 @@ function loadProductsAndSidebar(params) {
     
     // Fetch products with sidebar
     fetch('/api/products.php?' + params.toString() + '&include_sidebar=1')
-        .then(response => response.json())
-        .then(data => {
-            content.innerHTML = data.html;
-            
-            // Update sidebar if provided
-            if (data.sidebar) {
-                document.querySelector('#categoryMenu .list-group').innerHTML = data.sidebar;
-                // Reattach category click handlers
-                attachCategoryHandlers();
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
             }
-            
-            // Reinitialize AOS animations if available
-            if (typeof AOS !== 'undefined') {
-                AOS.refresh();
+            return response.text();
+        })
+        .then(text => {
+            console.log('API Response:', text.substring(0, 200)); // Log first 200 chars for debugging
+            try {
+                const data = JSON.parse(text);
+                
+                if (!data.html) {
+                    throw new Error('No HTML content in response');
+                }
+                
+                content.innerHTML = data.html;
+                
+                // Update sidebar if provided
+                if (data.sidebar) {
+                    const sidebarContainer = document.querySelector('#categoryMenu .list-group');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = data.sidebar;
+                        // Reattach category click handlers
+                        attachCategoryHandlers();
+                    }
+                }
+                
+                // Reinitialize AOS animations if available
+                if (typeof AOS !== 'undefined') {
+                    AOS.refresh();
+                }
+                
+                // Reattach pagination click handlers
+                attachPaginationHandlers();
+            } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                console.error('Response text:', text);
+                throw parseError;
             }
-            
-            // Reattach pagination click handlers
-            attachPaginationHandlers();
         })
         .catch(error => {
             console.error('Error loading products:', error);
