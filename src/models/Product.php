@@ -384,27 +384,46 @@ class Product
         ];
         
         if (!$ebayAPI || !$storeCategoryId) {
+            if (!$ebayAPI) {
+                error_log("[Category Extraction] No EbayAPI instance provided");
+            }
+            if (!$storeCategoryId) {
+                error_log("[Category Extraction] No store_category_id provided (store_category_id: " . var_export($storeCategoryId, true) . ", store_category2_id: " . var_export($storeCategory2Id, true) . ")");
+            }
             return $hierarchy;
         }
         
         // Get all store categories (cached in EbayAPI)
+        // This calls eBay GetStore API
         $storeCategories = $ebayAPI->getStoreCategories();
         if (empty($storeCategories)) {
+            if ($storeCategories === null) {
+                error_log("[Category Extraction] getStoreCategories() returned NULL - API/token issue");
+            } else {
+                error_log("[Category Extraction] getStoreCategories() returned empty array - no categories in store");
+            }
             return $hierarchy;
         }
         
+        error_log("[Category Extraction] Retrieved " . count($storeCategories) . " store categories from eBay");
+        
         // Look up the category by ID
         if (!isset($storeCategories[$storeCategoryId])) {
+            error_log("[Category Extraction] Primary category ID $storeCategoryId not found in store categories");
             // Try secondary category if primary not found
             if ($storeCategory2Id && isset($storeCategories[$storeCategory2Id])) {
+                error_log("[Category Extraction] Using secondary category ID $storeCategory2Id");
                 $storeCategoryId = $storeCategory2Id;
             } else {
+                error_log("[Category Extraction] Secondary category ID also not found. Available IDs: " . implode(', ', array_keys($storeCategories)));
                 return $hierarchy;
             }
         }
         
         $category = $storeCategories[$storeCategoryId];
         $level = $category['level'] ?? 0;
+        
+        error_log("[Category Extraction] Processing category ID $storeCategoryId: '" . ($category['name'] ?? 'unnamed') . "' at level $level");
         
         // Build indexed lookups to avoid O(n) searches
         // Group categories by level and name for fast lookup
@@ -421,6 +440,7 @@ class Product
             // Level 1: Only top-level category
             $hierarchy['cat1_id'] = $storeCategoryId;
             $hierarchy['cat1_name'] = $category['name'];
+            error_log("[Category Extraction] Extracted Level 1: " . $category['name']);
         } elseif ($level == 2) {
             // Level 2: Top-level + manufacturer
             $hierarchy['cat2_id'] = $storeCategoryId;
@@ -433,6 +453,9 @@ class Product
                 if (isset($levelIndex[$key])) {
                     $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
                     $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
+                    error_log("[Category Extraction] Extracted Level 1: " . $hierarchy['cat1_name'] . ", Level 2: " . $hierarchy['cat2_name']);
+                } else {
+                    error_log("[Category Extraction] Could not find parent Level 1 for: $topLevelName");
                 }
             }
         } elseif ($level == 3) {
@@ -450,6 +473,8 @@ class Product
                 if (isset($levelIndex[$key])) {
                     $hierarchy['cat2_id'] = $levelIndex[$key]['id'];
                     $hierarchy['cat2_name'] = $levelIndex[$key]['name'];
+                } else {
+                    error_log("[Category Extraction] Could not find Level 2 parent: $parentName");
                 }
             }
             
@@ -459,8 +484,13 @@ class Product
                 if (isset($levelIndex[$key])) {
                     $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
                     $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
+                    error_log("[Category Extraction] Extracted complete hierarchy: L1={$hierarchy['cat1_name']}, L2={$hierarchy['cat2_name']}, L3={$hierarchy['cat3_name']}");
+                } else {
+                    error_log("[Category Extraction] Could not find Level 1 top-level: $topLevelName");
                 }
             }
+        } else {
+            error_log("[Category Extraction] Unknown category level: $level");
         }
         
         return $hierarchy;
@@ -562,11 +592,16 @@ class Product
         }
         
         // Extract full 3-level eBay store category hierarchy
+        // Uses eBay GetStore API to fetch custom store categories
+        error_log("[Product Sync] Item {$ebayData['id']}: Extracting category hierarchy from store_category_id=" . ($ebayData['store_category_id'] ?? 'null') . ", store_category2_id=" . ($ebayData['store_category2_id'] ?? 'null'));
+        
         $storeCategoryHierarchy = $this->extractStoreCategoryHierarchy(
             $ebayData['store_category_id'] ?? null,
             $ebayData['store_category2_id'] ?? null,
             $ebayAPI
         );
+        
+        error_log("[Product Sync] Item {$ebayData['id']}: Category hierarchy extracted - L1: " . ($storeCategoryHierarchy['cat1_name'] ?? 'none') . ", L2: " . ($storeCategoryHierarchy['cat2_name'] ?? 'none') . ", L3: " . ($storeCategoryHierarchy['cat3_name'] ?? 'none'));
         
         // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
         $storeCategoryFound = false;
