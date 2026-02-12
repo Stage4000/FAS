@@ -23,14 +23,40 @@ try {
         'ebay_store_cat3_name' => 'VARCHAR(255) NULL'
     ];
     
+    // Whitelist of allowed column names for security
+    $allowedColumns = [
+        'ebay_store_cat1_id',
+        'ebay_store_cat1_name',
+        'ebay_store_cat2_id',
+        'ebay_store_cat2_name',
+        'ebay_store_cat3_id',
+        'ebay_store_cat3_name'
+    ];
+    
     $addedColumns = [];
     foreach ($columns as $columnName => $columnDef) {
-        try {
-            // Try to select the column to see if it exists
-            $db->query("SELECT $columnName FROM products LIMIT 1");
+        // Security check: only allow whitelisted column names
+        if (!in_array($columnName, $allowedColumns, true)) {
+            echo "Column '$columnName' is not in the whitelist. Skipping for security...\n";
+            continue;
+        }
+        
+        // Check if column exists using PRAGMA for SQLite
+        $result = $db->query("PRAGMA table_info(products)");
+        $existingColumns = $result->fetchAll(PDO::FETCH_ASSOC);
+        
+        $columnExists = false;
+        foreach ($existingColumns as $col) {
+            if ($col['name'] === $columnName) {
+                $columnExists = true;
+                break;
+            }
+        }
+        
+        if ($columnExists) {
             echo "Column '$columnName' already exists. Skipping...\n";
-        } catch (PDOException $e) {
-            // Column doesn't exist, add it
+        } else {
+            // Column doesn't exist, add it - safe because columnName is whitelisted
             echo "Adding column '$columnName'...\n";
             $db->exec("ALTER TABLE products ADD COLUMN $columnName $columnDef");
             $addedColumns[] = $columnName;

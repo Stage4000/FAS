@@ -387,7 +387,7 @@ class Product
             return $hierarchy;
         }
         
-        // Get all store categories
+        // Get all store categories (cached in EbayAPI)
         $storeCategories = $ebayAPI->getStoreCategories();
         if (empty($storeCategories)) {
             return $hierarchy;
@@ -406,6 +406,16 @@ class Product
         $category = $storeCategories[$storeCategoryId];
         $level = $category['level'] ?? 0;
         
+        // Build indexed lookups to avoid O(n) searches
+        // Group categories by level and name for fast lookup
+        static $levelIndex = [];
+        if (empty($levelIndex)) {
+            foreach ($storeCategories as $catId => $cat) {
+                $levelKey = $cat['level'] . ':' . $cat['name'] . ':' . ($cat['topLevel'] ?? '');
+                $levelIndex[$levelKey] = ['id' => $catId, 'name' => $cat['name']];
+            }
+        }
+        
         // Based on the level, extract the hierarchy
         if ($level == 1) {
             // Level 1: Only top-level category
@@ -419,12 +429,10 @@ class Product
             // Find parent (level 1) by looking for topLevel
             $topLevelName = $category['topLevel'] ?? null;
             if ($topLevelName) {
-                foreach ($storeCategories as $catId => $cat) {
-                    if ($cat['level'] == 1 && $cat['name'] === $topLevelName) {
-                        $hierarchy['cat1_id'] = $catId;
-                        $hierarchy['cat1_name'] = $cat['name'];
-                        break;
-                    }
+                $key = '1:' . $topLevelName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
                 }
             }
         } elseif ($level == 3) {
@@ -437,24 +445,20 @@ class Product
             $topLevelName = $category['topLevel'] ?? null;
             
             // Find level 2 parent
-            if ($parentName) {
-                foreach ($storeCategories as $catId => $cat) {
-                    if ($cat['level'] == 2 && $cat['name'] === $parentName && $cat['topLevel'] === $topLevelName) {
-                        $hierarchy['cat2_id'] = $catId;
-                        $hierarchy['cat2_name'] = $cat['name'];
-                        break;
-                    }
+            if ($parentName && $topLevelName) {
+                $key = '2:' . $parentName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat2_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat2_name'] = $levelIndex[$key]['name'];
                 }
             }
             
             // Find level 1 (top-level)
             if ($topLevelName) {
-                foreach ($storeCategories as $catId => $cat) {
-                    if ($cat['level'] == 1 && $cat['name'] === $topLevelName) {
-                        $hierarchy['cat1_id'] = $catId;
-                        $hierarchy['cat1_name'] = $cat['name'];
-                        break;
-                    }
+                $key = '1:' . $topLevelName . ':' . $topLevelName;
+                if (isset($levelIndex[$key])) {
+                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
+                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
                 }
             }
         }
