@@ -1342,6 +1342,83 @@ class EbayAPI
     }
     
     /**
+     * Get store categories in hierarchical structure for navigation display
+     * Returns array organized by level 1 categories with their children
+     * 
+     * @return array Hierarchical category structure
+     */
+    public function getStoreCategoriesHierarchical()
+    {
+        $flatCategories = $this->getStoreCategories();
+        
+        if (empty($flatCategories)) {
+            return [];
+        }
+        
+        $hierarchical = [];
+        
+        // First pass: collect all level 1 categories
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 1) {
+                $hierarchical[$catId] = [
+                    'id' => $catId,
+                    'name' => $cat['name'],
+                    'level' => 1,
+                    'children' => []
+                ];
+            }
+        }
+        
+        // Second pass: collect level 2 categories and attach to parents
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 2) {
+                $topLevelName = $cat['topLevel'] ?? null;
+                
+                // Find parent level 1 category
+                foreach ($hierarchical as $parentId => &$parent) {
+                    if ($parent['name'] === $topLevelName) {
+                        $parent['children'][$catId] = [
+                            'id' => $catId,
+                            'name' => $cat['name'],
+                            'level' => 2,
+                            'parent_id' => $parentId,
+                            'children' => []
+                        ];
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Third pass: collect level 3 categories and attach to level 2 parents
+        foreach ($flatCategories as $catId => $cat) {
+            if ($cat['level'] == 3) {
+                $parentName = $cat['parent'] ?? null;
+                $topLevelName = $cat['topLevel'] ?? null;
+                
+                // Find parent level 2 category
+                foreach ($hierarchical as $l1Id => &$l1Cat) {
+                    if ($l1Cat['name'] === $topLevelName) {
+                        foreach ($l1Cat['children'] as $l2Id => &$l2Cat) {
+                            if ($l2Cat['name'] === $parentName) {
+                                $l2Cat['children'][$catId] = [
+                                    'id' => $catId,
+                                    'name' => $cat['name'],
+                                    'level' => 3,
+                                    'parent_id' => $l2Id
+                                ];
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $hierarchical;
+    }
+    
+    /**
      * Get detailed item information using GetItem API
      * This reliably returns ItemSpecifics including Brand and MPN
      */

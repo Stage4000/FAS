@@ -740,4 +740,89 @@ class Product
         
         return $categories;
     }
+    
+    /**
+     * Get all products with pagination, filtered by eBay store category IDs
+     */
+    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT * FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $params = [];
+        
+        // Filter by eBay category (most specific first)
+        if ($cat3Id) {
+            $sql .= " AND ebay_store_cat3_id = ?";
+            $params[] = $cat3Id;
+        } elseif ($cat2Id) {
+            $sql .= " AND ebay_store_cat2_id = ?";
+            $params[] = $cat2Id;
+        } elseif ($cat1Id) {
+            $sql .= " AND ebay_store_cat1_id = ?";
+            $params[] = $cat1Id;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
+        }
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params[] = $perPage;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get count of products filtered by eBay store category IDs
+     */
+    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $params = [];
+        
+        // Filter by eBay category (most specific first)
+        if ($cat3Id) {
+            $sql .= " AND ebay_store_cat3_id = ?";
+            $params[] = $cat3Id;
+        } elseif ($cat2Id) {
+            $sql .= " AND ebay_store_cat2_id = ?";
+            $params[] = $cat2Id;
+        } elseif ($cat1Id) {
+            $sql .= " AND ebay_store_cat1_id = ?";
+            $params[] = $cat1Id;
+        }
+        
+        if ($manufacturer) {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
+        }
+        
+        if ($search) {
+            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['total'];
+    }
 }
