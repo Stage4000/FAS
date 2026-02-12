@@ -484,8 +484,13 @@ function loadProductsAndSidebar(params) {
                 
                 // Reinitialize AOS animations if available
                 if (typeof AOS !== 'undefined') {
-                    AOS.refresh();
-                    console.log('AOS refreshed');
+                    // Force AOS to reinitialize and show elements immediately
+                    setTimeout(() => {
+                        AOS.refresh();
+                        // Trigger AOS on all elements immediately by scrolling
+                        window.dispatchEvent(new Event('scroll'));
+                        console.log('AOS refreshed and triggered');
+                    }, 100);
                 }
                 
                 // Reattach pagination click handlers
