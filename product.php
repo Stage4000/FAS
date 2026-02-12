@@ -97,7 +97,8 @@ if (empty($mainImage)) {
                         <img src="<?php echo htmlspecialchars($mainImage); ?>" 
                              class="img-fluid product-detail-img w-100" 
                              id="main-product-image"
-                             alt="<?php echo htmlspecialchars($product['name']); ?>">
+                             alt="<?php echo htmlspecialchars($product['name']); ?>"
+                             style="max-width: 100%; height: auto;">
                     <?php else: ?>
                         <div class="bg-light p-5 text-center">
                             <i class="bi bi-image display-1 text-muted"></i>
@@ -108,7 +109,7 @@ if (empty($mainImage)) {
             
             <!-- Thumbnail Gallery -->
             <?php if (!empty($images) && count($images) > 1): ?>
-                <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap">
+                <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap" style="overflow-x: auto;">
                     <?php foreach ($images as $index => $image): ?>
                         <?php 
                         // Check if image is external or local
@@ -123,7 +124,7 @@ if (empty($mainImage)) {
                                  class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>" 
                                  data-full="<?php echo htmlspecialchars($image); ?>"
                                  alt="View <?php echo $index + 1; ?>"
-                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;">
+                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; flex-shrink: 0;">
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
@@ -153,44 +154,38 @@ if (empty($mainImage)) {
                 <div class="card-body">
                     <h6 class="mb-3">Product Details</h6>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
-                        <?php if (!empty($product['category'])): ?>
-                        <tr>
-                            <td class="text-muted">Category:</td>
-                            <td><?php echo htmlspecialchars(ucfirst($product['category']) . ($product['category'] === 'gifts' ? '' : ' Parts')); ?></td>
-                        </tr>
-                        <?php endif; ?>
                         <?php 
                         // Display eBay store category hierarchy if available
                         $ebayCategory = $productModel->getEbayStoreCategoryPath($product);
                         if (!empty($ebayCategory)): 
                         ?>
                         <tr>
-                            <td class="text-muted">eBay Category:</td>
-                            <td><small class="text-muted"><?php echo htmlspecialchars($ebayCategory); ?></small></td>
+                            <td class="text-muted" style="white-space: nowrap;">Category:</td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($ebayCategory); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['manufacturer'])): ?>
                         <tr>
-                            <td class="text-muted">Manufacturer:</td>
-                            <td><?php echo htmlspecialchars($product['manufacturer']); ?></td>
+                            <td class="text-muted" style="white-space: nowrap;">Manufacturer:</td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($product['manufacturer']); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['model'])): ?>
                         <tr>
-                            <td class="text-muted">Model:</td>
-                            <td><?php echo htmlspecialchars($product['model']); ?></td>
+                            <td class="text-muted" style="white-space: nowrap;">Model:</td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($product['model']); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['condition_name'])): ?>
                         <tr>
-                            <td class="text-muted">Condition:</td>
-                            <td><?php echo htmlspecialchars($product['condition_name']); ?></td>
+                            <td class="text-muted" style="white-space: nowrap;">Condition:</td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($product['condition_name']); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['weight'])): ?>
                         <tr>
-                            <td class="text-muted">Weight:</td>
-                            <td><?php echo number_format($product['weight'], 2); ?> lbs</td>
+                            <td class="text-muted" style="white-space: nowrap;">Weight:</td>
+                            <td style="word-break: break-word;"><?php echo number_format($product['weight'], 2); ?> lbs</td>
                         </tr>
                         <?php endif; ?>
                     </table>
