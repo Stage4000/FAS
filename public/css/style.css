@@ -767,6 +767,8 @@ footer a:hover {
 
 .cart-item-quantity input[type="number"] {
     -moz-appearance: textfield;
+    min-width: 50px;
+    flex: 1 1 auto;
 }
 
 /* Desktop: wider quantity input */
@@ -811,6 +813,7 @@ footer a:hover {
     
     .cart-item-quantity .input-group {
         max-width: 150px;
+        flex-wrap: nowrap;
     }
     
     .cart-item-total {
