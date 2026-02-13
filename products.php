@@ -105,10 +105,14 @@ if ($homepageCategory) {
         }
     }
     
-    // If no mapping found or redirect failed, fall through to use homepage category filter
+    // If no mapping found or redirect failed, show all products
+    // This can happen if:
+    // - Homepage category has no mappings configured
+    // - eBay categories haven't been synced yet
+    // - eBay API is unavailable
 }
 
-// Use eBay category filters
+// Use eBay category filters (or show all products if no filters set)
 $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
 $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
 
