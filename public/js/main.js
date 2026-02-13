@@ -20,7 +20,16 @@ class ShoppingCart {
     addItem(product) {
         const existingItem = this.cart.find(item => item.id === product.id);
         if (existingItem) {
-            existingItem.quantity += 1;
+            // Check stock limit before incrementing
+            const stockLimit = existingItem.stock || 999;
+            if (existingItem.quantity < stockLimit) {
+                existingItem.quantity += 1;
+            } else {
+                if (window.showToast) {
+                    window.showToast('Maximum available quantity reached', 'warning');
+                }
+                return;
+            }
         } else {
             this.cart.push({
                 ...product,
@@ -42,10 +51,20 @@ class ShoppingCart {
     updateQuantity(productId, quantity) {
         const item = this.cart.find(item => item.id === productId);
         if (item) {
-            item.quantity = parseInt(quantity);
-            if (item.quantity <= 0) {
+            const newQuantity = parseInt(quantity);
+            const stockLimit = item.stock || 999;
+            
+            if (newQuantity <= 0) {
                 this.removeItem(productId);
+            } else if (newQuantity > stockLimit) {
+                // Don't allow exceeding stock limit
+                item.quantity = stockLimit;
+                this.saveCart();
+                if (window.showToast) {
+                    window.showToast('Maximum available quantity reached', 'warning');
+                }
             } else {
+                item.quantity = newQuantity;
                 this.saveCart();
             }
         }
@@ -101,7 +120,8 @@ document.addEventListener('click', (e) => {
             price: parseFloat(button.dataset.price),
             image: button.dataset.image || '',
             sku: button.dataset.sku || '',
-            weight: parseFloat(button.dataset.weight) || 1.0
+            weight: parseFloat(button.dataset.weight) || 1.0,
+            stock: parseInt(button.dataset.stock) || 999
         };
         cart.addItem(productData);
         

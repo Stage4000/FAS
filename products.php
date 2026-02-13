@@ -282,7 +282,8 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                             data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                             data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
                                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
-                                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                                            data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                                         <i class="fas fa-cart-plus"></i> Add to Cart
                                     </button>
                                 </div>
