@@ -316,7 +316,10 @@ document.getElementById('increase-qty').addEventListener('click', function() {
 });
 
 // Update add to cart to use quantity
-document.querySelector('.add-to-cart').addEventListener('click', function() {
+document.querySelector('.add-to-cart').addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent global handler from also firing
+    
     const quantity = parseInt(document.getElementById('quantity-input').value);
     const productData = {
         id: this.dataset.id,
@@ -333,6 +336,11 @@ document.querySelector('.add-to-cart').addEventListener('click', function() {
     
     for (let i = 0; i < quantity; i++) {
         window.cart.addItem(productData);
+    }
+    
+    // Trigger animation manually since we stopped propagation
+    if (window.animateAddToCart) {
+        window.animateAddToCart(this);
     }
 });
 </script>
