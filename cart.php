@@ -120,7 +120,7 @@ function displayCartItems() {
                                     <i class="fas fa-minus"></i>
                                 </button>
                                 <input type="number" class="form-control text-center" value="${item.quantity}" min="1" 
-                                       onchange="updateItemQuantity('${item.id}', this.value)" style="max-width: 60px;" aria-label="Quantity">
+                                       onchange="updateItemQuantity('${item.id}', this.value)" aria-label="Quantity">
                                 <button class="btn btn-outline-secondary mobile-touch-target" onclick="updateItemQuantity('${item.id}', ${item.quantity + 1})" aria-label="Increase quantity">
                                     <i class="fas fa-plus"></i>
                                 </button>
