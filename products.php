@@ -85,7 +85,6 @@ if ($homepageCategory) {
         // Find the first eBay category ID that matches
         $redirectCat1 = null;
         foreach ($ebayCategoryNames as $ebayCategoryName) {
-            $normalizedEbayCategoryName = strtoupper($ebayCategoryName);
             foreach ($flatCategories as $catId => $catInfo) {
                 if (strcasecmp($catInfo['name'], $ebayCategoryName) === 0) {
                     $redirectCat1 = $catId;
