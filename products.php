@@ -14,6 +14,7 @@ if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategorie
 if ($homepageCategory) {
     require_once __DIR__ . '/src/config/Database.php';
     require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
+    require_once __DIR__ . '/src/utils/SyncLogger.php';
     require_once __DIR__ . '/src/integrations/EbayAPI.php';
     
     $db = \FAS\Config\Database::getInstance()->getConnection();
