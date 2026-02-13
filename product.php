@@ -209,6 +209,9 @@ if (empty($mainImage)) {
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                         data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
+                        data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
+                        data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
+                        data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
@@ -313,18 +316,31 @@ document.getElementById('increase-qty').addEventListener('click', function() {
 });
 
 // Update add to cart to use quantity
-document.querySelector('.add-to-cart').addEventListener('click', function() {
+document.querySelector('.add-to-cart').addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent global handler from also firing
+    
     const quantity = parseInt(document.getElementById('quantity-input').value);
     const productData = {
         id: this.dataset.id,
         name: this.dataset.name,
         price: parseFloat(this.dataset.price),
         image: this.dataset.image,
-        sku: this.dataset.sku
+        sku: this.dataset.sku,
+        weight: parseFloat(this.dataset.weight) || 1.0,
+        length: parseFloat(this.dataset.length) || 10.0,
+        width: parseFloat(this.dataset.width) || 10.0,
+        height: parseFloat(this.dataset.height) || 10.0,
+        stock: parseInt(this.dataset.stock) || 999
     };
     
     for (let i = 0; i < quantity; i++) {
         window.cart.addItem(productData);
+    }
+    
+    // Trigger animation manually since we stopped propagation
+    if (window.animateAddToCart) {
+        window.animateAddToCart(this);
     }
 });
 </script>

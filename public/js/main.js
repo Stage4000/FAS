@@ -121,6 +121,9 @@ document.addEventListener('click', (e) => {
             image: button.dataset.image || '',
             sku: button.dataset.sku || '',
             weight: parseFloat(button.dataset.weight) || 1.0,
+            length: parseFloat(button.dataset.length) || 10.0,
+            width: parseFloat(button.dataset.width) || 10.0,
+            height: parseFloat(button.dataset.height) || 10.0,
             stock: parseInt(button.dataset.stock) || 999
         };
         cart.addItem(productData);

@@ -346,6 +346,10 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                             data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
                                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
                                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                                            data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
+                                            data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
+                                            data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
+                                            data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
                                             data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                                         <i class="fas fa-cart-plus"></i> Add to Cart
                                     </button>
