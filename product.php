@@ -209,6 +209,9 @@ if (empty($mainImage)) {
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                         data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
+                        data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
+                        data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
+                        data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
@@ -322,6 +325,9 @@ document.querySelector('.add-to-cart').addEventListener('click', function() {
         image: this.dataset.image,
         sku: this.dataset.sku,
         weight: parseFloat(this.dataset.weight) || 1.0,
+        length: parseFloat(this.dataset.length) || 10.0,
+        width: parseFloat(this.dataset.width) || 10.0,
+        height: parseFloat(this.dataset.height) || 10.0,
         stock: parseInt(this.dataset.stock) || 999
     };
     

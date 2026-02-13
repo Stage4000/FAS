@@ -538,7 +538,10 @@ async function calculateShipping() {
         sku: item.sku,
         price: item.price,
         quantity: item.quantity,
-        weight: item.weight || 1.0 // Use product weight from cart, fallback to 1.0 lb
+        weight: item.weight || 1.0, // Use product weight from cart, fallback to 1.0 lb
+        length: item.length || 10.0,
+        width: item.width || 10.0,
+        height: item.height || 10.0
     }));
     
     const btn = document.getElementById('calculate-shipping-btn');
