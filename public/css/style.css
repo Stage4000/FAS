@@ -755,6 +755,28 @@ footer a:hover {
 }
 
 /* ======================================
+   CART QUANTITY INPUT STYLING
+   ====================================== */
+
+/* Remove default number input spinners from cart quantity inputs */
+.cart-item-quantity input[type="number"]::-webkit-outer-spin-button,
+.cart-item-quantity input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cart-item-quantity input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Desktop: wider quantity input */
+@media (min-width: 769px) {
+    .cart-item-quantity input[type="number"] {
+        width: 80px;
+    }
+}
+
+/* ======================================
    MOBILE CART OPTIMIZATIONS
    ====================================== */
 
