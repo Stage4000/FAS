@@ -141,6 +141,30 @@ class HomepageCategoryMapping
     }
     
     /**
+     * Get eBay category names for a homepage category
+     * Returns array of eBay category names mapped to this homepage category, ordered by priority
+     */
+    public function getEbayCategoriesForHomepageCategory($homepageCategory)
+    {
+        if (empty($homepageCategory)) {
+            return [];
+        }
+        
+        $sql = "SELECT ebay_store_cat1_name FROM homepage_category_mappings 
+                WHERE homepage_category = ? AND is_active = 1 
+                ORDER BY priority DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$homepageCategory]);
+        
+        $categories = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $categories[] = $row['ebay_store_cat1_name'];
+        }
+        
+        return $categories;
+    }
+    
+    /**
      * Get all unique eBay category names from products
      */
     public function getEbayCategoriesFromProducts()

@@ -70,18 +70,48 @@ try {
     error_log("Stack trace: " . $e->getTraceAsString());
 }
 
-// Determine which filter method to use
-// If homepage category is specified (from homepage buttons), use that
-// Otherwise, use eBay category filters (from sidebar navigation)
+// If homepage category is specified, redirect to the appropriate eBay category
+// This ensures the sidebar navigation works consistently
 if ($homepageCategory) {
-    // Homepage category filter (from /products/motorcycle, /products/atv, etc.)
-    $products = $productModel->getAll($page, $perPage, $homepageCategory, $search, $manufacturer);
-    $totalProducts = $productModel->getCount($homepageCategory, $search, $manufacturer);
-} else {
-    // eBay category filter (from sidebar navigation)
-    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
-    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+    require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
+    use FAS\Models\HomepageCategoryMapping;
+    
+    $mappingModel = new HomepageCategoryMapping($db);
+    $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
+    
+    if (!empty($ebayCategoryNames) && $ebayAPI) {
+        // Get flat categories to find the ID
+        $flatCategories = $ebayAPI->getStoreCategories();
+        
+        // Find the first eBay category ID that matches
+        $redirectCat1 = null;
+        foreach ($ebayCategoryNames as $ebayCategoryName) {
+            foreach ($flatCategories as $catId => $catInfo) {
+                if (strtoupper($catInfo['name']) === strtoupper($ebayCategoryName)) {
+                    $redirectCat1 = $catId;
+                    break 2;
+                }
+            }
+        }
+        
+        // Redirect to eBay category if found
+        if ($redirectCat1) {
+            $redirectUrl = '/products?cat1=' . $redirectCat1;
+            if ($search) $redirectUrl .= '&search=' . urlencode($search);
+            if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
+            if ($page > 1) $redirectUrl .= '&page=' . $page;
+            
+            header('Location: ' . $redirectUrl);
+            exit;
+        }
+    }
+    
+    // If no mapping found or redirect failed, fall through to use homepage category filter
 }
+
+// Use eBay category filters
+$products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+$totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
 
 // Get unique manufacturers for filter (from all products)
 $allManufacturers = $productModel->getManufacturers();
@@ -90,18 +120,7 @@ $totalPages = ceil($totalProducts / $perPage);
 
 // Get current category name for display
 $currentCategoryName = 'All Products';
-if ($homepageCategory) {
-    // Map homepage category slug to display name
-    $categoryNames = [
-        'motorcycle' => 'Motorcycle Parts',
-        'atv' => 'ATV/UTV Parts',
-        'boat' => 'Boat Parts',
-        'automotive' => 'Automotive Parts',
-        'gifts' => 'Gifts',
-        'other' => 'Other'
-    ];
-    $currentCategoryName = $categoryNames[$homepageCategory] ?? ucfirst($homepageCategory);
-} elseif ($ebayCat3 || $ebayCat2 || $ebayCat1) {
+if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
     $flatCategories = $ebayAPI->getStoreCategories();
     if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
         $cat = $flatCategories[$ebayCat3];
