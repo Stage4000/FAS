@@ -1,4 +1,68 @@
 <?php
+// Handle redirect BEFORE any output
+// Get filter parameters
+$homepageCategory = $_GET['category'] ?? null;  // Homepage category slug (motorcycle, atv, boat, etc.)
+
+// Validate homepage category against allowlist
+$allowedCategories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
+if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategories)) {
+    $homepageCategory = null;  // Invalid category, treat as no filter
+}
+
+// If homepage category is specified, redirect to the appropriate eBay category
+// This ensures the sidebar navigation works consistently
+if ($homepageCategory) {
+    require_once __DIR__ . '/src/config/Database.php';
+    require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
+    require_once __DIR__ . '/src/integrations/EbayAPI.php';
+    
+    use FAS\Config\Database;
+    use FAS\Models\HomepageCategoryMapping;
+    use FAS\Integrations\EbayAPI;
+    
+    $db = Database::getInstance()->getConnection();
+    $mappingModel = new HomepageCategoryMapping($db);
+    $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
+    
+    if (!empty($ebayCategoryNames)) {
+        try {
+            $config = require __DIR__ . '/src/config/config.php';
+            $ebayAPI = new EbayAPI($config);
+            $flatCategories = $ebayAPI->getStoreCategories();
+            
+            // Find the first eBay category ID that matches
+            $redirectCat1 = null;
+            foreach ($ebayCategoryNames as $ebayCategoryName) {
+                foreach ($flatCategories as $catId => $catInfo) {
+                    if (strcasecmp($catInfo['name'], $ebayCategoryName) === 0) {
+                        $redirectCat1 = $catId;
+                        break 2;
+                    }
+                }
+            }
+            
+            // Redirect to eBay category if found
+            if ($redirectCat1) {
+                $search = $_GET['search'] ?? null;
+                $manufacturer = $_GET['manufacturer'] ?? null;
+                $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+                
+                $redirectUrl = '/products?cat1=' . urlencode($redirectCat1);
+                if ($search) $redirectUrl .= '&search=' . urlencode($search);
+                if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
+                if ($page > 1) $redirectUrl .= '&page=' . (int)$page;
+                
+                header('Location: ' . $redirectUrl);
+                exit;
+            }
+        } catch (Exception $e) {
+            // If redirect fails, continue to normal page load
+            error_log("Redirect failed: " . $e->getMessage());
+        }
+    }
+}
+
+// Now include header and continue with normal page rendering
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
@@ -27,15 +91,7 @@ function normalizeImagePath($path) {
     return $path;
 }
 
-// Get filter parameters
-$homepageCategory = $_GET['category'] ?? null;  // Homepage category slug (motorcycle, atv, boat, etc.)
-
-// Validate homepage category against allowlist
-$allowedCategories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
-if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategories)) {
-    $homepageCategory = null;  // Invalid category, treat as no filter
-}
-
+// Get filter parameters (already got homepageCategory above for redirect)
 $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
@@ -70,46 +126,6 @@ try {
     $ebayCategories = [];
     error_log("Failed to load eBay categories: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
-}
-
-// If homepage category is specified, redirect to the appropriate eBay category
-// This ensures the sidebar navigation works consistently
-if ($homepageCategory) {
-    $mappingModel = new HomepageCategoryMapping($db);
-    $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
-    
-    if (!empty($ebayCategoryNames) && $ebayAPI) {
-        // Get flat categories to find the ID
-        $flatCategories = $ebayAPI->getStoreCategories();
-        
-        // Find the first eBay category ID that matches
-        $redirectCat1 = null;
-        foreach ($ebayCategoryNames as $ebayCategoryName) {
-            foreach ($flatCategories as $catId => $catInfo) {
-                if (strcasecmp($catInfo['name'], $ebayCategoryName) === 0) {
-                    $redirectCat1 = $catId;
-                    break 2;
-                }
-            }
-        }
-        
-        // Redirect to eBay category if found
-        if ($redirectCat1) {
-            $redirectUrl = '/products?cat1=' . urlencode($redirectCat1);
-            if ($search) $redirectUrl .= '&search=' . urlencode($search);
-            if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
-            if ($page > 1) $redirectUrl .= '&page=' . (int)$page;
-            
-            header('Location: ' . $redirectUrl);
-            exit;
-        }
-    }
-    
-    // If no mapping found or redirect failed, show all products
-    // This can happen if:
-    // - Homepage category has no mappings configured
-    // - eBay categories haven't been synced yet
-    // - eBay API is unavailable
 }
 
 // Use eBay category filters (or show all products if no filters set)
