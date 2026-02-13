@@ -27,6 +27,13 @@ function normalizeImagePath($path) {
 
 // Get filter parameters
 $homepageCategory = $_GET['category'] ?? null;  // Homepage category slug (motorcycle, atv, boat, etc.)
+
+// Validate homepage category against allowlist
+$allowedCategories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
+if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategories)) {
+    $homepageCategory = null;  // Invalid category, treat as no filter
+}
+
 $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
