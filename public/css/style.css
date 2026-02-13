@@ -767,13 +767,12 @@ footer a:hover {
 
 .cart-item-quantity input[type="number"] {
     -moz-appearance: textfield;
-    appearance: textfield;
 }
 
 /* Desktop: wider quantity input */
 @media (min-width: 769px) {
     .cart-item-quantity input[type="number"] {
-        max-width: 80px !important;
+        max-width: 80px;
         min-width: 80px;
     }
 }
