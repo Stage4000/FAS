@@ -26,6 +26,7 @@ function normalizeImagePath($path) {
 }
 
 // Get filter parameters
+$homepageCategory = $_GET['category'] ?? null;  // Homepage category slug (motorcycle, atv, boat, etc.)
 $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
@@ -62,9 +63,18 @@ try {
     error_log("Stack trace: " . $e->getTraceAsString());
 }
 
-// Get products from database using eBay category filter
-$products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
-$totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+// Determine which filter method to use
+// If homepage category is specified (from homepage buttons), use that
+// Otherwise, use eBay category filters (from sidebar navigation)
+if ($homepageCategory) {
+    // Homepage category filter (from /products/motorcycle, /products/atv, etc.)
+    $products = $productModel->getAll($page, $perPage, $homepageCategory, $search, $manufacturer);
+    $totalProducts = $productModel->getCount($homepageCategory, $search, $manufacturer);
+} else {
+    // eBay category filter (from sidebar navigation)
+    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+}
 
 // Get unique manufacturers for filter (from all products)
 $allManufacturers = $productModel->getManufacturers();
@@ -73,7 +83,18 @@ $totalPages = ceil($totalProducts / $perPage);
 
 // Get current category name for display
 $currentCategoryName = 'All Products';
-if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
+if ($homepageCategory) {
+    // Map homepage category slug to display name
+    $categoryNames = [
+        'motorcycle' => 'Motorcycle Parts',
+        'atv' => 'ATV/UTV Parts',
+        'boat' => 'Boat Parts',
+        'automotive' => 'Automotive Parts',
+        'gifts' => 'Gifts',
+        'other' => 'Other'
+    ];
+    $currentCategoryName = $categoryNames[$homepageCategory] ?? ucfirst($homepageCategory);
+} elseif ($ebayCat3 || $ebayCat2 || $ebayCat1) {
     $flatCategories = $ebayAPI->getStoreCategories();
     if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
         $cat = $flatCategories[$ebayCat3];
