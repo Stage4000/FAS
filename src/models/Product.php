@@ -9,6 +9,7 @@ namespace FAS\Models;
 class Product
 {
     private $db;
+    private $mappingModel = null; // Cache for HomepageCategoryMapping model
     
     /**
      * Gift-specific keywords for category mapping (Priority 1)
@@ -343,10 +344,12 @@ class Product
         // This takes highest priority if configured
         if (!empty($ebayCat1Name)) {
             try {
-                // Lazy load the mapping model only when needed
-                require_once __DIR__ . '/HomepageCategoryMapping.php';
-                $mappingModel = new HomepageCategoryMapping($this->db);
-                $mappedCategory = $mappingModel->getHomepageCategoryForEbayCategory($ebayCat1Name);
+                // Lazy load and cache the mapping model
+                if ($this->mappingModel === null) {
+                    require_once __DIR__ . '/HomepageCategoryMapping.php';
+                    $this->mappingModel = new HomepageCategoryMapping($this->db);
+                }
+                $mappedCategory = $this->mappingModel->getHomepageCategoryForEbayCategory($ebayCat1Name);
                 
                 if ($mappedCategory) {
                     return $mappedCategory;

@@ -15,7 +15,7 @@ try {
     echo "Starting migration: Add homepage_category_mappings table\n";
     
     // Check database type
-    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
     
     if ($driver === 'sqlite') {
         echo "Using SQLite syntax\n";

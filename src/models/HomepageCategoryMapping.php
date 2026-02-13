@@ -26,6 +26,14 @@ class HomepageCategoryMapping
     }
     
     /**
+     * Normalize eBay category name to uppercase for consistent storage and lookup
+     */
+    private function normalizeEbayCategoryName($name)
+    {
+        return strtoupper(trim($name));
+    }
+    
+    /**
      * Get all mappings
      */
     public function getAll()
@@ -73,12 +81,14 @@ class HomepageCategoryMapping
             return null;
         }
         
+        $normalizedName = $this->normalizeEbayCategoryName($ebayCat1Name);
+        
         $sql = "SELECT homepage_category FROM homepage_category_mappings 
                 WHERE ebay_store_cat1_name = ? AND is_active = 1 
                 ORDER BY priority DESC 
                 LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([strtoupper($ebayCat1Name)]);
+        $stmt->execute([$normalizedName]);
         
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result ? $result['homepage_category'] : null;
@@ -94,13 +104,13 @@ class HomepageCategoryMapping
         }
         
         // Normalize eBay category name to uppercase
-        $ebayCat1Name = strtoupper(trim($ebayCat1Name));
+        $normalizedName = $this->normalizeEbayCategoryName($ebayCat1Name);
         
         // Check if mapping exists
         $sql = "SELECT id FROM homepage_category_mappings 
                 WHERE homepage_category = ? AND ebay_store_cat1_name = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$homepageCategory, $ebayCat1Name]);
+        $stmt->execute([$homepageCategory, $normalizedName]);
         $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
         
         if ($existing) {
@@ -116,7 +126,7 @@ class HomepageCategoryMapping
                     (homepage_category, ebay_store_cat1_name, priority, is_active) 
                     VALUES (?, ?, ?, 1)";
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$homepageCategory, $ebayCat1Name, $priority]);
+            return $stmt->execute([$homepageCategory, $normalizedName, $priority]);
         }
     }
     
