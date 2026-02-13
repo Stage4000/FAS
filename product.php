@@ -320,7 +320,9 @@ document.querySelector('.add-to-cart').addEventListener('click', function() {
         name: this.dataset.name,
         price: parseFloat(this.dataset.price),
         image: this.dataset.image,
-        sku: this.dataset.sku
+        sku: this.dataset.sku,
+        weight: parseFloat(this.dataset.weight) || 1.0,
+        stock: parseInt(this.dataset.stock) || 999
     };
     
     for (let i = 0; i < quantity; i++) {
