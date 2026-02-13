@@ -334,10 +334,28 @@ class Product
      * Map eBay category to local category
      * Maps eBay category names/IDs to our categories: motorcycle, atv, boat, automotive, gifts
      */
-    private function mapEbayCategory($ebayCategoryName, $ebayCategoryId, $itemTitle)
+    private function mapEbayCategory($ebayCategoryName, $ebayCategoryId, $itemTitle, $ebayCat1Name = null)
     {
         // Default category - use 'other' as true fallback instead of 'automotive'
         $category = 'other';
+        
+        // Priority 0: Check database mappings for eBay store category (level 1)
+        // This takes highest priority if configured
+        if (!empty($ebayCat1Name)) {
+            try {
+                // Lazy load the mapping model only when needed
+                require_once __DIR__ . '/HomepageCategoryMapping.php';
+                $mappingModel = new HomepageCategoryMapping($this->db);
+                $mappedCategory = $mappingModel->getHomepageCategoryForEbayCategory($ebayCat1Name);
+                
+                if ($mappedCategory) {
+                    return $mappedCategory;
+                }
+            } catch (\Exception $e) {
+                // If table doesn't exist or there's an error, fall back to hardcoded logic
+                error_log("Homepage category mapping error: " . $e->getMessage());
+            }
+        }
         
         // Convert to lowercase for case-insensitive matching
         $categoryName = strtolower($ebayCategoryName ?? '');
@@ -505,13 +523,6 @@ class Product
     {
         $existing = $this->getByEbayId($ebayData['id']);
         
-        // Default: Map eBay category to local category using standard mapping
-        $category = $this->mapEbayCategory(
-            $ebayData['ebay_category_name'] ?? null,
-            $ebayData['ebay_category_id'] ?? null,
-            $ebayData['title']
-        );
-        
         // Priority 1: Use eBay's Brand and MPN fields if available (most reliable)
         $manufacturer = $ebayData['brand'] ?? null;
         $model = $ebayData['mpn'] ?? null;
@@ -612,6 +623,14 @@ class Product
         );
         
         error_log("[Product Sync] Item {$ebayData['id']}: Category hierarchy extracted - L1: " . ($storeCategoryHierarchy['cat1_name'] ?? 'none') . ", L2: " . ($storeCategoryHierarchy['cat2_name'] ?? 'none') . ", L3: " . ($storeCategoryHierarchy['cat3_name'] ?? 'none'));
+        
+        // Map eBay category to local category using store category level 1 first, then standard mapping
+        $category = $this->mapEbayCategory(
+            $ebayData['ebay_category_name'] ?? null,
+            $ebayData['ebay_category_id'] ?? null,
+            $ebayData['title'],
+            $storeCategoryHierarchy['cat1_name'] ?? null
+        );
         
         // Priority 2: Extract category, manufacturer and model from store categories (ONLY as fallback)
         $storeCategoryFound = false;
