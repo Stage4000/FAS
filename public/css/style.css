@@ -778,6 +778,11 @@ footer a:hover {
     }
 }
 
+/* Prevent input-group from wrapping on all screen sizes */
+.cart-item-quantity .input-group {
+    flex-wrap: nowrap;
+}
+
 /* ======================================
    MOBILE CART OPTIMIZATIONS
    ====================================== */
@@ -813,7 +818,6 @@ footer a:hover {
     
     .cart-item-quantity .input-group {
         max-width: 150px;
-        flex-wrap: nowrap;
     }
     
     .cart-item-total {
