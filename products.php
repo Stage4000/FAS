@@ -16,18 +16,14 @@ if ($homepageCategory) {
     require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
     require_once __DIR__ . '/src/integrations/EbayAPI.php';
     
-    use FAS\Config\Database;
-    use FAS\Models\HomepageCategoryMapping;
-    use FAS\Integrations\EbayAPI;
-    
-    $db = Database::getInstance()->getConnection();
-    $mappingModel = new HomepageCategoryMapping($db);
+    $db = \FAS\Config\Database::getInstance()->getConnection();
+    $mappingModel = new \FAS\Models\HomepageCategoryMapping($db);
     $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
     
     if (!empty($ebayCategoryNames)) {
         try {
             $config = require __DIR__ . '/src/config/config.php';
-            $ebayAPI = new EbayAPI($config);
+            $ebayAPI = new \FAS\Integrations\EbayAPI($config);
             $flatCategories = $ebayAPI->getStoreCategories();
             
             // Find the first eBay category ID that matches
