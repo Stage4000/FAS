@@ -186,6 +186,22 @@ CREATE TABLE IF NOT EXISTS warehouses (
     updated_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Homepage category mappings table
+CREATE TABLE IF NOT EXISTS homepage_category_mappings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    homepage_category TEXT NOT NULL,
+    ebay_store_cat1_name TEXT NOT NULL,
+    priority INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(homepage_category, ebay_store_cat1_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_homepage_cat ON homepage_category_mappings(homepage_category);
+CREATE INDEX IF NOT EXISTS idx_ebay_cat1 ON homepage_category_mappings(ebay_store_cat1_name);
+CREATE INDEX IF NOT EXISTS idx_is_active ON homepage_category_mappings(is_active);
+
 -- Insert default categories
 INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
 ('Motorcycle Parts', 'motorcycle', 'Parts for motorcycles from all major brands', 1),

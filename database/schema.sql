@@ -171,6 +171,21 @@ CREATE TABLE IF NOT EXISTS admin_users (
     INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Homepage category mappings table
+CREATE TABLE IF NOT EXISTS homepage_category_mappings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    homepage_category VARCHAR(50) NOT NULL,
+    ebay_store_cat1_name VARCHAR(255) NOT NULL,
+    priority INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_mapping (homepage_category, ebay_store_cat1_name),
+    INDEX idx_homepage_cat (homepage_category),
+    INDEX idx_ebay_cat1 (ebay_store_cat1_name),
+    INDEX idx_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Insert default categories
 INSERT INTO categories (name, slug, description, sort_order) VALUES
 ('Motorcycle Parts', 'motorcycle', 'Parts for motorcycles from all major brands', 1),
