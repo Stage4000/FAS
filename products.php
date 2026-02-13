@@ -501,6 +501,9 @@ function loadProductsAndSidebar(params) {
                 
                 // Reattach pagination click handlers
                 attachPaginationHandlers();
+                
+                // Reattach manufacturer filter handler
+                attachManufacturerFilterHandler();
             } catch (parseError) {
                 console.error('JSON Parse Error:', parseError);
                 console.error('Response text:', text);
@@ -545,23 +548,36 @@ window.addEventListener('popstate', function() {
     loadProductsAndSidebar(params);
 });
 
-// Handle manufacturer filter change
-document.getElementById('manufacturerFilter')?.addEventListener('change', function() {
-    const params = new URLSearchParams(window.location.search);
-    const mfg = this.value;
-    
-    if (mfg) {
-        params.set('manufacturer', mfg);
-    } else {
-        params.delete('manufacturer');
+// Attach manufacturer filter handler
+function attachManufacturerFilterHandler() {
+    const filterElement = document.getElementById('manufacturerFilter');
+    if (filterElement) {
+        // Remove any existing listener by cloning and replacing the element
+        const newElement = filterElement.cloneNode(true);
+        filterElement.parentNode.replaceChild(newElement, filterElement);
+        
+        // Add event listener to the new element
+        newElement.addEventListener('change', function() {
+            const params = new URLSearchParams(window.location.search);
+            const mfg = this.value;
+            
+            if (mfg) {
+                params.set('manufacturer', mfg);
+            } else {
+                params.delete('manufacturer');
+            }
+            params.delete('page'); // Reset to first page
+            
+            // Update URL and load products
+            const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+            window.history.pushState({}, '', newUrl);
+            loadProductsAndSidebar(params);
+        });
     }
-    params.delete('page'); // Reset to first page
-    
-    // Update URL and load products
-    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
-    window.history.pushState({}, '', newUrl);
-    loadProductsAndSidebar(params);
-});
+}
+
+// Handle manufacturer filter change
+attachManufacturerFilterHandler();
 
 // Handle search form submission
 document.getElementById('search-form')?.addEventListener('submit', function(e) {
