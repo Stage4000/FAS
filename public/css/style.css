@@ -772,8 +772,7 @@ footer a:hover {
 /* Desktop: wider quantity input */
 @media (min-width: 769px) {
     .cart-item-quantity input[type="number"] {
-        max-width: 80px;
-        min-width: 80px;
+        width: 80px;
     }
 }
 
