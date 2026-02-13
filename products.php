@@ -548,6 +548,24 @@ window.addEventListener('popstate', function() {
     loadProductsAndSidebar(params);
 });
 
+// Manufacturer filter change handler function
+function handleManufacturerChange() {
+    const params = new URLSearchParams(window.location.search);
+    const mfg = this.value;
+    
+    if (mfg) {
+        params.set('manufacturer', mfg);
+    } else {
+        params.delete('manufacturer');
+    }
+    params.delete('page'); // Reset to first page
+    
+    // Update URL and load products
+    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState({}, '', newUrl);
+    loadProductsAndSidebar(params);
+}
+
 // Attach manufacturer filter handler
 function attachManufacturerFilterHandler() {
     const filterElement = document.getElementById('manufacturerFilter');
@@ -557,22 +575,7 @@ function attachManufacturerFilterHandler() {
         filterElement.parentNode.replaceChild(newElement, filterElement);
         
         // Add event listener to the new element
-        newElement.addEventListener('change', function() {
-            const params = new URLSearchParams(window.location.search);
-            const mfg = this.value;
-            
-            if (mfg) {
-                params.set('manufacturer', mfg);
-            } else {
-                params.delete('manufacturer');
-            }
-            params.delete('page'); // Reset to first page
-            
-            // Update URL and load products
-            const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
-            window.history.pushState({}, '', newUrl);
-            loadProductsAndSidebar(params);
-        });
+        newElement.addEventListener('change', handleManufacturerChange);
     }
 }
 
