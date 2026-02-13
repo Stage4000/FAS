@@ -2,11 +2,13 @@
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
 require_once __DIR__ . '/src/utils/SyncLogger.php';
 require_once __DIR__ . '/src/integrations/EbayAPI.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Models\HomepageCategoryMapping;
 use FAS\Integrations\EbayAPI;
 
 // Normalize image paths to ensure they start with / for local images
@@ -73,9 +75,6 @@ try {
 // If homepage category is specified, redirect to the appropriate eBay category
 // This ensures the sidebar navigation works consistently
 if ($homepageCategory) {
-    require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
-    use FAS\Models\HomepageCategoryMapping;
-    
     $mappingModel = new HomepageCategoryMapping($db);
     $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
     
@@ -86,8 +85,9 @@ if ($homepageCategory) {
         // Find the first eBay category ID that matches
         $redirectCat1 = null;
         foreach ($ebayCategoryNames as $ebayCategoryName) {
+            $normalizedEbayCategoryName = strtoupper($ebayCategoryName);
             foreach ($flatCategories as $catId => $catInfo) {
-                if (strtoupper($catInfo['name']) === strtoupper($ebayCategoryName)) {
+                if (strcasecmp($catInfo['name'], $ebayCategoryName) === 0) {
                     $redirectCat1 = $catId;
                     break 2;
                 }
@@ -96,10 +96,10 @@ if ($homepageCategory) {
         
         // Redirect to eBay category if found
         if ($redirectCat1) {
-            $redirectUrl = '/products?cat1=' . $redirectCat1;
+            $redirectUrl = '/products?cat1=' . urlencode($redirectCat1);
             if ($search) $redirectUrl .= '&search=' . urlencode($search);
             if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
-            if ($page > 1) $redirectUrl .= '&page=' . $page;
+            if ($page > 1) $redirectUrl .= '&page=' . (int)$page;
             
             header('Location: ' . $redirectUrl);
             exit;
