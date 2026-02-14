@@ -390,18 +390,21 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
 
 // Helper function to show notification
 function showNotification(message, type) {
+    // Ensure message is a string
+    const safeMessage = String(message || '');
+    
     // Validate type parameter against allowlist
     const validTypes = ['success', 'danger', 'warning', 'info'];
     const safeType = validTypes.includes(type) ? type : 'info';
     
     if (window.showToast) {
-        window.showToast(message, safeType);
+        window.showToast(safeMessage, safeType);
     } else {
         // Fallback notification if showToast doesn't exist
         const notification = document.createElement('div');
         notification.className = `alert alert-${safeType} position-fixed top-0 start-50 translate-middle-x mt-3`;
         notification.style.zIndex = '9999';
-        notification.textContent = message;
+        notification.textContent = safeMessage;
         document.body.appendChild(notification);
         
         setTimeout(() => {
@@ -436,6 +439,7 @@ if (shareButton) {
             textarea.setSelectionRange(0, textarea.value.length);
             
             try {
+                // Note: document.execCommand is deprecated but used here for legacy browser support
                 document.execCommand('copy');
                 showNotification('Product link copied to clipboard!', 'success');
             } catch (err) {
