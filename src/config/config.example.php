@@ -73,6 +73,11 @@ return [
         'secret_key' => 'YOUR_TURNSTILE_SECRET_KEY'
     ],
     
+    'google_analytics' => [
+        'enabled' => false,
+        'measurement_id' => 'G-XXXXXXXXXX' // Get from Google Analytics dashboard
+    ],
+    
     'site' => [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',

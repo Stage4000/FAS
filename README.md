@@ -13,6 +13,7 @@ Modern e-commerce website for Flip and Strip motorcycle, ATV/UTV, boat, and auto
 - **Payment Gateway**: PayPal checkout integration (to be configured)
 - **Shipping**: EasyShip integration ready (to be configured)
 - **Live Chat**: Tawk.to integration for customer support
+- **Analytics**: Google Analytics integration for tracking and insights
 
 ## Technology Stack
 
@@ -80,6 +81,7 @@ Modern e-commerce website for Flip and Strip motorcycle, ATV/UTV, boat, and auto
    - **eBay API**: Add your eBay App ID, Cert ID, Dev ID in `src/config/config.php`
    - **PayPal API**: Add your PayPal Client ID and Secret in `src/config/config.php`
    - **EasyShip API**: Add your EasyShip API key in `src/config/config.php`
+   - **Google Analytics**: Add your GA4 Measurement ID in `src/config/config.php` (optional)
 
 5. Set up web server to serve from the root directory
 
@@ -171,6 +173,26 @@ The **Sync API Key** is a security token that protects the sync endpoint from un
   - Delivery time estimates
   - Automatic parcel building from cart items
 - **Usage**: Integrated in checkout flow via `/api/shipping-rates.php`
+
+### Google Analytics ✅
+- **Integration**: Complete
+- **Configuration**: Add to `src/config/config.php`:
+  ```php
+  'google_analytics' => [
+      'enabled' => true,
+      'measurement_id' => 'G-XXXXXXXXXX' // Your GA4 Measurement ID
+  ]
+  ```
+- **Features**:
+  - Automatic page view tracking
+  - User behavior analytics
+  - E-commerce tracking ready
+- **Usage**: Automatically included on all frontend pages via `includes/header.php`
+- **How to get Measurement ID**: 
+  1. Sign up for Google Analytics at https://analytics.google.com
+  2. Create a GA4 property
+  3. Copy the Measurement ID (format: G-XXXXXXXXXX)
+  4. Add it to your config.php
 
 ## Admin Panel ✅
 
