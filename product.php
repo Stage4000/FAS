@@ -95,7 +95,7 @@ if (!empty($product['condition_name'])) {
     $descriptionParts[] = 'Condition: ' . $product['condition_name'];
 }
 
-$pageDescription = implode(' | ', $descriptionParts);
+$pageDescription = htmlspecialchars(implode(' | ', $descriptionParts));
 
 // Set Open Graph image - convert to absolute URL if it's a local path
 $ogImage = $mainImage;
