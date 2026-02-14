@@ -39,6 +39,7 @@ class EbayAPI
     // Description cleanup constants
     private const MIN_DESCRIPTION_LENGTH = 10; // Minimum length after removing title
     private const LOG_TITLE_MAX_LENGTH = 50; // Maximum title length in log messages
+    private const CHARSET_UTF8 = 'UTF-8'; // Character encoding for string operations
     
     public function __construct($config = null, $configFilePath = null)
     {
@@ -1458,8 +1459,8 @@ class EbayAPI
                 $cleaned = trim($afterTitle);
                 if (strlen($cleaned) > self::MIN_DESCRIPTION_LENGTH) {
                     // Log with truncated title for debugging (using mb_substr for UTF-8 safety)
-                    $truncatedTitle = mb_strlen($title, 'UTF-8') > self::LOG_TITLE_MAX_LENGTH 
-                        ? mb_substr($title, 0, self::LOG_TITLE_MAX_LENGTH, 'UTF-8') . '...' 
+                    $truncatedTitle = mb_strlen($title, self::CHARSET_UTF8) > self::LOG_TITLE_MAX_LENGTH 
+                        ? mb_substr($title, 0, self::LOG_TITLE_MAX_LENGTH, self::CHARSET_UTF8) . '...' 
                         : $title;
                     error_log("[Description Cleanup] Removed templated title from: \"$truncatedTitle\"");
                     return $cleaned;
