@@ -259,7 +259,7 @@ require_once __DIR__ . '/includes/header.php';
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
                 <button class="btn btn-outline-secondary btn-lg" id="share-button">
-                    <i class="fas fa-share-alt"></i> Share Product
+                    <i class="bi bi-share"></i> Share Product
                 </button>
             </div>
             
@@ -392,29 +392,31 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
 document.getElementById('share-button').addEventListener('click', function() {
     const currentUrl = window.location.href;
     
+    // Helper function to show notification
+    function showNotification(message, type) {
+        if (window.showToast) {
+            window.showToast(message, type);
+        } else {
+            // Fallback notification if showToast doesn't exist
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+            notification.style.zIndex = '9999';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    }
+    
     // Use modern Clipboard API if available
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(currentUrl).then(function() {
-            // Show success message
-            if (window.showToast) {
-                window.showToast('Product link copied to clipboard!', 'success');
-            } else {
-                // Fallback notification if showToast doesn't exist
-                const message = document.createElement('div');
-                message.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
-                message.style.zIndex = '9999';
-                message.textContent = 'Product link copied to clipboard!';
-                document.body.appendChild(message);
-                
-                setTimeout(() => {
-                    message.remove();
-                }, 3000);
-            }
+            showNotification('Product link copied to clipboard!', 'success');
         }).catch(function(err) {
             console.error('Failed to copy URL:', err);
-            if (window.showToast) {
-                window.showToast('Failed to copy link. Please try again.', 'danger');
-            }
+            showNotification('Failed to copy link. Please try again.', 'danger');
         });
     } else {
         // Fallback for older browsers
@@ -427,24 +429,10 @@ document.getElementById('share-button').addEventListener('click', function() {
         
         try {
             document.execCommand('copy');
-            if (window.showToast) {
-                window.showToast('Product link copied to clipboard!', 'success');
-            } else {
-                const message = document.createElement('div');
-                message.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
-                message.style.zIndex = '9999';
-                message.textContent = 'Product link copied to clipboard!';
-                document.body.appendChild(message);
-                
-                setTimeout(() => {
-                    message.remove();
-                }, 3000);
-            }
+            showNotification('Product link copied to clipboard!', 'success');
         } catch (err) {
             console.error('Failed to copy URL:', err);
-            if (window.showToast) {
-                window.showToast('Failed to copy link. Please try again.', 'danger');
-            }
+            showNotification('Failed to copy link. Please try again.', 'danger');
         } finally {
             document.body.removeChild(textarea);
         }
