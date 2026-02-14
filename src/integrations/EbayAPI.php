@@ -38,6 +38,7 @@ class EbayAPI
     
     // Description cleanup constants
     private const MIN_DESCRIPTION_LENGTH = 10; // Minimum length after removing title
+    private const LOG_TITLE_MAX_LENGTH = 50; // Maximum title length in log messages
     
     public function __construct($config = null, $configFilePath = null)
     {
@@ -1450,13 +1451,16 @@ class EbayAPI
             
             // Check if what follows the title is significant whitespace followed by more content
             // This prevents removing legitimate descriptions that happen to start with the title text
-            // Pattern: must start with 2+ spaces OR complete line endings (\r\n, \n, or \r)
+            // Pattern: must start with 2+ spaces OR complete line endings
+            // Check \r\n first to avoid partial match on Windows line endings
             // Using non-capturing group as we don't need the matched text
-            if (preg_match('/^(?:\s{2,}|\r\n|\n|\r)/', $afterTitle) && trim($afterTitle) !== '') {
+            if (preg_match('/^(?:\s{2,}|\r\n|\r|\n)/', $afterTitle) && trim($afterTitle) !== '') {
                 $cleaned = trim($afterTitle);
                 if (strlen($cleaned) > self::MIN_DESCRIPTION_LENGTH) {
-                    // Log with truncated title for debugging (limit to 50 chars)
-                    $truncatedTitle = strlen($title) > 50 ? substr($title, 0, 50) . '...' : $title;
+                    // Log with truncated title for debugging
+                    $truncatedTitle = strlen($title) > self::LOG_TITLE_MAX_LENGTH 
+                        ? substr($title, 0, self::LOG_TITLE_MAX_LENGTH) . '...' 
+                        : $title;
                     error_log("[Description Cleanup] Removed templated title from: \"$truncatedTitle\"");
                     return $cleaned;
                 }
