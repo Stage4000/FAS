@@ -1447,8 +1447,8 @@ class EbayAPI
             
             // Check if what follows the title is significant whitespace followed by more content
             // This prevents removing legitimate descriptions that happen to start with the title text
-            // Pattern: must start with either newline or 2+ spaces
-            if (preg_match('/^(\s{2,}|\n)/', $afterTitle) && trim($afterTitle) !== '') {
+            // Pattern: must start with either 2+ spaces or any line break (handles \n, \r\n, \r)
+            if (preg_match('/^(\s{2,}|[\r\n])/', $afterTitle) && trim($afterTitle) !== '') {
                 $cleaned = trim($afterTitle);
                 if (strlen($cleaned) > 10) { // Ensure there's substantial content remaining
                     error_log("[Description Cleanup] Removed templated title (followed by whitespace)");
