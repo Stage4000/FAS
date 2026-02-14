@@ -388,7 +388,12 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
     }
 });
 
-// Helper function to show notification
+/**
+ * Display a notification message to the user
+ * @param {string} message - The message to display
+ * @param {string} type - Bootstrap alert type: 'success', 'danger', 'warning', or 'info'
+ * Uses window.showToast() if available, otherwise creates a Bootstrap alert
+ */
 function showNotification(message, type) {
     // Ensure message is a string
     const safeMessage = String(message || '');
@@ -416,7 +421,7 @@ function showNotification(message, type) {
 // Share button functionality
 const shareButton = document.getElementById('share-button');
 if (shareButton) {
-    shareButton.addEventListener('click', function() {
+    shareButton.addEventListener('click', function handleShareClick() {
         const currentUrl = window.location.href;
         
         // Use modern Clipboard API if available
@@ -448,9 +453,8 @@ if (shareButton) {
                 console.error('Failed to copy URL:', err);
                 showNotification('Failed to copy link. Please try again.', 'danger');
             } finally {
-                if (textarea.parentNode) {
-                    textarea.parentNode.removeChild(textarea);
-                }
+                // Clean up temporary textarea
+                textarea.remove();
             }
         }
     });
