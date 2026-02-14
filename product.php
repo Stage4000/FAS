@@ -258,7 +258,7 @@ require_once __DIR__ . '/includes/header.php';
                 <a href="/cart" class="btn btn-outline-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
-                <button class="btn btn-outline-secondary btn-lg" id="share-button">
+                <button class="btn btn-outline-secondary btn-lg" id="share-button" aria-label="Share product link">
                     <i class="bi bi-share"></i> Share Product
                 </button>
             </div>
@@ -432,7 +432,7 @@ if (shareButton) {
             textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
-            // Mobile browser compatibility
+            // Mobile browser compatibility: some mobile browsers don't fully support select()
             textarea.setSelectionRange(0, textarea.value.length);
             
             try {
