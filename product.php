@@ -428,19 +428,20 @@ if (shareButton) {
                 showNotification('Failed to copy link. Please try again.', 'danger');
             });
         } else {
-            // Fallback for older browsers
+            // Fallback for older browsers (IE11, older mobile browsers without Clipboard API support)
             const textarea = document.createElement('textarea');
             textarea.value = currentUrl;
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             textarea.setAttribute('aria-hidden', 'true');
+            textarea.setAttribute('tabindex', '-1');
             document.body.appendChild(textarea);
             textarea.select();
             // Mobile browser compatibility: some mobile browsers don't fully support select()
             textarea.setSelectionRange(0, textarea.value.length);
             
             try {
-                // Note: document.execCommand is deprecated but used here for legacy browser support
+                // Note: document.execCommand is deprecated but required for IE11 and older browsers
                 document.execCommand('copy');
                 showNotification('Product link copied to clipboard!', 'success');
             } catch (err) {
