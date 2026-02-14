@@ -11,18 +11,18 @@
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="<?php echo isset($ogType) ? htmlspecialchars($ogType) : 'website'; ?>">
     <meta property="og:url" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . ($_SERVER['REQUEST_URI'] ?? ''); ?>">
     <meta property="og:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
     <meta property="og:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts. Low miles, tested parts from top brands.'; ?>">
-    <meta property="og:image" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com'); ?>/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg">
+    <meta property="og:image" content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . '/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg'; ?>">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . ($_SERVER['REQUEST_URI'] ?? ''); ?>">
     <meta property="twitter:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
     <meta property="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts from top brands.'; ?>">
-    <meta property="twitter:image" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com'); ?>/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg">
+    <meta property="twitter:image" content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . '/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg'; ?>">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . strtok($_SERVER['REQUEST_URI'] ?? '/', '?'); ?>">
