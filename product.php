@@ -428,7 +428,7 @@ if (shareButton) {
                 showNotification('Failed to copy link. Please try again.', 'danger');
             });
         } else {
-            // Fallback for older browsers (IE11, older mobile browsers without Clipboard API support)
+            // Fallback for browsers without Clipboard API support (primarily older mobile browsers)
             const textarea = document.createElement('textarea');
             textarea.value = currentUrl;
             textarea.style.position = 'fixed';
@@ -441,7 +441,7 @@ if (shareButton) {
             textarea.setSelectionRange(0, textarea.value.length);
             
             try {
-                // Note: document.execCommand is deprecated but required for IE11 and older browsers
+                // Note: document.execCommand is deprecated but required for older browsers without Clipboard API
                 document.execCommand('copy');
                 showNotification('Product link copied to clipboard!', 'success');
             } catch (err) {
