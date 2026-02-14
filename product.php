@@ -259,7 +259,7 @@ require_once __DIR__ . '/includes/header.php';
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
                 <button class="btn btn-outline-secondary btn-lg" id="share-button" aria-label="Share product link">
-                    <i class="bi bi-share"></i> Share Product
+                    <i class="fas fa-share-alt"></i> Share
                 </button>
             </div>
             
