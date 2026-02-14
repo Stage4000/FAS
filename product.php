@@ -390,12 +390,16 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
 
 // Helper function to show notification
 function showNotification(message, type) {
+    // Validate type parameter against allowlist
+    const validTypes = ['success', 'danger', 'warning', 'info'];
+    const safeType = validTypes.includes(type) ? type : 'info';
+    
     if (window.showToast) {
-        window.showToast(message, type);
+        window.showToast(message, safeType);
     } else {
         // Fallback notification if showToast doesn't exist
         const notification = document.createElement('div');
-        notification.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        notification.className = `alert alert-${safeType} position-fixed top-0 start-50 translate-middle-x mt-3`;
         notification.style.zIndex = '9999';
         notification.textContent = message;
         document.body.appendChild(notification);
@@ -407,39 +411,42 @@ function showNotification(message, type) {
 }
 
 // Share button functionality
-document.getElementById('share-button').addEventListener('click', function() {
-    const currentUrl = window.location.href;
-    
-    // Use modern Clipboard API if available
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(currentUrl).then(function() {
-            showNotification('Product link copied to clipboard!', 'success');
-        }).catch(function(err) {
-            console.error('Failed to copy URL:', err);
-            showNotification('Failed to copy link. Please try again.', 'danger');
-        });
-    } else {
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = currentUrl;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        // Mobile browser compatibility
-        textarea.setSelectionRange(0, 99999);
+const shareButton = document.getElementById('share-button');
+if (shareButton) {
+    shareButton.addEventListener('click', function() {
+        const currentUrl = window.location.href;
         
-        try {
-            document.execCommand('copy');
-            showNotification('Product link copied to clipboard!', 'success');
-        } catch (err) {
-            console.error('Failed to copy URL:', err);
-            showNotification('Failed to copy link. Please try again.', 'danger');
-        } finally {
-            document.body.removeChild(textarea);
+        // Use modern Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentUrl).then(function() {
+                showNotification('Product link copied to clipboard!', 'success');
+            }).catch(function(err) {
+                console.error('Failed to copy URL:', err);
+                showNotification('Failed to copy link. Please try again.', 'danger');
+            });
+        } else {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = currentUrl;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            // Mobile browser compatibility
+            textarea.setSelectionRange(0, textarea.value.length);
+            
+            try {
+                document.execCommand('copy');
+                showNotification('Product link copied to clipboard!', 'success');
+            } catch (err) {
+                console.error('Failed to copy URL:', err);
+                showNotification('Failed to copy link. Please try again.', 'danger');
+            } finally {
+                document.body.removeChild(textarea);
+            }
         }
-    }
-});
+    });
+}
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
