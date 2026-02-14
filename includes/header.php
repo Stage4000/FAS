@@ -77,6 +77,38 @@
     <?php echo $productSchema; ?>
     </script>
     <?php endif; ?>
+    
+    <?php
+    // Google Analytics Integration
+    $gaEnabled = false;
+    $gaMeasurementId = '';
+    
+    // Try to load from config
+    $configPath = __DIR__ . '/../src/config/config.php';
+    if (file_exists($configPath)) {
+        try {
+            $config = require $configPath;
+            if (isset($config['google_analytics']) && is_array($config['google_analytics'])) {
+                $gaEnabled = !empty($config['google_analytics']['enabled']);
+                $gaMeasurementId = $config['google_analytics']['measurement_id'] ?? '';
+            }
+        } catch (Exception $e) {
+            // Silently fail if config has errors
+            error_log('Google Analytics config error: ' . $e->getMessage());
+        }
+    }
+    
+    if ($gaEnabled && !empty($gaMeasurementId)):
+    ?>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars($gaMeasurementId); ?>"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '<?php echo htmlspecialchars($gaMeasurementId); ?>');
+    </script>
+    <?php endif; ?>
 </head>
 <body>
     <!-- Navigation -->
