@@ -36,6 +36,11 @@ class EbayAPI
     private const RATE_LIMIT_BASE_WAIT = 5; // Base wait time in seconds
     private const RATE_LIMIT_MULTIPLIER = 3; // Exponential multiplier
     
+    // Description cleanup constants
+    private const MIN_DESCRIPTION_LENGTH = 10; // Minimum length after removing title
+    private const LOG_TITLE_MAX_LENGTH = 50; // Maximum title length in log messages
+    private const CHARSET_UTF8 = 'UTF-8'; // Character encoding for string operations
+    
     public function __construct($config = null, $configFilePath = null)
     {
         if ($config === null) {
@@ -718,6 +723,9 @@ class EbayAPI
             $itemId = $item['ItemID'] ?? 'unknown';
             $itemTitle = $item['Title'] ?? 'Untitled';
             
+            // Remove title from description if it appears at the beginning as a template artifact
+            $description = $this->removeTemplatedTitleFromDescription($description, $itemTitle);
+            
             // Extract quantity and listing status
             $quantity = (int)($item['Quantity'] ?? 0);
             $listingStatus = $item['SellingStatus']['ListingStatus'] ?? '';
@@ -750,7 +758,6 @@ class EbayAPI
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => '', // Will be fetched from GetItem API
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
@@ -1419,6 +1426,52 @@ class EbayAPI
     }
     
     /**
+     * Clean up description by removing prepended title if present
+     * Some eBay sellers include the product title in their description HTML templates
+     * This method removes it if detected, but only when it's clearly a template artifact
+     * 
+     * @param string|null $description The description text (after HTML stripping)
+     * @param string|null $title The product title
+     * @return string The cleaned description
+     */
+    private function removeTemplatedTitleFromDescription(?string $description, ?string $title): string
+    {
+        if (!$description || !$title) {
+            return $description ?? '';
+        }
+        
+        // Only remove if:
+        // 1. Description starts with the exact title
+        // 2. There's more content after the title (not just the title alone)
+        // 3. The title is followed by whitespace (newline or multiple spaces)
+        //    This indicates it was likely injected by a template, not part of natural text
+        
+        // PHP 7.4 compatible check for starts_with
+        if (substr($description, 0, strlen($title)) === $title) {
+            $afterTitle = substr($description, strlen($title));
+            
+            // Check if what follows the title is significant whitespace followed by more content
+            // This prevents removing legitimate descriptions that happen to start with the title text
+            // Pattern: must start with 2+ spaces OR complete line endings, followed by actual content
+            // Check \r\n first to avoid partial match on Windows line endings
+            // Using non-capturing group as we don't need the matched text
+            if (preg_match('/^(?:\s{2,}|\r\n|\r|\n)\s*\S/', $afterTitle)) {
+                $cleaned = trim($afterTitle);
+                if (strlen($cleaned) > self::MIN_DESCRIPTION_LENGTH) {
+                    // Log with truncated title for debugging (using mb_substr for UTF-8 safety)
+                    $truncatedTitle = mb_strlen($title, self::CHARSET_UTF8) > self::LOG_TITLE_MAX_LENGTH 
+                        ? mb_substr($title, 0, self::LOG_TITLE_MAX_LENGTH, self::CHARSET_UTF8) . '...' 
+                        : $title;
+                    error_log("[Description Cleanup] Removed templated title from: \"$truncatedTitle\"");
+                    return $cleaned;
+                }
+            }
+        }
+        
+        return $description;
+    }
+    
+    /**
      * Get detailed item information using GetItem API
      * This reliably returns ItemSpecifics including Brand and MPN
      */
@@ -1553,6 +1606,10 @@ class EbayAPI
             $description = preg_replace('/[ \t]+/', ' ', $description);
             $description = preg_replace('/\n\s*\n/', "\n\n", $description);
             $description = trim($description);
+            
+            // Remove title from description if it appears at the beginning as a template artifact
+            $itemTitle = $item['Title'] ?? '';
+            $description = $this->removeTemplatedTitleFromDescription($description, $itemTitle);
         }
         
         // Extract SKU

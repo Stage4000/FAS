@@ -460,12 +460,11 @@ class Product
         
         // Build indexed lookups to avoid O(n) searches
         // Group categories by level and name for fast lookup
-        static $levelIndex = [];
-        if (empty($levelIndex)) {
-            foreach ($storeCategories as $catId => $cat) {
-                $levelKey = $cat['level'] . ':' . $cat['name'] . ':' . ($cat['topLevel'] ?? '');
-                $levelIndex[$levelKey] = ['id' => $catId, 'name' => $cat['name']];
-            }
+        // Note: Do not use static to avoid stale data across different product syncs
+        $levelIndex = [];
+        foreach ($storeCategories as $catId => $cat) {
+            $levelKey = $cat['level'] . ':' . $cat['name'] . ':' . ($cat['topLevel'] ?? '');
+            $levelIndex[$levelKey] = ['id' => $catId, 'name' => $cat['name']];
         }
         
         // Based on the level, extract the hierarchy
