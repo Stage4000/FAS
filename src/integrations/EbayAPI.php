@@ -1451,15 +1451,15 @@ class EbayAPI
             
             // Check if what follows the title is significant whitespace followed by more content
             // This prevents removing legitimate descriptions that happen to start with the title text
-            // Pattern: must start with 2+ spaces OR complete line endings
+            // Pattern: must start with 2+ spaces OR complete line endings, followed by actual content
             // Check \r\n first to avoid partial match on Windows line endings
             // Using non-capturing group as we don't need the matched text
-            if (preg_match('/^(?:\s{2,}|\r\n|\r|\n)/', $afterTitle) && trim($afterTitle) !== '') {
+            if (preg_match('/^(?:\s{2,}|\r\n|\r|\n)\s*\S/', $afterTitle)) {
                 $cleaned = trim($afterTitle);
                 if (strlen($cleaned) > self::MIN_DESCRIPTION_LENGTH) {
-                    // Log with truncated title for debugging
-                    $truncatedTitle = strlen($title) > self::LOG_TITLE_MAX_LENGTH 
-                        ? substr($title, 0, self::LOG_TITLE_MAX_LENGTH) . '...' 
+                    // Log with truncated title for debugging (using mb_substr for UTF-8 safety)
+                    $truncatedTitle = mb_strlen($title, 'UTF-8') > self::LOG_TITLE_MAX_LENGTH 
+                        ? mb_substr($title, 0, self::LOG_TITLE_MAX_LENGTH, 'UTF-8') . '...' 
                         : $title;
                     error_log("[Description Cleanup] Removed templated title from: \"$truncatedTitle\"");
                     return $cleaned;
