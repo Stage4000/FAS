@@ -125,6 +125,18 @@ crontab -e
 
 See `cron/README.md` for detailed setup instructions.
 
+#### Sold Items Management
+
+When items are sold or ended on eBay, they are automatically handled during synchronization:
+
+- **Detection**: The eBay API identifies items with status != 'active' or quantity = 0
+- **Action**: These items are automatically hidden from the website (`show_on_website = 0`)
+- **Preservation**: Items remain in the database for order history but are not visible to customers
+- **Logging**: The sync process logs the number of hidden items for monitoring
+- **Both sync methods**: This applies to both manual sync (`/api/ebay-sync.php`) and automated cron sync
+
+This ensures customers never see out-of-stock or sold items, preventing confusion and potential disputes.
+
 #### eBay API Rate Limits
 
 eBay enforces rate limits on API calls to prevent abuse:
@@ -153,6 +165,7 @@ The **Sync API Key** is a security token that protects the sync endpoint from un
   - Get single item details
   - Search items by keywords
   - Automatic product synchronization
+  - **Automatic sold item handling**: Items sold or ended on eBay are automatically hidden from the website during sync
 - **Endpoint**: `/api/ebay-sync.php?key=fas_sync_key_2026`
 
 ### PayPal Integration ✅
