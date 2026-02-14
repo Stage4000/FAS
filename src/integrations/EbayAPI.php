@@ -36,6 +36,9 @@ class EbayAPI
     private const RATE_LIMIT_BASE_WAIT = 5; // Base wait time in seconds
     private const RATE_LIMIT_MULTIPLIER = 3; // Exponential multiplier
     
+    // Description cleanup constants
+    private const MIN_DESCRIPTION_LENGTH = 10; // Minimum length after removing title
+    
     public function __construct($config = null, $configFilePath = null)
     {
         if ($config === null) {
@@ -1425,14 +1428,14 @@ class EbayAPI
      * Some eBay sellers include the product title in their description HTML templates
      * This method removes it if detected, but only when it's clearly a template artifact
      * 
-     * @param string $description The description text (after HTML stripping)
-     * @param string $title The product title
+     * @param string|null $description The description text (after HTML stripping)
+     * @param string|null $title The product title
      * @return string The cleaned description
      */
-    private function removeTemplatedTitleFromDescription($description, $title)
+    private function removeTemplatedTitleFromDescription(?string $description, ?string $title): string
     {
         if (!$description || !$title) {
-            return $description;
+            return $description ?? '';
         }
         
         // Only remove if:
@@ -1448,9 +1451,10 @@ class EbayAPI
             // Check if what follows the title is significant whitespace followed by more content
             // This prevents removing legitimate descriptions that happen to start with the title text
             // Pattern: must start with either 2+ spaces or any line break (handles \n, \r\n, \r)
-            if (preg_match('/^(\s{2,}|[\r\n])/', $afterTitle) && trim($afterTitle) !== '') {
+            // Using non-capturing group as we don't need the matched text
+            if (preg_match('/^(?:\s{2,}|[\r\n])/', $afterTitle) && trim($afterTitle) !== '') {
                 $cleaned = trim($afterTitle);
-                if (strlen($cleaned) > 10) { // Ensure there's substantial content remaining
+                if (strlen($cleaned) > self::MIN_DESCRIPTION_LENGTH) {
                     error_log("[Description Cleanup] Removed templated title (followed by whitespace)");
                     return $cleaned;
                 }
