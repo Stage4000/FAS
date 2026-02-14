@@ -94,6 +94,7 @@ try {
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
+    $totalHidden = 0;
     
     // Fetch items from eBay using GetSellerEvents
     // This works for both full and incremental sync based on the time range
@@ -119,15 +120,8 @@ try {
             echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to hide...\n";
             foreach ($result['inactive_item_ids'] as $inactiveItemId) {
                 try {
-                    // Check if item exists in database
-                    $stmt = $db->prepare("SELECT id FROM products WHERE ebay_item_id = ?");
-                    $stmt->execute([$inactiveItemId]);
-                    $existingItem = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if ($existingItem) {
-                        // Hide from website since item is no longer active on eBay
-                        $stmt = $db->prepare("UPDATE products SET show_on_website = 0 WHERE id = ?");
-                        $stmt->execute([$existingItem['id']]);
+                    if ($productModel->hideByEbayId($inactiveItemId)) {
+                        $totalHidden++;
                         echo "[" . date('Y-m-d H:i:s') . "] Hidden inactive item {$inactiveItemId} from website\n";
                     }
                 } catch (Exception $e) {
@@ -204,6 +198,7 @@ try {
     echo "  Added: {$totalAdded}\n";
     echo "  Updated: {$totalUpdated}\n";
     echo "  Failed: {$totalFailed}\n";
+    echo "  Hidden: {$totalHidden}\n";
     
     SyncLogger::finalize();
     exit(0);
