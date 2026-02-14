@@ -257,7 +257,11 @@ require_once __DIR__ . '/includes/header.php';
                 </button>
                 <a href="/cart" class="btn btn-outline-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
-                </a>            </div>
+                </a>
+                <button class="btn btn-outline-secondary btn-lg" id="share-button">
+                    <i class="fas fa-share-alt"></i> Share Product
+                </button>
+            </div>
             
             <div class="alert alert-info">
                 <i class="bi bi-truck me-2"></i>
@@ -381,6 +385,69 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
     // Trigger animation manually since we stopped propagation
     if (window.animateAddToCart) {
         window.animateAddToCart(this);
+    }
+});
+
+// Share button functionality
+document.getElementById('share-button').addEventListener('click', function() {
+    const currentUrl = window.location.href;
+    
+    // Use modern Clipboard API if available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentUrl).then(function() {
+            // Show success message
+            if (window.showToast) {
+                window.showToast('Product link copied to clipboard!', 'success');
+            } else {
+                // Fallback notification if showToast doesn't exist
+                const message = document.createElement('div');
+                message.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+                message.style.zIndex = '9999';
+                message.textContent = 'Product link copied to clipboard!';
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    message.remove();
+                }, 3000);
+            }
+        }).catch(function(err) {
+            console.error('Failed to copy URL:', err);
+            if (window.showToast) {
+                window.showToast('Failed to copy link. Please try again.', 'danger');
+            }
+        });
+    } else {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = currentUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            if (window.showToast) {
+                window.showToast('Product link copied to clipboard!', 'success');
+            } else {
+                const message = document.createElement('div');
+                message.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+                message.style.zIndex = '9999';
+                message.textContent = 'Product link copied to clipboard!';
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    message.remove();
+                }, 3000);
+            }
+        } catch (err) {
+            console.error('Failed to copy URL:', err);
+            if (window.showToast) {
+                window.showToast('Failed to copy link. Please try again.', 'danger');
+            }
+        } finally {
+            document.body.removeChild(textarea);
+        }
     }
 });
 </script>
