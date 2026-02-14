@@ -257,7 +257,11 @@ require_once __DIR__ . '/includes/header.php';
                 </button>
                 <a href="/cart" class="btn btn-outline-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
-                </a>            </div>
+                </a>
+                <button class="btn btn-outline-secondary btn-lg" id="share-button" aria-label="Share product link">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
             
             <div class="alert alert-info">
                 <i class="bi bi-truck me-2"></i>
@@ -383,6 +387,78 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
         window.animateAddToCart(this);
     }
 });
+
+/**
+ * Display a notification message to the user
+ * @param {string} message - The message to display
+ * @param {string} type - Bootstrap alert type: 'success', 'danger', 'warning', or 'info'
+ * Uses window.showToast() if available, otherwise creates a Bootstrap alert
+ */
+function showNotification(message, type) {
+    // Ensure message is a string
+    const safeMessage = String(message || '');
+    
+    // Validate type parameter against allowlist
+    const validTypes = ['success', 'danger', 'warning', 'info'];
+    const safeType = validTypes.includes(type) ? type : 'info';
+    
+    if (window.showToast) {
+        window.showToast(safeMessage, safeType);
+    } else {
+        // Fallback notification if showToast doesn't exist
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${safeType} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        notification.style.zIndex = '9999';
+        notification.textContent = safeMessage;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+}
+
+// Share button functionality
+const shareButton = document.getElementById('share-button');
+if (shareButton) {
+    shareButton.addEventListener('click', function handleShareClick() {
+        const currentUrl = window.location.href;
+        
+        // Use modern Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentUrl).then(function() {
+                showNotification('Product link copied to clipboard!', 'success');
+            }).catch(function(err) {
+                console.error('Failed to copy URL:', err);
+                showNotification('Failed to copy link. Please try again.', 'danger');
+            });
+        } else {
+            // Fallback for browsers without Clipboard API support (primarily older mobile browsers)
+            const textarea = document.createElement('textarea');
+            textarea.value = currentUrl;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.setAttribute('aria-hidden', 'true');
+            textarea.setAttribute('tabindex', '-1');
+            document.body.appendChild(textarea);
+            textarea.select();
+            // Mobile browser compatibility: some mobile browsers don't fully support select()
+            textarea.setSelectionRange(0, textarea.value.length);
+            
+            try {
+                // Note: document.execCommand is deprecated but required for older browsers without Clipboard API
+                document.execCommand('copy');
+                showNotification('Product link copied to clipboard!', 'success');
+            } catch (err) {
+                console.error('Failed to copy URL:', err);
+                showNotification('Failed to copy link. Please try again.', 'danger');
+            } finally {
+                // Clean up temporary textarea
+                textarea.remove();
+            }
+        }
+    });
+}
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
