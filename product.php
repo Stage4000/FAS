@@ -1,6 +1,4 @@
 <?php
-$pageTitle = 'Product Details';
-require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 
@@ -70,6 +68,45 @@ if ($mainImage && !in_array($mainImage, $images)) {
 if (empty($mainImage)) {
     $mainImage = '/gallery/default.jpg';
 }
+
+// Set meta tags for social media sharing
+$pageTitle = htmlspecialchars($product['name']);
+
+// Create a description from product details
+$descriptionParts = [];
+if (!empty($product['description'])) {
+    // Truncate description to ~150 characters for meta description
+    $desc = strip_tags($product['description']);
+    $desc = substr($desc, 0, 150);
+    if (strlen($product['description']) > 150) {
+        $desc .= '...';
+    }
+    $descriptionParts[] = $desc;
+} else {
+    $descriptionParts[] = $product['name'];
+}
+
+// Add price
+$descriptionParts[] = 'Price: $' . number_format($product['price'], 2);
+
+// Add condition if available
+if (!empty($product['condition_name'])) {
+    $descriptionParts[] = 'Condition: ' . $product['condition_name'];
+}
+
+$pageDescription = implode(' | ', $descriptionParts);
+
+// Set Open Graph image - convert to absolute URL if it's a local path
+$ogImage = $mainImage;
+if (strpos($ogImage, 'http://') !== 0 && strpos($ogImage, 'https://') !== 0) {
+    $ogImage = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . $ogImage;
+}
+
+// Set OG type to product
+$ogType = 'product';
+
+// Include header with the meta tags
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container my-5">
