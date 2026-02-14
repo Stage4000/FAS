@@ -718,6 +718,13 @@ class EbayAPI
             $itemId = $item['ItemID'] ?? 'unknown';
             $itemTitle = $item['Title'] ?? 'Untitled';
             
+            // Remove title from description if it appears at the beginning
+            // Some eBay sellers include the title in their description HTML
+            if ($description && $itemTitle && str_starts_with($description, $itemTitle)) {
+                $description = trim(substr($description, strlen($itemTitle)));
+                error_log("[Description Cleanup] Removed prepended title from item $itemId");
+            }
+            
             // Extract quantity and listing status
             $quantity = (int)($item['Quantity'] ?? 0);
             $listingStatus = $item['SellingStatus']['ListingStatus'] ?? '';
@@ -750,7 +757,6 @@ class EbayAPI
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
-                'condition' => '', // Will be fetched from GetItem API
                 'location' => '',
                 'shipping_cost' => 0,
                 'ebay_category_id' => $item['PrimaryCategory']['CategoryID'] ?? null,
@@ -1553,6 +1559,14 @@ class EbayAPI
             $description = preg_replace('/[ \t]+/', ' ', $description);
             $description = preg_replace('/\n\s*\n/', "\n\n", $description);
             $description = trim($description);
+            
+            // Remove title from description if it appears at the beginning
+            // Some eBay sellers include the title in their description HTML
+            $itemTitle = $item['Title'] ?? '';
+            if ($description && $itemTitle && str_starts_with($description, $itemTitle)) {
+                $description = trim(substr($description, strlen($itemTitle)));
+                error_log("[Description Cleanup] Removed prepended title from GetItem response");
+            }
         }
         
         // Extract SKU
