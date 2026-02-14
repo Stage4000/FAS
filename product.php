@@ -433,6 +433,7 @@ if (shareButton) {
             textarea.value = currentUrl;
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
+            textarea.setAttribute('aria-hidden', 'true');
             document.body.appendChild(textarea);
             textarea.select();
             // Mobile browser compatibility: some mobile browsers don't fully support select()
@@ -446,7 +447,9 @@ if (shareButton) {
                 console.error('Failed to copy URL:', err);
                 showNotification('Failed to copy link. Please try again.', 'danger');
             } finally {
-                document.body.removeChild(textarea);
+                if (textarea.parentNode) {
+                    textarea.parentNode.removeChild(textarea);
+                }
             }
         }
     });
