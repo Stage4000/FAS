@@ -718,12 +718,8 @@ class EbayAPI
             $itemId = $item['ItemID'] ?? 'unknown';
             $itemTitle = $item['Title'] ?? 'Untitled';
             
-            // Remove title from description if it appears at the beginning
-            // Some eBay sellers include the title in their description HTML
-            if ($description && $itemTitle && str_starts_with($description, $itemTitle)) {
-                $description = trim(substr($description, strlen($itemTitle)));
-                error_log("[Description Cleanup] Removed prepended title from item $itemId");
-            }
+            // Remove title from description if it appears at the beginning as a template artifact
+            $description = $this->removeTemplatedTitleFromDescription($description, $itemTitle);
             
             // Extract quantity and listing status
             $quantity = (int)($item['Quantity'] ?? 0);
@@ -1425,6 +1421,43 @@ class EbayAPI
     }
     
     /**
+     * Clean up description by removing prepended title if present
+     * Some eBay sellers include the product title in their description HTML templates
+     * This method removes it if detected, but only when it's clearly a template artifact
+     * 
+     * @param string $description The description text (after HTML stripping)
+     * @param string $title The product title
+     * @return string The cleaned description
+     */
+    private function removeTemplatedTitleFromDescription($description, $title)
+    {
+        if (!$description || !$title) {
+            return $description;
+        }
+        
+        // Only remove if:
+        // 1. Description starts with the exact title
+        // 2. There's more content after the title (not just the title alone)
+        // 3. The title is followed by whitespace (newline or multiple spaces)
+        //    This indicates it was likely injected by a template, not part of natural text
+        if (str_starts_with($description, $title)) {
+            $afterTitle = substr($description, strlen($title));
+            
+            // Check if what follows the title is whitespace followed by more content
+            // This prevents removing legitimate descriptions that happen to start with the title text
+            if (preg_match('/^\s{2,}|\n/', $afterTitle) && trim($afterTitle) !== '') {
+                $cleaned = trim($afterTitle);
+                if (strlen($cleaned) > 10) { // Ensure there's substantial content remaining
+                    error_log("[Description Cleanup] Removed templated title (followed by whitespace)");
+                    return $cleaned;
+                }
+            }
+        }
+        
+        return $description;
+    }
+    
+    /**
      * Get detailed item information using GetItem API
      * This reliably returns ItemSpecifics including Brand and MPN
      */
@@ -1560,13 +1593,9 @@ class EbayAPI
             $description = preg_replace('/\n\s*\n/', "\n\n", $description);
             $description = trim($description);
             
-            // Remove title from description if it appears at the beginning
-            // Some eBay sellers include the title in their description HTML
+            // Remove title from description if it appears at the beginning as a template artifact
             $itemTitle = $item['Title'] ?? '';
-            if ($description && $itemTitle && str_starts_with($description, $itemTitle)) {
-                $description = trim(substr($description, strlen($itemTitle)));
-                error_log("[Description Cleanup] Removed prepended title from GetItem response");
-            }
+            $description = $this->removeTemplatedTitleFromDescription($description, $itemTitle);
         }
         
         // Extract SKU
