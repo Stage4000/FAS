@@ -255,10 +255,10 @@ require_once __DIR__ . '/includes/header.php';
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
-                <a href="/cart" class="btn btn-outline-dark btn-lg">
+                <a href="/cart" class="btn btn-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
-                <button class="btn btn-outline-secondary btn-lg" id="share-button" aria-label="Share product link">
+                <button class="btn btn-secondary btn-lg" id="share-button" aria-label="Share product link">
                     <i class="fas fa-share-alt"></i> Share
                 </button>
             </div>
