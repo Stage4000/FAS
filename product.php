@@ -388,27 +388,27 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
     }
 });
 
+// Helper function to show notification
+function showNotification(message, type) {
+    if (window.showToast) {
+        window.showToast(message, type);
+    } else {
+        // Fallback notification if showToast doesn't exist
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        notification.style.zIndex = '9999';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+}
+
 // Share button functionality
 document.getElementById('share-button').addEventListener('click', function() {
     const currentUrl = window.location.href;
-    
-    // Helper function to show notification
-    function showNotification(message, type) {
-        if (window.showToast) {
-            window.showToast(message, type);
-        } else {
-            // Fallback notification if showToast doesn't exist
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
-            notification.style.zIndex = '9999';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-    }
     
     // Use modern Clipboard API if available
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -426,6 +426,8 @@ document.getElementById('share-button').addEventListener('click', function() {
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
         textarea.select();
+        // Mobile browser compatibility
+        textarea.setSelectionRange(0, 99999);
         
         try {
             document.execCommand('copy');
