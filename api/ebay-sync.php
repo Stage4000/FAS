@@ -165,6 +165,7 @@ try {
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
+    $totalHidden = 0;
     $emptyRanges = 0;
     
     // Loop through each date range
@@ -248,6 +249,22 @@ try {
         
         SyncLogger::log("Retrieved " . count($result['items']) . " items from page $page");
         
+        // Process inactive items (sold/ended on eBay) - hide them from website
+        if (!empty($result['inactive_item_ids'])) {
+            SyncLogger::log("Processing " . count($result['inactive_item_ids']) . " inactive items (sold/ended on eBay)");
+            foreach ($result['inactive_item_ids'] as $inactiveItemId) {
+                try {
+                    if ($productModel->hideByEbayId($inactiveItemId)) {
+                        $totalHidden++;
+                        SyncLogger::log("Hidden item from website: $inactiveItemId (sold/ended on eBay)");
+                    }
+                } catch (Exception $e) {
+                    error_log('Failed to hide item ' . $inactiveItemId . ': ' . $e->getMessage());
+                    SyncLogger::logError('Failed to hide item ' . $inactiveItemId, $e);
+                }
+            }
+        }
+        
         foreach ($result['items'] as $item) {
             try {
                 $existing = $productModel->getByEbayId($item['id']);
@@ -280,7 +297,7 @@ try {
         ");
         $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $syncLogId]);
         
-        SyncLogger::log("Progress: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed");
+        SyncLogger::log("Progress: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden");
         
         // Break after processing all pages
         if ($page > $result['pages']) {
@@ -311,14 +328,15 @@ $stmt = $db->prepare("
 $stmt->execute([$syncLogId]);
     
     SyncLogger::log("Sync completed successfully");
-    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, EmptyRanges=$emptyRanges");
+    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden, EmptyRanges=$emptyRanges");
     
     $response = [
         'success' => true,
         'processed' => $totalProcessed,
         'added' => $totalAdded,
         'updated' => $totalUpdated,
-        'failed' => $totalFailed
+        'failed' => $totalFailed,
+        'hidden' => $totalHidden
     ];
     
     if (count($dateRanges) > 1) {

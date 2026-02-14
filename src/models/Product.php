@@ -332,6 +332,18 @@ class Product
     }
     
     /**
+     * Hide product from website by eBay item ID
+     * Used when item is sold/ended on eBay
+     */
+    public function hideByEbayId($ebayItemId)
+    {
+        $sql = "UPDATE products SET show_on_website = 0 WHERE ebay_item_id = ? AND is_active = 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$ebayItemId]);
+        return $stmt->rowCount() > 0;
+    }
+    
+    /**
      * Map eBay category to local category
      * Maps eBay category names/IDs to our categories: motorcycle, atv, boat, automotive, gifts
      */
