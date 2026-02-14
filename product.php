@@ -77,8 +77,9 @@ $descriptionParts = [];
 if (!empty($product['description'])) {
     // Truncate description to ~150 characters for meta description
     $desc = strip_tags($product['description']);
+    $originalLength = strlen($desc);
     $desc = substr($desc, 0, 150);
-    if (strlen($product['description']) > 150) {
+    if ($originalLength > 150) {
         $desc .= '...';
     }
     $descriptionParts[] = $desc;
@@ -99,7 +100,9 @@ $pageDescription = implode(' | ', $descriptionParts);
 // Set Open Graph image - convert to absolute URL if it's a local path
 $ogImage = $mainImage;
 if (strpos($ogImage, 'http://') !== 0 && strpos($ogImage, 'https://') !== 0) {
-    $ogImage = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . $ogImage;
+    // Use SERVER_NAME instead of HTTP_HOST to prevent host header injection
+    $host = $_SERVER['SERVER_NAME'] ?? 'flipandstrip.com';
+    $ogImage = 'https://' . $host . $ogImage;
 }
 
 // Set OG type to product
