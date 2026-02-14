@@ -1440,12 +1440,15 @@ class EbayAPI
         // 2. There's more content after the title (not just the title alone)
         // 3. The title is followed by whitespace (newline or multiple spaces)
         //    This indicates it was likely injected by a template, not part of natural text
-        if (str_starts_with($description, $title)) {
+        
+        // PHP 7.4 compatible check for starts_with
+        if (substr($description, 0, strlen($title)) === $title) {
             $afterTitle = substr($description, strlen($title));
             
-            // Check if what follows the title is whitespace followed by more content
+            // Check if what follows the title is significant whitespace followed by more content
             // This prevents removing legitimate descriptions that happen to start with the title text
-            if (preg_match('/^\s{2,}|\n/', $afterTitle) && trim($afterTitle) !== '') {
+            // Pattern: must start with either newline or 2+ spaces
+            if (preg_match('/^(\s{2,}|\n)/', $afterTitle) && trim($afterTitle) !== '') {
                 $cleaned = trim($afterTitle);
                 if (strlen($cleaned) > 10) { // Ensure there's substantial content remaining
                     error_log("[Description Cleanup] Removed templated title (followed by whitespace)");
