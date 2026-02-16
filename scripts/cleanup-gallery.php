@@ -161,9 +161,18 @@ $phpFiles = array_merge(
     glob(__DIR__ . '/../*.php'),
     glob(__DIR__ . '/../includes/*.php'),
     glob(__DIR__ . '/../admin/*.php'),
-    glob(__DIR__ . '/../api/*.php'),
-    glob(__DIR__ . '/../src/**/*.php')
+    glob(__DIR__ . '/../api/*.php')
 );
+
+// Recursively find PHP files in src directory
+$srcIterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(__DIR__ . '/../src', RecursiveDirectoryIterator::SKIP_DOTS)
+);
+foreach ($srcIterator as $file) {
+    if ($file->isFile() && $file->getExtension() === 'php') {
+        $phpFiles[] = $file->getPathname();
+    }
+}
 
 foreach ($phpFiles as $file) {
     $content = file_get_contents($file);
@@ -276,7 +285,9 @@ if ($remove && count($unusedImages) > 0) {
         if (file_exists($filePath)) {
             // Backup if requested
             if ($backupDir) {
-                $backupPath = $backupDir . '/' . basename($img);
+                // Preserve directory structure in backup
+                $relativePath = str_replace(__DIR__ . '/../', '', $filePath);
+                $backupPath = $backupDir . '/' . $relativePath;
                 $backupPathDir = dirname($backupPath);
                 if (!is_dir($backupPathDir)) {
                     mkdir($backupPathDir, 0755, true);

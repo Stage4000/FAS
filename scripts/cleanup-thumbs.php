@@ -56,6 +56,7 @@ if (!is_dir($thumbsPath)) {
 echo "Analyzing gallery/thumbs directory...\n";
 $count = 0;
 $totalSize = 0;
+$filePaths = [];
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($thumbsPath, RecursiveDirectoryIterator::SKIP_DOTS)
@@ -65,6 +66,7 @@ foreach ($iterator as $file) {
     if ($file->isFile()) {
         $count++;
         $totalSize += $file->getSize();
+        $filePaths[] = $file->getPathname(); // Store paths for later deletion
     }
 }
 
@@ -98,9 +100,9 @@ if ($remove) {
     $removed = 0;
     $failed = 0;
     
-    foreach ($iterator as $file) {
-        if ($file->isFile()) {
-            if (unlink($file->getPathname())) {
+    foreach ($filePaths as $filePath) {
+        if (file_exists($filePath)) {
+            if (unlink($filePath)) {
                 $removed++;
             } else {
                 $failed++;
