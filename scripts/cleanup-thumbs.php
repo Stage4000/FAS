@@ -10,7 +10,7 @@
  * 2. No PHP code references gallery/thumbs
  * 3. Thumbnails can be regenerated from original images
  * 
- * This saves approximately 71MB of disk space.
+ * This saves approximately 60MB of disk space.
  * 
  * Usage:
  * php scripts/cleanup-thumbs.php --scan          # Scan only (safe, no deletions)
@@ -30,7 +30,7 @@ if (isset($options['help']) || empty($options)) {
     echo "  php scripts/cleanup-thumbs.php --scan     # Scan only (safe, no deletions)\n";
     echo "  php scripts/cleanup-thumbs.php --remove   # Remove thumbnail cache\n";
     echo "\n";
-    echo "This removes the gallery/thumbs/ directory which contains ~71MB of cached thumbnails.\n";
+    echo "This removes the gallery/thumbs/ directory which contains ~60MB of cached thumbnails.\n";
     echo "These thumbnails are not referenced in code and are in .gitignore.\n";
     exit(0);
 }

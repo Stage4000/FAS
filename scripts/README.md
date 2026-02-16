@@ -26,7 +26,7 @@ The gallery directory contains ~7,300 files. Without a populated database, it's 
 1. **Thumbnails (thumbs/ directory)** - These can be regenerated if needed, BUT:
    - Only if you have a thumbnail generation system
    - They save bandwidth for image loading
-   - Total size: ~72MB vs ~397MB for originals
+   - Total size: ~60MB vs ~387MB for originals
 
 ## Recommendation
 
@@ -47,7 +47,7 @@ This will identify truly unused images based on actual database references.
 If you need to free up space immediately:
 
 ### Option 1: Remove Thumbnails (Reversible if you can regenerate)
-- Saves: ~72MB
+- Saves: ~60MB
 - Risk: Low if you can regenerate thumbnails
 - Command: `rm -rf gallery/thumbs/`
 
