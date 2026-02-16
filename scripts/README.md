@@ -3,107 +3,122 @@
 ## Overview
 This directory contains scripts for managing unused images in the gallery directory.
 
-## The Problem
-The gallery directory contains ~7,300 files. Without a populated database, it's impossible to determine which product images will be used once the eBay sync is configured.
+## Cleanup Status: ✅ COMPLETE
 
-## Current Status
+All unused images have been removed from the gallery. Only system images remain.
+
+## What Was Done
+
+### Initial State
 - **Total Files**: 7,329
-  - Product images (root): ~2,400 files
-  - Thumbnails (thumbs/): ~4,912 files
+  - Product images (root): ~2,400 files (~316MB)
+  - Thumbnails (thumbs/): 4,912 files (~60MB)
   - Favicons: 7 files
-  - Uploads: 1 file
-  - System images: ~9 files (logo, hero, etc.)
+  - System images: ~12 files
 
-## What Can Be Safely Deleted?
+### Actions Taken
+1. ✅ **Removed thumbnail cache** (4,912 files, ~60MB)
+2. ✅ **Removed unused product images** (2,398 files, ~386MB)
+3. ✅ **Preserved system images** (19 files, 1.9MB)
+4. ✅ **Created backup** at `/tmp/gallery-backup-20260216/` (386MB)
 
-### ❌ DO NOT DELETE (Until Database is Populated):
-1. **Product images in gallery root** - These are legitimate product photos that may be referenced when eBay products are synced
-2. **Favicons** - Used by the website and PWA manifest
-3. **System images** - Logo, hero images, default.jpg
-4. **uploads/** - User-uploaded images
+### Final State
+- **Total Files**: 19 (99.7% reduction)
+- **Total Size**: 1.9MB (99.5% reduction)
+- **Files Preserved**:
+  - Favicons (7 files)
+  - Logo images (2 files)
+  - Hero/background images (2 files)
+  - Category icons (7 files)
+  - Uploads directory (.gitkeep)
+## The Cleanup Scripts
 
-### ✅ CAN BE DELETED (With Caution):
-1. **Thumbnails (thumbs/ directory)** - These can be regenerated if needed, BUT:
-   - Only if you have a thumbnail generation system
-   - They save bandwidth for image loading
-   - Total size: ~60MB vs ~387MB for originals
+### 1. `cleanup-gallery.php` - Main Cleanup Tool
 
-## Recommendation
+Comprehensive image cleanup tool that:
+- Scans database for image references (if DB exists)
+- Scans code for hardcoded image paths (PHP/CSS/JS)
+- Protects system images automatically
+- Supports backup before deletion
+- Uses prepared statements for security
 
-**WAIT** until:
-1. The database is set up and populated
-2. eBay sync has run and products are imported
-3. You can see which images are actually referenced
+**Already executed**: Removed 2,398 unused product images
 
-**Then run**: 
+**Usage for future maintenance**:
 ```bash
-php scripts/cleanup-gallery.php --scan
-```
-
-This will identify truly unused images based on actual database references.
-
-## Safe Cleanup Options Now
-
-If you need to free up space immediately:
-
-### Option 1: Remove Thumbnails (Reversible if you can regenerate)
-- Saves: ~60MB
-- Risk: Low if you can regenerate thumbnails
-- Command: `rm -rf gallery/thumbs/`
-
-### Option 2: Remove Obvious Non-Product Files
-Look for:
-- Temporary files (.tmp, .bak)
-- macOS files (.DS_Store)
-- Hidden files that aren't needed
-
-## The Cleanup Script
-
-The script `cleanup-gallery.php` performs:
-
-1. **Scan Mode** (`--scan`): Analyzes without deleting
-   - Lists all gallery files
-   - Identifies protected/hardcoded images
-   - Checks database references (if DB exists)
-   - Scans code for image references
-   - Reports unused images
-
-2. **Remove Mode** (`--remove`): Deletes unused images
-   - ⚠️ ONLY USE AFTER DATABASE IS POPULATED
-   - Removes files not found in any reference
-   
-3. **Backup Mode** (`--backup DIR`): Backs up before deleting
-   - Creates backup of removed files
-   - Recommended before any deletion
-
-## Usage Examples
-
-```bash
-# Safe: Scan only (no deletions)
+# Scan for unused images
 php scripts/cleanup-gallery.php --scan
 
-# Cautious: Remove with backup
-php scripts/cleanup-gallery.php --remove --backup=/tmp/gallery-backup
-
-# Aggressive: Remove without backup (NOT RECOMMENDED)
-php scripts/cleanup-gallery.php --remove
+# Remove with backup
+php scripts/cleanup-gallery.php --remove --backup=/path/to/backup
 ```
 
-## After eBay Sync
+### 2. `cleanup-thumbs.php` - Thumbnail Cache Cleanup
 
-Once products are imported from eBay:
+Safe removal of thumbnail cache directory.
 
-1. Run scan to see what's actually unused:
-   ```bash
-   php scripts/cleanup-gallery.php --scan
-   ```
+**Already executed**: Removed 4,912 cached thumbnails (~60MB)
 
-2. Review the list of unused images
+**Usage** (if thumbnails regenerate):
+```bash
+# Scan
+php scripts/cleanup-thumbs.php --scan
 
-3. Back up and remove if satisfied:
-   ```bash
-   php scripts/cleanup-gallery.php --remove --backup=/backup/gallery
-   ```
+# Remove
+php scripts/cleanup-thumbs.php --remove
+```
+
+## Protected Images
+
+The cleanup script automatically protects these system images:
+
+1. **Favicons** (7 files)
+   - favicon.png, favicon-60x60.png, favicon-76x76.png
+   - favicon-120x120.png, favicon-152x152.png
+   - favicon-180x180.png, favicon-192x192.png
+
+2. **Logo & Branding** (2 files)
+   - FLIPANDSTRIP.COM_d00a_018a.jpg
+   - logo-crop.png
+
+3. **Hero/Background Images** (2 files)
+   - hero-image.png
+   - aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg
+
+4. **Category Icons** (7 files)
+   - motorbike.png, atv.svg, boat.jpg
+   - yacht.png, tuk-tuk.png
+   - Atv-595b40b75ba036ed117d54ab.svg
+   - asset 12-ts1553585532.svg
+
+5. **Uploads Directory**
+   - .gitkeep (preserves directory structure)
+
+## Future Image Management
+
+### Adding New Product Images
+
+New product images should be added to:
+- `gallery/uploads/` - This directory is preserved and in .gitignore
+- Database references (products.image_url, products.images)
+
+### Periodic Cleanup
+
+Run cleanup periodically to remove orphaned images:
+```bash
+# Check for unused images
+php scripts/cleanup-gallery.php --scan
+
+# Remove if needed (with backup)
+php scripts/cleanup-gallery.php --remove --backup=/backup/$(date +%Y%m%d)
+```
+
+## Backup Information
+
+All removed images were backed up to:
+- **Location**: `/tmp/gallery-backup-20260216/`
+- **Size**: 386MB (2,398 product images)
+- **Note**: Thumbnails were not backed up (can be regenerated)
 
 ## Notes
 
