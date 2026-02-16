@@ -111,7 +111,8 @@ if (file_exists($dbPath)) {
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
         // Get images from products table
-        $stmt = $db->query("SELECT image_url, images FROM products WHERE image_url IS NOT NULL OR images IS NOT NULL");
+        $stmt = $db->prepare("SELECT image_url, images FROM products WHERE image_url IS NOT NULL OR images IS NOT NULL");
+        $stmt->execute();
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             // Add image_url
             if (!empty($row['image_url'])) {
@@ -132,7 +133,8 @@ if (file_exists($dbPath)) {
         }
         
         // Get images from categories table
-        $stmt = $db->query("SELECT image_url FROM categories WHERE image_url IS NOT NULL");
+        $stmt = $db->prepare("SELECT image_url FROM categories WHERE image_url IS NOT NULL");
+        $stmt->execute();
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             if (!empty($row['image_url'])) {
                 $imagePath = ltrim($row['image_url'], '/');
