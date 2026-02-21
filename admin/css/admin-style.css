@@ -572,6 +572,10 @@ body {
     color: #aaa !important;
 }
 
+[data-theme="dark"] .form-text {
+    color: #aaa !important;
+}
+
 [data-theme="dark"] .list-group-item {
     background-color: var(--admin-card-bg);
     border-color: var(--admin-border);
