@@ -109,8 +109,60 @@
         gtag('config', '<?php echo htmlspecialchars($gaMeasurementId); ?>');
     </script>
     <?php endif; ?>
+    <!-- Banner dismiss helper -->
+    <script>
+    function dismissBanner(id) {
+        var el = document.getElementById('banner-' + id);
+        if (el) {
+            el.style.transition = 'opacity 0.3s ease';
+            el.style.opacity = '0';
+            setTimeout(function() { el.remove(); }, 300);
+        }
+        try { localStorage.setItem('banner_dismissed_' + id, '1'); } catch(e) {}
+    }
+    </script>
 </head>
 <body>
+    <?php
+    // ── Alert Banners ──────────────────────────────────────────────────────────
+    // Show active banners above the navbar.  We load them on every page; the
+    // table may not exist yet on fresh installs so we silently catch exceptions.
+    $activeBanners = [];
+    try {
+        $bannerConfigPath = __DIR__ . '/../src/config/Database.php';
+        $bannerModelPath  = __DIR__ . '/../src/models/Banner.php';
+        if (file_exists($bannerConfigPath) && file_exists($bannerModelPath)) {
+            if (!class_exists('FAS\\Config\\Database')) {
+                require_once $bannerConfigPath;
+            }
+            if (!class_exists('FAS\\Models\\Banner')) {
+                require_once $bannerModelPath;
+            }
+            $bannerDb    = \FAS\Config\Database::getInstance()->getConnection();
+            $bannerModel = new \FAS\Models\Banner($bannerDb);
+            $activeBanners = $bannerModel->getActive();
+        }
+    } catch (Exception $e) {
+        // Table may not exist yet – silently ignore
+    }
+    ?>
+    <?php foreach ($activeBanners as $banner): ?>
+    <div class="alert-banner alert alert-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
+         role="alert"
+         id="banner-<?php echo (int) $banner['id']; ?>">
+        <?php echo htmlspecialchars($banner['message']); ?>
+        <?php if (!empty($banner['link_url'])): ?>
+            &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
+               class="alert-link fw-bold"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
+        <?php endif; ?>
+        <?php if ($banner['is_dismissible']): ?>
+        <button type="button"
+                class="btn-close btn-close-<?php echo $banner['text_color'] === 'white' ? 'white' : ''; ?> float-end"
+                aria-label="Close"
+                onclick="dismissBanner(<?php echo (int) $banner['id']; ?>)"></button>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">

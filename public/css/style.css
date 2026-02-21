@@ -1,5 +1,20 @@
 /* Custom Styles for Flip and Strip */
 
+/* Alert Banners above navbar */
+.alert-banner {
+    position: relative;
+    z-index: 1100; /* above sticky navbar */
+    font-size: 0.9rem;
+    padding-right: 3rem; /* space for close button */
+}
+
+.alert-banner .btn-close {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+}
+
 :root {
     --primary-color: #db0335;
     --dark-color: #242629;

@@ -197,3 +197,22 @@ ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     description = VALUES(description),
     sort_order = VALUES(sort_order);
+
+-- Banners table (alert banners shown above the navbar on the front end)
+CREATE TABLE IF NOT EXISTS banners (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message TEXT NOT NULL,
+    bg_color VARCHAR(30) NOT NULL DEFAULT 'danger',
+    text_color VARCHAR(30) NOT NULL DEFAULT 'white',
+    link_url VARCHAR(500),
+    link_text VARCHAR(255),
+    is_dismissible BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    starts_at DATETIME,
+    ends_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_banners_is_active (is_active),
+    INDEX idx_banners_sort_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
