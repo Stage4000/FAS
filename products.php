@@ -233,6 +233,20 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                         <?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
+                            <?php if ($search): ?>
+                                <?php
+                                    $clearUrl = '/products';
+                                    $clearParams = [];
+                                    if ($ebayCat1) $clearParams[] = 'cat1=' . urlencode($ebayCat1);
+                                    if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
+                                    if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
+                                    if ($manufacturer) $clearParams[] = 'manufacturer=' . urlencode($manufacturer);
+                                    if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
+                                ?>
+                                <a href="<?php echo htmlspecialchars($clearUrl); ?>" class="btn btn-outline-secondary" title="Clear search">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            <?php endif; ?>
                             <button class="btn btn-danger" type="submit">
                                 <i class="fas fa-search"></i> Search
                             </button>
