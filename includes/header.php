@@ -109,8 +109,97 @@
         gtag('config', '<?php echo htmlspecialchars($gaMeasurementId); ?>');
     </script>
     <?php endif; ?>
+    <!-- Banner dismiss + countdown helpers -->
+    <script>
+    function dismissBanner(id) {
+        var el = document.getElementById('banner-' + id);
+        if (el) {
+            el.style.transition = 'opacity 0.3s ease';
+            el.style.opacity = '0';
+            setTimeout(function() { el.remove(); }, 300);
+        }
+        try { localStorage.setItem('banner_dismissed_' + id, '1'); } catch(e) {}
+    }
+
+    // Live countdown ticker for banners with data-end attribute
+    (function() {
+        function pad(n) { return n < 10 ? '0' + n : n; }
+
+        function updateCountdowns() {
+            var spans = document.querySelectorAll('.banner-countdown[data-end]');
+            var now = Date.now();
+            spans.forEach(function(span) {
+                var end = new Date(span.getAttribute('data-end')).getTime();
+                var diff = end - now;
+                if (diff <= 0) {
+                    span.textContent = 'Timer expired';
+                    return;
+                }
+                var days  = Math.floor(diff / 86400000);
+                var hours = Math.floor((diff % 86400000) / 3600000);
+                var mins  = Math.floor((diff % 3600000)  / 60000);
+                var secs  = Math.floor((diff % 60000)    / 1000);
+                var parts = [];
+                if (days  > 0) parts.push(days  + 'd');
+                if (hours > 0) parts.push(hours + 'h');
+                parts.push(mins + 'm');
+                parts.push(pad(secs) + 's');
+                span.textContent = parts.join(' ');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCountdowns();
+            setInterval(updateCountdowns, 1000);
+        });
+    })();
+    </script>
 </head>
 <body>
+    <?php
+    // ── Alert Banners ──────────────────────────────────────────────────────────
+    // Show active banners above the navbar.  We load them on every page; the
+    // table may not exist yet on fresh installs so we silently catch exceptions.
+    $activeBanners = [];
+    try {
+        $bannerConfigPath = __DIR__ . '/../src/config/Database.php';
+        $bannerModelPath  = __DIR__ . '/../src/models/Banner.php';
+        if (file_exists($bannerConfigPath) && file_exists($bannerModelPath)) {
+            if (!class_exists('FAS\\Config\\Database')) {
+                require_once $bannerConfigPath;
+            }
+            if (!class_exists('FAS\\Models\\Banner')) {
+                require_once $bannerModelPath;
+            }
+            $bannerDb    = \FAS\Config\Database::getInstance()->getConnection();
+            $bannerModel = new \FAS\Models\Banner($bannerDb);
+            $activeBanners = $bannerModel->getActive();
+        }
+    } catch (Exception $e) {
+        // Table may not exist yet – silently ignore
+    }
+    ?>
+    <?php foreach ($activeBanners as $banner): ?>
+    <div class="alert-banner alert alert-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
+         role="alert"
+         id="banner-<?php echo (int) $banner['id']; ?>">
+        <?php echo htmlspecialchars($banner['message']); ?>
+        <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
+            &nbsp;<span class="banner-countdown fw-bold"
+                        data-end="<?php echo htmlspecialchars(date('c', strtotime($banner['countdown_end']))); ?>"></span>
+        <?php endif; ?>
+        <?php if (!empty($banner['link_url'])): ?>
+            &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
+               class="alert-link fw-bold"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
+        <?php endif; ?>
+        <?php if ($banner['is_dismissible']): ?>
+        <button type="button"
+                class="btn-close btn-close-<?php echo $banner['text_color'] === 'white' ? 'white' : ''; ?> float-end"
+                aria-label="Close"
+                onclick="dismissBanner(<?php echo (int) $banner['id']; ?>)"></button>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">

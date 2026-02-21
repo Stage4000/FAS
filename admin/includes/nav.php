@@ -59,6 +59,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <a href="coupons.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'coupons.php' ? 'active' : ''; ?>">
                     <i class="fas fa-tags me-2"></i>Coupons
                 </a>
+                <a href="banners.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'banners.php' ? 'active' : ''; ?>">
+                    <i class="fas fa-bullhorn me-2"></i>Banners
+                </a>
                 <a href="password.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'password.php' ? 'active' : ''; ?>">
                     <i class="fas fa-key me-2"></i>Change Password
                 </a>

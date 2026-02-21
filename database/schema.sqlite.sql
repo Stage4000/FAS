@@ -209,3 +209,25 @@ INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
 ('Boat Parts', 'boat', 'Parts for boats and marine vehicles', 3),
 ('Automotive Parts', 'automotive', 'Auto and truck parts', 4),
 ('Biker Gifts', 'gifts', 'Gifts and accessories for bikers', 5);
+
+-- Banners table (alert banners shown above the navbar on the front end)
+CREATE TABLE IF NOT EXISTS banners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    bg_color TEXT NOT NULL DEFAULT 'danger',
+    text_color TEXT NOT NULL DEFAULT 'white',
+    link_url TEXT,
+    link_text TEXT,
+    is_dismissible INTEGER NOT NULL DEFAULT 1,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    show_countdown INTEGER NOT NULL DEFAULT 0,
+    countdown_end TEXT,
+    starts_at TEXT,
+    ends_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_banners_is_active ON banners(is_active);
+CREATE INDEX IF NOT EXISTS idx_banners_sort_order ON banners(sort_order);
