@@ -161,7 +161,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                <div class="card-body p-0 collapse show" id="categoryMenu" style="max-height: 600px; overflow-y: auto;">
+                <div class="card-body p-0 collapse show" id="categoryMenu">
                     <div class="list-group list-group-flush">
                         <!-- All Products Link -->
                         <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3) ? 'active' : ''; ?>">
