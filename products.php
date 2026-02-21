@@ -61,6 +61,7 @@ if ($homepageCategory) {
 
 // Now include header and continue with normal page rendering
 require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
@@ -316,9 +317,11 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                     <?php if (!empty($product['condition_name'])): ?>
                                         <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                                     <?php endif; ?>
-                                    <?php if (isset($product['sale_price']) && $product['sale_price']): ?>
-                                        <?php $discount = round((($product['price'] - $product['sale_price']) / $product['price']) * 100); ?>
-                                        <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;">Save <?php echo $discount; ?>%</span>
+                                    <?php
+                                    $priceInfo = getEffectivePrice((float)$product['price'], !empty($product['sale_price']) ? (float)$product['sale_price'] : null);
+                                    if ($priceInfo['on_sale']):
+                                    ?>
+                                        <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </a>
@@ -345,11 +348,11 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                 <div class="mt-auto">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <div>
-                                            <?php if (isset($product['sale_price']) && $product['sale_price']): ?>
-                                                <span class="product-price text-danger">$<?php echo number_format($product['sale_price'], 2); ?></span>
-                                                <small class="text-muted text-decoration-line-through ms-1">$<?php echo number_format($product['price'], 2); ?></small>
+                                            <?php if ($priceInfo['on_sale']): ?>
+                                                <span class="product-price text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                                                <small class="text-muted text-decoration-line-through ms-1">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
                                             <?php else: ?>
-                                                <span class="product-price">$<?php echo number_format($product['price'], 2); ?></span>
+                                                <span class="product-price">$<?php echo number_format($priceInfo['original_price'], 2); ?></span>
                                             <?php endif; ?>
                                         </div>
                                         <small class="text-muted">SKU: <?php echo htmlspecialchars($product['sku']); ?></small>
@@ -357,7 +360,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                     <button class="btn btn-danger w-100 add-to-cart" 
                                             data-id="<?php echo $product['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                                            data-price="<?php echo isset($product['sale_price']) && $product['sale_price'] ? $product['sale_price'] : $product['price']; ?>"
+                                            data-price="<?php echo $priceInfo['effective_price']; ?>"
                                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
                                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                                             data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"

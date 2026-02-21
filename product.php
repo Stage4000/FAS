@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/includes/sale-helper.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -87,8 +88,14 @@ if (!empty($product['description'])) {
     $descriptionParts[] = $product['name'];
 }
 
+// Compute effective price (applies site-wide sale or individual sale_price)
+$priceInfo = getEffectivePrice(
+    (float) $product['price'],
+    !empty($product['sale_price']) ? (float) $product['sale_price'] : null
+);
+
 // Add price
-$descriptionParts[] = 'Price: $' . number_format($product['price'], 2);
+$descriptionParts[] = 'Price: $' . number_format($priceInfo['effective_price'], 2);
 
 // Add condition if available
 if (!empty($product['condition_name'])) {
@@ -175,15 +182,23 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-lg-6" data-aos="fade-left">
             <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
             
-            <div class="mb-4">
+            <div class="mb-2">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+                <?php endif; ?>
                 <span class="badge bg-success me-2">In Stock</span>
                 <?php if (!empty($product['condition_name'])): ?>
                     <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                 <?php endif; ?>
             </div>
-            
-            <div class="product-price display-4 fw-bold text-danger mb-4">
-                $<?php echo number_format($product['price'], 2); ?>
+
+            <div class="mb-4">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                    <small class="text-muted text-decoration-line-through ms-2 fs-5">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
+                <?php else: ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                <?php endif; ?>
             </div>
             
             <div class="mb-4">
@@ -245,7 +260,7 @@ require_once __DIR__ . '/includes/header.php';
                 <button class="btn btn-danger btn-lg add-to-cart"
                         data-id="<?php echo $product['id']; ?>"
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                        data-price="<?php echo $product['price']; ?>"
+                        data-price="<?php echo $priceInfo['effective_price']; ?>"
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                         data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"

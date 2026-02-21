@@ -84,6 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'security' => [
             'sync_api_key' => $_POST['sync_api_key'] ?? 'fas_sync_key_2026',
             'admin_password_salt' => $config['security']['admin_password_salt'] ?? 'CHANGE_THIS_SALT'
+        ],
+        // Preserve sale settings managed via admin/sale.php
+        'sale' => $config['sale'] ?? [
+            'enabled'   => false,
+            'type'      => 'percentage',
+            'value'     => 0,
+            'label'     => 'SALE',
+            'starts_at' => null,
+            'ends_at'   => null,
         ]
     ];
     
