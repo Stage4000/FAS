@@ -221,6 +221,8 @@ CREATE TABLE IF NOT EXISTS banners (
     is_dismissible INTEGER NOT NULL DEFAULT 1,
     is_active INTEGER NOT NULL DEFAULT 1,
     sort_order INTEGER NOT NULL DEFAULT 0,
+    show_countdown INTEGER NOT NULL DEFAULT 0,
+    countdown_end TEXT,
     starts_at TEXT,
     ends_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),

@@ -62,8 +62,10 @@ class Banner
     {
         $sql = "INSERT INTO banners
                     (message, bg_color, text_color, link_url, link_text,
-                     is_dismissible, is_active, sort_order, starts_at, ends_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     is_dismissible, is_active, sort_order,
+                     show_countdown, countdown_end,
+                     starts_at, ends_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
@@ -75,6 +77,8 @@ class Banner
             isset($data['is_dismissible']) ? (int) $data['is_dismissible'] : 1,
             isset($data['is_active'])      ? (int) $data['is_active']      : 1,
             isset($data['sort_order'])     ? (int) $data['sort_order']     : 0,
+            isset($data['show_countdown']) ? (int) $data['show_countdown'] : 0,
+            !empty($data['countdown_end']) ? $data['countdown_end'] : null,
             !empty($data['starts_at']) ? $data['starts_at'] : null,
             !empty($data['ends_at'])   ? $data['ends_at']   : null,
         ]);
@@ -94,6 +98,8 @@ class Banner
                     is_dismissible = ?,
                     is_active      = ?,
                     sort_order     = ?,
+                    show_countdown = ?,
+                    countdown_end  = ?,
                     starts_at      = ?,
                     ends_at        = ?
                 WHERE id = ?";
@@ -108,6 +114,8 @@ class Banner
             isset($data['is_dismissible']) ? (int) $data['is_dismissible'] : 1,
             isset($data['is_active'])      ? (int) $data['is_active']      : 1,
             isset($data['sort_order'])     ? (int) $data['sort_order']     : 0,
+            isset($data['show_countdown']) ? (int) $data['show_countdown'] : 0,
+            !empty($data['countdown_end']) ? $data['countdown_end'] : null,
             !empty($data['starts_at']) ? $data['starts_at'] : null,
             !empty($data['ends_at'])   ? $data['ends_at']   : null,
             (int) $id,

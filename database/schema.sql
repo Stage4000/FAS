@@ -209,6 +209,8 @@ CREATE TABLE IF NOT EXISTS banners (
     is_dismissible BOOLEAN NOT NULL DEFAULT TRUE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
+    show_countdown BOOLEAN NOT NULL DEFAULT FALSE,
+    countdown_end DATETIME,
     starts_at DATETIME,
     ends_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

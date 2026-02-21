@@ -15,6 +15,12 @@
     transform: translateY(-50%);
 }
 
+.banner-countdown {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+}
+
 :root {
     --primary-color: #db0335;
     --dark-color: #242629;

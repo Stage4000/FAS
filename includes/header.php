@@ -109,7 +109,7 @@
         gtag('config', '<?php echo htmlspecialchars($gaMeasurementId); ?>');
     </script>
     <?php endif; ?>
-    <!-- Banner dismiss helper -->
+    <!-- Banner dismiss + countdown helpers -->
     <script>
     function dismissBanner(id) {
         var el = document.getElementById('banner-' + id);
@@ -120,6 +120,39 @@
         }
         try { localStorage.setItem('banner_dismissed_' + id, '1'); } catch(e) {}
     }
+
+    // Live countdown ticker for banners with data-end attribute
+    (function() {
+        function pad(n) { return n < 10 ? '0' + n : n; }
+
+        function updateCountdowns() {
+            var spans = document.querySelectorAll('.banner-countdown[data-end]');
+            var now = Date.now();
+            spans.forEach(function(span) {
+                var end = new Date(span.getAttribute('data-end')).getTime();
+                var diff = end - now;
+                if (diff <= 0) {
+                    span.textContent = 'Timer expired';
+                    return;
+                }
+                var days  = Math.floor(diff / 86400000);
+                var hours = Math.floor((diff % 86400000) / 3600000);
+                var mins  = Math.floor((diff % 3600000)  / 60000);
+                var secs  = Math.floor((diff % 60000)    / 1000);
+                var parts = [];
+                if (days  > 0) parts.push(days  + 'd');
+                if (hours > 0) parts.push(hours + 'h');
+                parts.push(mins + 'm');
+                parts.push(pad(secs) + 's');
+                span.textContent = parts.join(' ');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCountdowns();
+            setInterval(updateCountdowns, 1000);
+        });
+    })();
     </script>
 </head>
 <body>
@@ -151,6 +184,10 @@
          role="alert"
          id="banner-<?php echo (int) $banner['id']; ?>">
         <?php echo htmlspecialchars($banner['message']); ?>
+        <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
+            &nbsp;<span class="banner-countdown fw-bold"
+                        data-end="<?php echo htmlspecialchars(date('c', strtotime($banner['countdown_end']))); ?>"></span>
+        <?php endif; ?>
         <?php if (!empty($banner['link_url'])): ?>
             &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
                class="alert-link fw-bold"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>

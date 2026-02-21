@@ -32,6 +32,8 @@ try {
                 is_dismissible INTEGER NOT NULL DEFAULT 1,
                 is_active INTEGER NOT NULL DEFAULT 1,
                 sort_order INTEGER NOT NULL DEFAULT 0,
+                show_countdown INTEGER NOT NULL DEFAULT 0,
+                countdown_end TEXT,
                 starts_at TEXT,
                 ends_at TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
@@ -48,6 +50,8 @@ try {
                 is_dismissible BOOLEAN NOT NULL DEFAULT TRUE,
                 is_active BOOLEAN NOT NULL DEFAULT TRUE,
                 sort_order INT NOT NULL DEFAULT 0,
+                show_countdown BOOLEAN NOT NULL DEFAULT FALSE,
+                countdown_end DATETIME,
                 starts_at DATETIME,
                 ends_at DATETIME,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -165,6 +169,7 @@ $textColorOptions = [
                             <tr>
                                 <th>Preview</th>
                                 <th>Message</th>
+                                <th>Countdown</th>
                                 <th>Link</th>
                                 <th>Dismissible</th>
                                 <th>Schedule</th>
@@ -182,6 +187,15 @@ $textColorOptions = [
                                         </span>
                                     </td>
                                     <td><?php echo htmlspecialchars($banner['message']); ?></td>
+                                    <td>
+                                        <?php if ($banner['show_countdown'] && $banner['countdown_end']): ?>
+                                            <span class="badge bg-info text-dark">
+                                                <i class="fas fa-clock me-1"></i><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($banner['countdown_end']))); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php if ($banner['link_url']): ?>
                                             <a href="<?php echo htmlspecialchars($banner['link_url']); ?>" target="_blank" rel="noopener noreferrer">
@@ -226,6 +240,8 @@ $textColorOptions = [
                                                 data-is_dismissible="<?php echo (int) $banner['is_dismissible']; ?>"
                                                 data-is_active="<?php echo (int) $banner['is_active']; ?>"
                                                 data-sort_order="<?php echo (int) $banner['sort_order']; ?>"
+                                                data-show_countdown="<?php echo (int) $banner['show_countdown']; ?>"
+                                                data-countdown_end="<?php echo htmlspecialchars($banner['countdown_end'] ?? '', ENT_QUOTES); ?>"
                                                 data-starts_at="<?php echo htmlspecialchars($banner['starts_at'] ?? '', ENT_QUOTES); ?>"
                                                 data-ends_at="<?php echo htmlspecialchars($banner['ends_at'] ?? '', ENT_QUOTES); ?>">
                                             <i class="fas fa-edit"></i>
@@ -242,7 +258,7 @@ $textColorOptions = [
                             <?php endforeach; ?>
                             <?php if (empty($banners)): ?>
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">No banners created yet</td>
+                                    <td colspan="9" class="text-center text-muted py-4">No banners created yet</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -298,12 +314,23 @@ $textColorOptions = [
     </div>
 
     <script>
+    // Show/hide the countdown_end input when the toggle checkbox changes
+    function toggleCountdownField(prefix) {
+        var cb   = document.getElementById(prefix + 'show_countdown');
+        var wrap = document.getElementById(prefix + 'countdown_end_wrap');
+        if (cb && wrap) {
+            wrap.style.display = cb.checked ? 'block' : 'none';
+        }
+    }
+
     // Populate edit modal fields from data attributes
     document.getElementById('editBannerModal').addEventListener('show.bs.modal', function (event) {
         const btn = event.relatedTarget;
         const modal = this;
         const fields = ['id', 'message', 'bg_color', 'text_color', 'link_url', 'link_text',
-                        'is_dismissible', 'is_active', 'sort_order', 'starts_at', 'ends_at'];
+                        'is_dismissible', 'is_active', 'sort_order',
+                        'show_countdown', 'countdown_end',
+                        'starts_at', 'ends_at'];
 
         fields.forEach(function(field) {
             const el = modal.querySelector(field === 'id' ? '#edit_id' : '[name="' + field + '"]');
@@ -315,7 +342,34 @@ $textColorOptions = [
                 el.value = val;
             }
         });
+
+        // Sync countdown wrapper visibility
+        toggleCountdownField('edit_');
     });
+
+    // Validate countdown_end is set when show_countdown is checked
+    function validateCountdownField(prefix) {
+        var cb  = document.getElementById(prefix + 'show_countdown');
+        var end = document.getElementById(prefix + 'countdown_end');
+        if (cb && cb.checked && end && !end.value) {
+            end.focus();
+            end.setCustomValidity('Please set a countdown end date/time.');
+            end.reportValidity();
+            return false;
+        }
+        if (end) end.setCustomValidity('');
+        return true;
+    }
+
+    document.getElementById('createBannerModal').querySelector('form')
+        .addEventListener('submit', function(e) {
+            if (!validateCountdownField('')) e.preventDefault();
+        });
+
+    document.getElementById('editBannerModal').querySelector('form')
+        .addEventListener('submit', function(e) {
+            if (!validateCountdownField('edit_')) e.preventDefault();
+        });
     </script>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
@@ -396,6 +450,21 @@ function renderBannerFormFields(array $colorOptions, array $textColorOptions, st
         <input type="checkbox" name="is_active" value="1" class="form-check-input"
                id="<?php echo $prefix; ?>is_active" checked>
         <label class="form-check-label" for="<?php echo $prefix; ?>is_active">Active</label>
+    </div>
+    <hr>
+    <div class="mb-2 form-check">
+        <input type="checkbox" name="show_countdown" value="1" class="form-check-input banner-countdown-toggle"
+               id="<?php echo $prefix; ?>show_countdown"
+               onchange="toggleCountdownField('<?php echo $prefix; ?>')">
+        <label class="form-check-label fw-semibold" for="<?php echo $prefix; ?>show_countdown">
+            <i class="fas fa-clock me-1"></i>Show Countdown Timer
+        </label>
+    </div>
+    <div class="mb-3" id="<?php echo $prefix; ?>countdown_end_wrap" style="display:none;">
+        <label class="form-label">Countdown Ends At <span class="text-danger">*</span></label>
+        <input type="datetime-local" name="countdown_end" class="form-control"
+               id="<?php echo $prefix; ?>countdown_end">
+        <small class="text-muted">A live "X days X hrs X mins X secs" timer will appear in the banner.</small>
     </div>
     <?php
     return ob_get_clean();
