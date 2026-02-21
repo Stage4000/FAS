@@ -180,7 +180,7 @@
     }
     ?>
     <?php foreach ($activeBanners as $banner): ?>
-    <div class="alert-banner alert alert-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
+    <div class="alert-banner bg-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
          role="alert"
          id="banner-<?php echo (int) $banner['id']; ?>">
         <?php echo htmlspecialchars($banner['message']); ?>
@@ -190,11 +190,11 @@
         <?php endif; ?>
         <?php if (!empty($banner['link_url'])): ?>
             &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
-               class="alert-link fw-bold"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
+               class="fw-bold text-<?php echo htmlspecialchars($banner['text_color']); ?>"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
         <?php endif; ?>
         <?php if ($banner['is_dismissible']): ?>
         <button type="button"
-                class="btn-close btn-close-<?php echo $banner['text_color'] === 'white' ? 'white' : ''; ?> float-end"
+                class="btn-close<?php echo $banner['text_color'] === 'white' ? ' btn-close-white' : ''; ?> float-end"
                 aria-label="Close"
                 onclick="dismissBanner(<?php echo (int) $banner['id']; ?>)"></button>
         <?php endif; ?>
