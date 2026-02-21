@@ -88,5 +88,15 @@ return [
     'security' => [
         'sync_api_key' => 'fas_sync_key_2026',
         'admin_password_salt' => 'CHANGE_THIS_SALT'
+    ],
+
+    // Site-wide sale configuration (managed via admin/sale.php)
+    'sale' => [
+        'enabled'   => false,        // Set to true to activate the sale
+        'type'      => 'percentage', // 'percentage' or 'fixed'
+        'value'     => 0,            // Discount amount (e.g. 20 for 20%, or 5 for $5 off)
+        'label'     => 'SALE',       // Badge label shown on product cards
+        'starts_at' => null,         // Optional: ISO date string or null for immediate
+        'ends_at'   => null,         // Optional: ISO date string or null for no end
     ]
 ];
