@@ -105,8 +105,8 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h6 class="text-muted">Revenue</h6>
-                                        <h3 class="mb-0">$<?php echo number_format($totalRevenue, 2); ?></h3>
+                                        <h6 class="text-muted">Total Revenue</h6>
+                                        <h3 class="mb-0 text-success">$<?php echo number_format($totalRevenue, 2); ?></h3>
                                     </div>
                                     <div class="text-warning">
                                         <i class="fas fa-dollar-sign display-4"></i>
