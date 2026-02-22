@@ -2,12 +2,14 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../src/models/Order.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Models\Order;
 
 // Load config to get the sync API key
 $configFile = __DIR__ . '/../src/config/config.php';
@@ -20,6 +22,10 @@ $pdo = Database::getInstance()->getConnection();
 // Get product count
 $productModel = new Product($pdo);
 $totalProducts = $productModel->getCountAll();
+
+// Get order count
+$orderModel = new Order($pdo);
+$totalOrders = $orderModel->getCountAll();
 
 // Get last sync timestamp
 $lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
@@ -84,7 +90,7 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Total Orders</h6>
-                                        <h3 class="mb-0">0</h3>
+                                        <h3 class="mb-0"><?php echo number_format($totalOrders); ?></h3>
                                     </div>
                                     <div class="text-success">
                                         <i class="fas fa-shopping-cart display-4"></i>
