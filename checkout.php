@@ -184,6 +184,7 @@ require_once __DIR__ . '/includes/header.php';
 <script type="text/javascript">
 let selectedShippingRate = null;
 let appliedCoupon = null; // Store applied coupon data
+let pendingOrderResult = null; // Store DB order result for PayPal completion
 
 // Function to check if form is ready for payment
 function isFormReadyForPayment() {
@@ -342,6 +343,7 @@ function setupPayPalButton() {
             if (!orderResult) {
                 throw new Error('Failed to create order');
             }
+            pendingOrderResult = orderResult;
             
             // Calculate amounts
             const cart = window.cart.cart;
@@ -417,8 +419,12 @@ function setupPayPalButton() {
                 // Capture the payment
                 const orderData = await actions.order.capture();
                 
+                if (!pendingOrderResult || !pendingOrderResult.order_id) {
+                    throw new Error('Order reference lost. Please contact support with PayPal order ID: ' + data.orderID);
+                }
+                
                 // Complete order in our system
-                await completeOrder(data.orderID, orderData.purchase_units[0].payments.captures[0].id);
+                await completeOrder(data.orderID, orderData.purchase_units[0].payments.captures[0].id, pendingOrderResult.order_id);
                 
                 // Clear cart
                 window.cart.clearCart();
@@ -754,7 +760,7 @@ async function createOrder() {
 /**
  * Complete order after payment
  */
-async function completeOrder(paypalOrderId, paypalTransactionId) {
+async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
     try {
         const response = await fetch('/api/process-order.php', {
             method: 'POST',
@@ -764,7 +770,8 @@ async function completeOrder(paypalOrderId, paypalTransactionId) {
             body: JSON.stringify({
                 action: 'complete_order',
                 paypal_order_id: paypalOrderId,
-                paypal_transaction_id: paypalTransactionId
+                paypal_transaction_id: paypalTransactionId,
+                order_id: orderId
             })
         });
         

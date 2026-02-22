@@ -193,6 +193,7 @@ function completeOrder($input, $orderModel, $productModel)
 {
     $paypalOrderId = $input['paypal_order_id'] ?? null;
     $paypalTransactionId = $input['paypal_transaction_id'] ?? null;
+    $orderId = $input['order_id'] ?? null;
     
     if (!$paypalOrderId) {
         http_response_code(400);
@@ -200,8 +201,14 @@ function completeOrder($input, $orderModel, $productModel)
         exit;
     }
     
-    // Find order by PayPal order ID
-    $order = $orderModel->getByPayPalOrderId($paypalOrderId);
+    // Find order: prefer lookup by our DB order ID (reliable), fall back to PayPal order ID
+    $order = null;
+    if ($orderId) {
+        $order = $orderModel->getById($orderId);
+    }
+    if (!$order) {
+        $order = $orderModel->getByPayPalOrderId($paypalOrderId);
+    }
     
     if (!$order) {
         http_response_code(404);
@@ -264,10 +271,11 @@ function completeOrder($input, $orderModel, $productModel)
             exit;
         }
         
-        // Update order status
+        // Update order status and set the real PayPal order ID
         $orderModel->update($order['id'], [
             'payment_status' => 'completed',
             'order_status' => 'processing',
+            'paypal_order_id' => $paypalOrderId,
             'paypal_transaction_id' => $paypalTransactionId
         ]);
         

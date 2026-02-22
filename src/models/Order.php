@@ -143,6 +143,24 @@ class Order
     }
     
     /**
+     * Get total count of all orders
+     */
+    public function getCountAll()
+    {
+        $stmt = $this->db->query("SELECT COUNT(*) FROM orders");
+        return (int) $stmt->fetchColumn();
+    }
+    
+    /**
+     * Get total revenue from completed orders
+     */
+    public function getTotalRevenue()
+    {
+        $stmt = $this->db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE payment_status = 'completed'");
+        return (float) $stmt->fetchColumn();
+    }
+    
+    /**
      * Update order
      */
     public function update($id, $data)
@@ -151,7 +169,7 @@ class Order
         $params = [];
         
         $allowedFields = [
-            'payment_status', 'order_status', 'paypal_transaction_id',
+            'payment_status', 'order_status', 'paypal_order_id', 'paypal_transaction_id',
             'tracking_number', 'shipped_at', 'notes'
         ];
         
