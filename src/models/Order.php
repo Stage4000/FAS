@@ -152,6 +152,15 @@ class Order
     }
     
     /**
+     * Get total revenue from completed orders
+     */
+    public function getTotalRevenue()
+    {
+        $stmt = $this->db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE payment_status = 'completed'");
+        return (float) $stmt->fetchColumn();
+    }
+    
+    /**
      * Update order
      */
     public function update($id, $data)

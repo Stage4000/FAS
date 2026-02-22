@@ -26,6 +26,7 @@ $totalProducts = $productModel->getCountAll();
 // Get order count
 $orderModel = new Order($pdo);
 $totalOrders = $orderModel->getCountAll();
+$totalRevenue = $orderModel->getTotalRevenue();
 
 // Get last sync timestamp
 $lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
@@ -105,7 +106,7 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Revenue</h6>
-                                        <h3 class="mb-0">$0</h3>
+                                        <h3 class="mb-0">$<?php echo number_format($totalRevenue, 2); ?></h3>
                                     </div>
                                     <div class="text-warning">
                                         <i class="fas fa-dollar-sign display-4"></i>
