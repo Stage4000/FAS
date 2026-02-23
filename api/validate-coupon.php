@@ -6,6 +6,9 @@
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../src/utils/Timezone.php';
+\FAS\Utils\Timezone::apply();
+
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Coupon.php';
 

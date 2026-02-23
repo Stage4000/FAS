@@ -5,6 +5,10 @@
 
 session_start();
 
+// Apply the site-configured timezone as early as possible
+require_once __DIR__ . '/../src/utils/Timezone.php';
+\FAS\Utils\Timezone::apply();
+
 class AdminAuth
 {
     private $db;
