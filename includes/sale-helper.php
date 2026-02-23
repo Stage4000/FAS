@@ -7,6 +7,11 @@
  * sale and a product's individual sale_price column.
  */
 
+// Ensure the site timezone is applied before any date comparisons,
+// regardless of whether header.php has been included yet.
+require_once __DIR__ . '/../src/utils/Timezone.php';
+\FAS\Utils\Timezone::apply();
+
 /**
  * Return the active sale config array, or null if no sale is currently active.
  * Result is cached in a static variable so the config file is read only once.

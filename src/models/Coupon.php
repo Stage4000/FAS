@@ -20,36 +20,18 @@ class Coupon
      */
     public function validateCoupon($code, $subtotal = 0)
     {
-        // Get database driver to use appropriate datetime function
-        $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        
-        // Use appropriate datetime function based on database driver
-        // This is safe as we're using a whitelist approach with predefined strings
-        switch ($driver) {
-            case 'mysql':
-                $dateTimeCheck = "expires_at > NOW()";
-                break;
-            case 'sqlite':
-                $dateTimeCheck = "expires_at > datetime('now')";
-                break;
-            case 'pgsql':
-                $dateTimeCheck = "expires_at > NOW()";
-                break;
-            default:
-                // Fallback to SQLite syntax for unknown drivers
-                $dateTimeCheck = "expires_at > datetime('now')";
-                error_log("Unknown database driver: $driver. Using SQLite datetime syntax.");
-                break;
-        }
-        
-        $sql = "SELECT * FROM coupons 
-                WHERE code = ? 
-                AND is_active = 1 
-                AND (expires_at IS NULL OR $dateTimeCheck)
+        // Compare expiry against the current local-time string so the comparison
+        // is consistent with how admins enter dates (local time, not UTC).
+        $now = date('Y-m-d H:i:s');
+
+        $sql = "SELECT * FROM coupons
+                WHERE code = ?
+                AND is_active = 1
+                AND (expires_at IS NULL OR expires_at > ?)
                 AND (max_uses IS NULL OR times_used < max_uses)";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$code]);
+        $stmt->execute([$code, $now]);
         $coupon = $stmt->fetch(\PDO::FETCH_ASSOC);
         
         if (!$coupon) {

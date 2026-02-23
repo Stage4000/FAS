@@ -130,14 +130,41 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     (function() {
         function pad(n) { return n < 10 ? '0' + n : n; }
 
+        function autoDismissBanner(bannerId) {
+            var el = document.getElementById('banner-' + bannerId);
+            if (!el) return;
+            el.style.transition = 'opacity 0.3s ease';
+            el.style.opacity = '0';
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+        }
+
         function updateCountdowns() {
-            var spans = document.querySelectorAll('.banner-countdown[data-end]');
             var now = Date.now();
+
+            // Auto-dismiss any banner whose ends_at (data-expires) has passed
+            var banners = document.querySelectorAll('.alert-banner[data-expires]');
+            banners.forEach(function(banner) {
+                var expires = new Date(banner.getAttribute('data-expires')).getTime();
+                if (expires <= now) {
+                    var id = banner.id.replace('banner-', '');
+                    autoDismissBanner(id);
+                }
+            });
+
+            // Update countdown timers
+            var spans = document.querySelectorAll('.banner-countdown[data-end]');
             spans.forEach(function(span) {
                 var end = new Date(span.getAttribute('data-end')).getTime();
                 var diff = end - now;
                 if (diff <= 0) {
-                    span.textContent = 'Timer expired';
+                    // Countdown has hit zero — dismiss the parent banner immediately
+                    var parentBanner = span.closest('.alert-banner');
+                    if (parentBanner) {
+                        var id = parentBanner.id.replace('banner-', '');
+                        autoDismissBanner(id);
+                    } else {
+                        span.textContent = 'Expired';
+                    }
                     return;
                 }
                 var days  = Math.floor(diff / 86400000);
@@ -187,7 +214,8 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     <?php foreach ($activeBanners as $banner): ?>
     <div class="alert-banner bg-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
          role="alert"
-         id="banner-<?php echo (int) $banner['id']; ?>">
+         id="banner-<?php echo (int) $banner['id']; ?>"
+         <?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(date('c', strtotime($banner['ends_at']))); ?>"<?php endif; ?>>
         <?php echo htmlspecialchars($banner['message']); ?>
         <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
             &nbsp;<span class="banner-countdown fw-bold"
