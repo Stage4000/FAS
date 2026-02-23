@@ -82,7 +82,8 @@ return [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',
         'email' => 'info@flipandstrip.com',
-        'phone' => ''
+        'phone' => '',
+        'timezone' => 'America/Chicago', // PHP timezone identifier (e.g. America/New_York, America/Los_Angeles)
     ],
     
     'security' => [

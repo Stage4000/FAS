@@ -79,7 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => $_POST['site_name'] ?? 'Flip and Strip',
             'url' => $_POST['site_url'] ?? 'https://flipandstrip.com',
             'email' => $_POST['site_email'] ?? 'info@flipandstrip.com',
-            'phone' => $_POST['site_phone'] ?? ''
+            'phone' => $_POST['site_phone'] ?? '',
+            'timezone' => $_POST['site_timezone'] ?? 'America/Chicago',
         ],
         'security' => [
             'sync_api_key' => $_POST['sync_api_key'] ?? 'fas_sync_key_2026',
@@ -376,6 +377,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Phone</label>
                                     <input type="tel" class="form-control" name="site_phone" value="<?php echo htmlspecialchars($config['site']['phone'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Timezone</label>
+                                    <?php
+                                    $currentTz = $config['site']['timezone'] ?? 'America/Chicago';
+                                    $commonTimezones = [
+                                        'US Timezones' => [
+                                            'America/New_York'    => 'Eastern Time (ET)',
+                                            'America/Chicago'     => 'Central Time (CT)',
+                                            'America/Denver'      => 'Mountain Time (MT)',
+                                            'America/Phoenix'     => 'Mountain Time – Arizona (no DST)',
+                                            'America/Los_Angeles' => 'Pacific Time (PT)',
+                                            'America/Anchorage'   => 'Alaska Time (AKT)',
+                                            'Pacific/Honolulu'    => 'Hawaii Time (HT)',
+                                        ],
+                                        'Other Common Timezones' => [
+                                            'UTC'                    => 'UTC',
+                                            'Europe/London'          => 'London (GMT/BST)',
+                                            'Europe/Paris'           => 'Central European (CET)',
+                                            'Europe/Berlin'          => 'Berlin (CET)',
+                                            'Asia/Tokyo'             => 'Japan (JST)',
+                                            'Asia/Shanghai'          => 'China (CST)',
+                                            'Asia/Kolkata'           => 'India (IST)',
+                                            'Australia/Sydney'       => 'Sydney (AEST)',
+                                            'America/Halifax'        => 'Atlantic Canada (AST)',
+                                            'America/Toronto'        => 'Toronto (ET)',
+                                            'America/Vancouver'      => 'Vancouver (PT)',
+                                        ],
+                                    ];
+                                    ?>
+                                    <select class="form-select" name="site_timezone">
+                                        <?php foreach ($commonTimezones as $group => $zones): ?>
+                                            <optgroup label="<?php echo htmlspecialchars($group); ?>">
+                                                <?php foreach ($zones as $tzId => $tzLabel): ?>
+                                                    <option value="<?php echo htmlspecialchars($tzId); ?>"
+                                                        <?php echo $currentTz === $tzId ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($tzLabel); ?> (<?php echo htmlspecialchars($tzId); ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted">Applied to all date/time displays across the site (banners, sales, coupons, orders, etc.).</small>
                                 </div>
                             </div>
                         </div>

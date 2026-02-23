@@ -1,3 +1,8 @@
+<?php
+// Apply the site-configured timezone before any date/time output
+require_once __DIR__ . '/../src/utils/Timezone.php';
+\FAS\Utils\Timezone::apply();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
