@@ -47,7 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'user_token' => $_POST['ebay_user_token'] ?? '',
             'sandbox' => isset($_POST['ebay_sandbox']),
             'site_id' => (int)($_POST['ebay_site_id'] ?? 0),
-            'store_name' => $_POST['ebay_store_name'] ?? 'moto800'
+            'store_name' => $_POST['ebay_store_name'] ?? 'moto800',
+            'refresh_token' => $config['ebay']['refresh_token'] ?? null,
+            'token_expires_at' => $config['ebay']['token_expires_at'] ?? null,
         ],
         'paypal' => [
             'client_id' => $_POST['paypal_client_id'] ?? '',
