@@ -479,7 +479,7 @@ async function handleDemoCheckout() {
     
     // Simulate payment completion
     if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
-        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now());
+        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now(), orderResult.order_id);
         
         // Clear cart
         window.cart.clearCart();
@@ -517,7 +517,7 @@ async function handleCheckout() {
     // In a real implementation, this would integrate with PayPal SDK
     // For demo purposes, we'll simulate payment completion
     if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
-        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now());
+        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now(), orderResult.order_id);
     }
 }
 

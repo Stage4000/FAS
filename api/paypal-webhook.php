@@ -91,7 +91,12 @@ function handlePaymentCompleted($webhookData)
         $productModel = new Product($db);
         
         $resource = $webhookData['resource'];
-        $paypalOrderId = $resource['id'] ?? ($resource['supplementary_data']['related_ids']['order_id'] ?? null);
+        // For PAYMENT.CAPTURE.COMPLETED, resource.id is the capture ID — order ID is in supplementary_data.
+        // For CHECKOUT.ORDER.APPROVED, resource.id is the order ID.
+        // Prefer supplementary_data order ID when available so both event types work correctly.
+        $paypalOrderId = $resource['supplementary_data']['related_ids']['order_id']
+            ?? $resource['id']
+            ?? null;
         
         if (!$paypalOrderId) {
             error_log('PayPal webhook: No order ID found in webhook data');

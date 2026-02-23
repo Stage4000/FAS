@@ -152,11 +152,11 @@ class Order
     }
     
     /**
-     * Get total revenue from completed orders
+     * Get total revenue from all orders
      */
     public function getTotalRevenue()
     {
-        $stmt = $this->db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE payment_status = 'completed'");
+        $stmt = $this->db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders");
         return (float) $stmt->fetchColumn();
     }
     
