@@ -101,7 +101,10 @@ try {
     do {
         $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         
-        if (!$result || empty($result['items'])) {
+        $hasItemsToSync = is_array($result) && !empty($result['items']);
+        $hasInactiveItemsToHide = is_array($result) && !empty($result['inactive_item_ids']);
+        
+        if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToHide)) {
             if ($page == 1) {
                 if (!$lastSync) {
                     echo "[" . date('Y-m-d H:i:s') . "] No events found in 120-day range\n";

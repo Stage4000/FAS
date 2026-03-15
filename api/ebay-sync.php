@@ -182,7 +182,10 @@ try {
             SyncLogger::log("Fetching page $page from eBay store (range " . ($rangeIndex + 1) . ")");
             $result = $ebayAPI->getStoreItems('moto800', $page, 100, $rangeStartDate, $rangeEndDate);
             
-            if (!$result || empty($result['items'])) {
+            $hasItemsToSync = is_array($result) && !empty($result['items']);
+            $hasInactiveItemsToHide = is_array($result) && !empty($result['inactive_item_ids']);
+            
+            if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToHide)) {
                 // Log if no results on first page
                 if ($page === 1) {
                     // Check if this was due to rate limiting
