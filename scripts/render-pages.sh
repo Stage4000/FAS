@@ -18,6 +18,29 @@ fi
 
 touch "$ROOT_DIR/database/flipandstrip.db"
 
+resolve_browser_driver_paths() {
+    npx --yes browser-driver-manager install chrome >/dev/null
+    local driver_env
+    driver_env="$(npx --yes browser-driver-manager which)"
+
+    CHROMEDRIVER_PATH="$(printf '%s\n' "$driver_env" | sed -n 's/^CHROMEDRIVER_TEST_PATH=\"\(.*\)\"$/\1/p')"
+    CHROME_PATH="$(printf '%s\n' "$driver_env" | sed -n 's/^CHROME_TEST_PATH=\"\(.*\)\"$/\1/p')"
+
+    if [ -z "${CHROMEDRIVER_PATH}" ] || [ -z "${CHROME_PATH}" ]; then
+        echo "Unable to locate Chrome or ChromeDriver after installation." >&2
+        exit 1
+    fi
+}
+
+run_htmlhint() {
+    npx htmlhint "${TMP_DIR}"/*.html
+}
+
+run_axe() {
+    resolve_browser_driver_paths
+    npx axe --exit --disable color-contrast --chrome-path "${CHROME_PATH}" --chromedriver-path "${CHROMEDRIVER_PATH}" "${BASE_URL}/about.php" "${BASE_URL}/contact.php" "${BASE_URL}/cart.php"
+}
+
 php -S "${SERVER_HOST}:${SERVER_PORT}" -t "$ROOT_DIR" >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 
@@ -42,30 +65,14 @@ done
 
 case "$MODE" in
     html)
-        npx htmlhint "${TMP_DIR}"/*.html
+        run_htmlhint
         ;;
     axe)
-        npx --yes browser-driver-manager install chrome >/dev/null
-        DRIVER_ENV="$(npx --yes browser-driver-manager which)"
-        CHROMEDRIVER_PATH="$(printf '%s\n' "$DRIVER_ENV" | sed -n 's/^CHROMEDRIVER_TEST_PATH=\"\(.*\)\"$/\1/p')"
-        CHROME_PATH="$(printf '%s\n' "$DRIVER_ENV" | sed -n 's/^CHROME_TEST_PATH=\"\(.*\)\"$/\1/p')"
-        if [ -z "${CHROMEDRIVER_PATH}" ] || [ -z "${CHROME_PATH}" ]; then
-            echo "Unable to locate Chrome or ChromeDriver after installation." >&2
-            exit 1
-        fi
-        npx axe --exit --disable color-contrast --chrome-path "${CHROME_PATH}" --chromedriver-path "${CHROMEDRIVER_PATH}" "${BASE_URL}/about.php" "${BASE_URL}/contact.php" "${BASE_URL}/cart.php"
+        run_axe
         ;;
     all)
-        npx htmlhint "${TMP_DIR}"/*.html
-        npx --yes browser-driver-manager install chrome >/dev/null
-        DRIVER_ENV="$(npx --yes browser-driver-manager which)"
-        CHROMEDRIVER_PATH="$(printf '%s\n' "$DRIVER_ENV" | sed -n 's/^CHROMEDRIVER_TEST_PATH=\"\(.*\)\"$/\1/p')"
-        CHROME_PATH="$(printf '%s\n' "$DRIVER_ENV" | sed -n 's/^CHROME_TEST_PATH=\"\(.*\)\"$/\1/p')"
-        if [ -z "${CHROMEDRIVER_PATH}" ] || [ -z "${CHROME_PATH}" ]; then
-            echo "Unable to locate Chrome or ChromeDriver after installation." >&2
-            exit 1
-        fi
-        npx axe --exit --disable color-contrast --chrome-path "${CHROME_PATH}" --chromedriver-path "${CHROMEDRIVER_PATH}" "${BASE_URL}/about.php" "${BASE_URL}/contact.php" "${BASE_URL}/cart.php"
+        run_htmlhint
+        run_axe
         ;;
     *)
         echo "Unsupported mode: $MODE" >&2

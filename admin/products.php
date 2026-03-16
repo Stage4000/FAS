@@ -22,6 +22,7 @@ $success = '';
 $error = '';
 $action = $_GET['action'] ?? 'list';
 $productId = $_GET['id'] ?? null;
+$totalPages = 0;
 
 // AJAX endpoint for immediate image removal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image'])) {
@@ -429,7 +430,7 @@ if ($action === 'list') {
                             </div>
 
                             <!-- Pagination -->
-                            <?php if (($totalPages ?? 0) > 1): ?>
+                            <?php if ($totalPages > 1): ?>
                                 <nav>
                                     <ul class="pagination justify-content-center">
                                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>

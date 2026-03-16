@@ -3,12 +3,12 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <p class="fw-bold fs-5 mb-2">FLIP AND STRIP</p>
+                    <h2 class="fw-bold fs-5 mb-2">FLIP AND STRIP</h2>
                     <p>Quality motorcycle, ATV/UTV, and boat parts</p>
                     <p class="small">Low miles, tested, and inspected parts from top brands including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.</p>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <p class="fw-bold mb-2">Quick Links</p>
+                    <h3 class="h6 fw-bold mb-2">Quick Links</h3>
                     <ul class="list-unstyled">
                         <li><a href="/products" class="text-white text-decoration-none">Shop All Products</a></li>
                         <li><a href="/products/motorcycle" class="text-white text-decoration-none">Motorcycle Parts</a></li>
@@ -20,13 +20,13 @@
                     </ul>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <p class="fw-bold mb-2">Connect</p>
+                    <h3 class="h6 fw-bold mb-2">Connect</h3>
                     <p><a href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none"><i class="fab fa-facebook"></i> Facebook</a></p>
                     <p><a href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none"><i class="fab fa-instagram"></i> Instagram</a></p>
                     <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
                     <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
                     <div class="mt-3">
-                        <p class="small fw-bold mb-2">Secure Payment & Shipping</p>
+                        <h4 class="small fw-bold mb-2">Secure Payment & Shipping</h4>
                         <p class="text-white small"><i class="fas fa-shield-alt"></i> PayPal Checkout</p>
                         <p class="text-white small"><i class="fas fa-shipping-fast"></i> Fast Delivery</p>
                     </div>

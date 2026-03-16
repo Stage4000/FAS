@@ -176,6 +176,16 @@ parameters:
 			path: api/products.php
 
 		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
 			message: "#^Variable \\$imageUrl in empty\\(\\) always exists and is not falsy\\.$#"
 			count: 1
 			path: api/products.php
@@ -251,6 +261,16 @@ parameters:
 			path: product.php
 
 		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
 			message: "#^Variable \\$mainImage in empty\\(\\) always exists and is not falsy\\.$#"
 			count: 1
 			path: product.php
@@ -262,6 +282,16 @@ parameters:
 
 		-
 			message: "#^Function normalizeImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
 			count: 1
 			path: products.php
 
@@ -339,11 +369,6 @@ parameters:
 			message: "#^Property FAS\\\\Config\\\\Database\\:\\:\\$instance has no type specified\\.$#"
 			count: 1
 			path: src/config/Database.php
-
-		-
-			message: "#^Array has 2 duplicate keys with value 'site' \\('site', 'site'\\)\\.$#"
-			count: 1
-			path: src/config/config.php
 
 		-
 			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:__construct\\(\\) has parameter \\$config with no type specified\\.$#"
