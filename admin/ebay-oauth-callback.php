@@ -100,6 +100,13 @@ if ($httpCode !== 200) {
 }
 
 // Parse response
+if (!is_string($response)) {
+    error_log('eBay OAuth token exchange returned a non-string response');
+    $_SESSION['error'] = 'Invalid response from eBay. Please try again.';
+    header('Location: settings.php');
+    exit;
+}
+
 $tokenData = json_decode($response, true);
 if (!$tokenData || !isset($tokenData['access_token'])) {
     error_log('eBay OAuth invalid token response: ' . $response);

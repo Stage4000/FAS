@@ -48,11 +48,6 @@ return [
         'currency' => 'USD'
     ],
     
-    // Site configuration
-    'site' => [
-        'url' => 'https://yoursite.com', // Your site URL (without trailing slash)
-    ],
-    
     'easyship' => [
         'api_key' => 'YOUR_EASYSHIP_API_KEY',
         'platform_name' => 'Flip and Strip',

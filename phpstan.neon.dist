@@ -1,0 +1,27 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 7
+    paths:
+        - about.php
+        - cart.php
+        - checkout.php
+        - contact.php
+        - diagnostic_script.php
+        - index.php
+        - install.php
+        - product.php
+        - products.php
+        - admin
+        - api
+        - cron
+        - database
+        - includes
+        - scripts
+        - src
+    excludePaths:
+        analyse:
+            - vendor/*
+            - node_modules/*
+    tmpDir: /tmp/phpstan-fas

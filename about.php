@@ -3,14 +3,14 @@ $pageTitle = 'About Us';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="container my-5">
+<main class="container my-5" id="main-content">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <h1 class="mb-4 fw-bold text-center" data-aos="fade-down">About Flip and Strip</h1>
             
             <div class="card border-0 shadow-sm mb-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="card-body p-5">
-                    <h3 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h3>
+                    <h2 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h2>
                     <p class="lead">
                         Flip and Strip specializes in providing high-quality, tested motorcycle, ATV/UTV, boat, and automotive parts 
                         from top manufacturers including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.
@@ -21,7 +21,7 @@ require_once __DIR__ . '/includes/header.php';
                         what you're getting. We take pride in offering low-mileage parts that are in excellent working condition.
                     </p>
                     
-                    <h4 class="mt-4 mb-3">What We Offer</h4>
+                    <h2 class="mt-4 mb-3">What We Offer</h2>
                     <ul class="list-unstyled">
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Tested and inspected parts</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Low-mileage components</li>
@@ -32,7 +32,7 @@ require_once __DIR__ . '/includes/header.php';
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Live chat support via Tawk.to</li>
                     </ul>
                     
-                    <h4 class="mt-4 mb-3">Our Inventory</h4>
+                    <h2 class="mt-4 mb-3">Our Inventory</h2>
                     <p>
                         We maintain a large inventory of motorcycle, ATV/UTV, boat, and automotive parts, including:
                     </p>
@@ -58,7 +58,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             
             <div class="text-center" data-aos="fade-up" data-aos-delay="200">
-                <h3 class="mb-4">Ready to Find Your Parts?</h3>
+                <h2 class="mb-4">Ready to Find Your Parts?</h2>
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="products.php" class="btn btn-danger btn-lg">Browse Products</a>
                     <a href="contact.php" class="btn btn-danger btn-lg">Contact Us</a>
@@ -66,6 +66,6 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

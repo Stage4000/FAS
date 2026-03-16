@@ -16,13 +16,13 @@ if (!file_exists($configFile)) {
 }
 ?>
 
-<div class="container my-5">
+<main class="container my-5" id="main-content">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <h1 class="mb-5 fw-bold text-center" data-aos="fade-down">Contact Us</h1>
             
             <div class="mb-5" data-aos="fade-up" data-aos-delay="100">
-                <h3 class="mb-4">Send Us a Message</h3>
+                <h2 class="mb-4">Send Us a Message</h2>
                 <div id="contact-alert" class="alert" style="display: none;"></div>
                 <form id="contact-form">
                     <div class="mb-3">
@@ -57,12 +57,12 @@ if (!file_exists($configFile)) {
             </div>
             
             <div class="alert alert-secondary mt-5">
-                <h5><i class="fas fa-clock me-2"></i>Response Time</h5>
+                <h2 class="h5"><i class="fas fa-clock me-2"></i>Response Time</h2>
                 <p class="mb-0">We typically respond to all inquiries within 24 hours during business days.</p>
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <?php if ($turnstileEnabled && !empty($turnstileSiteKey)): ?>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

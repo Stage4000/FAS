@@ -3,7 +3,7 @@ $pageTitle = 'Shopping Cart';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="container my-5 animate-fade-in">
+<main class="container my-5 animate-fade-in" id="main-content">
     <h1 class="mb-4 fw-bold">Shopping Cart</h1>
     
     <div class="row">
@@ -15,7 +15,7 @@ require_once __DIR__ . '/includes/header.php';
             <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
-                    <h3>Your cart is empty</h3>
+                    <h2 class="h3">Your cart is empty</h2>
                     <p class="text-muted">Start shopping to add items to your cart</p>
                     <a href="products.php" class="btn btn-danger btn-ripple">Browse Products</a>
                 </div>
@@ -25,7 +25,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm sticky-top order-summary-mobile">
                 <div class="card-body">
-                    <h4 class="mb-4">Order Summary</h4>
+                    <h2 class="h4 mb-4">Order Summary</h2>
                     
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
@@ -47,7 +47,7 @@ require_once __DIR__ . '/includes/header.php';
                     <a href="products.php" class="btn btn-outline-danger w-100">Continue Shopping</a>
                     
                     <div class="mt-4 pt-3 border-top">
-                        <h6 class="mb-3">We Accept</h6>
+                        <h3 class="h6 mb-3">We Accept</h3>
                         <div class="d-flex align-items-center">
                             <i class="fas fa-credit-card display-6 text-muted me-3"></i>
                             <div>
@@ -59,7 +59,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <script>
 // Cart page specific JavaScript

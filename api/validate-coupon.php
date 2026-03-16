@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Get request data
-$input = json_decode(file_get_contents('php://input'), true);
+$rawInput = file_get_contents('php://input');
+$input = is_string($rawInput) ? json_decode($rawInput, true) : null;
 
 if (!$input) {
     http_response_code(400);
