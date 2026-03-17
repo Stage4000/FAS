@@ -21,17 +21,19 @@ class Banner
      */
     public function getActive()
     {
-        $now = date('Y-m-d H:i:s');
-
         $sql = "SELECT * FROM banners
                 WHERE is_active = 1
-                  AND (starts_at IS NULL OR starts_at <= ?)
-                  AND (ends_at   IS NULL OR ends_at   >= ?)
                 ORDER BY sort_order ASC, id ASC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$now, $now]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt->execute();
+
+        $now = time();
+        $banners = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return array_values(array_filter($banners, function ($banner) use ($now) {
+            return $this->isBannerScheduledForDisplay($banner, $now);
+        }));
     }
 
     /**
@@ -130,5 +132,31 @@ class Banner
         $sql = "DELETE FROM banners WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([(int) $id]);
+    }
+
+    private function isBannerScheduledForDisplay(array $banner, $now)
+    {
+        $startsAt = $this->parseDateTime($banner['starts_at'] ?? null);
+        if ($startsAt === false || ($startsAt !== null && $startsAt > $now)) {
+            return false;
+        }
+
+        $endsAt = $this->parseDateTime($banner['ends_at'] ?? null);
+        if ($endsAt === false || ($endsAt !== null && $endsAt < $now)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function parseDateTime($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp === false ? false : $timestamp;
     }
 }
