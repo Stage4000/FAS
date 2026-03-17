@@ -8,6 +8,8 @@ namespace FAS\Models;
 
 class Banner
 {
+    private const SUPPORTED_DATETIME_FORMATS = ['Y-m-d\TH:i:s', 'Y-m-d\TH:i', 'Y-m-d H:i:s', 'Y-m-d H:i'];
+
     private $db;
 
     public function __construct($db)
@@ -134,6 +136,14 @@ class Banner
         return $stmt->execute([(int) $id]);
     }
 
+    /**
+     * Determine whether a banner should currently be shown.
+     *
+     * @param array $banner Banner row data including optional starts_at and ends_at fields.
+     * @param int   $now    Current Unix timestamp in the site's configured timezone.
+     *
+     * @return bool
+     */
     private function isBannerScheduledForDisplay(array $banner, $now)
     {
         $startsAt = $this->parseDateTime($banner['starts_at'] ?? null);
@@ -149,14 +159,54 @@ class Banner
         return true;
     }
 
+    /**
+     * Parse supported banner datetime values into a Unix timestamp.
+     *
+     * Accepts empty values, datetime-local strings, SQL-style datetime strings,
+     * and falls back to strtotime() for legacy values.
+     *
+     * @param mixed $value
+     *
+     * @return int|false|null
+     */
     private function parseDateTime($value)
     {
         if ($value === null || $value === '') {
             return null;
         }
 
+        foreach (self::SUPPORTED_DATETIME_FORMATS as $format) {
+            $dateTime = \DateTimeImmutable::createFromFormat($format, $value);
+            $errors = \DateTimeImmutable::getLastErrors();
+
+            if ($this->hasValidDateTimeParse($dateTime, $errors)) {
+                return $dateTime->getTimestamp();
+            }
+        }
+
         $timestamp = strtotime($value);
 
         return $timestamp === false ? false : $timestamp;
+    }
+
+    /**
+     * Check whether a DateTimeImmutable parse succeeded without warnings/errors.
+     *
+     * @param \DateTimeImmutable|false $dateTime
+     * @param array|false              $errors
+     *
+     * @return bool
+     */
+    private function hasValidDateTimeParse($dateTime, $errors)
+    {
+        if ($dateTime === false) {
+            return false;
+        }
+
+        if ($errors === false) {
+            return true;
+        }
+
+        return $errors['warning_count'] === 0 && $errors['error_count'] === 0;
     }
 }
