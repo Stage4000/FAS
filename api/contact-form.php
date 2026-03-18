@@ -77,6 +77,12 @@ if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secr
         exit;
     }
     
+    if (!is_string($verifyResponse)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Unable to verify security token']);
+        exit;
+    }
+
     $verifyResult = json_decode($verifyResponse, true);
     
     if (!$verifyResult['success']) {

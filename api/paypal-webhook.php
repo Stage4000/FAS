@@ -19,6 +19,12 @@ use FAS\Integrations\PayPalAPI;
 
 // Get webhook data
 $rawInput = file_get_contents('php://input');
+if (!is_string($rawInput)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid webhook payload']);
+    exit;
+}
+
 $webhookData = json_decode($rawInput, true);
 
 // Log webhook metadata only (not sensitive payment data)

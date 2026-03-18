@@ -1,0 +1,20 @@
+{
+  "name": "fas-linting",
+  "private": true,
+  "description": "Frontend linting and accessibility tooling for Flip and Strip",
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:css && npm run lint:html && npm run lint:a11y",
+    "lint:js": "eslint \"public/js/**/*.js\" \"admin/js/**/*.js\"",
+    "lint:css": "stylelint \"public/css/**/*.css\" \"admin/css/**/*.css\"",
+    "lint:html": "bash ./scripts/render-pages.sh html",
+    "lint:a11y": "bash ./scripts/render-pages.sh axe"
+  },
+  "devDependencies": {
+    "@axe-core/cli": "4.11.1",
+    "eslint": "8.57.1",
+    "globals": "17.4.0",
+    "htmlhint": "1.9.2",
+    "stylelint": "17.4.0",
+    "stylelint-config-standard": "40.0.0"
+  }
+}

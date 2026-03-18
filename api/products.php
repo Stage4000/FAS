@@ -44,6 +44,21 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function resolveLocalImagePath($path) {
+    if (!is_string($path) || $path === '' || strpos($path, '..') !== false) {
+        return null;
+    }
+
+    $basePath = realpath(__DIR__ . '/..');
+    $resolvedPath = realpath(__DIR__ . '/../' . ltrim($path, '/'));
+
+    if ($basePath === false || $resolvedPath === false) {
+        return null;
+    }
+
+    return strpos($resolvedPath, $basePath . DIRECTORY_SEPARATOR) === 0 ? $resolvedPath : null;
+}
+
 // Get filter parameters
 $ebayCat1 = $_GET['cat1'] ?? null;
 $ebayCat2 = $_GET['cat2'] ?? null;
@@ -180,9 +195,10 @@ ob_start();
                         <?php 
                         // Check if image is external or local
                         $isExternal = strpos($imageUrl, 'http://') === 0 || strpos($imageUrl, 'https://') === 0;
+                        $localImagePath = $isExternal ? null : resolveLocalImagePath($imageUrl);
                         $hasImage = !empty($imageUrl) && (
                             $isExternal || 
-                            file_exists(__DIR__ . '/../' . ltrim($imageUrl, '/'))
+                            ($localImagePath !== null && file_exists($localImagePath))
                         );
                         ?>
                         <?php if ($hasImage): ?>

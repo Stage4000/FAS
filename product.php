@@ -51,6 +51,21 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function resolveLocalImagePath($path) {
+    if (!is_string($path) || $path === '' || strpos($path, '..') !== false) {
+        return null;
+    }
+
+    $basePath = realpath(__DIR__);
+    $resolvedPath = realpath(__DIR__ . '/' . ltrim($path, '/'));
+
+    if ($basePath === false || $resolvedPath === false) {
+        return null;
+    }
+
+    return strpos($resolvedPath, $basePath . DIRECTORY_SEPARATOR) === 0 ? $resolvedPath : null;
+}
+
 // Normalize all image paths
 $images = array_map('normalizeImagePath', $images);
 
@@ -135,9 +150,10 @@ require_once __DIR__ . '/includes/header.php';
                     <?php 
                     // Check if image is external or local
                     $isExternal = strpos($mainImage, 'http://') === 0 || strpos($mainImage, 'https://') === 0;
+                    $localMainImagePath = $isExternal ? null : resolveLocalImagePath($mainImage);
                     $hasMainImage = !empty($mainImage) && (
                         $isExternal || 
-                        file_exists(__DIR__ . $mainImage)
+                        ($localMainImagePath !== null && file_exists($localMainImagePath))
                     );
                     ?>
                     <?php if ($hasMainImage): ?>
@@ -161,9 +177,10 @@ require_once __DIR__ . '/includes/header.php';
                         <?php 
                         // Check if image is external or local
                         $isExternal = strpos($image, 'http://') === 0 || strpos($image, 'https://') === 0;
+                        $localImagePath = $isExternal ? null : resolveLocalImagePath($image);
                         $hasImage = !empty($image) && (
                             $isExternal || 
-                            file_exists(__DIR__ . $image)
+                            ($localImagePath !== null && file_exists($localImagePath))
                         );
                         ?>
                         <?php if ($hasImage): ?>

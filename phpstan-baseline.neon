@@ -1,0 +1,2121 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method AdminAuth\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:changePassword\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:changePassword\\(\\) has parameter \\$adminId with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:changePassword\\(\\) has parameter \\$currentPassword with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:changePassword\\(\\) has parameter \\$newPassword with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:createInitialAdmin\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:createInitialAdmin\\(\\) has parameter \\$email with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:createInitialAdmin\\(\\) has parameter \\$password with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:createInitialAdmin\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:isLoggedIn\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:login\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:login\\(\\) has parameter \\$password with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:login\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:logout\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Method AdminAuth\\:\\:requireLogin\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Property AdminAuth\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: admin/auth.php
+
+		-
+			message: "#^Function renderBannerFormFields\\(\\) has parameter \\$colorOptions with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: admin/banners.php
+
+		-
+			message: "#^Function renderBannerFormFields\\(\\) has parameter \\$textColorOptions with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: admin/banners.php
+
+		-
+			message: "#^Function renderBannerFormFields\\(\\) should return string but returns string\\|false\\.$#"
+			count: 1
+			path: admin/banners.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between int\\<1, max\\> and 0 is always true\\.$#"
+			count: 1
+			path: admin/products.php
+
+		-
+			message: "#^Function handlePaymentCompleted\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/paypal-webhook.php
+
+		-
+			message: "#^Function handlePaymentCompleted\\(\\) has parameter \\$webhookData with no type specified\\.$#"
+			count: 1
+			path: api/paypal-webhook.php
+
+		-
+			message: "#^Function handlePaymentFailed\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/paypal-webhook.php
+
+		-
+			message: "#^Function handlePaymentFailed\\(\\) has parameter \\$webhookData with no type specified\\.$#"
+			count: 1
+			path: api/paypal-webhook.php
+
+		-
+			message: "#^Function completeOrder\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function completeOrder\\(\\) has parameter \\$input with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function completeOrder\\(\\) has parameter \\$orderModel with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function completeOrder\\(\\) has parameter \\$productModel with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function createOrder\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function createOrder\\(\\) has parameter \\$input with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function createOrder\\(\\) has parameter \\$orderModel with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Function createOrder\\(\\) has parameter \\$productModel with no type specified\\.$#"
+			count: 1
+			path: api/process-order.php
+
+		-
+			message: "#^Dead catch \\- Exception is never thrown in the try block\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Variable \\$imageUrl in empty\\(\\) always exists and is not falsy\\.$#"
+			count: 1
+			path: api/products.php
+
+		-
+			message: "#^Parameter \\#1 \\$modTimeFrom of method FAS\\\\Integrations\\\\EbayAPI\\:\\:getSellerEvents\\(\\) expects FAS\\\\Integrations\\\\DateTime\\|string\\|null, DateTime given\\.$#"
+			count: 1
+			path: cron/ebay-sync-cron.php
+
+		-
+			message: "#^Parameter \\#2 \\$modTimeTo of method FAS\\\\Integrations\\\\EbayAPI\\:\\:getSellerEvents\\(\\) expects FAS\\\\Integrations\\\\DateTime\\|string\\|null, DateTime given\\.$#"
+			count: 1
+			path: cron/ebay-sync-cron.php
+
+		-
+			message: "#^Parameter \\#1 \\$statement of method PDO\\:\\:exec\\(\\) expects string, string\\|false given\\.$#"
+			count: 1
+			path: database/init-sqlite.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fclose expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: database/init-sqlite.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fgets expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: database/init-sqlite.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function strtolower expects string, string\\|false given\\.$#"
+			count: 1
+			path: database/init-sqlite.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fclose expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: database/remove-example-products.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fgets expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: database/remove-example-products.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function trim expects string, string\\|false given\\.$#"
+			count: 1
+			path: database/remove-example-products.php
+
+		-
+			message: "#^Function getEffectivePrice\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: includes/sale-helper.php
+
+		-
+			message: "#^Function getSaleConfig\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: includes/sale-helper.php
+
+		-
+			message: "#^Binary operation \"\\+\" between int\\|string and 1 results in an error\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Variable \\$mainImage in empty\\(\\) always exists and is not falsy\\.$#"
+			count: 1
+			path: product.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Function normalizeImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Function resolveLocalImagePath\\(\\) has parameter \\$path with no type specified\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Variable \\$imageUrl in empty\\(\\) always exists and is not falsy\\.$#"
+			count: 1
+			path: products.php
+
+		-
+			message: "#^Argument of an invalid type array\\<int, string\\>\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 2
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Binary operation \"\\.\" between non\\-empty\\-array\\<int, mixed\\>\\|non\\-falsy\\-string and '/' results in an error\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#1 \\$directory of function mkdir expects string, array\\<int, mixed\\>\\|string given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#1 \\$filename of function is_dir expects string, array\\<int, mixed\\>\\|string given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#1 \\.\\.\\.\\$arrays of function array_merge expects array, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#2 \\$subject of function preg_match_all expects string, string\\|false given\\.$#"
+			count: 3
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#2 \\.\\.\\.\\$arrays of function array_merge expects array, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#3 \\.\\.\\.\\$arrays of function array_merge expects array, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Parameter \\#4 \\.\\.\\.\\$arrays of function array_merge expects array, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Part \\$backupDir \\(non\\-empty\\-array\\<int, mixed\\>\\|non\\-falsy\\-string\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: scripts/cleanup-gallery.php
+
+		-
+			message: "#^Method FAS\\\\Config\\\\Database\\:\\:getConnection\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/config/Database.php
+
+		-
+			message: "#^Method FAS\\\\Config\\\\Database\\:\\:getInstance\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/config/Database.php
+
+		-
+			message: "#^Property FAS\\\\Config\\\\Database\\:\\:\\$connection has no type specified\\.$#"
+			count: 1
+			path: src/config/Database.php
+
+		-
+			message: "#^Property FAS\\\\Config\\\\Database\\:\\:\\$instance has no type specified\\.$#"
+			count: 1
+			path: src/config/Database.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:__construct\\(\\) has parameter \\$config with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:buildParcels\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:buildParcels\\(\\) has parameter \\$items with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:createShipment\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:createShipment\\(\\) has parameter \\$courierID with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:createShipment\\(\\) has parameter \\$items with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:createShipment\\(\\) has parameter \\$orderId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:createShipment\\(\\) has parameter \\$shippingAddress with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:formatDeliveryTime\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:formatDeliveryTime\\(\\) has parameter \\$option with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getCountryCode\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getCountryCode\\(\\) has parameter \\$country with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getOriginAddress\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getOriginAddress\\(\\) has parameter \\$warehouse with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getShippingRates\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getShippingRates\\(\\) has parameter \\$destinationAddress with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getShippingRates\\(\\) has parameter \\$items with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:getShippingRates\\(\\) has parameter \\$originWarehouse with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:logToFile\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:logToFile\\(\\) has parameter \\$message with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:makeRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:makeRequest\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:makeRequest\\(\\) has parameter \\$endpoint with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:makeRequest\\(\\) has parameter \\$method with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:parseRates\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EasyShipAPI\\:\\:parseRates\\(\\) has parameter \\$rates with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, bool\\|string given\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$apiKey has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$apiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$logFile has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$maxRetries has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$platformName has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EasyShipAPI\\:\\:\\$timeout has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EasyShipAPI.php
+
+		-
+			message: "#^Call to method diff\\(\\) on an unknown class FAS\\\\Integrations\\\\DateTime\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Empty array passed to foreach\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:__construct\\(\\) has parameter \\$config with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:__construct\\(\\) has parameter \\$configFilePath with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerEventsRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerEventsRequest\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerEventsRequest\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerListRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerListRequest\\(\\) has parameter \\$endDate with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerListRequest\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerListRequest\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerListRequest\\(\\) has parameter \\$startDate with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:extractCategoryMfgModelFromStoreCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:extractCategoryMfgModelFromStoreCategory\\(\\) has parameter \\$storeCategoryId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:extractMfgModelFromStoreCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:extractMfgModelFromStoreCategory\\(\\) has parameter \\$storeCategoryId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getItemDetails\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getItemDetails\\(\\) has parameter \\$itemId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getSellerEvents\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreCategories\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreCategoriesHierarchical\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has parameter \\$endDate with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has parameter \\$startDate with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getStoreItems\\(\\) has parameter \\$storeName with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:getTotalRetryWaitTime\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:isRateLimitError\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:isRateLimitError\\(\\) has parameter \\$errorMessage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeRequest\\(\\) has parameter \\$maxRetries with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeRequest\\(\\) has parameter \\$retryCount with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeRequest\\(\\) has parameter \\$url with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeRequest\\(\\) has parameter \\$useOAuth with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has parameter \\$callName with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has parameter \\$maxRetries with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has parameter \\$retryCount with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has parameter \\$url with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:makeTradingApiRequest\\(\\) has parameter \\$xmlRequest with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:mapStoreCategoryToWebsite\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:mapStoreCategoryToWebsite\\(\\) has parameter \\$storeCategoryName with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseInventoryResponse\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseInventoryResponse\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseInventoryResponse\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseInventoryResponse\\(\\) has parameter \\$response with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseInventoryResponse\\(\\) is unused\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseItemDetails\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseItemDetails\\(\\) has parameter \\$item with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseItemDetails\\(\\) is unused\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseItemsResponse\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseItemsResponse\\(\\) has parameter \\$response with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseStoreCategories\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseStoreCategories\\(\\) has parameter \\$categoriesData with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseTradingApiResponse\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseTradingApiResponse\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseTradingApiResponse\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseTradingApiResponse\\(\\) has parameter \\$response with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseXmlResponse\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:parseXmlResponse\\(\\) has parameter \\$xmlString with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:saveTokensToConfig\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:searchItems\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:searchItems\\(\\) has parameter \\$categoryId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:searchItems\\(\\) has parameter \\$entriesPerPage with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:searchItems\\(\\) has parameter \\$keywords with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:searchItems\\(\\) has parameter \\$pageNumber with no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\EbayAPI\\:\\:wasRateLimited\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$description of method FAS\\\\Integrations\\\\EbayAPI\\:\\:removeTemplatedTitleFromDescription\\(\\) expects string\\|null, array\\|float\\|int\\|string\\|false given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, bool\\|string given\\.$#"
+			count: 2
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$modTimeFrom of method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerEventsRequest\\(\\) expects DateTime, DateTime\\|FAS\\\\Integrations\\\\DateTime given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function strip_tags expects string, array\\<int, string\\>\\|string\\|null given\\.$#"
+			count: 2
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function strlen expects string, bool\\|string given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function substr expects string, bool\\|string given\\.$#"
+			count: 3
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\#2 \\$modTimeTo of method FAS\\\\Integrations\\\\EbayAPI\\:\\:buildGetSellerEventsRequest\\(\\) expects DateTime, DateTime\\|FAS\\\\Integrations\\\\DateTime given\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\$modTimeFrom of method FAS\\\\Integrations\\\\EbayAPI\\:\\:getSellerEvents\\(\\) has invalid type FAS\\\\Integrations\\\\DateTime\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Parameter \\$modTimeTo of method FAS\\\\Integrations\\\\EbayAPI\\:\\:getSellerEvents\\(\\) has invalid type FAS\\\\Integrations\\\\DateTime\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$appId has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$certId has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$configFile has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$devId has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$devId is never read, only written\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$findingApiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$inventoryApiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$inventoryApiUrl is never read, only written\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$rateLimitExceeded has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$refreshToken has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$sandbox has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$shoppingApiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$shoppingApiUrl is never read, only written\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$siteId has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$storeCategoriesCache has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$tokenExpiresAt has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$tradingApiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\EbayAPI\\:\\:\\$userToken has no type specified\\.$#"
+			count: 1
+			path: src/integrations/EbayAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:__construct\\(\\) has parameter \\$config with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:captureOrder\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:captureOrder\\(\\) has parameter \\$orderId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:createOrder\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:createOrder\\(\\) has parameter \\$items with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:createOrder\\(\\) has parameter \\$shippingAmount with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:createOrder\\(\\) has parameter \\$taxAmount with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:getAccessToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:getApproveUrl\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:getApproveUrl\\(\\) has parameter \\$links with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:getOrderDetails\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:getOrderDetails\\(\\) has parameter \\$orderId with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:makeRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:makeRequest\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:makeRequest\\(\\) has parameter \\$endpoint with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:makeRequest\\(\\) has parameter \\$method with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:verifyWebhookSignature\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:verifyWebhookSignature\\(\\) has parameter \\$body with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Integrations\\\\PayPalAPI\\:\\:verifyWebhookSignature\\(\\) has parameter \\$headers with no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, bool\\|string given\\.$#"
+			count: 2
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$accessToken has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$apiUrl has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$clientId has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$clientSecret has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$currency has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$maxRetries has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$mode has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$timeout has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Property FAS\\\\Integrations\\\\PayPalAPI\\:\\:\\$tokenExpiry has no type specified\\.$#"
+			count: 1
+			path: src/integrations/PayPalAPI.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:create\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:create\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:delete\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:delete\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:getActive\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:getAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:update\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:update\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Banner\\:\\:update\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Banner\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/Banner.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:calculateDiscount\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:calculateDiscount\\(\\) has parameter \\$coupon with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:calculateDiscount\\(\\) has parameter \\$subtotal with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:create\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:create\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:delete\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:delete\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:getAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:incrementUsage\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:incrementUsage\\(\\) has parameter \\$code with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:update\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:update\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:update\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:validateCoupon\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:validateCoupon\\(\\) has parameter \\$code with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Coupon\\:\\:validateCoupon\\(\\) has parameter \\$subtotal with no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Coupon\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/Coupon.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:createOrUpdate\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:createOrUpdate\\(\\) has parameter \\$ebayCat1Name with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:createOrUpdate\\(\\) has parameter \\$homepageCategory with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:createOrUpdate\\(\\) has parameter \\$priority with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:delete\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:delete\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getAllGroupedByEbayCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getEbayCategoriesForHomepageCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getEbayCategoriesForHomepageCategory\\(\\) has parameter \\$homepageCategory with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getEbayCategoriesFromProducts\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getHomepageCategoryForEbayCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:getHomepageCategoryForEbayCategory\\(\\) has parameter \\$ebayCat1Name with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:normalizeEbayCategoryName\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:normalizeEbayCategoryName\\(\\) has parameter \\$name with no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\HomepageCategoryMapping\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/HomepageCategoryMapping.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:addItems\\(\\) has parameter \\$items with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:create\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:generateOrderNumber\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getByOrderNumber\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getByOrderNumber\\(\\) has parameter \\$orderNumber with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getByPayPalOrderId\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getByPayPalOrderId\\(\\) has parameter \\$paypalOrderId with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getCountAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getItems\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getItems\\(\\) has parameter \\$orderId with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:getTotalRevenue\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:update\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:update\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Order\\:\\:update\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Order\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/Order.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:create\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:create\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:delete\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:delete\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:extractStoreCategoryHierarchy\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has parameter \\$category with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has parameter \\$manufacturer with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has parameter \\$page with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has parameter \\$perPage with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAll\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$cat1Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$cat2Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$cat3Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$manufacturer with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$page with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$perPage with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllByEbayCategory\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllProducts\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllProducts\\(\\) has parameter \\$page with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllProducts\\(\\) has parameter \\$perPage with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllProducts\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getAllProducts\\(\\) has parameter \\$sourceFilter with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getByEbayId\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getByEbayId\\(\\) has parameter \\$ebayItemId with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getById\\(\\) has parameter \\$includeInactive with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCount\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCount\\(\\) has parameter \\$category with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCount\\(\\) has parameter \\$manufacturer with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCount\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountAll\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountAll\\(\\) has parameter \\$sourceFilter with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has parameter \\$cat1Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has parameter \\$cat2Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has parameter \\$cat3Id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has parameter \\$manufacturer with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getCountByEbayCategory\\(\\) has parameter \\$search with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getDb\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getEbayStoreCategoryArray\\(\\) has parameter \\$product with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getEbayStoreCategoryArray\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getEbayStoreCategoryPath\\(\\) has parameter \\$product with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:getManufacturers\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:hideByEbayId\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:hideByEbayId\\(\\) has parameter \\$ebayItemId with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:mapEbayCategory\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:mapEbayCategory\\(\\) has parameter \\$ebayCat1Name with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:mapEbayCategory\\(\\) has parameter \\$ebayCategoryId with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:mapEbayCategory\\(\\) has parameter \\$ebayCategoryName with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:mapEbayCategory\\(\\) has parameter \\$itemTitle with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:syncFromEbay\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:syncFromEbay\\(\\) has parameter \\$ebayData with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:toggleWebsiteVisibility\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:toggleWebsiteVisibility\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:update\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:update\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:update\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:updateImages\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:updateImages\\(\\) has parameter \\$newImagesJson with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Product\\:\\:updateImages\\(\\) has parameter \\$prodId with no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Product\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Product\\:\\:\\$mappingModel has no type specified\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between mixed and null will always evaluate to false\\.$#"
+			count: 1
+			path: src/models/Product.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:__construct\\(\\) has parameter \\$db with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:create\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:create\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:delete\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:delete\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getAll\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getAll\\(\\) has parameter \\$includeInactive with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getByCode\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getByCode\\(\\) has parameter \\$code with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getById\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getById\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getDefault\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getForCartItems\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getForCartItems\\(\\) has parameter \\$items with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getForProduct\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:getForProduct\\(\\) has parameter \\$productId with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:setAsDefault\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:setAsDefault\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:update\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:update\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Models\\\\Warehouse\\:\\:update\\(\\) has parameter \\$id with no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Property FAS\\\\Models\\\\Warehouse\\:\\:\\$db has no type specified\\.$#"
+			count: 1
+			path: src/models/Warehouse.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:generateToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:getToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:tokenField\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:validateRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:validateToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\CSRF\\:\\:validateToken\\(\\) has parameter \\$token with no type specified\\.$#"
+			count: 1
+			path: src/utils/CSRF.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:finalize\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:init\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:init\\(\\) has parameter \\$logFilePath with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:log\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:log\\(\\) has parameter \\$context with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:log\\(\\) has parameter \\$message with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logError\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logError\\(\\) has parameter \\$exception with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logError\\(\\) has parameter \\$message with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logPhpError\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logPhpError\\(\\) has parameter \\$errfile with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logPhpError\\(\\) has parameter \\$errline with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logPhpError\\(\\) has parameter \\$errno with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logPhpError\\(\\) has parameter \\$errstr with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logRequest\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logRequest\\(\\) has parameter \\$method with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logRequest\\(\\) has parameter \\$url with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logResponse\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logResponse\\(\\) has parameter \\$httpCode with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logResponse\\(\\) has parameter \\$response with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logWarning\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Method FAS\\\\Utils\\\\SyncLogger\\:\\:logWarning\\(\\) has parameter \\$message with no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Offset 1\\|2\\|256\\|512 on array\\{1\\: 'ERROR', 2\\: 'WARNING', 256\\: 'USER_ERROR', 512\\: 'USER_WARNING'\\} on left side of \\?\\? always exists and is not nullable\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Property FAS\\\\Utils\\\\SyncLogger\\:\\:\\$isEnabled has no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php
+
+		-
+			message: "#^Property FAS\\\\Utils\\\\SyncLogger\\:\\:\\$logFile has no type specified\\.$#"
+			count: 1
+			path: src/utils/SyncLogger.php

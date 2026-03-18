@@ -1,0 +1,74 @@
+name: Comprehensive linting
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Prepare local configuration
+        run: |
+          cp src/config/config.example.php src/config/config.php
+          touch database/flipandstrip.db
+
+      - name: Validate PHP syntax
+        run: composer lint:php
+
+      - name: Run PHPStan
+        run: composer lint:phpstan
+
+      - name: Run ESLint
+        run: npm run lint:js
+
+      - name: Run stylelint
+        run: npm run lint:css
+
+      - name: Run htmlhint
+        run: npm run lint:html
+
+      - name: Run axe-core smoke scan
+        run: npm run lint:a11y
+
+  semgrep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/default

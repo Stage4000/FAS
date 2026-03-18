@@ -14,6 +14,8 @@ use FAS\Integrations\EbayAPI;
 use FAS\Models\Product;
 use FAS\Utils\SyncLogger;
 
+$db = null;
+
 // Initialize comprehensive logging to log.txt
 SyncLogger::init(__DIR__ . '/../log.txt');
 

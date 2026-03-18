@@ -50,10 +50,20 @@ function initToastNotifications() {
         const toast = document.createElement('div');
         toast.className = `toast-notification alert alert-${type} alert-dismissible fade show`;
         toast.setAttribute('role', 'alert');
-        toast.innerHTML = `
-            <strong>${type === 'success' ? 'Success!' : type === 'danger' ? 'Error!' : 'Info'}</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
+        const title = document.createElement('strong');
+        title.textContent = type === 'success' ? 'Success!' : type === 'danger' ? 'Error!' : 'Info';
+
+        const text = document.createTextNode(` ${message}`);
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('data-bs-dismiss', 'alert');
+        closeButton.setAttribute('aria-label', 'Close');
+
+        toast.appendChild(title);
+        toast.appendChild(text);
+        toast.appendChild(closeButton);
         
         document.body.appendChild(toast);
         
@@ -134,13 +144,18 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
  * Add to cart animation
  */
 window.animateAddToCart = function(buttonElement) {
-    const originalText = buttonElement.innerHTML;
-    buttonElement.innerHTML = '<i class="bi bi-check2-circle"></i> Added!';
+    const originalNodes = Array.from(buttonElement.childNodes).map(node => node.cloneNode(true));
+    const addedIcon = document.createElement('i');
+    addedIcon.className = 'bi bi-check2-circle';
+
+    buttonElement.replaceChildren();
+    buttonElement.appendChild(addedIcon);
+    buttonElement.appendChild(document.createTextNode(' Added!'));
     buttonElement.classList.add('btn-success');
     buttonElement.classList.remove('btn-danger');
     
     setTimeout(() => {
-        buttonElement.innerHTML = originalText;
+        buttonElement.replaceChildren(...originalNodes.map(node => node.cloneNode(true)));
         buttonElement.classList.remove('btn-success');
         buttonElement.classList.add('btn-danger');
     }, 2000);

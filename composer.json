@@ -8,6 +8,9 @@
         "ext-json": "*",
         "ext-curl": "*"
     },
+    "require-dev": {
+        "phpstan/phpstan": "1.12.33"
+    },
     "autoload": {
         "psr-4": {
             "FAS\\": "src/"
@@ -17,6 +20,14 @@
         "optimize-autoloader": true
     },
     "scripts": {
+        "lint:php": [
+            "find . \\( -path './vendor' -o -path './node_modules' \\) -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l"
+        ],
+        "lint:phpstan": "phpstan analyse --configuration=phpstan.neon.dist",
+        "lint": [
+            "@lint:php",
+            "@lint:phpstan"
+        ],
         "post-install-cmd": [
             "@php -r \"copy('src/config/config.example.php', 'src/config/config.php');\""
         ]

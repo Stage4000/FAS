@@ -22,6 +22,7 @@ $success = '';
 $error = '';
 $action = $_GET['action'] ?? 'list';
 $productId = $_GET['id'] ?? null;
+$totalPages = 0;
 
 // AJAX endpoint for immediate image removal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image'])) {
@@ -48,8 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image']))
                 
                 // Try to delete the physical file if it's a local upload
                 if ($updateSuccess && (strpos($imagePathToRemove, 'gallery/uploads/') === 0 || strpos($imagePathToRemove, '/gallery/uploads/') === 0)) {
-                    $physicalPath = __DIR__ . '/../' . ltrim($imagePathToRemove, '/');
-                    if (file_exists($physicalPath)) {
+                    $uploadsDir = realpath(__DIR__ . '/../gallery/uploads');
+                    $physicalPath = realpath(__DIR__ . '/../' . ltrim($imagePathToRemove, '/'));
+                    if ($uploadsDir !== false &&
+                        $physicalPath !== false &&
+                        strpos($physicalPath, $uploadsDir . DIRECTORY_SEPARATOR) === 0 &&
+                        is_file($physicalPath)
+                    ) {
                         @unlink($physicalPath);
                     }
                 }
@@ -90,8 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $extension = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mimeType = finfo_file($finfo, $_FILES['image_file']['tmp_name']);
-                    finfo_close($finfo);
+                    $mimeType = $finfo ? finfo_file($finfo, $_FILES['image_file']['tmp_name']) : false;
+                    if ($finfo) {
+                        finfo_close($finfo);
+                    }
                     
                     // Additional validation: verify it's actually an image
                     $imageInfo = @getimagesize($_FILES['image_file']['tmp_name']);
@@ -134,8 +142,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($_FILES['additional_images']['error'][$i] === UPLOAD_ERR_OK) {
                             $extension = strtolower(pathinfo($_FILES['additional_images']['name'][$i], PATHINFO_EXTENSION));
                             $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                            $mimeType = finfo_file($finfo, $_FILES['additional_images']['tmp_name'][$i]);
-                            finfo_close($finfo);
+                            $mimeType = $finfo ? finfo_file($finfo, $_FILES['additional_images']['tmp_name'][$i]) : false;
+                            if ($finfo) {
+                                finfo_close($finfo);
+                            }
                             
                             $imageInfo = @getimagesize($_FILES['additional_images']['tmp_name'][$i]);
                             

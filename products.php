@@ -89,6 +89,21 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function resolveLocalImagePath($path) {
+    if (!is_string($path) || $path === '' || strpos($path, '..') !== false) {
+        return null;
+    }
+
+    $basePath = realpath(__DIR__);
+    $resolvedPath = realpath(__DIR__ . '/' . ltrim($path, '/'));
+
+    if ($basePath === false || $resolvedPath === false) {
+        return null;
+    }
+
+    return strpos($resolvedPath, $basePath . DIRECTORY_SEPARATOR) === 0 ? $resolvedPath : null;
+}
+
 // Get filter parameters (already got homepageCategory above for redirect)
 $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
@@ -122,6 +137,7 @@ try {
     }
 } catch (Exception $e) {
     $ebayCategories = [];
+    $ebayAPI = null;
     error_log("Failed to load eBay categories: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
 }
@@ -138,7 +154,7 @@ $totalPages = ceil($totalProducts / $perPage);
 // Get current category name for display
 $currentCategoryName = 'All Products';
 if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
-    $flatCategories = $ebayAPI->getStoreCategories();
+    $flatCategories = $ebayAPI ? $ebayAPI->getStoreCategories() : [];
     if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
         $cat = $flatCategories[$ebayCat3];
         $currentCategoryName = ($cat['topLevel'] ?? '') . ' > ' . ($cat['parent'] ?? '') . ' > ' . $cat['name'];
@@ -299,9 +315,10 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                     <?php 
                                     // Check if image is external or local
                                     $isExternal = strpos($imageUrl, 'http://') === 0 || strpos($imageUrl, 'https://') === 0;
+                                    $localImagePath = $isExternal ? null : resolveLocalImagePath($imageUrl);
                                     $hasImage = !empty($imageUrl) && (
                                         $isExternal || 
-                                        file_exists(__DIR__ . $imageUrl)
+                                        ($localImagePath !== null && file_exists($localImagePath))
                                     );
                                     ?>
                                     <?php if ($hasImage): ?>
