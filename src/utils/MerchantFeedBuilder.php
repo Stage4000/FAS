@@ -75,6 +75,7 @@ class MerchantFeedBuilder
         $productType = $this->resolveProductType($product);
         $price = $this->resolveEffectivePrice($product);
         $quantity = (int) ($product['quantity'] ?? 0);
+        $shippingWeight = $this->resolveShippingWeight($product);
 
         return [
             'id' => $id,
@@ -83,13 +84,14 @@ class MerchantFeedBuilder
             'link' => $link,
             'image_link' => $mainImage,
             'additional_image_links' => $additionalImages,
-            'availability' => $quantity > 0 ? 'in stock' : 'out of stock',
+            'availability' => $quantity > 0 ? 'in_stock' : 'out_of_stock',
             'price' => number_format($price, 2, '.', '') . ' USD',
             'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
             'brand' => $brand,
             'mpn' => $mpn,
             'identifier_exists' => ($brand !== '' || $mpn !== '') ? 'yes' : 'no',
             'product_type' => $productType,
+            'shipping_weight' => $shippingWeight,
         ];
     }
 
@@ -229,12 +231,30 @@ class MerchantFeedBuilder
         $basePrice = (float) ($product['price'] ?? 0);
         $salePrice = null;
 
-        if ($product['sale_price'] !== null && $product['sale_price'] !== '') {
+        if (array_key_exists('sale_price', $product) && $product['sale_price'] !== null && $product['sale_price'] !== '') {
             $salePrice = (float) $product['sale_price'];
         }
 
         $priceInfo = getEffectivePrice($basePrice, $salePrice);
         return (float) $priceInfo['effective_price'];
+    }
+
+    /**
+     * @param array<string, mixed> $product
+     * @return string|null
+     */
+    private function resolveShippingWeight(array $product)
+    {
+        if (!isset($product['weight']) || $product['weight'] === '' || $product['weight'] === null) {
+            return null;
+        }
+
+        $weight = (float) $product['weight'];
+        if ($weight <= 0) {
+            return null;
+        }
+
+        return number_format($weight, 2, '.', '') . ' lb';
     }
 
     /**

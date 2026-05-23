@@ -69,6 +69,10 @@ try {
 
         $xml->writeElement('g:identifier_exists', $item['identifier_exists']);
         $xml->writeElement('g:product_type', $item['product_type']);
+
+        if ($item['shipping_weight'] !== null) {
+            $xml->writeElement('g:shipping_weight', $item['shipping_weight']);
+        }
         $xml->endElement();
     }
 
