@@ -66,7 +66,8 @@ class MerchantFeedBuilder
 
         $images = $this->collectImageUrls($product);
         $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
-        $additionalImages = array_slice($images, 1);
+        // Google Merchant Center supports up to 10 additional images per item.
+        $additionalImages = array_slice($images, 1, 10);
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
         $mpn = $this->normalizeText($product['model'] ?? '');
