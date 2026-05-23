@@ -31,6 +31,9 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     
     <!-- Canonical URL -->
     <link rel="canonical" href="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . strtok($_SERVER['REQUEST_URI'] ?? '/', '?'); ?>">
+    <?php if (isset($extraHeadMeta)): ?>
+    <?php echo $extraHeadMeta; ?>
+    <?php endif; ?>
     
     <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>Flip and Strip - Quality Motorcycle & ATV/UTV Parts</title>
     
@@ -246,16 +249,16 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
+                        <a class="nav-link<?php echo ($currentPage ?? '') === 'home' ? ' active' : ''; ?>" href="/">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/products">Products</a>
+                        <a class="nav-link<?php echo ($currentPage ?? '') === 'products' ? ' active' : ''; ?>" href="/products">Products</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/about">About</a>
+                        <a class="nav-link<?php echo ($currentPage ?? '') === 'about' ? ' active' : ''; ?>" href="/about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/contact">Contact</a>
+                        <a class="nav-link<?php echo ($currentPage ?? '') === 'contact' ? ' active' : ''; ?>" href="/contact">Contact</a>
                     </li>
                     <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="/cart">
