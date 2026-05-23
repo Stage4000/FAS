@@ -770,6 +770,26 @@ class Product
         $stmt->bindParam(':pid', $prodId);
         return $stmt->execute();
     }
+
+    /**
+     * Get all products that are currently visible on the storefront.
+     *
+     * This is used by feed/export style integrations that should mirror the
+     * public catalog rather than the admin inventory view.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAllVisibleForFeed()
+    {
+        $sql = "SELECT * FROM products
+                WHERE is_active = 1 AND show_on_website = 1
+                ORDER BY created_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
     
     /**
      * Get full eBay store category path for a product
