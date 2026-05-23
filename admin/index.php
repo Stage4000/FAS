@@ -70,7 +70,7 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h6 class="text-muted">Active Products</h6>
+                                        <h6 class="text-muted">Total Products</h6>
                                         <h3 class="mb-0"><?php echo number_format($activeProducts); ?></h3>
                                     </div>
                                     <div class="text-primary">
