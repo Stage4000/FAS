@@ -86,7 +86,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
             ?>
             <div class="mt-3">
                 <p class="mb-2">
-                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none text-uppercase small fw-semibold">
+                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">
                         <i class="fas fa-store me-2"></i>ebay
                     </a>
                 </p>
@@ -108,7 +108,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                                 <div class="col-md-7 text-center text-md-start">
                                     <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
                                     <h3 class="fw-bold mb-2"><?php echo $sellerName; ?></h3>
-                                    <p class="text-muted mb-0"><span class="fw-semibold text-dark"><?php echo $positiveFeedbackPercent; ?>% positive feedback</span> from customers on eBay.</p>
+                                    <p class="text-muted mb-0"><span class="fw-semibold seller-rating-positive"><?php echo $positiveFeedbackPercent; ?>% positive feedback</span> from customers on eBay.</p>
                                 </div>
                                 <div class="col-md-5">
                                     <div class="row g-2 text-center">
@@ -130,6 +130,15 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                     </div>
                 </div>
             </div>
+            <style>
+                .seller-rating-positive {
+                    color: #212529;
+                }
+
+                [data-theme="dark"] .seller-rating-positive {
+                    color: #f8f9fa;
+                }
+            </style>
             <?php
         } else {
             ?>
