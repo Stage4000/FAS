@@ -102,7 +102,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
             ?>
             <div class="row g-4 mt-0">
                 <div class="col-12">
-                    <div class="card category-card h-100 border-0 shadow-sm">
+                    <div class="card category-card h-100 border-0 shadow-lg seller-rating-homepage-card">
                         <div class="card-body p-4 p-lg-5">
                             <div class="row align-items-center g-4">
                                 <div class="col-md-7 text-center text-md-start">
@@ -133,6 +133,10 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
             <style>
                 .seller-rating-positive {
                     color: #212529;
+                }
+
+                .seller-rating-homepage-card {
+                    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
                 }
 
                 [data-theme="dark"] .seller-rating-positive {
