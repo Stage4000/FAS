@@ -86,6 +86,11 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
         if ($variant === 'footer') {
             ?>
             <div class="mt-3">
+                <p class="mb-2">
+                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none text-uppercase small fw-semibold">
+                        <i class="fas fa-store me-2"></i>ebay
+                    </a>
+                </p>
                 <p class="mb-1 text-white-50">
                     <i class="fas fa-award text-danger me-2"></i>
                     <strong class="text-white"><?php echo $feedbackScore; ?></strong>
@@ -96,43 +101,39 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                     <strong class="text-white"><?php echo $positiveFeedbackPercent; ?>%</strong>
                     positive feedback
                 </p>
-                <p class="mb-0">
-                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none">
-                        <i class="fas fa-store me-2"></i><?php echo $sellerName; ?> on eBay
-                    </a>
-                </p>
+                <p class="mb-0 text-white-50 small"><?php echo $sellerName; ?></p>
             </div>
             <?php
         } elseif ($variant === 'homepage') {
             ?>
-            <section class="py-4 bg-dark text-white">
+            <section class="py-5 bg-light">
                 <div class="container">
                     <div class="row justify-content-center">
                         <div class="col-lg-10">
-                            <div class="card bg-transparent border border-danger-subtle shadow-sm">
-                                <div class="card-body px-4 py-4">
-                                    <div class="row align-items-center g-3">
-                                        <div class="col-md-8 text-center text-md-start">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body p-4 p-lg-5">
+                                    <div class="row align-items-center g-4">
+                                        <div class="col-md-7 text-center text-md-start">
                                             <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
-                                            <h3 class="h4 mb-2"><?php echo $sellerName; ?></h3>
-                                            <p class="mb-0 text-white-50">Shop with confidence backed by verified eBay feedback.</p>
+                                            <h3 class="fw-bold mb-2"><?php echo $sellerName; ?></h3>
+                                            <p class="text-muted mb-0">Shop our inventory with the same seller reputation customers already trust on eBay.</p>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <div class="row g-2 text-center">
                                                 <div class="col-6">
-                                                    <div class="rounded bg-black bg-opacity-25 p-3 h-100">
+                                                    <div class="rounded bg-light border p-3 h-100">
                                                         <div class="h3 mb-1 text-danger"><?php echo $feedbackScore; ?></div>
-                                                        <div class="small text-white-50">Feedback score</div>
+                                                        <div class="small text-muted">Feedback score</div>
                                                     </div>
                                                 </div>
                                                 <div class="col-6">
-                                                    <div class="rounded bg-black bg-opacity-25 p-3 h-100">
+                                                    <div class="rounded bg-light border p-3 h-100">
                                                         <div class="h3 mb-1 text-danger"><?php echo $positiveFeedbackPercent; ?>%</div>
-                                                        <div class="small text-white-50">Positive</div>
+                                                        <div class="small text-muted">Positive</div>
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
-                                                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light w-100">
+                                                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger w-100">
                                                         <i class="fas fa-store me-2"></i>Visit Our eBay Store
                                                     </a>
                                                 </div>

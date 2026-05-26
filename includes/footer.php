@@ -32,13 +32,8 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
                     <?php if ($sellerRating): ?>
                         <?php echo fasRenderSellerRatingBlock($sellerRating, 'footer'); ?>
                     <?php elseif (!empty($sellerRatingConfig['store_url'])): ?>
-                        <p><a href="<?php echo htmlspecialchars($sellerRatingConfig['store_url']); ?>" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
+                        <p><a href="<?php echo htmlspecialchars($sellerRatingConfig['store_url']); ?>" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none text-uppercase small fw-semibold"><i class="fas fa-store me-2"></i>ebay</a></p>
                     <?php endif; ?>
-                    <div class="mt-3">
-                        <h6 class="small">Secure Payment & Shipping</h6>
-                        <p class="text-white-50 small"><i class="fas fa-shield-alt"></i> PayPal Checkout</p>
-                        <p class="text-white-50 small"><i class="fas fa-shipping-fast"></i> Fast Delivery</p>
-                    </div>
                 </div>
             </div>
             <hr class="bg-white">
