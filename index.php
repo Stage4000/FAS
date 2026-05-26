@@ -86,6 +86,10 @@ $sellerRating = fasGetCachedSellerRating();
                     </div>
                 </div>
             </div>
+
+            <div class="mt-5">
+                <?php echo fasRenderSellerRatingBlock($sellerRating, 'homepage'); ?>
+            </div>
         </div>
     </section>
 
@@ -124,8 +128,6 @@ $sellerRating = fasGetCachedSellerRating();
             </div>
         </div>
     </section>
-
-    <?php echo fasRenderSellerRatingBlock($sellerRating, 'homepage'); ?>
 
     <!-- Call to Action -->
     <section class="py-5 cta-section">
