@@ -87,7 +87,7 @@ $sellerRating = fasGetCachedSellerRating();
                 </div>
             </div>
 
-            <div class="mt-5">
+            <div class="mt-4">
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'homepage'); ?>
             </div>
         </div>

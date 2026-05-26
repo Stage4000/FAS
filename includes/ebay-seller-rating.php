@@ -100,9 +100,9 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
             <?php
         } elseif ($variant === 'homepage') {
             ?>
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="card border-0 shadow-sm h-100">
+            <div class="row g-4 mt-0">
+                <div class="col-12">
+                    <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body p-4 p-lg-5">
                             <div class="row align-items-center g-4">
                                 <div class="col-md-7 text-center text-md-start">
