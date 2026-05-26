@@ -77,7 +77,6 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
         }
 
         $sellerName = htmlspecialchars((string) ($sellerRating['seller_name'] ?? ''));
-        $feedbackScore = number_format((int) $sellerRating['feedback_score']);
         $positiveFeedbackPercent = number_format((float) $sellerRating['positive_feedback_percent'], 1);
         $storeUrl = htmlspecialchars((string) ($sellerRating['store_url'] ?? '#'));
 
@@ -91,12 +90,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                         <i class="fas fa-store me-2"></i>ebay
                     </a>
                 </p>
-                <p class="mb-1 text-white-50">
-                    <i class="fas fa-award text-danger me-2"></i>
-                    <strong class="text-white"><?php echo $feedbackScore; ?></strong>
-                    feedback score
-                </p>
-                <p class="mb-1 text-white-50">
+                <p class="mb-1 text-white-50 fs-5">
                     <i class="fas fa-thumbs-up text-danger me-2"></i>
                     <strong class="text-white"><?php echo $positiveFeedbackPercent; ?>%</strong>
                     positive feedback
@@ -106,38 +100,28 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
             <?php
         } elseif ($variant === 'homepage') {
             ?>
-            <section class="py-5 bg-light">
-                <div class="container">
-                    <div class="row justify-content-center">
-                        <div class="col-lg-10">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body p-4 p-lg-5">
-                                    <div class="row align-items-center g-4">
-                                        <div class="col-md-7 text-center text-md-start">
-                                            <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
-                                            <h3 class="fw-bold mb-2"><?php echo $sellerName; ?></h3>
-                                            <p class="text-muted mb-0">Shop our inventory with the same seller reputation customers already trust on eBay.</p>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <div class="row g-2 text-center">
-                                                <div class="col-6">
-                                                    <div class="rounded bg-light border p-3 h-100">
-                                                        <div class="h3 mb-1 text-danger"><?php echo $feedbackScore; ?></div>
-                                                        <div class="small text-muted">Feedback score</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <div class="rounded bg-light border p-3 h-100">
-                                                        <div class="h3 mb-1 text-danger"><?php echo $positiveFeedbackPercent; ?>%</div>
-                                                        <div class="small text-muted">Positive</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger w-100">
-                                                        <i class="fas fa-store me-2"></i>Visit Our eBay Store
-                                                    </a>
-                                                </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4 p-lg-5">
+                            <div class="row align-items-center g-4">
+                                <div class="col-md-7 text-center text-md-start">
+                                    <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
+                                    <h3 class="fw-bold mb-2"><?php echo $sellerName; ?></h3>
+                                    <p class="text-muted mb-0"><span class="fw-semibold text-dark"><?php echo $positiveFeedbackPercent; ?>% positive feedback</span> from customers on eBay.</p>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="row g-2 text-center">
+                                        <div class="col-12">
+                                            <div class="rounded bg-light border p-3 h-100">
+                                                <div class="h2 mb-1 text-danger"><?php echo $positiveFeedbackPercent; ?>%</div>
+                                                <div class="small text-muted">Positive feedback</div>
                                             </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger w-100">
+                                                <i class="fas fa-store me-2"></i>Visit Our eBay Store
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -145,7 +129,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
             <?php
         } else {
             ?>
@@ -160,8 +144,8 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                             </a>
                         </div>
                         <div class="text-end">
-                            <div class="fw-bold"><?php echo $feedbackScore; ?> score</div>
-                            <div class="text-muted small"><?php echo $positiveFeedbackPercent; ?>% positive feedback</div>
+                            <div class="fw-bold text-danger"><?php echo $positiveFeedbackPercent; ?>%</div>
+                            <div class="text-muted small">positive feedback</div>
                         </div>
                     </div>
                 </div>
