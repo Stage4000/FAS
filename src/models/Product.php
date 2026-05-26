@@ -923,4 +923,32 @@ class Product
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result['total'];
     }
+
+    /**
+     * Get eBay store category IDs that currently have visible products.
+     *
+     * Returns a lookup array keyed by category ID so sidebar hierarchies can be
+     * pruned without exposing empty branches to customers.
+     */
+    public function getVisibleEbayCategoryIds()
+    {
+        $sql = "SELECT ebay_store_cat1_id, ebay_store_cat2_id, ebay_store_cat3_id
+                FROM products
+                WHERE is_active = 1 AND show_on_website = 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        $visibleCategoryIds = [];
+
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            foreach (['ebay_store_cat1_id', 'ebay_store_cat2_id', 'ebay_store_cat3_id'] as $field) {
+                if (!empty($row[$field])) {
+                    $visibleCategoryIds[(string)$row[$field]] = true;
+                }
+            }
+        }
+
+        return $visibleCategoryIds;
+    }
 }

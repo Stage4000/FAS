@@ -44,6 +44,27 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds): array
+{
+    $filtered = [];
+
+    foreach ($categories as $category) {
+        $children = !empty($category['children'])
+            ? pruneEmptyEbayCategories($category['children'], $visibleCategoryIds)
+            : [];
+
+        $categoryId = isset($category['id']) ? (string)$category['id'] : null;
+        $hasVisibleProducts = $categoryId !== null && isset($visibleCategoryIds[$categoryId]);
+
+        if ($hasVisibleProducts || !empty($children)) {
+            $category['children'] = $children;
+            $filtered[] = $category;
+        }
+    }
+
+    return $filtered;
+}
+
 // Get filter parameters
 $ebayCat1 = $_GET['cat1'] ?? null;
 $ebayCat2 = $_GET['cat2'] ?? null;
@@ -56,12 +77,14 @@ $perPage = 24;
 // Initialize database and product model
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
+$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds();
 
 // Get eBay API for category names
 try {
     $config = require __DIR__ . '/../src/config/config.php';
     $ebayAPI = new EbayAPI($config);
     $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
+    $ebayCategories = pruneEmptyEbayCategories($ebayCategories, $visibleCategoryIds);
 } catch (Exception $e) {
     $ebayAPI = null;
     $ebayCategories = [];

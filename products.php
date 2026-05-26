@@ -89,6 +89,27 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds): array
+{
+    $filtered = [];
+
+    foreach ($categories as $category) {
+        $children = !empty($category['children'])
+            ? pruneEmptyEbayCategories($category['children'], $visibleCategoryIds)
+            : [];
+
+        $categoryId = isset($category['id']) ? (string)$category['id'] : null;
+        $hasVisibleProducts = $categoryId !== null && isset($visibleCategoryIds[$categoryId]);
+
+        if ($hasVisibleProducts || !empty($children)) {
+            $category['children'] = $children;
+            $filtered[] = $category;
+        }
+    }
+
+    return $filtered;
+}
+
 // Get filter parameters (already got homepageCategory above for redirect)
 $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
@@ -101,12 +122,14 @@ $perPage = 24;
 // Initialize database and product model
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
+$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds();
 
 // Get eBay categories for sidebar
 try {
     $config = require __DIR__ . '/src/config/config.php';
     $ebayAPI = new EbayAPI($config);
     $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
+    $ebayCategories = pruneEmptyEbayCategories($ebayCategories, $visibleCategoryIds);
     
     // Debug logging
     if (empty($ebayCategories)) {
