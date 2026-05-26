@@ -87,3 +87,19 @@ SELECT * FROM ebay_sync_log ORDER BY started_at DESC LIMIT 10;
 - Failed items are logged but don't stop the sync process
 - Products marked as inactive in eBay remain in database but marked as inactive
 - Sync respects eBay API rate limits with built-in delays
+
+## Script: ebay-seller-rating-cron.php
+
+Refreshes the cached eBay seller rating shown on the storefront.
+
+### Recommended Cron Schedule
+
+**Daily at 3 AM**:
+```
+0 3 * * * /usr/bin/php /path/to/FAS/cron/ebay-seller-rating-cron.php >> /var/log/fas-seller-rating.log 2>&1
+```
+
+### Notes
+
+- Frontend pages read only the cached database value and never call eBay directly.
+- If a refresh fails, the previous cached seller rating remains visible.

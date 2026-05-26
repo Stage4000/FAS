@@ -21,6 +21,7 @@ class EbayAPI
     private $tokenExpiresAt;
     private $sandbox;
     private $siteId;
+    private $storeName;
     private $rateLimitExceeded = false;
     private $storeCategoriesCache = null; // Cache for store categories
     private $configFile; // Store config file path for token updates
@@ -68,6 +69,7 @@ class EbayAPI
         $this->tokenExpiresAt = $ebayConfig['token_expires_at'] ?? null;
         $this->sandbox = $ebayConfig['sandbox'];
         $this->siteId = $ebayConfig['site_id'];
+        $this->storeName = $ebayConfig['store_name'] ?? null;
         
         // DON'T auto-refresh in constructor to avoid blocking object creation
         // Token refresh will happen before first API call
@@ -387,6 +389,38 @@ class EbayAPI
         
         return null;
     }
+
+    /**
+     * Get the current seller's public profile and feedback metrics.
+     */
+    public function getSellerProfile($userId = null)
+    {
+        if (!$this->ensureValidToken()) {
+            SyncLogger::logError('Cannot make API call - token refresh failed', new \Exception('Invalid or expired token'));
+            return null;
+        }
+
+        $url = $this->sandbox ? 'https://api.sandbox.ebay.com/ws/api.dll' : $this->tradingApiUrl;
+        $resolvedUserId = $userId ?: $this->storeName;
+
+        $xmlRequest = $this->buildGetUserRequest($resolvedUserId);
+        $response = $this->makeTradingApiRequest($url, $xmlRequest, 0, 1, 'GetUser');
+
+        if (!$response || empty($response['User'])) {
+            return null;
+        }
+
+        $user = $response['User'];
+
+        return [
+            'store_name' => $this->storeName ?: ($user['UserID'] ?? $resolvedUserId),
+            'seller_name' => $user['UserID'] ?? $resolvedUserId,
+            'feedback_score' => isset($user['FeedbackScore']) ? (int) $user['FeedbackScore'] : null,
+            'positive_feedback_percent' => isset($user['PositiveFeedbackPercent']) ? (float) $user['PositiveFeedbackPercent'] : null,
+            'store_url' => $this->buildStoreUrl($this->storeName ?: ($user['UserID'] ?? $resolvedUserId)),
+            'last_fetched_at' => date('Y-m-d H:i:s'),
+        ];
+    }
     
     /**
      * Build GetSellerList XML request
@@ -496,6 +530,33 @@ class EbayAPI
         
         $xml .= '</GetSellerEventsRequest>';
         
+        return $xml;
+    }
+
+    /**
+     * Build GetUser XML request.
+     */
+    private function buildGetUserRequest($userId = null)
+    {
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
+        $xml .= '<GetUserRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<RequesterCredentials>';
+        $xml .= '<eBayAuthToken>' . htmlspecialchars($this->userToken) . '</eBayAuthToken>';
+        $xml .= '</RequesterCredentials>';
+        $xml .= '<Version>967</Version>';
+        $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
+        $xml .= '<WarningLevel>High</WarningLevel>';
+        $xml .= '<DetailLevel>ReturnAll</DetailLevel>';
+
+        if (!empty($userId)) {
+            $xml .= '<UserID>' . htmlspecialchars($userId) . '</UserID>';
+        }
+
+        $xml .= '<OutputSelector>User.UserID</OutputSelector>';
+        $xml .= '<OutputSelector>User.FeedbackScore</OutputSelector>';
+        $xml .= '<OutputSelector>User.PositiveFeedbackPercent</OutputSelector>';
+        $xml .= '</GetUserRequest>';
+
         return $xml;
     }
     
@@ -799,6 +860,15 @@ class EbayAPI
             $total += self::RATE_LIMIT_BASE_WAIT * pow(self::RATE_LIMIT_MULTIPLIER, $i);
         }
         return $total;
+    }
+
+    private function buildStoreUrl($storeName)
+    {
+        if (empty($storeName)) {
+            return null;
+        }
+
+        return 'https://www.ebay.com/str/' . rawurlencode($storeName);
     }
     
     /**

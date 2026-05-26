@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 
 use FAS\Config\Database;
@@ -17,6 +18,7 @@ if (!$productId) {
 // Initialize database and product model
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
+$sellerRating = fasGetCachedSellerRating();
 
 // Get product from database
 $product = $productModel->getById($productId);
@@ -246,6 +248,8 @@ require_once __DIR__ . '/includes/header.php';
                     </table>
                 </div>
             </div>
+
+            <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
             
             <div class="mb-4">
                 <label class="form-label fw-bold">Quantity:</label>

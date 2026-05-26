@@ -149,6 +149,22 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
 CREATE INDEX IF NOT EXISTS idx_ebay_sync_log_status ON ebay_sync_log(status);
 CREATE INDEX IF NOT EXISTS idx_ebay_sync_log_sync_type ON ebay_sync_log(sync_type);
 
+-- Cached eBay seller rating data
+CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_name TEXT NOT NULL UNIQUE,
+    seller_name TEXT,
+    feedback_score INTEGER,
+    positive_feedback_percent REAL,
+    store_url TEXT,
+    last_fetched_at TEXT,
+    last_error TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ebay_seller_rating_store_name ON ebay_seller_rating_cache(store_name);
+
 -- Admin users table
 CREATE TABLE IF NOT EXISTS admin_users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

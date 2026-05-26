@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/ebay-seller-rating.php';
+$sellerRating = fasGetCachedSellerRating();
+$sellerRatingConfig = fasGetSellerRatingConfig();
+?>
     <!-- Footer -->
     <footer class="bg-black text-white py-4 mt-5">
         <div class="container">
@@ -24,7 +29,11 @@
                     <p><a href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-facebook"></i> Facebook</a></p>
                     <p><a href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-instagram"></i> Instagram</a></p>
                     <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
-                    <p><a href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
+                    <?php if ($sellerRating): ?>
+                        <?php echo fasRenderSellerRatingBlock($sellerRating, 'footer'); ?>
+                    <?php elseif (!empty($sellerRatingConfig['store_url'])): ?>
+                        <p><a href="<?php echo htmlspecialchars($sellerRatingConfig['store_url']); ?>" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fas fa-store"></i> eBay Store</a></p>
+                    <?php endif; ?>
                     <div class="mt-3">
                         <h6 class="small">Secure Payment & Shipping</h6>
                         <p class="text-white-50 small"><i class="fas fa-shield-alt"></i> PayPal Checkout</p>

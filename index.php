@@ -3,7 +3,10 @@ $pageDescription = 'Flip and Strip - Motorcycle Parts, ATV/UTV Parts, Boat Parts
 $currentPage = 'home';
 $extraHeadMeta = '<meta name="google-site-verification" content="4klYcjDMem--91hHRoLI38YtVRKyZnpyyPGXT651Lno" />';
 
+require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/header.php';
+
+$sellerRating = fasGetCachedSellerRating();
 ?>
 
     <!-- Hero Section -->
@@ -121,6 +124,8 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </section>
+
+    <?php echo fasRenderSellerRatingBlock($sellerRating, 'homepage'); ?>
 
     <!-- Call to Action -->
     <section class="py-5 cta-section">

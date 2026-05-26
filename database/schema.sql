@@ -155,6 +155,21 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
 -- Add last_sync_timestamp column if it doesn't exist
 ALTER TABLE ebay_sync_log ADD COLUMN IF NOT EXISTS last_sync_timestamp TIMESTAMP NULL AFTER completed_at;
 
+-- Cached eBay seller rating data
+CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    store_name VARCHAR(255) NOT NULL UNIQUE,
+    seller_name VARCHAR(255),
+    feedback_score INT,
+    positive_feedback_percent DECIMAL(5, 1),
+    store_url VARCHAR(500),
+    last_fetched_at DATETIME NULL,
+    last_error TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ebay_seller_rating_store_name (store_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Admin users table
 CREATE TABLE IF NOT EXISTS admin_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
