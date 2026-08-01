@@ -119,6 +119,7 @@ document.addEventListener('click', (e) => {
             name: button.dataset.name,
             price: parseFloat(button.dataset.price),
             image: button.dataset.image || '',
+            image_alt: button.dataset.imageAlt || button.dataset.name,
             sku: button.dataset.sku || '',
             weight: parseFloat(button.dataset.weight) || 1.0,
             length: parseFloat(button.dataset.length) || 10.0,
@@ -144,6 +145,7 @@ function setupImageGallery() {
         thumbnails.forEach(thumb => {
             thumb.addEventListener('click', () => {
                 mainImage.src = thumb.dataset.full || thumb.src;
+                mainImage.alt = thumb.alt || mainImage.alt;
                 thumbnails.forEach(t => t.classList.remove('active'));
                 thumb.classList.add('active');
             });

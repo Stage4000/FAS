@@ -1,11 +1,13 @@
 <?php
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Utils\ProductAltText;
 
 // Get product ID
 $productId = $_GET['id'] ?? null;
@@ -55,6 +57,7 @@ function normalizeImagePath($path) {
 
 // Normalize all image paths
 $images = array_map('normalizeImagePath', $images);
+$productImageAltText = ProductAltText::forProductImage($product);
 
 // Use main image or first from images array
 $mainImage = normalizeImagePath($product['image_url'] ?? null);
@@ -143,11 +146,11 @@ require_once __DIR__ . '/includes/header.php';
                     );
                     ?>
                     <?php if ($hasMainImage): ?>
-                        <img src="<?php echo htmlspecialchars($mainImage); ?>" 
-                             class="img-fluid product-detail-img w-100" 
-                             id="main-product-image"
-                             alt="<?php echo htmlspecialchars($product['name']); ?>"
-                             style="max-width: 100%; height: auto;">
+                            <img src="<?php echo htmlspecialchars($mainImage); ?>"
+                                 class="img-fluid product-detail-img w-100"
+                                 id="main-product-image"
+                                 alt="<?php echo htmlspecialchars($productImageAltText); ?>"
+                                 style="max-width: 100%; height: auto;">
                     <?php else: ?>
                         <div class="bg-light p-5 text-center">
                             <i class="bi bi-image display-1 text-muted"></i>
@@ -170,9 +173,9 @@ require_once __DIR__ . '/includes/header.php';
                         ?>
                         <?php if ($hasImage): ?>
                             <img src="<?php echo htmlspecialchars($image); ?>" 
-                                 class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>" 
+                                 class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>"
                                  data-full="<?php echo htmlspecialchars($image); ?>"
-                                 alt="View <?php echo $index + 1; ?>"
+                                 alt="<?php echo htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
                                  style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; flex-shrink: 0;">
                         <?php endif; ?>
                     <?php endforeach; ?>
@@ -266,6 +269,7 @@ require_once __DIR__ . '/includes/header.php';
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
                         data-price="<?php echo $priceInfo['effective_price']; ?>"
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
+                        data-image-alt="<?php echo htmlspecialchars($productImageAltText); ?>"
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                         data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
                         data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
@@ -387,9 +391,10 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
     const productData = {
         id: this.dataset.id,
         name: this.dataset.name,
-        price: parseFloat(this.dataset.price),
-        image: this.dataset.image,
-        sku: this.dataset.sku,
+                price: parseFloat(this.dataset.price),
+                image: this.dataset.image,
+                image_alt: this.dataset.imageAlt || this.dataset.name,
+                sku: this.dataset.sku,
         weight: parseFloat(this.dataset.weight) || 1.0,
         length: parseFloat(this.dataset.length) || 10.0,
         width: parseFloat(this.dataset.width) || 10.0,

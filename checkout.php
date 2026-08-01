@@ -186,6 +186,12 @@ let selectedShippingRate = null;
 let appliedCoupon = null; // Store applied coupon data
 let pendingOrderResult = null; // Store DB order result for PayPal completion
 
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value || '';
+    return div.innerHTML;
+}
+
 // Function to check if form is ready for payment
 function isFormReadyForPayment() {
     const form = document.getElementById('checkout-form');
@@ -632,12 +638,16 @@ function displayCheckoutItems() {
     
     let html = '';
     cart.forEach(item => {
+        const imageSrc = escapeHtml(item.image || '');
+        const imageAlt = escapeHtml(item.image_alt || item.name || 'Product image');
+        const itemName = escapeHtml(item.name || '');
+
         html += `
             <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
                 <div class="d-flex align-items-center">
-                    ${item.image ? `<img src="${item.image}" class="me-2" style="width: 50px; height: 50px; object-fit: cover;" alt="${item.name}">` : ''}
+                    ${imageSrc ? `<img src="${imageSrc}" class="me-2" style="width: 50px; height: 50px; object-fit: cover;" alt="${imageAlt}">` : ''}
                     <div>
-                        <div class="small fw-bold">${item.name}</div>
+                        <div class="small fw-bold">${itemName}</div>
                         <div class="text-muted small">Qty: ${item.quantity}</div>
                     </div>
                 </div>

@@ -76,6 +76,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value || '';
+    return div.innerHTML;
+}
+
 function displayCartItems() {
     const cartItemsContainer = document.getElementById('cart-items-container');
     const emptyCartMessage = document.getElementById('empty-cart-message');
@@ -95,19 +101,24 @@ function displayCartItems() {
     
     let html = '';
     window.cart.cart.forEach((item, index) => {
+        const imageSrc = escapeHtml(item.image || '');
+        const imageAlt = escapeHtml(item.image_alt || item.name || 'Product image');
+        const itemName = escapeHtml(item.name || '');
+        const sku = escapeHtml(item.sku || 'N/A');
+
         html += `
             <div class="card border-0 shadow-sm mb-3 cart-item-card card-entrance" style="animation-delay: ${index * 0.1}s;">
                 <div class="card-body">
                     <div class="row align-items-center cart-item-mobile">
                         <!-- Image - hidden on mobile -->
                         <div class="col-md-2 cart-item-image">
-                            ${item.image ? `<img src="${item.image}" class="img-fluid rounded" alt="${item.name}" loading="lazy">` : '<div class="bg-light p-3 rounded text-center"><i class="fas fa-image"></i></div>'}
+                            ${imageSrc ? `<img src="${imageSrc}" class="img-fluid rounded" alt="${imageAlt}" loading="lazy">` : '<div class="bg-light p-3 rounded text-center"><i class="fas fa-image"></i></div>'}
                         </div>
                         
                         <!-- Product Details -->
                         <div class="col-md-4 cart-item-details">
-                            <h6 class="mb-1 fw-bold">${item.name}</h6>
-                            <small class="text-muted d-block">SKU: ${item.sku || 'N/A'}</small>
+                            <h6 class="mb-1 fw-bold">${itemName}</h6>
+                            <small class="text-muted d-block">SKU: ${sku}</small>
                             <div class="d-md-none cart-item-price mt-2">
                                 $${(item.price * item.quantity).toFixed(2)}
                             </div>

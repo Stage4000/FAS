@@ -20,12 +20,14 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../src/utils/ProductAltText.php';
 require_once __DIR__ . '/../src/utils/SyncLogger.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../includes/sale-helper.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Utils\ProductAltText;
 use FAS\Integrations\EbayAPI;
 
 // Normalize image paths to ensure they start with / for local images
@@ -195,6 +197,7 @@ ob_start();
         if (empty($imageUrl)) {
             $imageUrl = '/gallery/default.jpg';
         }
+        $imageAltText = ProductAltText::forProductImage($product);
         ?>
         <div class="col-lg-4 col-md-6 col-sm-12" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
             <div class="card product-card h-100">
@@ -209,10 +212,10 @@ ob_start();
                         );
                         ?>
                         <?php if ($hasImage): ?>
-                            <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
-                                 class="card-img-top product-image" 
-                                 alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                 style="cursor: pointer;">
+                        <img src="<?php echo htmlspecialchars($imageUrl); ?>"
+                             class="card-img-top product-image"
+                             alt="<?php echo htmlspecialchars($imageAltText); ?>"
+                             style="cursor: pointer;">
                         <?php else: ?>
                             <div class="product-image bg-light d-flex align-items-center justify-content-center" style="cursor: pointer;">
                                 <i class="fas fa-image text-muted display-4"></i>
@@ -263,10 +266,11 @@ ob_start();
                         </div>
                         <button class="btn btn-danger w-100 add-to-cart" 
                                 data-id="<?php echo $product['id']; ?>"
-                                data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                                data-price="<?php echo $priceInfo['effective_price']; ?>"
-                                data-image="<?php echo htmlspecialchars($imageUrl); ?>"
-                                data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                            data-name="<?php echo htmlspecialchars($product['name']); ?>"
+                            data-price="<?php echo $priceInfo['effective_price']; ?>"
+                            data-image="<?php echo htmlspecialchars($imageUrl); ?>"
+                            data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
+                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     </div>

@@ -65,12 +65,14 @@ require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
+require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/src/utils/SyncLogger.php';
 require_once __DIR__ . '/src/integrations/EbayAPI.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\HomepageCategoryMapping;
+use FAS\Utils\ProductAltText;
 use FAS\Integrations\EbayAPI;
 
 // Normalize image paths to ensure they start with / for local images
@@ -310,11 +312,12 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                     $delay = min(($index % 8) * 50, 400); 
                     
                     // Normalize image path for display
-                    $imageUrl = normalizeImagePath($product['image_url'] ?? null);
-                    if (empty($imageUrl)) {
-                        $imageUrl = '/gallery/default.jpg';
-                    }
-                    ?>
+                            $imageUrl = normalizeImagePath($product['image_url'] ?? null);
+                            if (empty($imageUrl)) {
+                                $imageUrl = '/gallery/default.jpg';
+                            }
+                            $imageAltText = ProductAltText::forProductImage($product);
+                            ?>
                     <div class="col-lg-4 col-md-6 col-sm-12" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                         <div class="card product-card h-100">
                             <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none">
@@ -330,7 +333,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                     <?php if ($hasImage): ?>
                                         <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
                                              class="card-img-top product-image" 
-                                             alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                             alt="<?php echo htmlspecialchars($imageAltText); ?>"
                                              style="cursor: pointer;">
                                     <?php else: ?>
                                         <div class="product-image bg-light d-flex align-items-center justify-content-center" style="cursor: pointer;">
@@ -385,6 +388,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                             data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                             data-price="<?php echo $priceInfo['effective_price']; ?>"
                                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
+                                            data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                                             data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
                                             data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
