@@ -94,8 +94,9 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
             easing: 'ease-in-out'
         });
     </script>
-    <!-- Custom JS -->
-    <script src="/public/js/main.js"></script>
+<!-- Custom JS -->
+<script src="/public/js/analytics.js"></script>
+<script src="/public/js/main.js"></script>
     <!-- Animation & UX Enhancement JS -->
     <script src="/public/js/animations.js"></script>
     

@@ -11,7 +11,7 @@ if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategorie
 
 // If homepage category is specified, redirect to the appropriate eBay category
 // This ensures the sidebar navigation works consistently
-if ($homepageCategory) {
+if (false && $homepageCategory) {
     require_once __DIR__ . '/src/config/Database.php';
     require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
     require_once __DIR__ . '/src/utils/SyncLogger.php';
@@ -59,13 +59,13 @@ if ($homepageCategory) {
     }
 }
 
-// Now include header and continue with normal page rendering
-require_once __DIR__ . '/includes/header.php';
+// Now load dependencies and continue normal page rendering
 require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
 require_once __DIR__ . '/src/utils/ProductAltText.php';
+require_once __DIR__ . '/src/utils/Seo.php';
 require_once __DIR__ . '/src/utils/SyncLogger.php';
 require_once __DIR__ . '/src/integrations/EbayAPI.php';
 
@@ -73,6 +73,7 @@ use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\HomepageCategoryMapping;
 use FAS\Utils\ProductAltText;
+use FAS\Utils\Seo;
 use FAS\Integrations\EbayAPI;
 
 // Normalize image paths to ensure they start with / for local images
@@ -118,7 +119,7 @@ $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
 $manufacturer = $_GET['manufacturer'] ?? null;
 $search = $_GET['search'] ?? null;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max(1, isset($_GET['page']) ? (int)$_GET['page'] : 1);
 $perPage = 24;
 
 // Initialize database and product model
@@ -127,6 +128,7 @@ $productModel = new Product($db);
 $visibleCategoryIds = $productModel->getVisibleEbayCategoryIds();
 
 // Get eBay categories for sidebar
+$flatCategories = [];
 try {
     $config = require __DIR__ . '/src/config/config.php';
     $ebayAPI = new EbayAPI($config);
@@ -149,6 +151,24 @@ try {
     $ebayCategories = [];
     error_log("Failed to load eBay categories: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
+}
+
+if ($homepageCategory && !$ebayCat1 && !empty($flatCategories)) {
+    try {
+        $mappingModel = new HomepageCategoryMapping($db);
+        $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
+
+        foreach ($ebayCategoryNames as $ebayCategoryName) {
+            foreach ($flatCategories as $catId => $catInfo) {
+                if (strcasecmp($catInfo['name'] ?? '', $ebayCategoryName) === 0) {
+                    $ebayCat1 = $catId;
+                    break 2;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Homepage category resolution failed: " . $e->getMessage());
+    }
 }
 
 // Use eBay category filters (or show all products if no filters set)
@@ -174,6 +194,104 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
         $currentCategoryName = $flatCategories[$ebayCat1]['name'] ?? 'Category';
     }
 }
+$categoryMeta = [
+    'motorcycle' => [
+        'label' => 'Motorcycle Parts',
+        'description' => 'Shop tested used motorcycle parts for Harley Davidson, Honda, Yamaha, Kawasaki, Suzuki, BMW, and more.',
+    ],
+    'atv' => [
+        'label' => 'ATV/UTV Parts',
+        'description' => 'Shop tested used ATV and UTV parts for Polaris, Honda, Yamaha, Can-Am, Kawasaki, and more.',
+    ],
+    'boat' => [
+        'label' => 'Boat & Marine Parts',
+        'description' => 'Shop inspected boat and marine parts from Flip and Strip with clear product photos and fast shipping.',
+    ],
+    'automotive' => [
+        'label' => 'Automotive Parts',
+        'description' => 'Shop used automotive parts and accessories from Flip and Strip with tested inventory and clear photos.',
+    ],
+    'gifts' => [
+        'label' => 'Biker Gifts & Accessories',
+        'description' => 'Shop biker gifts, watches, clothing, collectibles, and accessories from Flip and Strip.',
+    ],
+    'other' => [
+        'label' => 'Other Powersports Parts',
+        'description' => 'Shop other powersports parts and accessories from Flip and Strip.',
+    ],
+];
+
+$searchTerm = Seo::cleanText($search ?? '');
+$manufacturerName = Seo::cleanText($manufacturer ?? '');
+$categoryLabel = ($homepageCategory && isset($categoryMeta[$homepageCategory]))
+    ? $categoryMeta[$homepageCategory]['label']
+    : Seo::cleanText($currentCategoryName);
+$pageSuffix = $page > 1 ? ' Page ' . $page : '';
+
+$canonicalPath = '/products';
+if ($homepageCategory && isset($categoryMeta[$homepageCategory]) && $ebayCat1) {
+    $canonicalPath .= '/' . $homepageCategory;
+}
+
+$canonicalParams = [];
+if (!$homepageCategory) {
+    if ($ebayCat1) {
+        $canonicalParams['cat1'] = $ebayCat1;
+    }
+    if ($ebayCat2) {
+        $canonicalParams['cat2'] = $ebayCat2;
+    }
+    if ($ebayCat3) {
+        $canonicalParams['cat3'] = $ebayCat3;
+    }
+}
+if ($manufacturerName !== '') {
+    $canonicalParams['manufacturer'] = $manufacturerName;
+}
+if ($searchTerm !== '') {
+    $canonicalParams['search'] = $searchTerm;
+}
+if ($page > 1) {
+    $canonicalParams['page'] = $page;
+}
+
+$canonicalQuery = $canonicalParams ? '?' . http_build_query($canonicalParams) : '';
+$canonicalUrl = Seo::canonicalUrl($canonicalPath . $canonicalQuery);
+$robotsMeta = 'index, follow';
+
+if ($searchTerm !== '') {
+    $metaTitle = Seo::metaTitle('Search results for ' . $searchTerm . ' | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Browse matching Flip and Strip parts for ' . $searchTerm . '. Product search pages are provided for shopping navigation.');
+    $robotsMeta = 'noindex, follow';
+} elseif ($manufacturerName !== '') {
+    $metaTitle = Seo::metaTitle($manufacturerName . ' Parts | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Browse available ' . $manufacturerName . ' parts from Flip and Strip.');
+    $robotsMeta = 'noindex, follow';
+} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
+    $metaTitle = Seo::metaTitle($categoryLabel . $pageSuffix . ' | Flip and Strip');
+    $metaDescription = Seo::metaDescription($categoryMeta[$homepageCategory]['description']);
+} elseif ($ebayCat1 || $ebayCat2 || $ebayCat3) {
+    $metaTitle = Seo::metaTitle($categoryLabel . $pageSuffix . ' | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Browse available ' . $categoryLabel . ' from Flip and Strip.');
+    $robotsMeta = 'noindex, follow';
+} else {
+    $metaTitle = Seo::metaTitle('Used Motorcycle, ATV, Boat & Automotive Parts' . $pageSuffix . ' | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.');
+}
+
+$pageTitle = $categoryLabel;
+$ogTitle = $metaTitle;
+$ogDescription = $metaDescription;
+$structuredData = [
+    Seo::breadcrumbSchema([
+        ['name' => 'Home', 'url' => '/'],
+        ['name' => 'Products', 'url' => $canonicalPath],
+    ]),
+    Seo::collectionPageSchema($metaTitle, $metaDescription, $canonicalUrl),
+    Seo::itemListSchema($products),
+];
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container-fluid my-5">
@@ -390,6 +508,7 @@ if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
                                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
                                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                                            data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
                                             data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
                                             data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
                                             data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"

@@ -233,3 +233,65 @@ CREATE TABLE IF NOT EXISTS banners (
     INDEX idx_banners_is_active (is_active),
     INDEX idx_banners_sort_order (sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- First-party analytics sessions
+CREATE TABLE IF NOT EXISTS analytics_sessions (
+    session_id VARCHAR(80) PRIMARY KEY,
+    visitor_id VARCHAR(80) NOT NULL,
+    started_at DATETIME NOT NULL,
+    last_seen_at DATETIME NOT NULL,
+    ended_at DATETIME NULL,
+    duration_seconds INT DEFAULT 0,
+    landing_page VARCHAR(1000),
+    last_page VARCHAR(1000),
+    referrer VARCHAR(1000),
+    utm_source VARCHAR(255),
+    utm_medium VARCHAR(255),
+    utm_campaign VARCHAR(255),
+    utm_term VARCHAR(255),
+    utm_content VARCHAR(255),
+    device_type VARCHAR(50),
+    browser VARCHAR(100),
+    os VARCHAR(100),
+    language VARCHAR(50),
+    timezone VARCHAR(100),
+    screen_width INT,
+    screen_height INT,
+    viewport_width INT,
+    viewport_height INT,
+    ip_hash VARCHAR(64),
+    user_agent VARCHAR(1000),
+    INDEX idx_analytics_sessions_started (started_at),
+    INDEX idx_analytics_sessions_visitor (visitor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(80) NOT NULL,
+    visitor_id VARCHAR(80) NOT NULL,
+    event_type VARCHAR(80) NOT NULL,
+    event_name VARCHAR(255),
+    page_url VARCHAR(1000),
+    page_path VARCHAR(1000),
+    page_title VARCHAR(255),
+    referrer VARCHAR(1000),
+    product_id VARCHAR(80),
+    product_name VARCHAR(500),
+    product_sku VARCHAR(255),
+    category VARCHAR(255),
+    quantity INT DEFAULT 0,
+    cart_value DECIMAL(10, 2) DEFAULT 0,
+    event_value DECIMAL(10, 2) DEFAULT 0,
+    scroll_depth INT DEFAULT 0,
+    duration_seconds INT DEFAULT 0,
+    metadata JSON,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_analytics_events_created (created_at),
+    INDEX idx_analytics_events_type (event_type),
+    INDEX idx_analytics_events_page (page_path),
+    INDEX idx_analytics_events_product (product_id),
+    INDEX idx_analytics_events_session (session_id),
+    CONSTRAINT fk_analytics_events_session
+        FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

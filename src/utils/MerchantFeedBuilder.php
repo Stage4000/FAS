@@ -7,6 +7,8 @@ namespace FAS\Utils;
 
 use FAS\Models\Product;
 
+require_once __DIR__ . '/Seo.php';
+
 class MerchantFeedBuilder
 {
     private $productModel;
@@ -125,7 +127,7 @@ class MerchantFeedBuilder
             return null;
         }
 
-        return $this->baseUrl . '/product/' . rawurlencode((string) $product['id']);
+        return Seo::productUrl($product);
     }
 
     /**

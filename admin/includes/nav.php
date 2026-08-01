@@ -38,12 +38,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- Sidebar -->
         <div class="col-md-3 col-lg-2">
             <div class="list-group">
-                <a href="index.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-                <a href="products.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'products.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-box me-2"></i>Products
-                </a>
+    <a href="index.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
+        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </a>
+    <a href="analytics.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'analytics.php' ? 'active' : ''; ?>">
+        <i class="fas fa-chart-line me-2"></i>Analytics
+    </a>
+    <a href="products.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'products.php' ? 'active' : ''; ?>">
+        <i class="fas fa-box me-2"></i>Products
+    </a>
                 <a href="homepage-categories.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'homepage-categories.php' ? 'active' : ''; ?>">
                     <i class="fas fa-sitemap me-2"></i>Homepage Categories
                 </a>

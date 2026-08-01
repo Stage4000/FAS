@@ -1,5 +1,8 @@
 <?php
 $pageTitle = 'Contact Us';
+$metaTitle = 'Contact Flip and Strip | Parts Questions';
+$metaDescription = 'Contact Flip and Strip for questions about motorcycle, ATV/UTV, boat, automotive parts, shipping, orders, or product fitment.';
+$canonicalUrl = 'https://flipandstrip.com/contact';
 require_once __DIR__ . '/includes/header.php';
 
 // Load configuration for Turnstile

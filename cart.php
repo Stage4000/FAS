@@ -1,5 +1,9 @@
 <?php
 $pageTitle = 'Shopping Cart';
+$metaTitle = 'Shopping Cart | Flip and Strip';
+$metaDescription = 'Review selected Flip and Strip parts before checkout.';
+$canonicalUrl = 'https://flipandstrip.com/cart';
+$robotsMeta = 'noindex, follow';
 require_once __DIR__ . '/includes/header.php';
 ?>
 

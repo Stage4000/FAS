@@ -270,7 +270,8 @@ ob_start();
                             data-price="<?php echo $priceInfo['effective_price']; ?>"
                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
-                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>">
+                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                            data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     </div>

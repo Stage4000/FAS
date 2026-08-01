@@ -1,5 +1,7 @@
 <?php
-$pageDescription = 'Flip and Strip - Motorcycle Parts, ATV/UTV Parts, Boat Parts, Automotive Parts, and More';
+$metaTitle = 'Flip and Strip - Motorcycle, ATV/UTV & Boat Parts';
+$metaDescription = 'Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.';
+$canonicalUrl = 'https://flipandstrip.com/';
 $currentPage = 'home';
 $extraHeadMeta = '<meta name="google-site-verification" content="4klYcjDMem--91hHRoLI38YtVRKyZnpyyPGXT651Lno" />';
 

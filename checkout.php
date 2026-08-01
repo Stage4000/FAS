@@ -17,6 +17,10 @@ $paypalClientId = $config['paypal']['client_id'] ?? '';
 $paypalMode = $config['paypal']['mode'] ?? 'sandbox';
 
 $pageTitle = 'Checkout';
+$metaTitle = 'Checkout | Flip and Strip';
+$metaDescription = 'Secure checkout for selected Flip and Strip parts.';
+$canonicalUrl = 'https://flipandstrip.com/checkout';
+$robotsMeta = 'noindex, follow';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -192,6 +196,12 @@ function escapeHtml(value) {
     return div.innerHTML;
 }
 
+function trackCheckoutEvent(eventType, data = {}) {
+    if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+        window.fasAnalytics.track(eventType, data, { immediate: true });
+    }
+}
+
 // Function to check if form is ready for payment
 function isFormReadyForPayment() {
     const form = document.getElementById('checkout-form');
@@ -282,9 +292,10 @@ async function validateCartItems() {
 document.addEventListener('DOMContentLoaded', async function() {
     // Validate cart items before proceeding
     await validateCartItems();
-    
+
     displayCheckoutItems();
-    
+    trackCheckoutEvent('checkout_started', window.fasAnalytics ? window.fasAnalytics.cartSummary() : {});
+
     // Calculate shipping button
     document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
     
@@ -448,12 +459,20 @@ function setupPayPalButton() {
         // Handle errors
         onError: function(err) {
             console.error('PayPal error:', err);
+            trackCheckoutEvent('payment_error', {
+                provider: 'paypal',
+                reason: err && err.message ? err.message : 'PayPal error'
+            });
             alert('An error occurred with PayPal. Please try again or contact support.');
         },
-        
+
         // Handle cancellation
         onCancel: function(data) {
             console.log('Payment cancelled:', data);
+            trackCheckoutEvent('payment_cancelled', {
+                provider: 'paypal',
+                paypal_order_id: data && data.orderID ? data.orderID : ''
+            });
             alert('Payment was cancelled. Your cart items are still saved.');
         }
     }).render('#paypal-button-container');
@@ -540,6 +559,9 @@ async function calculateShipping() {
     
     // Validate address fields
     if (!address.address1 || !address.city || !address.state || !address.zip) {
+        trackCheckoutEvent('shipping_calculation_invalid', {
+            missing_required_address_fields: true
+        });
         alert('Please fill in all required shipping address fields');
         return;
     }
@@ -555,7 +577,13 @@ async function calculateShipping() {
         width: item.width || 10.0,
         height: item.height || 10.0
     }));
-    
+
+    trackCheckoutEvent('shipping_calculation_started', {
+        destination_state: address.state,
+        destination_country: address.country,
+        cart_items_count: items.reduce((total, item) => total + Number(item.quantity || 0), 0)
+    });
+
     const btn = document.getElementById('calculate-shipping-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculating...';
@@ -571,14 +599,25 @@ async function calculateShipping() {
         
         const data = await response.json();
         
-        if (data.success && data.rates) {
-            displayShippingOptions(data.rates);
-        } else {
-            alert('Error: ' + (data.error || 'Failed to calculate shipping'));
-        }
-    } catch (error) {
-        console.error('Shipping calculation error:', error);
-        alert('Failed to calculate shipping rates. Please try again.');
+    if (data.success && data.rates) {
+        displayShippingOptions(data.rates);
+        trackCheckoutEvent('shipping_rates_returned', {
+            rates_count: data.rates.length,
+            lowest_rate: data.rates.length ? Math.min(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0,
+            highest_rate: data.rates.length ? Math.max(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0
+        });
+    } else {
+        trackCheckoutEvent('shipping_calculation_failed', {
+            error_message: data.error || 'Failed to calculate shipping'
+        });
+        alert('Error: ' + (data.error || 'Failed to calculate shipping'));
+    }
+} catch (error) {
+    console.error('Shipping calculation error:', error);
+    trackCheckoutEvent('shipping_calculation_failed', {
+        error_message: error.message || 'Unknown shipping error'
+    });
+    alert('Failed to calculate shipping rates. Please try again.');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
@@ -623,6 +662,11 @@ function displayShippingOptions(rates) {
 
 function selectShippingMethod(index, cost) {
     selectedShippingRate = { index, cost };
+    trackCheckoutEvent('shipping_method_selected', {
+        shipping_index: index,
+        shipping_cost: Number(cost || 0),
+        event_value: Number(cost || 0)
+    });
     updateCheckoutSummary();
     updatePaymentButtonState(); // Enable payment button when shipping is selected
 }
@@ -790,7 +834,22 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         if (!response.ok) {
             throw new Error(data.error || 'Failed to complete order');
         }
-        
+
+        const subtotal = window.cart.getTotal();
+        const shipping = selectedShippingRate ? Number(selectedShippingRate.cost || 0) : 0;
+        const discount = appliedCoupon ? Number(appliedCoupon.discount_amount || 0) : 0;
+        const total = subtotal - discount + shipping;
+        trackCheckoutEvent('order_completed', {
+            order_id: orderId,
+            order_number: data.order_number || '',
+            paypal_order_id: paypalOrderId,
+            subtotal,
+            shipping_cost: shipping,
+            discount_amount: discount,
+            total_amount: total,
+            event_value: total
+        });
+
         // Clear cart
         window.cart.clearCart();
         
@@ -800,6 +859,11 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         
     } catch (error) {
         console.error('Order completion error:', error);
+        trackCheckoutEvent('order_completion_failed', {
+            order_id: orderId,
+            paypal_order_id: paypalOrderId,
+            reason: error.message || 'Order completion error'
+        });
         alert('Payment was successful but there was an issue completing your order. Please contact support.');
     }
 }
@@ -815,10 +879,17 @@ async function applyCoupon() {
     if (!code) {
         messageDiv.className = 'small mt-1 text-danger';
         messageDiv.textContent = 'Please enter a coupon code';
+        trackCheckoutEvent('coupon_apply_invalid', {
+            reason: 'empty_code'
+        });
         return;
     }
-    
+
     const subtotal = window.cart.getTotal();
+    trackCheckoutEvent('coupon_apply_attempted', {
+        coupon_code: code,
+        cart_value: subtotal
+    });
     
     btn.disabled = true;
     btn.textContent = 'Applying...';
@@ -844,7 +915,15 @@ async function applyCoupon() {
                 discount_amount: data.discount_amount,
                 description: data.description
             };
-            
+            trackCheckoutEvent('coupon_applied', {
+                coupon_code: data.code,
+                discount_type: data.discount_type,
+                discount_value: data.discount_value,
+                discount_amount: data.discount_amount,
+                event_value: data.discount_amount,
+                cart_value: subtotal
+            });
+
             messageDiv.className = 'small mt-1 text-success';
             messageDiv.textContent = '✓ Coupon applied successfully!';
             input.disabled = true;
@@ -854,12 +933,22 @@ async function applyCoupon() {
         } else {
             messageDiv.className = 'small mt-1 text-danger';
             messageDiv.textContent = data.message || 'Invalid coupon code';
+            trackCheckoutEvent('coupon_rejected', {
+                coupon_code: code,
+                reason: data.message || 'Invalid coupon code',
+                cart_value: subtotal
+            });
             appliedCoupon = null;
         }
     } catch (error) {
         console.error('Coupon validation error:', error);
         messageDiv.className = 'small mt-1 text-danger';
         messageDiv.textContent = 'Failed to validate coupon. Please try again.';
+        trackCheckoutEvent('coupon_rejected', {
+            coupon_code: code,
+            reason: error.message || 'Coupon validation error',
+            cart_value: subtotal
+        });
         appliedCoupon = null;
     } finally {
         btn.disabled = false;
@@ -871,8 +960,12 @@ async function applyCoupon() {
  * Remove applied coupon
  */
 function removeCoupon() {
+    const removedCoupon = appliedCoupon ? appliedCoupon.code : '';
     appliedCoupon = null;
-    
+    trackCheckoutEvent('coupon_removed', {
+        coupon_code: removedCoupon
+    });
+
     const input = document.getElementById('coupon-code');
     const btn = document.getElementById('apply-coupon-btn');
     const messageDiv = document.getElementById('coupon-message');

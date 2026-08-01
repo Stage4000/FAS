@@ -1,7 +1,46 @@
 <?php
 // Apply the site-configured timezone before any date/time output
 require_once __DIR__ . '/../src/utils/Timezone.php';
+require_once __DIR__ . '/../src/utils/Seo.php';
+
 \FAS\Utils\Timezone::apply();
+
+$seoConfig = [];
+$seoConfigPath = __DIR__ . '/../src/config/config.php';
+if (file_exists($seoConfigPath)) {
+    try {
+        $loadedSeoConfig = require $seoConfigPath;
+        if (is_array($loadedSeoConfig)) {
+            $seoConfig = $loadedSeoConfig;
+        }
+    } catch (Exception $e) {
+        error_log('Site config load error: ' . $e->getMessage());
+    }
+}
+
+$legacyPageTitle = isset($pageTitle) ? \FAS\Utils\Seo::cleanText($pageTitle) : '';
+$metaTitle = isset($metaTitle)
+    ? \FAS\Utils\Seo::metaTitle($metaTitle)
+    : ($legacyPageTitle !== ''
+        ? \FAS\Utils\Seo::metaTitle($legacyPageTitle . ' - Flip and Strip')
+        : 'Flip and Strip - Motorcycle, ATV/UTV & Boat Parts');
+$metaDescription = isset($metaDescription)
+    ? \FAS\Utils\Seo::metaDescription($metaDescription)
+    : (isset($pageDescription)
+        ? \FAS\Utils\Seo::metaDescription($pageDescription)
+        : 'Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.');
+$canonicalUrl = isset($canonicalUrl)
+    ? \FAS\Utils\Seo::canonicalUrl($canonicalUrl)
+    : \FAS\Utils\Seo::canonicalUrl(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'));
+$robotsMeta = isset($robotsMeta) ? \FAS\Utils\Seo::cleanText($robotsMeta) : 'index, follow';
+$ogType = isset($ogType) ? \FAS\Utils\Seo::cleanText($ogType) : 'website';
+$ogTitle = isset($ogTitle) ? \FAS\Utils\Seo::metaTitle($ogTitle) : $metaTitle;
+$ogDescription = isset($ogDescription) ? \FAS\Utils\Seo::metaDescription($ogDescription) : $metaDescription;
+$ogImage = isset($ogImage)
+    ? \FAS\Utils\Seo::absoluteUrl($ogImage)
+    : \FAS\Utils\Seo::absoluteUrl('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg');
+$structuredData = isset($structuredData) && is_array($structuredData) ? $structuredData : [];
+array_unshift($structuredData, \FAS\Utils\Seo::organizationSchema($seoConfig));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -10,32 +49,32 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Flip and Strip - Quality motorcycle parts, ATV/UTV parts, boat parts, and automotive accessories. Low miles, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW and more.'; ?>">
-    <meta name="keywords" content="motorcycle parts, ATV/UTV parts, boat parts, Harley Davidson parts, Yamaha parts, Honda parts, Kawasaki parts, Suzuki parts, BMW parts, motorcycle accessories, ATV/UTV accessories, boat accessories, used motorcycle parts">
+    <meta name="description" content="<?php echo htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="author" content="Flip and Strip">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="<?php echo htmlspecialchars($robotsMeta, ENT_QUOTES, 'UTF-8'); ?>">
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="<?php echo isset($ogType) ? htmlspecialchars($ogType) : 'website'; ?>">
-    <meta property="og:url" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . ($_SERVER['REQUEST_URI'] ?? ''); ?>">
-    <meta property="og:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
-    <meta property="og:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts. Low miles, tested parts from top brands.'; ?>">
-    <meta property="og:image" content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . '/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg'; ?>">
+    <meta property="og:type" content="<?php echo htmlspecialchars($ogType, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:site_name" content="Flip and Strip">
+    <meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($ogTitle, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($ogDescription, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:image" content="<?php echo htmlspecialchars($ogImage, ENT_QUOTES, 'UTF-8'); ?>">
     
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . ($_SERVER['REQUEST_URI'] ?? ''); ?>">
-    <meta property="twitter:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - Flip and Strip' : 'Flip and Strip - Quality Motorcycle & ATV/UTV Parts'; ?>">
-    <meta property="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Quality motorcycle, ATV/UTV, and boat parts from top brands.'; ?>">
-    <meta property="twitter:image" content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . '/gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg'; ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="<?php echo htmlspecialchars($canonicalUrl, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($ogTitle, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($ogDescription, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($ogImage, ENT_QUOTES, 'UTF-8'); ?>">
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com') . strtok($_SERVER['REQUEST_URI'] ?? '/', '?'); ?>">
+    <link rel="canonical" href="<?php echo htmlspecialchars($canonicalUrl, ENT_QUOTES, 'UTF-8'); ?>">
     <?php if (isset($extraHeadMeta)): ?>
     <?php echo $extraHeadMeta; ?>
     <?php endif; ?>
     
-    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>Flip and Strip - Quality Motorcycle & ATV/UTV Parts</title>
+    <title><?php echo htmlspecialchars($metaTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -62,29 +101,12 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="msapplication-TileColor" content="#db0335">
     
-    <!-- Enhanced JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data -->
+    <?php foreach ($structuredData as $schema): ?>
     <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Flip and Strip",
-        "url": "<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com'); ?>",
-        "logo": "<?php echo 'https://' . ($_SERVER['HTTP_HOST'] ?? 'flipandstrip.com'); ?>/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg",
-        "description": "Quality motorcycle parts, ATV/UTV parts, boat parts, and automotive accessories from top brands",
-        "address": {
-            "@type": "PostalAddress",
-            "addressCountry": "US"
-        },
-        "sameAs": []
-    }
+    <?php echo is_string($schema) ? $schema : \FAS\Utils\Seo::schemaJson($schema); ?>
     </script>
-    
-    <?php if (isset($productSchema)): ?>
-    <!-- JSON-LD Structured Data for Products -->
-    <script type="application/ld+json">
-    <?php echo $productSchema; ?>
-    </script>
-    <?php endif; ?>
+    <?php endforeach; ?>
     
     <?php
     // Google Analytics Integration
@@ -92,18 +114,9 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
     $gaMeasurementId = '';
     
     // Try to load from config
-    $configPath = __DIR__ . '/../src/config/config.php';
-    if (file_exists($configPath)) {
-        try {
-            $config = require $configPath;
-            if (isset($config['google_analytics']) && is_array($config['google_analytics'])) {
-                $gaEnabled = !empty($config['google_analytics']['enabled']);
-                $gaMeasurementId = $config['google_analytics']['measurement_id'] ?? '';
-            }
-        } catch (Exception $e) {
-            // Silently fail if config has errors
-            error_log('Google Analytics config error: ' . $e->getMessage());
-        }
+    if (isset($seoConfig['google_analytics']) && is_array($seoConfig['google_analytics'])) {
+        $gaEnabled = !empty($seoConfig['google_analytics']['enabled']);
+        $gaMeasurementId = $seoConfig['google_analytics']['measurement_id'] ?? '';
     }
     
     if ($gaEnabled && !empty($gaMeasurementId)):

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/src/utils/Seo.php';
 require_once __DIR__ . '/src/utils/MerchantFeedBuilder.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 

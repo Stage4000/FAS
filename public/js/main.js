@@ -17,6 +17,33 @@ class ShoppingCart {
         this.updateCartCount();
     }
 
+    getCartSummary() {
+        return this.cart.reduce((summary, item) => {
+            const quantity = Number(item.quantity || 0);
+            const price = Number(item.price || 0);
+            summary.cart_unique_items += 1;
+            summary.cart_items_count += quantity;
+            summary.cart_value += price * quantity;
+            return summary;
+        }, {
+            cart_unique_items: 0,
+            cart_items_count: 0,
+            cart_value: 0
+        });
+    }
+
+    getItemById(productId) {
+        return this.cart.find(item => item.id === productId);
+    }
+
+    trackCartEvent(eventType, item, extra = {}) {
+        if (window.fasAnalytics && typeof window.fasAnalytics.trackCartEvent === 'function') {
+            window.fasAnalytics.trackCartEvent(eventType, item || {}, Object.assign({
+                cart_summary: this.getCartSummary()
+            }, extra));
+        }
+    }
+
     addItem(product) {
         const existingItem = this.cart.find(item => item.id === product.id);
         if (existingItem) {
@@ -24,7 +51,12 @@ class ShoppingCart {
             const stockLimit = existingItem.stock || 999;
             if (existingItem.quantity < stockLimit) {
                 existingItem.quantity += 1;
+                product.quantity = existingItem.quantity;
             } else {
+                this.trackCartEvent('cart_stock_limit_hit', existingItem, {
+                    requested_quantity: existingItem.quantity + 1,
+                    stock_limit: stockLimit
+                });
                 if (window.showToast) {
                     window.showToast('Maximum available quantity reached', 'warning');
                 }
@@ -37,6 +69,9 @@ class ShoppingCart {
             });
         }
         this.saveCart();
+        this.trackCartEvent('cart_item_added', this.getItemById(product.id) || product, {
+            quantity_added: 1
+        });
         // Use animation instead of notification
         if (window.showToast) {
             window.showToast('Added to cart!', 'success');
@@ -44,8 +79,12 @@ class ShoppingCart {
     }
 
     removeItem(productId) {
+        const removedItem = this.getItemById(productId);
         this.cart = this.cart.filter(item => item.id !== productId);
         this.saveCart();
+        this.trackCartEvent('cart_item_removed', removedItem || { id: productId }, {
+            removed_quantity: removedItem ? removedItem.quantity : 0
+        });
     }
 
     updateQuantity(productId, quantity) {
@@ -53,19 +92,31 @@ class ShoppingCart {
         if (item) {
             const newQuantity = parseInt(quantity);
             const stockLimit = item.stock || 999;
-            
+            const previousQuantity = item.quantity;
+
             if (newQuantity <= 0) {
                 this.removeItem(productId);
             } else if (newQuantity > stockLimit) {
                 // Don't allow exceeding stock limit
                 item.quantity = stockLimit;
                 this.saveCart();
+                this.trackCartEvent('cart_stock_limit_hit', item, {
+                    previous_quantity: previousQuantity,
+                    requested_quantity: newQuantity,
+                    stock_limit: stockLimit
+                });
                 if (window.showToast) {
                     window.showToast('Maximum available quantity reached', 'warning');
                 }
             } else {
                 item.quantity = newQuantity;
                 this.saveCart();
+                if (newQuantity !== previousQuantity) {
+                    this.trackCartEvent('cart_quantity_changed', item, {
+                        previous_quantity: previousQuantity,
+                        new_quantity: newQuantity
+                    });
+                }
             }
         }
     }
@@ -101,8 +152,12 @@ class ShoppingCart {
     }
 
     clearCart() {
+        const previousSummary = this.getCartSummary();
         this.cart = [];
         this.saveCart();
+        if (previousSummary.cart_items_count > 0 && window.fasAnalytics) {
+            window.fasAnalytics.track('cart_cleared', previousSummary, { immediate: true });
+        }
     }
 }
 
@@ -121,6 +176,7 @@ document.addEventListener('click', (e) => {
             image: button.dataset.image || '',
             image_alt: button.dataset.imageAlt || button.dataset.name,
             sku: button.dataset.sku || '',
+            category: button.dataset.category || '',
             weight: parseFloat(button.dataset.weight) || 1.0,
             length: parseFloat(button.dataset.length) || 10.0,
             width: parseFloat(button.dataset.width) || 10.0,

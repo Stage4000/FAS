@@ -1,0 +1,13 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /database/
+Disallow: /src/
+Disallow: /install.php
+Disallow: /diagnostic_script.php
+Disallow: /*?search=
+Disallow: /*?*search=
+
+Sitemap: https://flipandstrip.com/sitemap.xml

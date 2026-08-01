@@ -2,12 +2,14 @@
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/utils/ProductAltText.php';
+require_once __DIR__ . '/src/utils/Seo.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Utils\ProductAltText;
+use FAS\Utils\Seo;
 
 // Get product ID
 $productId = $_GET['id'] ?? null;
@@ -121,6 +123,48 @@ if (strpos($ogImage, 'http://') !== 0 && strpos($ogImage, 'https://') !== 0) {
 $ogType = 'product';
 
 // Include header with the meta tags
+$productName = Seo::cleanText($product['name'] ?? 'Product');
+$productDescription = Seo::cleanText($product['description'] ?? $productName);
+$productCategoryPath = $productModel->getEbayStoreCategoryPath($product);
+$schemaImages = $images;
+if ($mainImage && !in_array($mainImage, $schemaImages, true)) {
+    array_unshift($schemaImages, $mainImage);
+}
+
+$canonicalUrl = Seo::productUrl($product);
+$canonicalPath = parse_url($canonicalUrl, PHP_URL_PATH) ?: '';
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if (($requestPath === '/product.php' || $requestPath !== $canonicalPath) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !headers_sent()) {
+    header('Location: ' . $canonicalUrl, true, 301);
+    exit;
+}
+
+$metaDetails = [];
+if (!empty($product['condition_name'])) {
+    $metaDetails[] = Seo::cleanText($product['condition_name']);
+}
+if (!empty($product['manufacturer'])) {
+    $metaDetails[] = Seo::cleanText($product['manufacturer']);
+}
+if ($productCategoryPath) {
+    $metaDetails[] = Seo::cleanText($productCategoryPath);
+}
+
+$pageTitle = $productName;
+$metaTitle = Seo::metaTitle($productName . ' | Flip and Strip');
+$metaDescription = Seo::metaDescription($productDescription . ' Price: $' . number_format($priceInfo['effective_price'], 2) . '. ' . implode(' ', $metaDetails));
+$ogTitle = $metaTitle;
+$ogDescription = $metaDescription;
+$ogImage = Seo::absoluteUrl($mainImage);
+$structuredData = [
+    Seo::breadcrumbSchema([
+        ['name' => 'Home', 'url' => '/'],
+        ['name' => 'Products', 'url' => '/products'],
+        ['name' => $productName, 'url' => $canonicalUrl],
+    ]),
+    Seo::productSchema($product, $schemaImages, $priceInfo, $canonicalUrl, $productDescription, $productCategoryPath),
+];
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -271,6 +315,7 @@ require_once __DIR__ . '/includes/header.php';
                         data-image="<?php echo htmlspecialchars($mainImage); ?>"
                         data-image-alt="<?php echo htmlspecialchars($productImageAltText); ?>"
                         data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                        data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
                         data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
                         data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
                         data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
@@ -321,6 +366,16 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+window.FAS_PRODUCT_DATA = {
+    product_id: <?php echo json_encode((string) $product['id']); ?>,
+    product_name: <?php echo json_encode((string) $product['name']); ?>,
+    product_sku: <?php echo json_encode((string) ($product['sku'] ?? '')); ?>,
+    category: <?php echo json_encode((string) ($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? '')); ?>,
+    event_value: <?php echo json_encode((float) $priceInfo['effective_price']); ?>
+};
+</script>
 
 <script>
 // Thumbnail gallery functionality
@@ -395,7 +450,8 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
                 image: this.dataset.image,
                 image_alt: this.dataset.imageAlt || this.dataset.name,
                 sku: this.dataset.sku,
-        weight: parseFloat(this.dataset.weight) || 1.0,
+                category: this.dataset.category || '',
+                weight: parseFloat(this.dataset.weight) || 1.0,
         length: parseFloat(this.dataset.length) || 10.0,
         width: parseFloat(this.dataset.width) || 10.0,
         height: parseFloat(this.dataset.height) || 10.0,

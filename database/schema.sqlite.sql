@@ -247,3 +247,64 @@ CREATE TABLE IF NOT EXISTS banners (
 
 CREATE INDEX IF NOT EXISTS idx_banners_is_active ON banners(is_active);
 CREATE INDEX IF NOT EXISTS idx_banners_sort_order ON banners(sort_order);
+
+-- First-party analytics sessions
+CREATE TABLE IF NOT EXISTS analytics_sessions (
+    session_id TEXT PRIMARY KEY,
+    visitor_id TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    ended_at TEXT,
+    duration_seconds INTEGER DEFAULT 0,
+    landing_page TEXT,
+    last_page TEXT,
+    referrer TEXT,
+    utm_source TEXT,
+    utm_medium TEXT,
+    utm_campaign TEXT,
+    utm_term TEXT,
+    utm_content TEXT,
+    device_type TEXT,
+    browser TEXT,
+    os TEXT,
+    language TEXT,
+    timezone TEXT,
+    screen_width INTEGER,
+    screen_height INTEGER,
+    viewport_width INTEGER,
+    viewport_height INTEGER,
+    ip_hash TEXT,
+    user_agent TEXT
+);
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    visitor_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    event_name TEXT,
+    page_url TEXT,
+    page_path TEXT,
+    page_title TEXT,
+    referrer TEXT,
+    product_id TEXT,
+    product_name TEXT,
+    product_sku TEXT,
+    category TEXT,
+    quantity INTEGER DEFAULT 0,
+    cart_value REAL DEFAULT 0,
+    event_value REAL DEFAULT 0,
+    scroll_depth INTEGER DEFAULT 0,
+    duration_seconds INTEGER DEFAULT 0,
+    metadata TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_started ON analytics_sessions(started_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor ON analytics_sessions(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_page ON analytics_events(page_path);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_product ON analytics_events(product_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events(session_id);

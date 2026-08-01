@@ -3,6 +3,10 @@
     RewriteEngine On
     RewriteBase /
 
+    # Canonical host
+    RewriteCond %{HTTP_HOST} ^www\.flipandstrip\.com$ [NC]
+    RewriteRule ^(.*)$ https://flipandstrip.com/$1 [L,R=301]
+
     # Force HTTPS (optional - uncomment if you have SSL)
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
@@ -19,8 +23,12 @@
     RewriteRule ^ - [L]
 
     # Pretty URLs - Remove .php extension
+    # SEO endpoints
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
     # Product detail pages MUST come before products listing to avoid conflicts
-    # Product detail pages: /product/123 or /product/item-slug
+    # Product detail pages: /product/123 or /product/123/item-slug
+    RewriteRule ^product/([0-9]+)/[a-z0-9-]+/?$ product.php?id=$1 [L,QSA]
     RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
     
     # Products listing by category: /products/motorcycle (must come before general products)

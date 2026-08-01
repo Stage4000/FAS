@@ -1,5 +1,8 @@
 <?php
 $pageTitle = 'About Us';
+$metaTitle = 'About Flip and Strip | Tested Used Parts';
+$metaDescription = 'Learn about Flip and Strip, a source for inspected motorcycle, ATV/UTV, boat, and automotive parts with detailed photos and descriptions.';
+$canonicalUrl = 'https://flipandstrip.com/about';
 require_once __DIR__ . '/includes/header.php';
 ?>
 

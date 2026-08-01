@@ -608,6 +608,10 @@ footer a:hover {
     font-weight: 600;
 }
 
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "\203A";
+}
+
 .breadcrumb-item a {
     color: #666;
     text-decoration: none;
