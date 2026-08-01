@@ -7,6 +7,85 @@ namespace FAS\Utils;
 
 class Analytics
 {
+    private static $eventAliases = [
+        'cart_item_added' => 'add_to_cart',
+        'cart_added' => 'add_to_cart',
+        'cart_add' => 'add_to_cart',
+        'add-to-cart' => 'add_to_cart',
+        'cart_item_removed' => 'remove_from_cart',
+        'cart_removed' => 'remove_from_cart',
+        'checkout_started' => 'checkout_start',
+        'shipping_calculation_started' => 'shipping_rate_requested',
+        'shipping_rates_requested' => 'shipping_rate_requested',
+        'shipping_method_selected' => 'shipping_rate_selected',
+        'shipping_selected' => 'shipping_rate_selected',
+        'coupon_apply_attempted' => 'coupon_attempted',
+        'coupon_attempt' => 'coupon_attempted',
+        'order_completed' => 'purchase_completed',
+        'purchase' => 'purchase_completed',
+        'order_completion_failed' => 'purchase_failed',
+        'ebay_exit_click' => 'ebay_link_click',
+        'ebay_store_click' => 'ebay_link_click',
+    ];
+
+    private static $allowedEvents = [
+        'session_start',
+        'session_heartbeat',
+        'session_end',
+        'page_view',
+        'page_hidden',
+        'page_resumed',
+        'page_exit',
+        'scroll_depth',
+        'product_view',
+        'product_impression',
+        'product_click',
+        'search_submitted',
+        'cart_view',
+        'add_to_cart',
+        'remove_from_cart',
+        'cart_quantity_changed',
+        'cart_stock_limit_hit',
+        'cart_abandonment_signal',
+        'checkout_start',
+        'shipping_rate_requested',
+        'shipping_rates_returned',
+        'shipping_rate_selected',
+        'shipping_calculation_invalid',
+        'shipping_calculation_failed',
+        'coupon_attempted',
+        'coupon_applied',
+        'coupon_rejected',
+        'purchase_completed',
+        'purchase_failed',
+        'banner_view',
+        'banner_click',
+        'external_link_click',
+        'ebay_link_click',
+        'site_setting_changed',
+        'custom_event',
+    ];
+
+    private static $eventColumns = [
+        'manufacturer' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'product_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'product_price' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'cart_items_count' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'cart_unique_items' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'coupon_code' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
+        'coupon_status' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
+        'discount_amount' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'shipping_service' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'shipping_cost' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'order_id' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'order_number' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
+        'revenue' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'search_term' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'link_text' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'target_url' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(1000)'],
+        'target_host' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+    ];
+
     private $db;
     private $driver;
     private $tablesReady = false;
@@ -29,6 +108,8 @@ class Analytics
             $this->createMysqlTables();
         }
 
+        $this->ensureEventColumns();
+        $this->createIndexes();
         $this->tablesReady = true;
     }
 
@@ -36,16 +117,16 @@ class Analytics
     {
         $this->ensureTables();
 
-        $now = gmdate('Y-m-d H:i:s');
         $context = $this->arrayValue($payload, 'context');
         $events = $this->extractEvents($payload);
-
         if (empty($events)) {
             return 0;
         }
 
-        $sessionId = $this->cleanId($payload['session_id'] ?? ($context['session_id'] ?? null), 'srv');
+        $now = gmdate('Y-m-d H:i:s');
+        $sessionId = $this->cleanId($payload['session_id'] ?? ($context['session_id'] ?? null), 'ses');
         $visitorId = $this->cleanId($payload['visitor_id'] ?? ($context['visitor_id'] ?? null), 'vis');
+
         $this->upsertSession($sessionId, $visitorId, $context, $server, $now);
 
         $count = 0;
@@ -54,11 +135,17 @@ class Analytics
                 continue;
             }
 
+            $originalEventType = $event['event_type'] ?? ($event['type'] ?? 'custom_event');
+            $eventType = $this->normalizeEventType($originalEventType);
+            if ($eventType === 'custom_event' && !empty($originalEventType)) {
+                $event['original_event_type'] = $this->cleanKey($originalEventType, 'custom_event');
+            }
+            $event['event_type'] = $eventType;
+
             $this->insertEvent($sessionId, $visitorId, $event, $context, $server, $now);
             $count++;
 
-            $eventType = $this->cleanKey($event['event_type'] ?? ($event['type'] ?? 'custom_event'), 'custom_event');
-            if ($eventType === 'page_exit' || $eventType === 'session_end') {
+            if (in_array($eventType, ['page_exit', 'session_end'], true)) {
                 $duration = $this->intValue($event['duration_seconds'] ?? null);
                 $this->endSession($sessionId, $duration, $context, $now);
             }
@@ -70,12 +157,12 @@ class Analytics
     public function getOverview(int $days): array
     {
         $this->ensureTables();
-        $since = $this->since($days);
 
+        $since = $this->since($days);
         $sessionStats = $this->fetchOne(
             "SELECT COUNT(*) AS sessions,
                     COUNT(DISTINCT visitor_id) AS visitors,
-                    AVG(NULLIF(duration_seconds, 0)) AS avg_duration
+                    AVG(CASE WHEN duration_seconds > 0 THEN duration_seconds END) AS avg_duration
              FROM analytics_sessions
              WHERE started_at >= ?",
             [$since]
@@ -86,50 +173,66 @@ class Analytics
                 SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
                 SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS product_views,
                 SUM(CASE WHEN event_type = 'product_impression' THEN 1 ELSE 0 END) AS product_impressions,
-                SUM(CASE WHEN event_type = 'cart_item_added' THEN 1 ELSE 0 END) AS cart_adds,
+                SUM(CASE WHEN event_type = 'cart_view' THEN 1 ELSE 0 END) AS cart_views,
+                SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
                 SUM(CASE WHEN event_type = 'cart_quantity_changed' THEN 1 ELSE 0 END) AS cart_changes,
-                SUM(CASE WHEN event_type = 'checkout_started' THEN 1 ELSE 0 END) AS checkout_starts,
+                SUM(CASE WHEN event_type = 'checkout_start' THEN 1 ELSE 0 END) AS checkout_starts,
+                SUM(CASE WHEN event_type = 'shipping_rate_requested' THEN 1 ELSE 0 END) AS shipping_rate_requests,
+                SUM(CASE WHEN event_type = 'shipping_rate_selected' THEN 1 ELSE 0 END) AS shipping_rate_selections,
+                SUM(CASE WHEN event_type = 'coupon_attempted' THEN 1 ELSE 0 END) AS coupon_attempts,
                 SUM(CASE WHEN event_type = 'coupon_applied' THEN 1 ELSE 0 END) AS coupons_applied,
-                SUM(CASE WHEN event_type = 'order_completed' THEN 1 ELSE 0 END) AS tracked_orders
+                SUM(CASE WHEN event_type = 'coupon_rejected' THEN 1 ELSE 0 END) AS coupons_rejected,
+                SUM(CASE WHEN event_type = 'ebay_link_click' THEN 1 ELSE 0 END) AS ebay_link_clicks,
+                SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS tracked_orders,
+                COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS tracked_revenue
              FROM analytics_events
              WHERE created_at >= ?",
             [$since]
         );
 
-        $orderStats = ['orders' => 0, 'revenue' => 0];
-        if ($this->tableExists('orders')) {
-            $orderStats = $this->fetchOne(
-                "SELECT COUNT(*) AS orders,
-                        COALESCE(SUM(total_amount), 0) AS revenue
-                 FROM orders
-                 WHERE created_at >= ?
-                   AND payment_status = 'completed'",
-                [$since]
-            );
-        }
-
+        $orderStats = $this->getCompletedOrderStats($since);
+        $abandonedStats = $this->getAbandonedCartSummary($since);
         $sessions = (int) ($sessionStats['sessions'] ?? 0);
+        $productViews = (int) ($eventStats['product_views'] ?? 0);
         $cartAdds = (int) ($eventStats['cart_adds'] ?? 0);
         $checkoutStarts = (int) ($eventStats['checkout_starts'] ?? 0);
-        $orders = (int) ($orderStats['orders'] ?? 0);
+        $trackedOrders = (int) ($eventStats['tracked_orders'] ?? 0);
+        $databaseOrders = (int) ($orderStats['orders'] ?? 0);
+        $orders = max($trackedOrders, $databaseOrders);
+        $revenue = (float) ($orderStats['revenue'] ?? 0);
+        if ($revenue <= 0) {
+            $revenue = (float) ($eventStats['tracked_revenue'] ?? 0);
+        }
 
         return [
             'sessions' => $sessions,
             'visitors' => (int) ($sessionStats['visitors'] ?? 0),
             'avg_duration' => round((float) ($sessionStats['avg_duration'] ?? 0)),
             'page_views' => (int) ($eventStats['page_views'] ?? 0),
-            'product_views' => (int) ($eventStats['product_views'] ?? 0),
+            'product_views' => $productViews,
             'product_impressions' => (int) ($eventStats['product_impressions'] ?? 0),
+            'cart_views' => (int) ($eventStats['cart_views'] ?? 0),
             'cart_adds' => $cartAdds,
             'cart_changes' => (int) ($eventStats['cart_changes'] ?? 0),
             'checkout_starts' => $checkoutStarts,
+            'shipping_rate_requests' => (int) ($eventStats['shipping_rate_requests'] ?? 0),
+            'shipping_rate_selections' => (int) ($eventStats['shipping_rate_selections'] ?? 0),
+            'coupon_attempts' => (int) ($eventStats['coupon_attempts'] ?? 0),
             'coupons_applied' => (int) ($eventStats['coupons_applied'] ?? 0),
-            'tracked_orders' => (int) ($eventStats['tracked_orders'] ?? 0),
+            'coupons_rejected' => (int) ($eventStats['coupons_rejected'] ?? 0),
+            'abandoned_carts' => (int) ($abandonedStats['abandoned_carts'] ?? 0),
+            'abandoned_cart_value' => (float) ($abandonedStats['abandoned_cart_value'] ?? 0),
+            'abandoned_cart_items' => (int) ($abandonedStats['abandoned_cart_items'] ?? 0),
+            'ebay_link_clicks' => (int) ($eventStats['ebay_link_clicks'] ?? 0),
+            'tracked_orders' => $trackedOrders,
             'orders' => $orders,
-            'revenue' => (float) ($orderStats['revenue'] ?? 0),
+            'revenue' => $revenue,
             'cart_rate' => $sessions > 0 ? round(($cartAdds / $sessions) * 100, 1) : 0,
             'checkout_rate' => $sessions > 0 ? round(($checkoutStarts / $sessions) * 100, 1) : 0,
             'order_rate' => $sessions > 0 ? round(($orders / $sessions) * 100, 1) : 0,
+            'product_view_to_cart_rate' => $productViews > 0 ? round(($cartAdds / $productViews) * 100, 1) : 0,
+            'cart_to_checkout_rate' => $cartAdds > 0 ? round(($checkoutStarts / $cartAdds) * 100, 1) : 0,
+            'checkout_to_order_rate' => $checkoutStarts > 0 ? round(($orders / $checkoutStarts) * 100, 1) : 0,
         ];
     }
 
@@ -160,7 +263,7 @@ class Analytics
         return $this->fetchAll(
             "SELECT page_path,
                     COUNT(*) AS exits,
-                    AVG(NULLIF(duration_seconds, 0)) AS avg_seconds
+                    AVG(CASE WHEN duration_seconds > 0 THEN duration_seconds END) AS avg_seconds
              FROM analytics_events
              WHERE created_at >= ?
                AND event_type = 'page_exit'
@@ -177,43 +280,97 @@ class Analytics
     {
         $this->ensureTables();
 
-        return $this->fetchAll(
-            "SELECT product_id,
-                    COALESCE(NULLIF(product_name, ''), product_sku, product_id) AS product_name,
+        $since = $this->since($days);
+        $rowsByKey = [];
+        $eventRows = $this->fetchAll(
+            "SELECT COALESCE(NULLIF(product_id, ''), NULLIF(product_sku, ''), NULLIF(product_name, '')) AS product_key,
+                    MAX(product_id) AS product_id,
+                    MAX(product_name) AS product_name,
+                    MAX(product_sku) AS product_sku,
+                    MAX(category) AS category,
+                    MAX(manufacturer) AS manufacturer,
+                    MAX(product_source) AS product_source,
+                    AVG(CASE WHEN product_price > 0 THEN product_price END) AS avg_price,
                     SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS views,
                     SUM(CASE WHEN event_type = 'product_impression' THEN 1 ELSE 0 END) AS impressions,
-                    SUM(CASE WHEN event_type = 'cart_item_added' THEN quantity ELSE 0 END) AS cart_adds,
-                    SUM(CASE WHEN event_type = 'cart_item_removed' THEN quantity ELSE 0 END) AS cart_removes
+                    SUM(CASE WHEN event_type = 'product_click' THEN 1 ELSE 0 END) AS clicks,
+                    SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
+                    SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS purchases,
+                    COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue
              FROM analytics_events
              WHERE created_at >= ?
-               AND product_id IS NOT NULL
-               AND product_id <> ''
-             GROUP BY product_id, product_name, product_sku
-             ORDER BY cart_adds DESC, views DESC, impressions DESC
-             LIMIT " . (int) $limit,
-            [$this->since($days)]
+               AND event_type IN ('product_view', 'product_impression', 'product_click', 'add_to_cart', 'purchase_completed')
+               AND COALESCE(NULLIF(product_id, ''), NULLIF(product_sku, ''), NULLIF(product_name, '')) IS NOT NULL
+             GROUP BY product_key",
+            [$since]
         );
+
+        foreach ($eventRows as $row) {
+            $this->mergeProductRow($rowsByKey, $row);
+        }
+
+        foreach ($this->getCompletedOrderProductRows($since) as $row) {
+            $this->mergeProductRow($rowsByKey, $row);
+        }
+
+        $rows = array_values($rowsByKey);
+        usort($rows, function ($a, $b) {
+            $scoreA = ($a['views'] * 1) + ($a['cart_adds'] * 5) + ($a['purchases'] * 20) + ((float) $a['revenue'] / 10);
+            $scoreB = ($b['views'] * 1) + ($b['cart_adds'] * 5) + ($b['purchases'] * 20) + ((float) $b['revenue'] / 10);
+            if ($scoreA === $scoreB) {
+                return strcmp((string) $a['product_name'], (string) $b['product_name']);
+            }
+
+            return $scoreA < $scoreB ? 1 : -1;
+        });
+
+        return array_slice($rows, 0, $limit);
     }
 
     public function getTrafficSources(int $days, int $limit = 10): array
     {
         $this->ensureTables();
 
-        return $this->fetchAll(
-            "SELECT
-                CASE
-                    WHEN utm_source IS NOT NULL AND utm_source <> '' THEN utm_source
-                    WHEN referrer IS NULL OR referrer = '' THEN 'Direct'
-                    ELSE referrer
-                END AS source,
-                COUNT(*) AS sessions
+        $rows = $this->fetchAll(
+            "SELECT utm_source,
+                    utm_medium,
+                    utm_campaign,
+                    referrer,
+                    COUNT(*) AS sessions
              FROM analytics_sessions
              WHERE started_at >= ?
-             GROUP BY source
-             ORDER BY sessions DESC
-             LIMIT " . (int) $limit,
+             GROUP BY utm_source, utm_medium, utm_campaign, referrer",
             [$this->since($days)]
         );
+
+        $sources = [];
+        foreach ($rows as $row) {
+            $label = $this->sourceLabel($row);
+            if (!isset($sources[$label])) {
+                $sources[$label] = [
+                    'source' => $label,
+                    'sessions' => 0,
+                    'campaigns' => [],
+                ];
+            }
+
+            $sources[$label]['sessions'] += (int) ($row['sessions'] ?? 0);
+            if (!empty($row['utm_campaign'])) {
+                $sources[$label]['campaigns'][$row['utm_campaign']] = true;
+            }
+        }
+
+        $sources = array_values($sources);
+        foreach ($sources as &$source) {
+            $source['campaigns'] = implode(', ', array_keys($source['campaigns']));
+        }
+        unset($source);
+
+        usort($sources, function ($a, $b) {
+            return (int) $b['sessions'] <=> (int) $a['sessions'];
+        });
+
+        return array_slice($sources, 0, $limit);
     }
 
     public function getSearchTerms(int $days, int $limit = 10): array
@@ -221,17 +378,238 @@ class Analytics
         $this->ensureTables();
 
         return $this->fetchAll(
-            "SELECT json_extract(metadata, '$.search_term') AS search_term,
+            "SELECT search_term,
                     COUNT(*) AS searches
              FROM analytics_events
              WHERE created_at >= ?
                AND event_type = 'search_submitted'
-               AND json_extract(metadata, '$.search_term') IS NOT NULL
-               AND json_extract(metadata, '$.search_term') <> ''
+               AND search_term IS NOT NULL
+               AND search_term <> ''
              GROUP BY search_term
              ORDER BY searches DESC
              LIMIT " . (int) $limit,
             [$this->since($days)]
+        );
+    }
+
+    public function getFunnel(int $days): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $overview = $this->getOverview($days);
+        $stages = [
+            ['stage' => 'Sessions', 'count' => (int) $overview['sessions']],
+            ['stage' => 'Product views', 'count' => $this->countDistinctSessionsByEvent($since, 'product_view')],
+            ['stage' => 'Add to cart', 'count' => $this->countDistinctSessionsByEvent($since, 'add_to_cart')],
+            ['stage' => 'Cart views', 'count' => $this->countDistinctSessionsByEvent($since, 'cart_view')],
+            ['stage' => 'Checkout starts', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
+            ['stage' => 'Shipping selected', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_selected')],
+            ['stage' => 'Completed orders', 'count' => max($this->countDistinctSessionsByEvent($since, 'purchase_completed'), (int) $overview['orders'])],
+        ];
+
+        return $this->withStageRates($stages);
+    }
+
+    public function getCheckoutDropoff(int $days): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $overview = $this->getOverview($days);
+        $stages = [
+            ['stage' => 'Checkout started', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
+            ['stage' => 'Shipping requested', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_requested')],
+            ['stage' => 'Shipping selected', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_selected')],
+            ['stage' => 'Coupon attempted', 'count' => $this->countDistinctSessionsByEvent($since, 'coupon_attempted')],
+            ['stage' => 'Purchase completed', 'count' => max($this->countDistinctSessionsByEvent($since, 'purchase_completed'), (int) $overview['orders'])],
+        ];
+
+        return $this->withStageRates($stages);
+    }
+
+    public function getAbandonedCarts(int $days, int $limit = 20): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $cutoff = $this->abandonedCartCutoff();
+        $rows = $this->fetchAll(
+            "SELECT e.session_id,
+                    e.visitor_id,
+                    e.created_at AS last_activity,
+                    e.page_path,
+                    e.cart_items_count,
+                    e.cart_unique_items,
+                    e.cart_value,
+                    s.landing_page,
+                    s.last_page,
+                    s.referrer,
+                    s.utm_source,
+                    s.utm_medium,
+                    s.utm_campaign,
+                    s.device_type
+             FROM analytics_events e
+             INNER JOIN (
+                SELECT session_id, MAX(id) AS last_event_id
+                FROM analytics_events
+                WHERE created_at >= ?
+                GROUP BY session_id
+             ) latest ON latest.last_event_id = e.id
+             LEFT JOIN analytics_sessions s ON s.session_id = e.session_id
+             WHERE e.created_at <= ?
+               AND (e.cart_items_count > 0 OR e.cart_value > 0)
+               AND NOT EXISTS (
+                    SELECT 1
+                    FROM analytics_events purchase
+                    WHERE purchase.session_id = e.session_id
+                      AND purchase.event_type = 'purchase_completed'
+               )
+             ORDER BY e.cart_value DESC, e.created_at DESC
+             LIMIT " . (int) $limit,
+            [$since, $cutoff]
+        );
+
+        foreach ($rows as &$row) {
+            $row['products'] = $this->getAbandonedCartProducts((string) $row['session_id']);
+            $row['source'] = $this->sourceLabel($row);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    public function getEbayLinkClicks(int $days, int $limit = 20): array
+    {
+        $this->ensureTables();
+
+        return $this->fetchAll(
+            "SELECT page_path,
+                    product_id,
+                    product_name,
+                    product_sku,
+                    link_text,
+                    target_url,
+                    target_host,
+                    COUNT(*) AS clicks,
+                    MAX(created_at) AS last_click
+             FROM analytics_events
+             WHERE created_at >= ?
+               AND event_type = 'ebay_link_click'
+             GROUP BY page_path, product_id, product_name, product_sku, link_text, target_url, target_host
+             ORDER BY clicks DESC, last_click DESC
+             LIMIT " . (int) $limit,
+            [$this->since($days)]
+        );
+    }
+
+    public function getCouponPerformance(int $days, int $limit = 10): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $rowsByCode = [];
+        $eventRows = $this->fetchAll(
+            "SELECT coupon_code,
+                    SUM(CASE WHEN event_type = 'coupon_attempted' THEN 1 ELSE 0 END) AS attempts,
+                    SUM(CASE WHEN event_type = 'coupon_applied' THEN 1 ELSE 0 END) AS applied,
+                    SUM(CASE WHEN event_type = 'coupon_rejected' THEN 1 ELSE 0 END) AS rejected,
+                    COALESCE(SUM(discount_amount), 0) AS discount_amount,
+                    COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue
+             FROM analytics_events
+             WHERE created_at >= ?
+               AND coupon_code IS NOT NULL
+               AND coupon_code <> ''
+             GROUP BY coupon_code",
+            [$since]
+        );
+
+        foreach ($eventRows as $row) {
+            $code = strtoupper((string) ($row['coupon_code'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $rowsByCode[$code] = [
+                'coupon_code' => $code,
+                'attempts' => (int) ($row['attempts'] ?? 0),
+                'applied' => (int) ($row['applied'] ?? 0),
+                'rejected' => (int) ($row['rejected'] ?? 0),
+                'orders' => 0,
+                'discount_amount' => (float) ($row['discount_amount'] ?? 0),
+                'revenue' => (float) ($row['revenue'] ?? 0),
+            ];
+        }
+
+        foreach ($this->getCompletedOrderCouponRows($since) as $row) {
+            $code = strtoupper((string) ($row['coupon_code'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            if (!isset($rowsByCode[$code])) {
+                $rowsByCode[$code] = [
+                    'coupon_code' => $code,
+                    'attempts' => 0,
+                    'applied' => 0,
+                    'rejected' => 0,
+                    'orders' => 0,
+                    'discount_amount' => 0,
+                    'revenue' => 0,
+                ];
+            }
+            $rowsByCode[$code]['orders'] += (int) ($row['orders'] ?? 0);
+            $rowsByCode[$code]['discount_amount'] += (float) ($row['discount_amount'] ?? 0);
+            $rowsByCode[$code]['revenue'] += (float) ($row['revenue'] ?? 0);
+        }
+
+        $rows = array_values($rowsByCode);
+        usort($rows, function ($a, $b) {
+            $scoreA = ((int) $a['orders'] * 10) + (int) $a['applied'] + (int) $a['attempts'];
+            $scoreB = ((int) $b['orders'] * 10) + (int) $b['applied'] + (int) $b['attempts'];
+            return $scoreB <=> $scoreA;
+        });
+
+        return array_slice($rows, 0, $limit);
+    }
+
+    public function getRevenueByCategory(int $days, int $limit = 10): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        if ($this->tableExists('orders') && $this->tableExists('order_items')) {
+            $rows = $this->fetchAll(
+                "SELECT COALESCE(NULLIF(p.ebay_store_cat1_name, ''), NULLIF(p.category, ''), 'Uncategorized') AS category,
+                        COUNT(DISTINCT o.id) AS orders,
+                        COALESCE(SUM(oi.quantity), 0) AS units_sold,
+                        COALESCE(SUM(oi.total_price), 0) AS revenue
+                 FROM order_items oi
+                 INNER JOIN orders o ON o.id = oi.order_id
+                 LEFT JOIN products p ON p.id = oi.product_id
+                 WHERE o.created_at >= ?
+                   AND o.payment_status = 'completed'
+                 GROUP BY category
+                 ORDER BY revenue DESC
+                 LIMIT " . (int) $limit,
+                [$since]
+            );
+
+            if (!empty($rows)) {
+                return $rows;
+            }
+        }
+
+        return $this->fetchAll(
+            "SELECT COALESCE(NULLIF(category, ''), 'Uncategorized') AS category,
+                    COUNT(DISTINCT order_id) AS orders,
+                    COUNT(*) AS units_sold,
+                    COALESCE(SUM(revenue), 0) AS revenue
+             FROM analytics_events
+             WHERE created_at >= ?
+               AND event_type = 'purchase_completed'
+             GROUP BY category
+             ORDER BY revenue DESC
+             LIMIT " . (int) $limit,
+            [$since]
         );
     }
 
@@ -240,11 +618,39 @@ class Analytics
         $this->ensureTables();
 
         return $this->fetchAll(
-            "SELECT event_type, event_name, page_path, product_name, quantity, cart_value, created_at
+            "SELECT event_type,
+                    event_name,
+                    page_path,
+                    product_name,
+                    product_sku,
+                    category,
+                    coupon_code,
+                    order_number,
+                    link_text,
+                    target_url,
+                    target_host,
+                    quantity,
+                    cart_value,
+                    revenue,
+                    created_at
              FROM analytics_events
              ORDER BY created_at DESC
              LIMIT " . (int) $limit
         );
+    }
+
+    public function getSalesDashboard(int $days = 7): array
+    {
+        return [
+            'overview' => $this->getOverview($days),
+            'funnel' => $this->getFunnel($days),
+            'top_products' => $this->getTopProducts($days, 10),
+            'checkout_dropoff' => $this->getCheckoutDropoff($days),
+            'abandoned_carts' => $this->getAbandonedCarts($days, 10),
+            'ebay_link_clicks' => $this->getEbayLinkClicks($days, 10),
+            'coupon_performance' => $this->getCouponPerformance($days, 10),
+            'revenue_by_category' => $this->getRevenueByCategory($days, 10),
+        ];
     }
 
     private function createSqliteTables(): void
@@ -294,18 +700,33 @@ class Analytics
                 product_name TEXT,
                 product_sku TEXT,
                 category TEXT,
+                manufacturer TEXT,
+                product_source TEXT,
+                product_price REAL DEFAULT 0,
                 quantity INTEGER DEFAULT 0,
+                cart_items_count INTEGER DEFAULT 0,
+                cart_unique_items INTEGER DEFAULT 0,
                 cart_value REAL DEFAULT 0,
+                coupon_code TEXT,
+                coupon_status TEXT,
+                discount_amount REAL DEFAULT 0,
+                shipping_service TEXT,
+                shipping_cost REAL DEFAULT 0,
+                order_id TEXT,
+                order_number TEXT,
+                revenue REAL DEFAULT 0,
+                search_term TEXT,
+                link_text TEXT,
+                target_url TEXT,
+                target_host TEXT,
                 event_value REAL DEFAULT 0,
                 scroll_depth INTEGER DEFAULT 0,
                 duration_seconds INTEGER DEFAULT 0,
                 metadata TEXT,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id) ON DELETE CASCADE
             )"
         );
-
-        $this->createIndexes();
     }
 
     private function createMysqlTables(): void
@@ -355,65 +776,66 @@ class Analytics
                 product_name VARCHAR(500),
                 product_sku VARCHAR(255),
                 category VARCHAR(255),
+                manufacturer VARCHAR(255),
+                product_source VARCHAR(80),
+                product_price DECIMAL(10, 2) DEFAULT 0,
                 quantity INT DEFAULT 0,
+                cart_items_count INT DEFAULT 0,
+                cart_unique_items INT DEFAULT 0,
                 cart_value DECIMAL(10, 2) DEFAULT 0,
+                coupon_code VARCHAR(100),
+                coupon_status VARCHAR(40),
+                discount_amount DECIMAL(10, 2) DEFAULT 0,
+                shipping_service VARCHAR(255),
+                shipping_cost DECIMAL(10, 2) DEFAULT 0,
+                order_id VARCHAR(80),
+                order_number VARCHAR(100),
+                revenue DECIMAL(10, 2) DEFAULT 0,
+                search_term VARCHAR(255),
+                link_text VARCHAR(255),
+                target_url VARCHAR(1000),
+                target_host VARCHAR(255),
                 event_value DECIMAL(10, 2) DEFAULT 0,
                 scroll_depth INT DEFAULT 0,
                 duration_seconds INT DEFAULT 0,
                 metadata JSON,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_analytics_events_session (session_id),
+                created_at DATETIME NOT NULL,
                 CONSTRAINT fk_analytics_events_session
                     FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
                     ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+    }
 
-        $this->createIndexes();
+    private function ensureEventColumns(): void
+    {
+        foreach (self::$eventColumns as $column => $definitions) {
+            $definition = $this->driver === 'sqlite' ? $definitions['sqlite'] : $definitions['mysql'];
+            $this->addColumnIfMissing('analytics_events', $column, $definition);
+        }
     }
 
     private function createIndexes(): void
     {
-        $indexes = [
-            "CREATE INDEX IF NOT EXISTS idx_analytics_sessions_started ON analytics_sessions(started_at)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor ON analytics_sessions(visitor_id)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_events_page ON analytics_events(page_path)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_events_product ON analytics_events(product_id)",
-            "CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events(session_id)",
-        ];
-
-        foreach ($indexes as $sql) {
-            try {
-                $this->db->exec($sql);
-            } catch (\Exception $e) {
-                if ($this->driver !== 'sqlite') {
-                    $this->createMysqlIndex($sql);
-                }
-            }
-        }
-    }
-
-    private function createMysqlIndex(string $sqliteSql): void
-    {
-        if (!preg_match('/CREATE INDEX IF NOT EXISTS ([a-z0-9_]+) ON ([a-z0-9_]+)\(([^)]+)\)/i', $sqliteSql, $matches)) {
-            return;
-        }
-
-        $indexName = $matches[1];
-        $tableName = $matches[2];
-        $columns = $matches[3];
-        try {
-            $this->db->exec("CREATE INDEX {$indexName} ON {$tableName}({$columns})");
-        } catch (\Exception $e) {
-        }
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_started', 'started_at');
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_visitor', 'visitor_id');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_created', 'created_at');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_type', 'event_type');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_page', 'page_path', 255);
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_product', 'product_id');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_session', 'session_id');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_coupon', 'coupon_code');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_order', 'order_id');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_target_host', 'target_host');
     }
 
     private function upsertSession(string $sessionId, string $visitorId, array $context, array $server, string $now): void
     {
-        $existing = $this->fetchOne("SELECT session_id FROM analytics_sessions WHERE session_id = ?", [$sessionId]);
-        $pagePath = $this->cleanText($context['page_path'] ?? '', 1000);
+        $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
+        $existing = $this->fetchOne(
+            "SELECT session_id FROM analytics_sessions WHERE session_id = ?",
+            [$sessionId]
+        );
 
         $data = [
             'visitor_id' => $visitorId,
@@ -441,15 +863,26 @@ class Analytics
         if ($existing) {
             $stmt = $this->db->prepare(
                 "UPDATE analytics_sessions
-                 SET visitor_id = ?, last_seen_at = ?, last_page = ?, referrer = COALESCE(NULLIF(referrer, ''), ?),
+                 SET visitor_id = ?,
+                     last_seen_at = ?,
+                     last_page = ?,
+                     referrer = COALESCE(NULLIF(referrer, ''), ?),
                      utm_source = COALESCE(NULLIF(utm_source, ''), ?),
                      utm_medium = COALESCE(NULLIF(utm_medium, ''), ?),
                      utm_campaign = COALESCE(NULLIF(utm_campaign, ''), ?),
                      utm_term = COALESCE(NULLIF(utm_term, ''), ?),
                      utm_content = COALESCE(NULLIF(utm_content, ''), ?),
-                     device_type = ?, browser = ?, os = ?, language = ?, timezone = ?,
-                     screen_width = ?, screen_height = ?, viewport_width = ?, viewport_height = ?,
-                     ip_hash = ?, user_agent = ?
+                     device_type = ?,
+                     browser = ?,
+                     os = ?,
+                     language = ?,
+                     timezone = ?,
+                     screen_width = ?,
+                     screen_height = ?,
+                     viewport_width = ?,
+                     viewport_height = ?,
+                     ip_hash = ?,
+                     user_agent = ?
                  WHERE session_id = ?"
             );
             $stmt->execute(array_merge(array_values($data), [$sessionId]));
@@ -459,8 +892,10 @@ class Analytics
         $stmt = $this->db->prepare(
             "INSERT INTO analytics_sessions (
                 session_id, visitor_id, started_at, last_seen_at, landing_page, last_page, referrer,
-                utm_source, utm_medium, utm_campaign, utm_term, utm_content, device_type, browser, os,
-                language, timezone, screen_width, screen_height, viewport_width, viewport_height, ip_hash, user_agent
+                utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+                device_type, browser, os, language, timezone,
+                screen_width, screen_height, viewport_width, viewport_height,
+                ip_hash, user_agent
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
@@ -470,7 +905,7 @@ class Analytics
             $now,
             $now,
             $this->cleanText($context['landing_page'] ?? $pagePath, 1000),
-            $data['last_page'],
+            $pagePath,
             $data['referrer'],
             $data['utm_source'],
             $data['utm_medium'],
@@ -493,43 +928,63 @@ class Analytics
 
     private function insertEvent(string $sessionId, string $visitorId, array $event, array $context, array $server, string $now): void
     {
-        $metadata = $this->arrayValue($event, 'metadata');
-        foreach ($event as $key => $value) {
-            if (!in_array($key, [
-                'event_type', 'type', 'event_name', 'page_url', 'page_path', 'page_title', 'referrer',
-                'product_id', 'product_name', 'product_sku', 'category', 'quantity', 'cart_value',
-                'event_value', 'scroll_depth', 'duration_seconds', 'metadata'
-            ], true)) {
-                $metadata[$key] = $value;
-            }
-        }
+        $metadata = $this->metadataForEvent($event);
+        $cartSummary = $this->cartSummary($event, $metadata);
+        $eventType = $this->normalizeEventType($event['event_type'] ?? 'custom_event');
+        $productPrice = $this->floatValue($this->firstValue([$event, $metadata], ['product_price', 'price', 'unit_price']));
+        $eventValue = $this->floatValue($this->firstValue([$event, $metadata], ['event_value', 'value']));
+        $revenue = $this->revenueForEvent($eventType, $event, $metadata, $eventValue);
+        $pageUrl = $this->cleanText($this->firstValue([$event, $context], ['page_url', 'url'], ''), 1000);
+        $pagePath = $this->pagePath($this->firstValue([$event, $context], ['page_path'], null), $pageUrl, $server);
 
         $stmt = $this->db->prepare(
             "INSERT INTO analytics_events (
                 session_id, visitor_id, event_type, event_name, page_url, page_path, page_title, referrer,
-                product_id, product_name, product_sku, category, quantity, cart_value, event_value,
-                scroll_depth, duration_seconds, metadata, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                product_id, product_name, product_sku, category, manufacturer, product_source, product_price,
+                quantity, cart_items_count, cart_unique_items, cart_value,
+                coupon_code, coupon_status, discount_amount,
+                shipping_service, shipping_cost,
+                order_id, order_number, revenue, search_term,
+                link_text, target_url, target_host,
+                event_value, scroll_depth, duration_seconds, metadata, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->execute([
             $sessionId,
             $visitorId,
-            $this->cleanKey($event['event_type'] ?? ($event['type'] ?? 'custom_event'), 'custom_event'),
-            $this->cleanText($event['event_name'] ?? '', 255),
-            $this->cleanText($event['page_url'] ?? ($context['page_url'] ?? ''), 1000),
-            $this->cleanText($event['page_path'] ?? ($context['page_path'] ?? ''), 1000),
-            $this->cleanText($event['page_title'] ?? ($context['page_title'] ?? ''), 255),
-            $this->cleanText($event['referrer'] ?? ($context['referrer'] ?? ($server['HTTP_REFERER'] ?? '')), 1000),
-            $this->cleanText($event['product_id'] ?? '', 80),
-            $this->cleanText($event['product_name'] ?? '', 500),
-            $this->cleanText($event['product_sku'] ?? '', 255),
-            $this->cleanText($event['category'] ?? '', 255),
-            $this->intValue($event['quantity'] ?? null),
-            $this->floatValue($event['cart_value'] ?? null),
-            $this->floatValue($event['event_value'] ?? null),
-            min(100, max(0, $this->intValue($event['scroll_depth'] ?? null))),
-            max(0, $this->intValue($event['duration_seconds'] ?? null)),
+            $eventType,
+            $this->cleanText($this->firstValue([$event, $metadata], ['event_name', 'name'], $eventType), 255),
+            $pageUrl,
+            $pagePath,
+            $this->cleanText($this->firstValue([$event, $context], ['page_title', 'title'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $context], ['referrer'], $server['HTTP_REFERER'] ?? ''), 1000),
+            $this->cleanText($this->firstValue([$event, $metadata], ['product_id', 'id'], ''), 80),
+            $this->cleanText($this->firstValue([$event, $metadata], ['product_name', 'name'], ''), 500),
+            $this->cleanText($this->firstValue([$event, $metadata], ['product_sku', 'sku'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['category', 'product_category'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['manufacturer', 'brand'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['product_source', 'source'], ''), 80),
+            $productPrice,
+            $this->quantityForEvent($eventType, $event, $metadata),
+            $this->intValue($this->firstValue([$event, $metadata, $cartSummary], ['cart_items_count'], 0)),
+            $this->intValue($this->firstValue([$event, $metadata, $cartSummary], ['cart_unique_items'], 0)),
+            $this->floatValue($this->firstValue([$event, $metadata, $cartSummary], ['cart_value'], 0)),
+            strtoupper($this->cleanText($this->firstValue([$event, $metadata], ['coupon_code', 'code'], ''), 100)),
+            $this->couponStatus($eventType, $event, $metadata),
+            $this->floatValue($this->firstValue([$event, $metadata], ['discount_amount'], 0)),
+            $this->shippingService($event, $metadata),
+            $this->floatValue($this->firstValue([$event, $metadata], ['shipping_cost', 'cost', 'total_charge'], 0)),
+            $this->cleanText($this->firstValue([$event, $metadata], ['order_id'], ''), 80),
+            $this->cleanText($this->firstValue([$event, $metadata], ['order_number'], ''), 100),
+            $revenue,
+            $this->cleanText($this->firstValue([$event, $metadata], ['search_term', 'query'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['link_text'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['target_url'], ''), 1000),
+            $this->cleanText($this->firstValue([$event, $metadata], ['target_host'], ''), 255),
+            $eventValue,
+            min(100, max(0, $this->intValue($this->firstValue([$event, $metadata], ['scroll_depth'], 0)))),
+            max(0, $this->intValue($this->firstValue([$event, $metadata], ['duration_seconds'], 0))),
             json_encode($this->normalizeMetadata($metadata), JSON_UNESCAPED_SLASHES),
             $now,
         ]);
@@ -546,7 +1001,7 @@ class Analytics
             $now,
             max(0, $duration),
             $now,
-            $this->cleanText($context['page_path'] ?? '', 1000),
+            $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, []),
             $sessionId,
         ]);
     }
@@ -564,37 +1019,435 @@ class Analytics
         return [];
     }
 
+    private function normalizeEventType($value): string
+    {
+        $eventType = $this->cleanKey($value, 'custom_event');
+        if (isset(self::$eventAliases[$eventType])) {
+            $eventType = self::$eventAliases[$eventType];
+        }
+
+        return in_array($eventType, self::$allowedEvents, true) ? $eventType : 'custom_event';
+    }
+
+    private function metadataForEvent(array $event): array
+    {
+        $metadata = $this->arrayValue($event, 'metadata');
+        $topLevel = [
+            'type',
+            'event_type',
+            'event_name',
+            'page_url',
+            'url',
+            'page_path',
+            'page_title',
+            'title',
+            'referrer',
+            'product_id',
+            'id',
+            'product_name',
+            'name',
+            'product_sku',
+            'sku',
+            'category',
+            'product_category',
+            'manufacturer',
+            'brand',
+            'product_source',
+            'source',
+            'product_price',
+            'price',
+            'unit_price',
+            'quantity',
+            'quantity_added',
+            'new_quantity',
+            'removed_quantity',
+            'cart_items_count',
+            'cart_unique_items',
+            'cart_value',
+            'coupon_code',
+            'code',
+            'coupon_status',
+            'discount_amount',
+            'shipping_service',
+            'service_name',
+            'courier_name',
+            'shipping_cost',
+            'cost',
+            'total_charge',
+            'order_id',
+            'order_number',
+            'revenue',
+            'total_amount',
+            'subtotal',
+            'search_term',
+            'query',
+            'link_text',
+            'target_url',
+            'target_host',
+            'event_value',
+            'value',
+            'scroll_depth',
+            'duration_seconds',
+        ];
+
+        foreach ($event as $key => $value) {
+            if ($key === 'metadata' || in_array($key, $topLevel, true)) {
+                continue;
+            }
+            $metadata[$key] = $value;
+        }
+
+        return $metadata;
+    }
+
+    private function cartSummary(array $event, array $metadata): array
+    {
+        foreach (['cart_summary', 'cart'] as $key) {
+            if (isset($event[$key]) && is_array($event[$key])) {
+                return $event[$key];
+            }
+            if (isset($metadata[$key]) && is_array($metadata[$key])) {
+                return $metadata[$key];
+            }
+        }
+
+        return [];
+    }
+
+    private function quantityForEvent(string $eventType, array $event, array $metadata): int
+    {
+        $keys = ['quantity'];
+        if ($eventType === 'add_to_cart') {
+            array_unshift($keys, 'quantity_added');
+        } elseif ($eventType === 'remove_from_cart') {
+            array_unshift($keys, 'removed_quantity');
+        } elseif ($eventType === 'cart_quantity_changed') {
+            array_unshift($keys, 'new_quantity');
+        }
+
+        return $this->intValue($this->firstValue([$event, $metadata], $keys, 0));
+    }
+
+    private function couponStatus(string $eventType, array $event, array $metadata): string
+    {
+        $status = $this->cleanKey($this->firstValue([$event, $metadata], ['coupon_status', 'status'], ''), '');
+        if ($status !== '') {
+            return $status;
+        }
+
+        if ($eventType === 'coupon_applied') {
+            return 'applied';
+        }
+        if ($eventType === 'coupon_rejected') {
+            return 'rejected';
+        }
+        if ($eventType === 'coupon_attempted') {
+            return 'attempted';
+        }
+
+        return '';
+    }
+
+    private function revenueForEvent(string $eventType, array $event, array $metadata, float $eventValue): float
+    {
+        if ($eventType !== 'purchase_completed') {
+            return 0;
+        }
+
+        $revenue = $this->floatValue($this->firstValue([$event, $metadata], ['revenue', 'total_amount'], 0));
+        return $revenue > 0 ? $revenue : $eventValue;
+    }
+
+    private function shippingService(array $event, array $metadata): string
+    {
+        $service = $this->cleanText($this->firstValue([$event, $metadata], ['shipping_service'], ''), 255);
+        if ($service !== '') {
+            return $service;
+        }
+
+        $courier = $this->cleanText($this->firstValue([$event, $metadata], ['courier_name'], ''), 120);
+        $serviceName = $this->cleanText($this->firstValue([$event, $metadata], ['service_name'], ''), 120);
+        return trim($courier . ($courier && $serviceName ? ' - ' : '') . $serviceName);
+    }
+
+    private function withStageRates(array $stages): array
+    {
+        $previous = null;
+        foreach ($stages as &$stage) {
+            $count = (int) $stage['count'];
+            $stage['previous_count'] = $previous;
+            $stage['conversion_rate'] = $previous === null || $previous <= 0 ? null : round(($count / $previous) * 100, 1);
+            $stage['dropoff'] = $previous === null ? null : max(0, $previous - $count);
+            $stage['dropoff_rate'] = $previous === null || $previous <= 0 ? null : round((max(0, $previous - $count) / $previous) * 100, 1);
+            $previous = $count;
+        }
+        unset($stage);
+
+        return $stages;
+    }
+
+    private function countDistinctSessionsByEvent(string $since, string $eventType): int
+    {
+        $row = $this->fetchOne(
+            "SELECT COUNT(DISTINCT session_id) AS sessions
+             FROM analytics_events
+             WHERE created_at >= ?
+               AND event_type = ?",
+            [$since, $eventType]
+        );
+
+        return (int) ($row['sessions'] ?? 0);
+    }
+
+    private function getAbandonedCartSummary(string $since): array
+    {
+        $row = $this->fetchOne(
+            "SELECT COUNT(*) AS abandoned_carts,
+                    COALESCE(SUM(e.cart_value), 0) AS abandoned_cart_value,
+                    COALESCE(SUM(e.cart_items_count), 0) AS abandoned_cart_items
+             FROM analytics_events e
+             INNER JOIN (
+                SELECT session_id, MAX(id) AS last_event_id
+                FROM analytics_events
+                WHERE created_at >= ?
+                GROUP BY session_id
+             ) latest ON latest.last_event_id = e.id
+             WHERE e.created_at <= ?
+               AND (e.cart_items_count > 0 OR e.cart_value > 0)
+               AND NOT EXISTS (
+                    SELECT 1
+                    FROM analytics_events purchase
+                    WHERE purchase.session_id = e.session_id
+                      AND purchase.event_type = 'purchase_completed'
+               )",
+            [$since, $this->abandonedCartCutoff()]
+        );
+
+        return [
+            'abandoned_carts' => (int) ($row['abandoned_carts'] ?? 0),
+            'abandoned_cart_value' => (float) ($row['abandoned_cart_value'] ?? 0),
+            'abandoned_cart_items' => (int) ($row['abandoned_cart_items'] ?? 0),
+        ];
+    }
+
+    private function getAbandonedCartProducts(string $sessionId): array
+    {
+        return $this->fetchAll(
+            "SELECT product_id,
+                    product_name,
+                    product_sku,
+                    category,
+                    manufacturer,
+                    MAX(product_price) AS product_price,
+                    MAX(quantity) AS quantity,
+                    MAX(created_at) AS last_added_at
+             FROM analytics_events
+             WHERE session_id = ?
+               AND event_type IN ('add_to_cart', 'cart_quantity_changed')
+               AND product_name IS NOT NULL
+               AND product_name <> ''
+             GROUP BY product_id, product_name, product_sku, category, manufacturer
+             ORDER BY last_added_at DESC
+             LIMIT 5",
+            [$sessionId]
+        );
+    }
+
+    private function abandonedCartCutoff(): string
+    {
+        return gmdate('Y-m-d H:i:s', strtotime('-30 minutes'));
+    }
+
+    private function getCompletedOrderStats(string $since): array
+    {
+        if (!$this->tableExists('orders')) {
+            return ['orders' => 0, 'revenue' => 0];
+        }
+
+        return $this->fetchOne(
+            "SELECT COUNT(*) AS orders,
+                    COALESCE(SUM(total_amount), 0) AS revenue
+             FROM orders
+             WHERE created_at >= ?
+               AND payment_status = 'completed'",
+            [$since]
+        );
+    }
+
+    private function getCompletedOrderProductRows(string $since): array
+    {
+        if (!$this->tableExists('orders') || !$this->tableExists('order_items')) {
+            return [];
+        }
+
+        $castProductId = $this->driver === 'sqlite' ? 'CAST(oi.product_id AS TEXT)' : 'CAST(oi.product_id AS CHAR)';
+
+        return $this->fetchAll(
+            "SELECT {$castProductId} AS product_key,
+                    {$castProductId} AS product_id,
+                    MAX(oi.product_name) AS product_name,
+                    MAX(oi.product_sku) AS product_sku,
+                    MAX(COALESCE(NULLIF(p.ebay_store_cat3_name, ''), NULLIF(p.ebay_store_cat2_name, ''), NULLIF(p.ebay_store_cat1_name, ''), NULLIF(p.category, ''))) AS category,
+                    MAX(p.manufacturer) AS manufacturer,
+                    MAX(p.source) AS product_source,
+                    AVG(oi.unit_price) AS avg_price,
+                    0 AS views,
+                    0 AS impressions,
+                    0 AS clicks,
+                    0 AS cart_adds,
+                    COUNT(DISTINCT o.id) AS purchases,
+                    COALESCE(SUM(oi.total_price), 0) AS revenue,
+                    COALESCE(SUM(oi.quantity), 0) AS units_sold
+             FROM order_items oi
+             INNER JOIN orders o ON o.id = oi.order_id
+             LEFT JOIN products p ON p.id = oi.product_id
+             WHERE o.created_at >= ?
+               AND o.payment_status = 'completed'
+             GROUP BY oi.product_id",
+            [$since]
+        );
+    }
+
+    private function getCompletedOrderCouponRows(string $since): array
+    {
+        if (!$this->tableExists('orders')) {
+            return [];
+        }
+
+        return $this->fetchAll(
+            "SELECT discount_code AS coupon_code,
+                    COUNT(*) AS orders,
+                    COALESCE(SUM(discount_amount), 0) AS discount_amount,
+                    COALESCE(SUM(total_amount), 0) AS revenue
+             FROM orders
+             WHERE created_at >= ?
+               AND payment_status = 'completed'
+               AND discount_code IS NOT NULL
+               AND discount_code <> ''
+             GROUP BY discount_code",
+            [$since]
+        );
+    }
+
+    private function mergeProductRow(array &$rowsByKey, array $row): void
+    {
+        $key = (string) ($row['product_key'] ?? $row['product_id'] ?? $row['product_sku'] ?? $row['product_name'] ?? '');
+        if ($key === '') {
+            return;
+        }
+
+        if (!isset($rowsByKey[$key])) {
+            $rowsByKey[$key] = [
+                'product_id' => '',
+                'product_name' => '',
+                'product_sku' => '',
+                'category' => '',
+                'manufacturer' => '',
+                'product_source' => '',
+                'avg_price' => 0,
+                'views' => 0,
+                'impressions' => 0,
+                'clicks' => 0,
+                'cart_adds' => 0,
+                'purchases' => 0,
+                'units_sold' => 0,
+                'revenue' => 0,
+            ];
+        }
+
+        foreach (['product_id', 'product_name', 'product_sku', 'category', 'manufacturer', 'product_source'] as $field) {
+            if ($rowsByKey[$key][$field] === '' && !empty($row[$field])) {
+                $rowsByKey[$key][$field] = (string) $row[$field];
+            }
+        }
+
+        foreach (['views', 'impressions', 'clicks', 'cart_adds', 'purchases', 'units_sold'] as $field) {
+            $rowsByKey[$key][$field] += (int) ($row[$field] ?? 0);
+        }
+        $rowsByKey[$key]['revenue'] += (float) ($row['revenue'] ?? 0);
+
+        $avgPrice = (float) ($row['avg_price'] ?? 0);
+        if ($rowsByKey[$key]['avg_price'] <= 0 && $avgPrice > 0) {
+            $rowsByKey[$key]['avg_price'] = $avgPrice;
+        }
+    }
+
+    private function sourceLabel(array $row): string
+    {
+        $utmSource = trim((string) ($row['utm_source'] ?? ''));
+        if ($utmSource !== '') {
+            $utmMedium = trim((string) ($row['utm_medium'] ?? ''));
+            return $utmMedium !== '' ? "{$utmSource} / {$utmMedium}" : $utmSource;
+        }
+
+        $referrer = trim((string) ($row['referrer'] ?? ''));
+        if ($referrer === '') {
+            return 'Direct';
+        }
+
+        $host = parse_url($referrer, PHP_URL_HOST);
+        return $host ? strtolower($host) : $this->cleanText($referrer, 100);
+    }
+
+    private function pagePath($path, $url, array $server): string
+    {
+        $path = trim((string) $path);
+        if ($path === '' && $url) {
+            $parsedPath = parse_url((string) $url, PHP_URL_PATH) ?: '/';
+            $query = parse_url((string) $url, PHP_URL_QUERY);
+            $path = $parsedPath . ($query ? '?' . $query : '');
+        }
+        if ($path === '' && !empty($server['REQUEST_URI'])) {
+            $path = (string) $server['REQUEST_URI'];
+        }
+
+        return $this->cleanText($path !== '' ? $path : '/', 1000);
+    }
+
     private function arrayValue(array $source, string $key): array
     {
         return isset($source[$key]) && is_array($source[$key]) ? $source[$key] : [];
+    }
+
+    private function firstValue(array $sources, array $keys, $default = null)
+    {
+        foreach ($sources as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+            foreach ($keys as $key) {
+                if (array_key_exists($key, $source) && $source[$key] !== null && $source[$key] !== '') {
+                    return $source[$key];
+                }
+            }
+        }
+
+        return $default;
     }
 
     private function cleanId($value, string $prefix): string
     {
         $text = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $value);
         $text = substr((string) $text, 0, 80);
-
         return $text !== '' ? $text : $prefix . '_' . bin2hex(random_bytes(16));
     }
 
     private function cleanKey($value, string $default): string
     {
-        $text = strtolower(preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $value));
-        $text = trim($text, '_');
-
+        $text = strtolower(trim((string) $value));
+        $text = preg_replace('/[^a-z0-9]+/', '_', $text);
+        $text = trim((string) $text, '_');
         return $text !== '' ? substr($text, 0, 80) : $default;
     }
 
-    private function cleanText($value, int $maxLength): string
+    private function cleanText($value, int $length): string
     {
-        $text = preg_replace('/[\x00-\x1F\x7F]+/', ' ', strip_tags((string) $value));
-        $text = trim(preg_replace('/\s+/', ' ', (string) $text));
-
-        if (function_exists('mb_substr')) {
-            return mb_substr($text, 0, $maxLength, 'UTF-8');
+        if (is_array($value) || is_object($value)) {
+            $value = json_encode($value, JSON_UNESCAPED_SLASHES);
         }
-
-        return substr($text, 0, $maxLength);
+        $text = trim(strip_tags((string) $value));
+        $text = preg_replace('/\s+/', ' ', $text);
+        return substr((string) $text, 0, $length);
     }
 
     private function intValue($value): int
@@ -609,7 +1462,7 @@ class Analytics
 
     private function normalizeMetadata($value, int $depth = 0)
     {
-        if ($depth > 3) {
+        if ($depth > 4) {
             return null;
         }
 
@@ -617,10 +1470,11 @@ class Analytics
             $normalized = [];
             $count = 0;
             foreach ($value as $key => $item) {
-                if ($count >= 50) {
+                if ($count >= 60) {
                     break;
                 }
-                $normalized[$this->cleanText($key, 80)] = $this->normalizeMetadata($item, $depth + 1);
+                $cleanKey = substr(preg_replace('/[^A-Za-z0-9_.-]/', '_', (string) $key), 0, 80);
+                $normalized[$cleanKey] = $this->normalizeMetadata($item, $depth + 1);
                 $count++;
             }
             return $normalized;
@@ -630,19 +1484,18 @@ class Analytics
             return $value;
         }
 
-        return $this->cleanText($value, 500);
+        return $this->cleanText($value, 1000);
     }
 
     private function hashIp(array $server): string
     {
-        $ip = $server['HTTP_CF_CONNECTING_IP']
-            ?? $server['HTTP_X_FORWARDED_FOR']
-            ?? $server['REMOTE_ADDR']
-            ?? '';
-        $ip = trim(explode(',', (string) $ip)[0]);
-        $salt = getenv('FAS_ANALYTICS_SALT') ?: 'flipandstrip-analytics';
+        $ip = $server['REMOTE_ADDR'] ?? '';
+        if ($ip === '') {
+            return '';
+        }
 
-        return $ip !== '' ? hash('sha256', $ip . '|' . $salt) : '';
+        $salt = $server['HTTP_HOST'] ?? 'flipandstrip';
+        return hash('sha256', $ip . '|' . $salt);
     }
 
     private function since(int $days): string
@@ -651,33 +1504,120 @@ class Analytics
         return gmdate('Y-m-d H:i:s', strtotime('-' . $days . ' days'));
     }
 
-    private function fetchOne(string $sql, array $params = []): array
+    private function addColumnIfMissing(string $table, string $column, string $definition): void
     {
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($this->columnExists($table, $column)) {
+            return;
+        }
 
-        return $row ?: [];
+        try {
+            $this->db->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+        } catch (\Throwable $e) {
+            error_log("Analytics column migration failed for {$table}.{$column}: " . $e->getMessage());
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        try {
+            if ($this->driver === 'sqlite') {
+                $stmt = $this->db->query("PRAGMA table_info({$table})");
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    if (strcasecmp((string) $row['name'], $column) === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
+            $stmt->execute([$column]);
+            return (bool) $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            error_log("Analytics column check failed for {$table}.{$column}: " . $e->getMessage());
+            return true;
+        }
+    }
+
+    private function createIndexIfMissing(string $table, string $index, string $column, int $prefixLength = 0): void
+    {
+        if ($this->indexExists($table, $index)) {
+            return;
+        }
+
+        try {
+            if ($this->driver === 'sqlite') {
+                $this->db->exec("CREATE INDEX IF NOT EXISTS {$index} ON {$table}({$column})");
+                return;
+            }
+
+            $columnSql = $prefixLength > 0 ? "`{$column}`({$prefixLength})" : "`{$column}`";
+            $this->db->exec("CREATE INDEX {$index} ON {$table}({$columnSql})");
+        } catch (\Throwable $e) {
+            error_log("Analytics index creation failed for {$index}: " . $e->getMessage());
+        }
+    }
+
+    private function indexExists(string $table, string $index): bool
+    {
+        try {
+            if ($this->driver === 'sqlite') {
+                $stmt = $this->db->query("PRAGMA index_list({$table})");
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    if (strcasecmp((string) $row['name'], $index) === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            $stmt = $this->db->prepare("SHOW INDEX FROM `{$table}` WHERE Key_name = ?");
+            $stmt->execute([$index]);
+            return (bool) $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     private function tableExists(string $tableName): bool
     {
-        if ($this->driver === 'sqlite') {
-            $stmt = $this->db->prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?");
+        try {
+            if ($this->driver === 'sqlite') {
+                $stmt = $this->db->prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?");
+                $stmt->execute([$tableName]);
+                return (bool) $stmt->fetchColumn();
+            }
+
+            $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
             $stmt->execute([$tableName]);
             return (bool) $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return false;
         }
+    }
 
-        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
-        $stmt->execute([$tableName]);
-        return (bool) $stmt->fetchColumn();
+    private function fetchOne(string $sql, array $params = []): array
+    {
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row ?: [];
+        } catch (\Throwable $e) {
+            error_log('Analytics query failed: ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function fetchAll(string $sql, array $params = []): array
     {
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            error_log('Analytics query failed: ' . $e->getMessage());
+            return [];
+        }
     }
 }

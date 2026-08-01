@@ -271,7 +271,9 @@ ob_start();
                             data-image="<?php echo htmlspecialchars($imageUrl); ?>"
                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
-                            data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>">
+                            data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
+                            data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+                            data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     </div>

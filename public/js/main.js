@@ -177,6 +177,8 @@ document.addEventListener('click', (e) => {
             image_alt: button.dataset.imageAlt || button.dataset.name,
             sku: button.dataset.sku || '',
             category: button.dataset.category || '',
+            manufacturer: button.dataset.manufacturer || '',
+            source: button.dataset.source || '',
             weight: parseFloat(button.dataset.weight) || 1.0,
             length: parseFloat(button.dataset.length) || 10.0,
             width: parseFloat(button.dataset.width) || 10.0,

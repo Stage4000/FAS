@@ -6,16 +6,46 @@
     const queue = [];
     const sentScrollDepths = {};
     const impressionKeys = {};
+    const dedupeKeys = {};
     const pageStartedAt = Date.now();
+    const batchSize = 20;
+    const maxQueueSize = 120;
+
     let maxScrollDepth = 0;
     let flushTimer = null;
+    let flushInFlight = null;
     let exitSent = false;
 
+    const eventAliases = {
+        cart_item_added: 'add_to_cart',
+        cart_added: 'add_to_cart',
+        cart_add: 'add_to_cart',
+        cart_item_removed: 'remove_from_cart',
+        checkout_started: 'checkout_start',
+        shipping_calculation_started: 'shipping_rate_requested',
+        shipping_rates_requested: 'shipping_rate_requested',
+        shipping_method_selected: 'shipping_rate_selected',
+        coupon_apply_attempted: 'coupon_attempted',
+        order_completed: 'purchase_completed',
+        order_completion_failed: 'purchase_failed',
+        ebay_exit_click: 'ebay_link_click',
+        ebay_store_click: 'ebay_link_click'
+    };
+
+    const dedupedEvents = {
+        checkout_start: 2500,
+        cart_view: 2500,
+        product_view: 2500,
+        shipping_rate_selected: 1500,
+        coupon_attempted: 1500,
+        purchase_completed: 5000
+    };
+
     function createId(prefix) {
-        if (window.crypto && crypto.getRandomValues) {
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
             const bytes = new Uint8Array(16);
-            crypto.getRandomValues(bytes);
-            return prefix + '_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+            window.crypto.getRandomValues(bytes);
+            return prefix + '_' + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
         }
 
         return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -37,26 +67,48 @@
     }
 
     function getVisitorId() {
-        let visitorId = storageGet(localStorage, 'fas_visitor_id');
+        let visitorId = storageGet(window.localStorage, 'fas_visitor_id');
         if (!visitorId) {
             visitorId = createId('vis');
-            storageSet(localStorage, 'fas_visitor_id', visitorId);
+            storageSet(window.localStorage, 'fas_visitor_id', visitorId);
         }
+
         return visitorId;
     }
 
     function getSessionId() {
-        let sessionId = storageGet(sessionStorage, 'fas_session_id');
+        let sessionId = storageGet(window.sessionStorage, 'fas_session_id');
         if (!sessionId) {
             sessionId = createId('ses');
-            storageSet(sessionStorage, 'fas_session_id', sessionId);
-            storageSet(sessionStorage, 'fas_landing_page', location.pathname + location.search);
+            storageSet(window.sessionStorage, 'fas_session_id', sessionId);
+            storageSet(window.sessionStorage, 'fas_landing_page', location.pathname + location.search);
         }
+
         return sessionId;
     }
 
     const visitorId = getVisitorId();
     const sessionId = getSessionId();
+
+    function normalizeEventType(eventType) {
+        const normalized = String(eventType || 'custom_event')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        return eventAliases[normalized] || normalized || 'custom_event';
+    }
+
+    function toNumber(value, fallback) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : (fallback || 0);
+    }
+
+    function toInteger(value, fallback) {
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : (fallback || 0);
+    }
 
     function getDeviceType() {
         const width = window.innerWidth || document.documentElement.clientWidth || 0;
@@ -70,37 +122,44 @@
     }
 
     function getBrowser() {
-        const ua = navigator.userAgent;
+        const ua = navigator.userAgent || '';
         if (ua.includes('Edg/')) return 'Edge';
         if (ua.includes('Chrome/')) return 'Chrome';
         if (ua.includes('Firefox/')) return 'Firefox';
-        if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
+        if (ua.includes('Safari/')) return 'Safari';
         return 'Other';
     }
 
     function getOS() {
-        const ua = navigator.userAgent;
+        const ua = navigator.userAgent || '';
         if (ua.includes('Windows')) return 'Windows';
         if (ua.includes('Mac OS')) return 'macOS';
         if (ua.includes('Android')) return 'Android';
-        if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+        if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
         if (ua.includes('Linux')) return 'Linux';
         return 'Other';
     }
 
-    function getContext() {
+    function getUtmContext() {
         const params = new URLSearchParams(location.search);
         return {
-            page_url: location.href,
-            page_path: location.pathname + location.search,
-            page_title: document.title,
-            landing_page: storageGet(sessionStorage, 'fas_landing_page') || location.pathname + location.search,
-            referrer: document.referrer || '',
             utm_source: params.get('utm_source') || '',
             utm_medium: params.get('utm_medium') || '',
             utm_campaign: params.get('utm_campaign') || '',
             utm_term: params.get('utm_term') || '',
-            utm_content: params.get('utm_content') || '',
+            utm_content: params.get('utm_content') || ''
+        };
+    }
+
+    function getContext() {
+        return Object.assign({
+            session_id: sessionId,
+            visitor_id: visitorId,
+            page_url: location.href,
+            page_path: location.pathname + location.search,
+            page_title: document.title,
+            landing_page: storageGet(window.sessionStorage, 'fas_landing_page') || location.pathname + location.search,
+            referrer: document.referrer || '',
             device_type: getDeviceType(),
             browser: getBrowser(),
             os: getOS(),
@@ -108,9 +167,9 @@
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
             screen_width: window.screen ? window.screen.width : 0,
             screen_height: window.screen ? window.screen.height : 0,
-            viewport_width: window.innerWidth || 0,
-            viewport_height: window.innerHeight || 0
-        };
+            viewport_width: window.innerWidth || document.documentElement.clientWidth || 0,
+            viewport_height: window.innerHeight || document.documentElement.clientHeight || 0
+        }, getUtmContext());
     }
 
     function getCartItems() {
@@ -119,18 +178,18 @@
         }
 
         try {
-            const stored = JSON.parse(localStorage.getItem('flipandstrip_cart') || '[]');
+            const stored = JSON.parse(window.localStorage.getItem('flipandstrip_cart') || '[]');
             return Array.isArray(stored) ? stored : [];
         } catch (error) {
             return [];
         }
     }
 
-    function getCartSummary() {
-        const items = getCartItems();
-        return items.reduce((summary, item) => {
-            const quantity = Number(item.quantity || 0);
-            const price = Number(item.price || 0);
+    function getCartSummary(items) {
+        const cartItems = Array.isArray(items) ? items : getCartItems();
+        return cartItems.reduce((summary, item) => {
+            const quantity = toInteger(item.quantity, 0);
+            const price = toNumber(item.price || item.unit_price, 0);
             summary.cart_unique_items += 1;
             summary.cart_items_count += quantity;
             summary.cart_value += price * quantity;
@@ -149,9 +208,37 @@
     function pickTopLevelFields(data) {
         const fields = {};
         [
-            'event_name', 'page_url', 'page_path', 'page_title', 'referrer', 'product_id',
-            'product_name', 'product_sku', 'category', 'quantity', 'cart_value',
-            'event_value', 'scroll_depth', 'duration_seconds'
+            'event_name',
+            'page_url',
+            'page_path',
+            'page_title',
+            'referrer',
+            'product_id',
+            'product_name',
+            'product_sku',
+            'category',
+            'manufacturer',
+            'product_source',
+            'product_price',
+            'quantity',
+            'cart_items_count',
+            'cart_unique_items',
+            'cart_value',
+            'coupon_code',
+            'coupon_status',
+            'discount_amount',
+            'shipping_service',
+            'shipping_cost',
+            'order_id',
+            'order_number',
+            'revenue',
+            'search_term',
+            'link_text',
+            'target_url',
+            'target_host',
+            'event_value',
+            'scroll_depth',
+            'duration_seconds'
         ].forEach(key => {
             if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
                 fields[key] = data[key];
@@ -160,22 +247,65 @@
         return fields;
     }
 
+    function dedupeKey(eventType, data) {
+        return [
+            eventType,
+            data.product_id || data.id || '',
+            data.order_id || data.order_number || '',
+            data.coupon_code || data.code || '',
+            data.shipping_index || data.shipping_service || '',
+            location.pathname
+        ].join('|');
+    }
+
+    function shouldDedupe(eventType, data) {
+        const windowMs = dedupedEvents[eventType];
+        if (!windowMs) {
+            return false;
+        }
+
+        const key = dedupeKey(eventType, data);
+        const now = Date.now();
+        if (dedupeKeys[key] && now - dedupeKeys[key] < windowMs) {
+            return true;
+        }
+
+        dedupeKeys[key] = now;
+        return false;
+    }
+
     function track(eventType, data, options) {
+        const normalizedEventType = normalizeEventType(eventType);
         const eventData = data || {};
-        const cartSummary = getCartSummary();
+        const flushOptions = options || {};
+
+        if (shouldDedupe(normalizedEventType, eventData)) {
+            return;
+        }
+
+        const cart = eventData.cart_summary || eventData.cart || getCartSummary();
         const event = Object.assign({
-            event_type: eventType,
-            event_name: eventData.event_name || eventType,
+            event_type: normalizedEventType,
+            event_name: eventData.event_name || normalizedEventType,
+            page_url: location.href,
+            page_path: location.pathname + location.search,
+            page_title: document.title,
+            referrer: document.referrer || '',
             duration_seconds: eventData.duration_seconds !== undefined ? eventData.duration_seconds : getDurationSeconds(),
             scroll_depth: eventData.scroll_depth !== undefined ? eventData.scroll_depth : maxScrollDepth,
-            cart_value: eventData.cart_value !== undefined ? eventData.cart_value : cartSummary.cart_value,
-            metadata: Object.assign({}, eventData, { cart: cartSummary })
+            cart_items_count: eventData.cart_items_count !== undefined ? eventData.cart_items_count : cart.cart_items_count,
+            cart_unique_items: eventData.cart_unique_items !== undefined ? eventData.cart_unique_items : cart.cart_unique_items,
+            cart_value: eventData.cart_value !== undefined ? eventData.cart_value : cart.cart_value,
+            metadata: Object.assign({}, eventData.metadata || {}, eventData, { cart })
         }, pickTopLevelFields(eventData));
 
         queue.push(event);
+        while (queue.length > maxQueueSize) {
+            queue.shift();
+        }
 
-        if (options && options.immediate) {
-            flush(!!options.beacon);
+        if (flushOptions.immediate) {
+            flush(!!flushOptions.beacon);
             return;
         }
 
@@ -183,65 +313,149 @@
     }
 
     function scheduleFlush() {
-        if (queue.length >= 10) {
-            flush(false);
+        if (flushTimer) {
             return;
         }
 
-        clearTimeout(flushTimer);
-        flushTimer = setTimeout(() => flush(false), 1500);
+        flushTimer = window.setTimeout(() => {
+            flushTimer = null;
+            flush(false);
+        }, 1800);
     }
 
-    function flush(useBeacon) {
-        if (queue.length === 0) {
-            return Promise.resolve();
-        }
-
-        clearTimeout(flushTimer);
-        const events = queue.splice(0, queue.length);
-        const body = JSON.stringify({
+    function buildPayload(events) {
+        return JSON.stringify({
             session_id: sessionId,
             visitor_id: visitorId,
             context: getContext(),
             events
         });
+    }
+
+    function flush(useBeacon) {
+        if (flushInFlight || queue.length === 0) {
+            return flushInFlight || Promise.resolve(false);
+        }
+
+        const events = queue.splice(0, batchSize);
+        const body = buildPayload(events);
 
         if (useBeacon && navigator.sendBeacon) {
             const blob = new Blob([body], { type: 'application/json' });
             if (navigator.sendBeacon(endpoint, blob)) {
-                return Promise.resolve();
+                return Promise.resolve(true);
             }
         }
 
-        return fetch(endpoint, {
+        flushInFlight = fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body,
             credentials: 'same-origin',
             keepalive: !!useBeacon
-        }).catch(() => {
-        });
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Analytics request failed');
+                }
+                return response.json().catch(() => ({}));
+            })
+            .catch(() => {
+                events.reverse().forEach(event => queue.unshift(event));
+                return false;
+            })
+            .finally(() => {
+                flushInFlight = null;
+                if (queue.length > 0 && !useBeacon) {
+                    scheduleFlush();
+                }
+            });
+
+        return flushInFlight;
     }
 
-    function extractItem(item) {
-        const product = item || {};
+    function dataFromProductElement(element) {
+        if (!element) {
+            return {};
+        }
+
+        const button = element.matches && element.matches('.add-to-cart[data-id]')
+            ? element
+            : element.querySelector('.add-to-cart[data-id]');
+
+        if (!button) {
+            return {};
+        }
+
+        const productPrice = toNumber(button.dataset.price, 0);
         return {
-            product_id: product.id || product.product_id || '',
-            product_name: product.name || product.product_name || '',
-            product_sku: product.sku || product.product_sku || '',
-            category: product.category || '',
-            quantity: Number(product.quantity || 1),
-            event_value: Number(product.price || product.event_value || 0)
+            product_id: button.dataset.id || '',
+            product_name: button.dataset.name || '',
+            product_sku: button.dataset.sku || '',
+            category: button.dataset.category || '',
+            manufacturer: button.dataset.manufacturer || '',
+            product_source: button.dataset.source || '',
+            product_price: productPrice,
+            event_value: productPrice
         };
     }
 
+    function dataFromCartItem(item) {
+        const price = toNumber(item.price || item.unit_price, 0);
+        const quantity = toInteger(item.quantity, 1);
+        return {
+            product_id: item.product_id || item.id || '',
+            product_name: item.product_name || item.name || '',
+            product_sku: item.product_sku || item.sku || '',
+            category: item.category || '',
+            manufacturer: item.manufacturer || '',
+            product_source: item.product_source || item.source || '',
+            product_price: price,
+            quantity,
+            event_value: price * Math.max(1, quantity)
+        };
+    }
+
+    function getCurrentProductContext() {
+        if (!window.FAS_PRODUCT_DATA) {
+            return {};
+        }
+
+        const productData = Object.assign({}, window.FAS_PRODUCT_DATA);
+        if (productData.event_value !== undefined && productData.product_price === undefined) {
+            productData.product_price = productData.event_value;
+        }
+
+        return productData;
+    }
+
+    function isEbayHost(hostname) {
+        const host = String(hostname || '').toLowerCase();
+        return host === 'ebay.com'
+            || host.endsWith('.ebay.com')
+            || host.startsWith('ebay.')
+            || host.includes('.ebay.');
+    }
+
     function trackCartEvent(eventType, item, extra) {
-        track(eventType, Object.assign(extractItem(item), extra || {}), { immediate: true });
+        const extraData = extra || {};
+        const summary = extraData.cart_summary || extraData.cart || getCartSummary();
+        const productData = dataFromCartItem(item || {});
+        const payload = Object.assign({}, productData, extraData, {
+            cart_items_count: summary.cart_items_count,
+            cart_unique_items: summary.cart_unique_items,
+            cart_value: summary.cart_value,
+            cart_summary: summary
+        });
+
+        track(eventType, payload, { immediate: true });
     }
 
     function updateScrollDepth() {
         const doc = document.documentElement;
-        const body = document.body;
+        const body = document.body || doc;
         const scrollTop = window.scrollY || doc.scrollTop || body.scrollTop || 0;
         const scrollHeight = Math.max(body.scrollHeight, doc.scrollHeight, body.offsetHeight, doc.offsetHeight);
         const viewport = window.innerHeight || doc.clientHeight || 1;
@@ -264,7 +478,7 @@
                 return;
             }
             pending = true;
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
                 updateScrollDepth();
                 pending = false;
             });
@@ -274,43 +488,75 @@
 
     function setupClickTracking() {
         document.addEventListener('click', event => {
-            const themeToggle = event.target.closest('#themeToggle, #navbarThemeToggle');
+            const clicked = event.target;
+            if (!(clicked instanceof Element)) {
+                return;
+            }
+
+            const themeToggle = clicked.closest('#themeToggle, #navbarThemeToggle');
             if (themeToggle) {
-                track('site_setting_changed', { setting: 'theme', control_id: themeToggle.id }, { immediate: true });
+                track('site_setting_changed', {
+                    setting: 'theme',
+                    control_id: themeToggle.id || ''
+                }, { immediate: true });
                 return;
             }
 
-            if (event.target.closest('.add-to-cart')) {
+            if (clicked.closest('.add-to-cart')) {
                 return;
             }
 
-            const link = event.target.closest('a[href]');
+            const banner = clicked.closest('[data-analytics-banner]');
+            if (banner) {
+                track('banner_click', {
+                    banner_id: banner.getAttribute('data-analytics-banner') || '',
+                    banner_text: (banner.textContent || '').trim().slice(0, 120)
+                }, { immediate: true });
+            }
+
+            const link = clicked.closest('a[href]');
             if (!link) {
                 return;
             }
 
-            const href = link.href;
+            const href = link.getAttribute('href') || '';
             if (!href || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
                 return;
             }
 
-            const url = new URL(href, location.href);
-            const text = (link.textContent || link.getAttribute('aria-label') || '').trim().slice(0, 120);
-            const isExternal = url.hostname !== location.hostname;
-            const productMatch = url.pathname.match(/^\/product\/([^/]+)/);
+            let url;
+            try {
+                url = new URL(href, location.href);
+            } catch (error) {
+                return;
+            }
 
+            const text = (link.textContent || link.getAttribute('aria-label') || '').trim().slice(0, 120);
+            const productMatch = url.pathname.match(/^\/product\/([^/]+)/);
             if (productMatch) {
-                track('product_click', {
+                const cardData = dataFromProductElement(link.closest('.product-card'));
+                track('product_click', Object.assign({
                     product_id: productMatch[1],
-                    target_url: href,
-                    link_text: text
-                }, { immediate: true, beacon: true });
-            } else {
-                track(isExternal ? 'outbound_click' : 'navigation_click', {
-                    target_url: href,
-                    target_path: url.pathname + url.search,
-                    link_text: text
-                }, { immediate: true, beacon: isExternal });
+                    link_text: text,
+                    target_url: url.pathname
+                }, cardData), { immediate: true });
+                return;
+            }
+
+            if (url.hostname !== location.hostname) {
+                const outboundData = Object.assign({
+                    link_text: text,
+                    target_url: url.href,
+                    target_host: url.hostname
+                }, getCurrentProductContext());
+
+                if (isEbayHost(url.hostname)) {
+                    track('ebay_link_click', Object.assign({
+                        event_name: 'eBay outbound click'
+                    }, outboundData), { immediate: true, beacon: true });
+                }
+
+                track('external_link_click', outboundData, { immediate: true, beacon: true });
             }
         });
     }
@@ -318,6 +564,10 @@
     function setupSearchTracking() {
         document.addEventListener('submit', event => {
             const form = event.target;
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+
             const searchInput = form.querySelector('input[name="search"], input[type="search"]');
             if (!searchInput) {
                 return;
@@ -334,31 +584,30 @@
     }
 
     function setupProductViewTracking() {
-        if (window.FAS_PRODUCT_DATA) {
-            track('product_view', window.FAS_PRODUCT_DATA, { immediate: true });
+        if (!window.FAS_PRODUCT_DATA) {
+            return;
         }
+
+        track('product_view', getCurrentProductContext(), { immediate: true });
     }
 
     function setupProductImpressions() {
-        const cards = Array.from(document.querySelectorAll('.product-card'));
+        const cards = Array.from(document.querySelectorAll('.product-card, [data-analytics-product-card]'));
         if (cards.length === 0) {
             return;
         }
 
         function trackCard(card, position) {
-            const button = card.querySelector('.add-to-cart[data-id]');
-            if (!button || impressionKeys[button.dataset.id]) {
+            const data = dataFromProductElement(card);
+            if (!data.product_id || impressionKeys[data.product_id]) {
                 return;
             }
 
-            impressionKeys[button.dataset.id] = true;
-            track('product_impression', {
-                product_id: button.dataset.id,
-                product_name: button.dataset.name || '',
-                product_sku: button.dataset.sku || '',
-                event_value: Number(button.dataset.price || 0),
-                list_position: position + 1
-            });
+            impressionKeys[data.product_id] = true;
+            track('product_impression', Object.assign({
+                list_position: position + 1,
+                list_name: document.title || 'Product list'
+            }, data));
         }
 
         if (!('IntersectionObserver' in window)) {
@@ -379,6 +628,33 @@
         cards.forEach(card => observer.observe(card));
     }
 
+    function setupShippingSelectionTracking() {
+        document.addEventListener('change', event => {
+            const input = event.target;
+            if (!(input instanceof HTMLInputElement) || input.name !== 'shipping_method') {
+                return;
+            }
+
+            track('shipping_rate_selected', {
+                shipping_index: input.value,
+                shipping_cost: toNumber(input.dataset.cost, 0),
+                shipping_service: input.dataset.courier || '',
+                event_value: toNumber(input.dataset.cost, 0)
+            }, { immediate: true });
+        });
+    }
+
+    function trackRouteMilestones() {
+        const path = location.pathname.replace(/\/+$/, '') || '/';
+        if (path === '/cart' || path === '/cart.php') {
+            track('cart_view', getCartSummary(), { immediate: true });
+        }
+
+        if (path === '/checkout' || path === '/checkout.php') {
+            track('checkout_start', getCartSummary(), { immediate: true });
+        }
+    }
+
     function sendLifecycleEvent(eventType) {
         updateScrollDepth();
         track(eventType, {
@@ -392,8 +668,24 @@
             return;
         }
         exitSent = true;
+        const cart = getCartSummary();
+        if (cart.cart_items_count > 0 || cart.cart_value > 0) {
+            track('cart_abandonment_signal', Object.assign({
+                event_name: 'Cart still active on site exit',
+                duration_seconds: getDurationSeconds(),
+                scroll_depth: maxScrollDepth
+            }, cart), { immediate: true, beacon: true });
+        }
         sendLifecycleEvent('page_exit');
     }
+
+    window.fasAnalytics = {
+        track,
+        flush,
+        trackCartEvent,
+        cartSummary: getCartSummary,
+        context: getContext
+    };
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
@@ -409,32 +701,32 @@
     window.addEventListener('pagehide', sendExit);
     window.addEventListener('online', () => flush(false));
 
-    setInterval(() => {
+    window.setInterval(() => {
         track('session_heartbeat', {
             duration_seconds: getDurationSeconds(),
             scroll_depth: maxScrollDepth
         }, { immediate: true });
     }, 30000);
 
-    window.fasAnalytics = {
-        track,
-        flush,
-        trackCartEvent,
-        cartSummary: getCartSummary
-    };
-
     document.addEventListener('DOMContentLoaded', () => {
-        const hasStarted = storageGet(sessionStorage, 'fas_analytics_started');
-        if (!hasStarted) {
-            storageSet(sessionStorage, 'fas_analytics_started', '1');
-            track('session_start', { event_name: 'Session started' }, { immediate: true });
+        const sessionStartedKey = 'fas_analytics_started_' + sessionId;
+        if (!storageGet(window.sessionStorage, sessionStartedKey)) {
+            storageSet(window.sessionStorage, sessionStartedKey, '1');
+            track('session_start', {
+                event_name: 'Session started'
+            }, { immediate: true });
         }
 
-        track('page_view', { event_name: 'Page viewed' });
+        track('page_view', {
+            event_name: 'Page viewed'
+        });
+
         setupScrollTracking();
         setupClickTracking();
         setupSearchTracking();
+        setupShippingSelectionTracking();
         setupProductViewTracking();
         setupProductImpressions();
+        trackRouteMilestones();
     });
 })();

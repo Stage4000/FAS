@@ -291,8 +291,25 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     product_name TEXT,
     product_sku TEXT,
     category TEXT,
+    manufacturer TEXT,
+    product_source TEXT,
+    product_price REAL DEFAULT 0,
     quantity INTEGER DEFAULT 0,
+    cart_items_count INTEGER DEFAULT 0,
+    cart_unique_items INTEGER DEFAULT 0,
     cart_value REAL DEFAULT 0,
+    coupon_code TEXT,
+    coupon_status TEXT,
+    discount_amount REAL DEFAULT 0,
+    shipping_service TEXT,
+    shipping_cost REAL DEFAULT 0,
+    order_id TEXT,
+    order_number TEXT,
+    revenue REAL DEFAULT 0,
+    search_term TEXT,
+    link_text TEXT,
+    target_url TEXT,
+    target_host TEXT,
     event_value REAL DEFAULT 0,
     scroll_depth INTEGER DEFAULT 0,
     duration_seconds INTEGER DEFAULT 0,
@@ -308,3 +325,6 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_t
 CREATE INDEX IF NOT EXISTS idx_analytics_events_page ON analytics_events(page_path);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_product ON analytics_events(product_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_coupon ON analytics_events(coupon_code);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_order ON analytics_events(order_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_target_host ON analytics_events(target_host);
