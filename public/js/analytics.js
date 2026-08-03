@@ -6,6 +6,7 @@
     const queue = [];
     const sentScrollDepths = {};
     const impressionKeys = {};
+    const bannerViewKeys = {};
     const dedupeKeys = {};
     const pageStartedAt = Date.now();
     const batchSize = 20;
@@ -431,6 +432,35 @@
         return productData;
     }
 
+    function dataFromBannerElement(element) {
+        if (!element) {
+            return {};
+        }
+
+        const banner = element.closest('[data-analytics-banner]');
+        if (!banner) {
+            return {};
+        }
+
+        const link = element.matches && element.matches('a[href]')
+            ? element
+            : banner.querySelector('[data-analytics-banner-link], a[href]');
+        const linkText = link
+            ? (link.textContent || link.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 120)
+            : '';
+        const targetUrl = link
+            ? (link.getAttribute('data-analytics-target-url') || link.getAttribute('href') || '')
+            : '';
+
+        return {
+            banner_id: banner.getAttribute('data-analytics-banner') || '',
+            campaign_name: banner.getAttribute('data-analytics-campaign') || '',
+            banner_text: (banner.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 160),
+            link_text: linkText,
+            target_url: targetUrl
+        };
+    }
+
     function isEbayHost(hostname) {
         const host = String(hostname || '').toLowerCase();
         return host === 'ebay.com'
@@ -506,12 +536,12 @@
                 return;
             }
 
-            const banner = clicked.closest('[data-analytics-banner]');
-            if (banner) {
-                track('banner_click', {
-                    banner_id: banner.getAttribute('data-analytics-banner') || '',
-                    banner_text: (banner.textContent || '').trim().slice(0, 120)
-                }, { immediate: true });
+            const bannerLink = clicked.closest('[data-analytics-banner-link], [data-analytics-banner] a[href]');
+            if (bannerLink) {
+                const bannerData = dataFromBannerElement(bannerLink);
+                if (bannerData.banner_id) {
+                    track('banner_click', bannerData, { immediate: true, beacon: true });
+                }
             }
 
             const link = clicked.closest('a[href]');
@@ -546,6 +576,7 @@
             if (url.hostname !== location.hostname) {
                 const outboundData = Object.assign({
                     link_text: text,
+                    link_source: link.getAttribute('data-analytics-source') || '',
                     target_url: url.href,
                     target_host: url.hostname
                 }, getCurrentProductContext());
@@ -628,6 +659,44 @@
         cards.forEach(card => observer.observe(card));
     }
 
+    function setupBannerViews() {
+        const banners = Array.from(document.querySelectorAll('.alert-banner[data-analytics-banner]'));
+        if (banners.length === 0) {
+            return;
+        }
+
+        function trackBannerView(banner) {
+            const bannerData = dataFromBannerElement(banner);
+            if (!bannerData.banner_id) {
+                return;
+            }
+
+            const key = location.pathname + ':' + bannerData.banner_id;
+            if (bannerViewKeys[key]) {
+                return;
+            }
+
+            bannerViewKeys[key] = true;
+            track('banner_view', bannerData);
+        }
+
+        if (!('IntersectionObserver' in window)) {
+            banners.forEach(trackBannerView);
+            return;
+        }
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    observer.unobserve(entry.target);
+                    trackBannerView(entry.target);
+                }
+            });
+        }, { threshold: 0.25 });
+
+        banners.forEach(banner => observer.observe(banner));
+    }
+
     function setupShippingSelectionTracking() {
         document.addEventListener('change', event => {
             const input = event.target;
@@ -684,7 +753,9 @@
         flush,
         trackCartEvent,
         cartSummary: getCartSummary,
-        context: getContext
+        context: getContext,
+        refreshProductImpressions: setupProductImpressions,
+        refreshBannerViews: setupBannerViews
     };
 
     document.addEventListener('visibilitychange', () => {
@@ -722,11 +793,12 @@
         });
 
         setupScrollTracking();
-        setupClickTracking();
-        setupSearchTracking();
-        setupShippingSelectionTracking();
-        setupProductViewTracking();
-        setupProductImpressions();
-        trackRouteMilestones();
+            setupClickTracking();
+            setupSearchTracking();
+            setupShippingSelectionTracking();
+            setupBannerViews();
+            setupProductViewTracking();
+            setupProductImpressions();
+            trackRouteMilestones();
     });
 })();

@@ -6,9 +6,20 @@ $currentPage = 'home';
 $extraHeadMeta = '<meta name="google-site-verification" content="4klYcjDMem--91hHRoLI38YtVRKyZnpyyPGXT651Lno" />';
 
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/src/config/Database.php';
+require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/includes/product-merchandising.php';
 
+use FAS\Config\Database;
+use FAS\Models\Product;
+
+$db = Database::getInstance()->getConnection();
+$productModel = new Product($db);
 $sellerRating = fasGetCachedSellerRating();
+$trendingProducts = fasAnalyticsRankedProducts($db, $productModel, 8);
+$recentProducts = $productModel->getRecentVisible(8, array_column($trendingProducts, 'id'));
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
     <!-- Hero Section -->
@@ -92,11 +103,51 @@ $sellerRating = fasGetCachedSellerRating();
             <div class="mt-4">
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'homepage'); ?>
             </div>
-        </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Features Section -->
-    <section class="bg-light py-5">
+<?php if (!empty($trendingProducts)): ?>
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
+            <div>
+                <p class="text-danger text-uppercase fw-semibold small mb-1">Demand Signals</p>
+                <h2 class="fw-bold mb-0">Trending Parts</h2>
+                <p class="text-muted mb-0">Products ranked from views, carts, and completed-order activity.</p>
+            </div>
+            <a href="/products" class="btn btn-outline-danger">Shop All Products</a>
+        </div>
+        <div class="row g-4">
+            <?php foreach ($trendingProducts as $index => $trendingProduct): ?>
+                <?php echo fasProductCard($trendingProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($recentProducts)): ?>
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
+            <div>
+                <p class="text-danger text-uppercase fw-semibold small mb-1">Fresh Inventory</p>
+                <h2 class="fw-bold mb-0">Recently Added Parts</h2>
+                <p class="text-muted mb-0">New listings give returning shoppers a reason to keep checking the catalog.</p>
+            </div>
+            <a href="/products" class="btn btn-outline-danger">View Recent Inventory</a>
+        </div>
+        <div class="row g-4">
+            <?php foreach ($recentProducts as $index => $recentProduct): ?>
+                <?php echo fasProductCard($recentProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<!-- Features Section -->
+<section class="bg-light py-5">
         <div class="container">
             <div class="row g-4 text-center">
                 <div class="col-md-3" data-aos="zoom-in" data-aos-delay="100" data-aos-duration="800">

@@ -298,6 +298,8 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     link_text VARCHAR(255),
     target_url VARCHAR(1000),
     target_host VARCHAR(255),
+    banner_id VARCHAR(80),
+    campaign_name VARCHAR(255),
     event_value DECIMAL(10, 2) DEFAULT 0,
     scroll_depth INT DEFAULT 0,
     duration_seconds INT DEFAULT 0,
@@ -311,6 +313,7 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     INDEX idx_analytics_events_coupon (coupon_code),
     INDEX idx_analytics_events_order (order_id),
     INDEX idx_analytics_events_target_host (target_host),
+    INDEX idx_analytics_events_banner (banner_id),
     CONSTRAINT fk_analytics_events_session
         FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
         ON DELETE CASCADE

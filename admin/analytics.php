@@ -26,6 +26,7 @@ $abandonedCarts = $analytics->getAbandonedCarts($days, 12);
 $ebayLinkClicks = $analytics->getEbayLinkClicks($days, 12);
 $topProducts = $analytics->getTopProducts($days, 12);
 $couponPerformance = $analytics->getCouponPerformance($days, 12);
+$bannerPerformance = $analytics->getBannerPerformance($days, 12);
 $revenueByCategory = $analytics->getRevenueByCategory($days, 10);
 $topPages = $analytics->getTopPages($days, 10);
 $trafficSources = $analytics->getTrafficSources($days, 10);
@@ -316,7 +317,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     <div class="col-xl-8">
         <div class="card border-0 shadow-sm h-100" data-aos="fade-up">
             <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-box text-danger me-2"></i>Top Products</h5>
+<h5 class="mb-0"><i class="fas fa-box text-danger me-2"></i>Trending Products</h5>
             </div>
             <div class="card-body table-responsive">
                 <table class="table table-sm align-middle table-fixed">
@@ -383,6 +384,61 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                     <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+</div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" data-aos="fade-up">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-bullhorn text-danger me-2"></i>Banner / Campaign Performance</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Campaign</th>
+                            <th>Link</th>
+                            <th class="text-end">Views</th>
+                            <th class="text-end">Clicks</th>
+                            <th class="text-end">CTR</th>
+                            <th class="text-end">Last Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($bannerPerformance as $row): ?>
+                        <?php
+                        $bannerViews = (int) ($row['views'] ?? 0);
+                        $bannerClicks = (int) ($row['clicks'] ?? 0);
+                        $bannerCtr = $bannerViews > 0 ? ($bannerClicks / $bannerViews) * 100 : null;
+                        $campaignName = trim((string) ($row['campaign_name'] ?? ''));
+                        if ($campaignName === '') {
+                            $campaignName = 'Banner #' . ($row['banner_id'] ?? '');
+                        }
+                        ?>
+                        <tr>
+                            <td class="text-break">
+                                <div><?php echo safe($campaignName); ?></div>
+                                <div class="small text-muted">Banner ID: <?php echo safe($row['banner_id'] ?? ''); ?></div>
+                            </td>
+                            <td class="text-break">
+                                <div><?php echo safe($row['link_text'] ?: 'No link text'); ?></div>
+                                <div class="small text-muted"><?php echo safe($row['target_url'] ?: 'No target URL'); ?></div>
+                            </td>
+                            <td class="text-end"><?php echo fmtNumber($bannerViews); ?></td>
+                            <td class="text-end"><?php echo fmtNumber($bannerClicks); ?></td>
+                            <td class="text-end"><?php echo fmtPercent($bannerCtr); ?></td>
+                            <td class="text-end text-nowrap"><?php echo safe($row['last_activity'] ?? ''); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($bannerPerformance)): ?>
+                        <tr><td colspan="6" class="text-muted">No banner views or clicks tracked yet.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+                <div class="small text-muted">Use this to compare promotion visibility against actual click-through before changing coupon or sale strategy.</div>
             </div>
         </div>
     </div>

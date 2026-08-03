@@ -228,19 +228,25 @@ array_unshift($structuredData, \FAS\Utils\Seo::organizationSchema($seoConfig));
     }
     ?>
     <?php foreach ($activeBanners as $banner): ?>
-    <div class="alert-banner bg-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
-         role="alert"
-         id="banner-<?php echo (int) $banner['id']; ?>"
-         <?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(date('c', strtotime($banner['ends_at']))); ?>"<?php endif; ?>>
+<div class="alert-banner bg-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?> text-center mb-0 rounded-0 border-0 py-2"
+role="alert"
+id="banner-<?php echo (int) $banner['id']; ?>"
+data-analytics-banner="<?php echo (int) $banner['id']; ?>"
+data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
+<?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(date('c', strtotime($banner['ends_at']))); ?>"<?php endif; ?>>
         <?php echo htmlspecialchars($banner['message']); ?>
         <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
             &nbsp;<span class="banner-countdown fw-bold"
                         data-end="<?php echo htmlspecialchars(date('c', strtotime($banner['countdown_end']))); ?>"></span>
         <?php endif; ?>
-        <?php if (!empty($banner['link_url'])): ?>
-            &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
-               class="fw-bold text-<?php echo htmlspecialchars($banner['text_color']); ?>"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
-        <?php endif; ?>
+<?php if (!empty($banner['link_url'])): ?>
+&nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
+class="fw-bold text-<?php echo htmlspecialchars($banner['text_color']); ?>"
+data-analytics-banner-link
+data-analytics-banner="<?php echo (int) $banner['id']; ?>"
+data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
+data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
+<?php endif; ?>
         <?php if ($banner['is_dismissible']): ?>
         <button type="button"
                 class="btn-close<?php echo $banner['text_color'] === 'white' ? ' btn-close-white' : ''; ?> float-end"
@@ -294,7 +300,7 @@ array_unshift($structuredData, \FAS\Utils\Seo::organizationSchema($seoConfig));
                         </a>
                     </li>
                     <li class="nav-item navbar-inline-mobile">
-                        <a class="nav-link" href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" aria-label="eBay Store">
+<a class="nav-link" href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" aria-label="eBay Store" data-analytics-source="header_ebay_store">
                             <i class="fas fa-store"></i>
                         </a>
                     </li>

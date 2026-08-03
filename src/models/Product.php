@@ -951,4 +951,117 @@ class Product
 
         return $visibleCategoryIds;
     }
+
+    public function getVisibleByIds(array $ids, int $limit = 12): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
+            return $id > 0;
+        })));
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        $ids = array_slice($ids, 0, max(1, $limit));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT *
+                FROM products
+                WHERE is_active = 1
+                  AND show_on_website = 1
+                  AND id IN ({$placeholders})";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($ids);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int)$row['id']] = $row;
+        }
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($byId[$id])) {
+                $ordered[] = $byId[$id];
+            }
+        }
+
+        return $ordered;
+    }
+
+    public function getRecentVisible(int $limit = 8, array $excludeIds = [], ?string $category = null, ?string $manufacturer = null): array
+    {
+        $excludeIds = array_values(array_unique(array_filter(array_map('intval', $excludeIds), function ($id) {
+            return $id > 0;
+        })));
+
+        $sql = "SELECT *
+                FROM products
+                WHERE is_active = 1
+                  AND show_on_website = 1";
+        $params = [];
+
+        if (!empty($excludeIds)) {
+            $sql .= " AND id NOT IN (" . implode(',', array_fill(0, count($excludeIds), '?')) . ")";
+            $params = array_merge($params, $excludeIds);
+        }
+
+        if ($category !== null && trim($category) !== '') {
+            $sql .= " AND (
+                category = ?
+                OR ebay_store_cat1_name = ?
+                OR ebay_store_cat2_name = ?
+                OR ebay_store_cat3_name = ?
+            )";
+            $params[] = $category;
+            $params[] = $category;
+            $params[] = $category;
+            $params[] = $category;
+        }
+
+        if ($manufacturer !== null && trim($manufacturer) !== '') {
+            $sql .= " AND manufacturer = ?";
+            $params[] = $manufacturer;
+        }
+
+        $sql .= " ORDER BY created_at DESC LIMIT ?";
+        $params[] = max(1, $limit);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function getRelatedVisible(array $product, int $limit = 4, array $excludeIds = []): array
+    {
+        $currentId = (int)($product['id'] ?? 0);
+        if ($currentId > 0) {
+            $excludeIds[] = $currentId;
+        }
+
+        $category = $product['ebay_store_cat3_name']
+            ?? $product['ebay_store_cat2_name']
+            ?? $product['ebay_store_cat1_name']
+            ?? $product['category']
+            ?? null;
+        $manufacturer = $product['manufacturer'] ?? null;
+
+        $related = [];
+        if ($category !== null && trim((string)$category) !== '') {
+            $related = $this->getRecentVisible($limit, $excludeIds, (string)$category, null);
+        }
+
+        if (count($related) < $limit && $manufacturer !== null && trim((string)$manufacturer) !== '') {
+            $more = $this->getRecentVisible($limit - count($related), array_merge($excludeIds, array_column($related, 'id')), null, (string)$manufacturer);
+            $related = array_merge($related, $more);
+        }
+
+        if (count($related) < $limit) {
+            $more = $this->getRecentVisible($limit - count($related), array_merge($excludeIds, array_column($related, 'id')));
+            $related = array_merge($related, $more);
+        }
+
+        return array_slice($related, 0, $limit);
+    }
 }

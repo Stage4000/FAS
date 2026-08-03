@@ -84,6 +84,8 @@ class Analytics
         'link_text' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'target_url' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(1000)'],
         'target_host' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'banner_id' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'campaign_name' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
     ];
 
     private $db;
@@ -325,6 +327,46 @@ class Analytics
         });
 
         return array_slice($rows, 0, $limit);
+    }
+
+    public function getRankedProductIds(int $days = 30, int $limit = 24): array
+    {
+        $rankedIds = [];
+        foreach ($this->getTopProducts($days, $limit * 2) as $row) {
+            $productId = (int) ($row['product_id'] ?? 0);
+            if ($productId > 0 && !in_array($productId, $rankedIds, true)) {
+                $rankedIds[] = $productId;
+            }
+            if (count($rankedIds) >= $limit) {
+                break;
+            }
+        }
+
+        return $rankedIds;
+    }
+
+    public function getBannerPerformance(int $days, int $limit = 10): array
+    {
+        $this->ensureTables();
+
+        return $this->fetchAll(
+            "SELECT banner_id,
+                    campaign_name,
+                    MAX(link_text) AS link_text,
+                    MAX(target_url) AS target_url,
+                    SUM(CASE WHEN event_type = 'banner_view' THEN 1 ELSE 0 END) AS views,
+                    SUM(CASE WHEN event_type = 'banner_click' THEN 1 ELSE 0 END) AS clicks,
+                    MAX(created_at) AS last_activity
+             FROM analytics_events
+             WHERE created_at >= ?
+               AND event_type IN ('banner_view', 'banner_click')
+               AND banner_id IS NOT NULL
+               AND banner_id <> ''
+             GROUP BY banner_id, campaign_name
+             ORDER BY clicks DESC, views DESC, last_activity DESC
+             LIMIT " . (int) $limit,
+            [$this->since($days)]
+        );
     }
 
     public function getTrafficSources(int $days, int $limit = 10): array
@@ -648,6 +690,7 @@ class Analytics
             'checkout_dropoff' => $this->getCheckoutDropoff($days),
             'abandoned_carts' => $this->getAbandonedCarts($days, 10),
             'ebay_link_clicks' => $this->getEbayLinkClicks($days, 10),
+            'banner_performance' => $this->getBannerPerformance($days, 10),
             'coupon_performance' => $this->getCouponPerformance($days, 10),
             'revenue_by_category' => $this->getRevenueByCategory($days, 10),
         ];
@@ -719,6 +762,8 @@ class Analytics
                 link_text TEXT,
                 target_url TEXT,
                 target_host TEXT,
+                banner_id TEXT,
+                campaign_name TEXT,
                 event_value REAL DEFAULT 0,
                 scroll_depth INTEGER DEFAULT 0,
                 duration_seconds INTEGER DEFAULT 0,
@@ -795,6 +840,8 @@ class Analytics
                 link_text VARCHAR(255),
                 target_url VARCHAR(1000),
                 target_host VARCHAR(255),
+                banner_id VARCHAR(80),
+                campaign_name VARCHAR(255),
                 event_value DECIMAL(10, 2) DEFAULT 0,
                 scroll_depth INT DEFAULT 0,
                 duration_seconds INT DEFAULT 0,
@@ -827,6 +874,7 @@ class Analytics
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_coupon', 'coupon_code');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_order', 'order_id');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_target_host', 'target_host');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_banner', 'banner_id');
     }
 
     private function upsertSession(string $sessionId, string $visitorId, array $context, array $server, string $now): void
@@ -945,9 +993,9 @@ class Analytics
                 coupon_code, coupon_status, discount_amount,
                 shipping_service, shipping_cost,
                 order_id, order_number, revenue, search_term,
-                link_text, target_url, target_host,
+                link_text, target_url, target_host, banner_id, campaign_name,
                 event_value, scroll_depth, duration_seconds, metadata, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->execute([
@@ -982,6 +1030,8 @@ class Analytics
             $this->cleanText($this->firstValue([$event, $metadata], ['link_text'], ''), 255),
             $this->cleanText($this->firstValue([$event, $metadata], ['target_url'], ''), 1000),
             $this->cleanText($this->firstValue([$event, $metadata], ['target_host'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['banner_id'], ''), 80),
+            $this->cleanText($this->firstValue([$event, $metadata], ['campaign_name'], ''), 255),
             $eventValue,
             min(100, max(0, $this->intValue($this->firstValue([$event, $metadata], ['scroll_depth'], 0)))),
             max(0, $this->intValue($this->firstValue([$event, $metadata], ['duration_seconds'], 0))),
@@ -1084,6 +1134,8 @@ class Analytics
             'link_text',
             'target_url',
             'target_host',
+            'banner_id',
+            'campaign_name',
             'event_value',
             'value',
             'scroll_depth',

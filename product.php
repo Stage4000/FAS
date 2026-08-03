@@ -5,6 +5,7 @@ require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/src/utils/Seo.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
+require_once __DIR__ . '/includes/product-merchandising.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -31,6 +32,8 @@ if (!$product) {
     header('Location: /products');
     exit;
 }
+
+$relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 4);
 
 // Parse images from JSON if available
 $images = [];
@@ -256,7 +259,7 @@ require_once __DIR__ . '/includes/header.php';
             
             <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
-                    <h6 class="mb-3">Product Details</h6>
+                    <h6 class="mb-3">Part Facts</h6>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
                         <?php 
                         // Display eBay store category hierarchy if available
@@ -296,7 +299,37 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
-            <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
+                <div class="card border-0 shadow-sm mb-4" data-theme-card>
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h6>
+                        <div class="row g-3 small">
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Actual Item Photographed</div>
+                                <div class="text-muted">Photos represent the part you are reviewing.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Inspected Used Part</div>
+                                <div class="text-muted">Inventory is reviewed before being listed for sale.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Secure Payment</div>
+                                <div class="text-muted">Checkout runs through PayPal for buyer protection.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Shipping Support</div>
+                                <div class="text-muted">Rates are calculated at checkout before payment.</div>
+                            </div>
+                        </div>
+                        <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($ebayCategory)): ?>
+                            <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+                                <i class="fas fa-wrench me-1"></i>
+                                Confirm fitment using the manufacturer, model, SKU, category, and photos before purchase. Contact us if you need help matching this part.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
             
             <div class="mb-4">
                 <label class="form-label fw-bold">Quantity:</label>
@@ -333,17 +366,11 @@ require_once __DIR__ . '/includes/header.php';
                 </button>
             </div>
             
-            <div class="alert alert-info">
-                <i class="bi bi-truck me-2"></i>
-                <strong>Fast Shipping Available</strong><br>
-                <small>Ships with tracking</small>
-            </div>
-            
-            <div class="alert alert-secondary">
-                <i class="bi bi-shield-check me-2"></i>
-                <strong>Secure Payment</strong><br>
-                <small>PayPal checkout for safe transactions</small>
-            </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-truck me-2"></i>
+                    <strong>Shipping calculated before payment</strong><br>
+                    <small>Enter your address at checkout to compare available carrier rates.</small>
+                </div>
         </div>
     </div>
     
@@ -352,7 +379,8 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <h3 class="mb-4">Product Description</h3>
+                    <h3 class="mb-2">Listing Notes</h3>
+                    <p class="text-muted small mb-4">Structured part facts above should be treated as the quick-reference source. These notes may include imported marketplace details and longer seller context.</p>
                     <?php 
                     // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
                     // Display as plain text with proper escaping and preserve line breaks
@@ -368,6 +396,23 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<?php if (!empty($relatedProducts)): ?>
+    <section class="mt-5">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
+            <div>
+                <p class="text-danger text-uppercase fw-semibold small mb-1">Related Inventory</p>
+                <h2 class="h3 mb-0">Popular Parts Shoppers Also View</h2>
+            </div>
+            <a href="/products" class="btn btn-outline-danger">Browse All Parts</a>
+        </div>
+        <div class="row g-4">
+            <?php foreach ($relatedProducts as $index => $relatedProduct): ?>
+                <?php echo fasProductCard($relatedProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 75, 300)); ?>
+            <?php endforeach; ?>
+        </div>
+    </section>
+<?php endif; ?>
 
 <script>
 window.FAS_PRODUCT_DATA = {
@@ -453,10 +498,12 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
         name: this.dataset.name,
                 price: parseFloat(this.dataset.price),
                 image: this.dataset.image,
-                image_alt: this.dataset.imageAlt || this.dataset.name,
-                sku: this.dataset.sku,
-                category: this.dataset.category || '',
-                weight: parseFloat(this.dataset.weight) || 1.0,
+        image_alt: this.dataset.imageAlt || this.dataset.name,
+        sku: this.dataset.sku,
+        category: this.dataset.category || '',
+        manufacturer: this.dataset.manufacturer || '',
+        source: this.dataset.source || '',
+        weight: parseFloat(this.dataset.weight) || 1.0,
         length: parseFloat(this.dataset.length) || 10.0,
         width: parseFloat(this.dataset.width) || 10.0,
         height: parseFloat(this.dataset.height) || 10.0,

@@ -4,6 +4,19 @@ $metaTitle = 'Shopping Cart | Flip and Strip';
 $metaDescription = 'Review selected Flip and Strip parts before checkout.';
 $canonicalUrl = 'https://flipandstrip.com/cart';
 $robotsMeta = 'noindex, follow';
+require_once __DIR__ . '/src/config/Database.php';
+require_once __DIR__ . '/src/models/Product.php';
+require_once __DIR__ . '/includes/product-merchandising.php';
+
+$cartTrendingProducts = [];
+try {
+    $cartDb = \FAS\Config\Database::getInstance()->getConnection();
+    $cartProductModel = new \FAS\Models\Product($cartDb);
+    $cartTrendingProducts = fasAnalyticsRankedProducts($cartDb, $cartProductModel, 4);
+} catch (Throwable $e) {
+    $cartTrendingProducts = [];
+}
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -17,14 +30,30 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             
             <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
-                    <h3>Your cart is empty</h3>
-                    <p class="text-muted">Start shopping to add items to your cart</p>
-                    <a href="products.php" class="btn btn-danger btn-ripple">Browse Products</a>
-                </div>
-            </div>
-        </div>
+<div class="card-body text-center py-5">
+<i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
+<h3>Your cart is empty</h3>
+<p class="text-muted mb-4">Start with a popular category or high-demand part, then come back here to review totals before checkout.</p>
+<div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+<a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
+<a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
+<a href="/products/boat" class="btn btn-outline-danger btn-sm">Boat Parts</a>
+<a href="/products/automotive" class="btn btn-outline-danger btn-sm">Automotive Parts</a>
+<a href="/products" class="btn btn-danger btn-sm btn-ripple">Browse All Products</a>
+</div>
+<?php if (!empty($cartTrendingProducts)): ?>
+<div class="text-start mt-4">
+<h4 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h4>
+<div class="row g-3">
+<?php foreach ($cartTrendingProducts as $index => $cartProduct): ?>
+<?php echo fasProductCard($cartProduct, 'col-lg-6 col-md-6 col-sm-12', min($index * 50, 250)); ?>
+<?php endforeach; ?>
+</div>
+</div>
+<?php endif; ?>
+</div>
+</div>
+</div>
         
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm sticky-top order-summary-mobile">
@@ -35,11 +64,19 @@ require_once __DIR__ . '/includes/header.php';
                         <span>Subtotal:</span>
                         <span id="cart-subtotal">$0.00</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Shipping:</span>
-                        <span class="text-muted">Calculated at checkout</span>
-                    </div>
-                    <hr>
+<div class="d-flex justify-content-between mb-2">
+<span>Shipping:</span>
+<span class="text-muted">Calculated at checkout</span>
+</div>
+<div class="alert alert-light border small mb-3">
+<strong>Before You Pay</strong>
+<ul class="mb-0 ps-3">
+<li>Shipping is calculated after the delivery address is entered.</li>
+<li>Any coupon code is applied on the checkout page.</li>
+<li>The final total is shown before secure PayPal payment approval.</li>
+</ul>
+</div>
+<hr>
                     <div class="d-flex justify-content-between mb-4">
                         <strong>Total:</strong>
                         <strong id="cart-total" class="text-danger fs-4">$0.00</strong>
@@ -75,9 +112,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.cart.cart.length === 0) {
             e.preventDefault();
             alert('Your cart is empty');
-        }
-        // Allow navigation to checkout.php
-    });
+    }
+    // Allow navigation to checkout.php
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#empty-cart-message .add-to-cart')) {
+        setTimeout(displayCartItems, 150);
+    }
+});
 });
 
 function escapeHtml(value) {

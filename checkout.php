@@ -25,9 +25,23 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container my-5">
-    <h1 class="mb-4 fw-bold">Checkout</h1>
-    
-    <div class="row">
+<h1 class="mb-4 fw-bold">Checkout</h1>
+
+<div class="alert alert-light border shadow-sm mb-4">
+<div class="d-flex gap-3">
+<i class="fas fa-shield-alt text-danger fs-3 mt-1"></i>
+<div>
+<h2 class="h5 fw-bold mb-2">Checkout Expectations</h2>
+<ul class="mb-0 ps-3">
+<li>Enter your shipping address first so available rates can be calculated accurately.</li>
+<li>Apply any coupon code before payment; discounts will appear in the final total.</li>
+<li>No payment is completed until you review the final total and approve PayPal payment.</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="row">
         <!-- Checkout Form -->
         <div class="col-lg-8">
             <form id="checkout-form">
@@ -155,17 +169,21 @@ require_once __DIR__ . '/includes/header.php';
                         <span id="checkout-tax">$0.00</span>
                     </div>
                     <hr>
-                    <div class="d-flex justify-content-between mb-4">
-                        <strong class="fs-5">Total:</strong>
-                        <strong id="checkout-total" class="text-danger fs-4">$0.00</strong>
-                    </div>
-                    
-                    <!-- PayPal Button Container -->
-                    <!-- Instructional message for incomplete form -->
-                    <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Please complete all required fields and select a shipping method to proceed with payment.</strong>
-                    </div>
+                        <div class="d-flex justify-content-between mb-4">
+                            <strong class="fs-5">Total:</strong>
+                            <strong id="checkout-total" class="text-danger fs-4">$0.00</strong>
+                        </div>
+
+                        <div class="alert alert-light border small mb-3">
+                            Shipping, discounts, and item totals update here before PayPal opens. Review this total before approving payment.
+                        </div>
+
+                        <!-- PayPal Button Container -->
+                        <!-- Instructional message for incomplete form -->
+                        <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Complete the required fields and choose a shipping method to unlock secure PayPal payment.</strong>
+                        </div>
                     <div id="paypal-button-container" class="mb-3"></div>
                     
                     <div class="text-center mt-3">
@@ -351,7 +369,7 @@ function setupPayPalButton() {
             
             // Validate shipping
             if (!selectedShippingRate) {
-                alert('Please calculate and select a shipping method first');
+                alert('Enter your shipping address, calculate rates, and choose a shipping method before opening PayPal.');
                 throw new Error('Shipping not selected');
             }
             
@@ -452,7 +470,7 @@ function setupPayPalButton() {
                 
             } catch (error) {
                 console.error('Payment capture error:', error);
-                alert('Payment was approved but there was an error completing your order. Please contact support.');
+                alert('PayPal approved the payment, but the order could not be finalized. Please contact support with your PayPal confirmation.');
             }
         },
         
@@ -463,7 +481,7 @@ function setupPayPalButton() {
                 provider: 'paypal',
                 reason: err && err.message ? err.message : 'PayPal error'
             });
-            alert('An error occurred with PayPal. Please try again or contact support.');
+            alert('PayPal could not complete the payment. Please review your details, try again, or contact support.');
         },
 
         // Handle cancellation
@@ -473,7 +491,7 @@ function setupPayPalButton() {
                 provider: 'paypal',
                 paypal_order_id: data && data.orderID ? data.orderID : ''
             });
-            alert('Payment was cancelled. Your cart items are still saved.');
+            alert('Payment was cancelled. Your cart items are still saved so you can adjust shipping or continue shopping.');
         }
     }).render('#paypal-button-container');
 }
@@ -492,7 +510,7 @@ async function handleDemoCheckout() {
     
     // Validate shipping is selected
     if (!selectedShippingRate) {
-        alert('Please calculate and select a shipping method first');
+        alert('Enter your shipping address, calculate rates, and choose a shipping method before completing checkout.');
         return;
     }
     
@@ -529,7 +547,7 @@ async function handleCheckout() {
     
     // Validate shipping is selected
     if (!selectedShippingRate) {
-        alert('Please calculate and select a shipping method first');
+        alert('Enter your shipping address, calculate rates, and choose a shipping method before completing checkout.');
         return;
     }
     
@@ -562,7 +580,7 @@ async function calculateShipping() {
         trackCheckoutEvent('shipping_calculation_invalid', {
             missing_required_address_fields: true
         });
-        alert('Please fill in all required shipping address fields');
+        alert('Please enter the required shipping address fields so rates can be calculated.');
         return;
     }
     
@@ -610,14 +628,14 @@ async function calculateShipping() {
         trackCheckoutEvent('shipping_calculation_failed', {
             error_message: data.error || 'Failed to calculate shipping'
         });
-        alert('Error: ' + (data.error || 'Failed to calculate shipping'));
+        alert('Shipping rates could not be calculated: ' + (data.error || 'Please review the address and try again.'));
     }
 } catch (error) {
     console.error('Shipping calculation error:', error);
     trackCheckoutEvent('shipping_calculation_failed', {
         error_message: error.message || 'Unknown shipping error'
     });
-    alert('Failed to calculate shipping rates. Please try again.');
+    alert('Shipping rates could not be calculated. Please review the address and try again.');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
@@ -864,7 +882,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
             paypal_order_id: paypalOrderId,
             reason: error.message || 'Order completion error'
         });
-        alert('Payment was successful but there was an issue completing your order. Please contact support.');
+        alert('Payment succeeded, but the order could not be finalized. Please contact support with your PayPal confirmation.');
     }
 }
 /**

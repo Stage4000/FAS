@@ -68,6 +68,7 @@ require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/src/utils/Seo.php';
 require_once __DIR__ . '/src/utils/SyncLogger.php';
 require_once __DIR__ . '/src/integrations/EbayAPI.php';
+require_once __DIR__ . '/includes/product-merchandising.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -282,6 +283,29 @@ if ($searchTerm !== '') {
 $pageTitle = $categoryLabel;
 $ogTitle = $metaTitle;
 $ogDescription = $metaDescription;
+$currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
+$merchandisingCategory = $categoryLabel !== 'All Products' ? $categoryLabel : null;
+$merchandisingManufacturer = $manufacturerName !== '' ? $manufacturerName : null;
+$trendingProducts = fasAnalyticsRankedProducts($db, $productModel, 8, $currentProductIds);
+$recentExcludeIds = array_merge($currentProductIds, array_column($trendingProducts, 'id'));
+$recentProducts = $productModel->getRecentVisible(8, $recentExcludeIds, $merchandisingCategory, $merchandisingManufacturer);
+$noResultsProducts = [];
+
+if (empty($products)) {
+    $noResultsProducts = fasAnalyticsRankedProducts($db, $productModel, 6);
+    if (count($noResultsProducts) < 6) {
+        $noResultsProducts = array_merge(
+            $noResultsProducts,
+            $productModel->getRecentVisible(
+                6 - count($noResultsProducts),
+                array_column($noResultsProducts, 'id'),
+                $merchandisingCategory,
+                $merchandisingManufacturer
+            )
+        );
+    }
+    $noResultsProducts = array_slice($noResultsProducts, 0, 6);
+}
 $structuredData = [
     Seo::breadcrumbSchema([
         ['name' => 'Home', 'url' => '/'],
@@ -419,9 +443,43 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Products Grid -->
             <?php if (empty($products)): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No products found in this category. Try browsing other categories or use the search function.
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <i class="fas fa-search text-danger fs-3 mt-1"></i>
+                        <div>
+                            <h4 class="mb-2">No exact matches found</h4>
+                            <p class="text-muted mb-3">
+                                Try a broader keyword, remove a filter, or browse one of the highest-demand parts categories below.
+                                Inventory changes often, so recently added and popular parts may still fit your project.
+                            </p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
+                                <a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
+                                <a href="/products/boat" class="btn btn-outline-danger btn-sm">Boat Parts</a>
+                                <a href="/products/automotive" class="btn btn-outline-danger btn-sm">Automotive Parts</a>
+                                <a href="/products" class="btn btn-danger btn-sm">View All Inventory</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            <?php if (!empty($noResultsProducts)): ?>
+            <section class="mb-5" aria-labelledby="no-results-recommendations">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <p class="text-danger text-uppercase fw-semibold small mb-1">Recommended Starting Points</p>
+                        <h2 id="no-results-recommendations" class="h4 fw-bold mb-0">Popular Parts Shoppers Are Viewing</h2>
+                    </div>
+                    <a href="/products" class="btn btn-outline-danger btn-sm">Browse All</a>
+                </div>
+                <div class="row g-4">
+                    <?php foreach ($noResultsProducts as $index => $recommendedProduct): ?>
+                        <?php echo fasProductCard($recommendedProduct, 'col-lg-4 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <?php endif; ?>
             <?php else: ?>
             <div class="row g-4">
                 <?php foreach ($products as $index => $product): ?>
@@ -524,6 +582,40 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 <?php endforeach; ?>
             </div>
+            <?php endif; ?>
+
+            <?php if (!empty($products) && (!empty($trendingProducts) || !empty($recentProducts))): ?>
+            <section class="mt-5" aria-labelledby="catalog-merchandising-heading">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <p class="text-danger text-uppercase fw-semibold small mb-1">More Ways To Shop</p>
+                        <h2 id="catalog-merchandising-heading" class="h4 fw-bold mb-0">Trending And Recently Added Parts</h2>
+                    </div>
+                    <a href="/products" class="btn btn-outline-danger btn-sm">View All Inventory</a>
+                </div>
+
+                <?php if (!empty($trendingProducts)): ?>
+                <div class="mb-4">
+                    <h3 class="h5 fw-bold mb-3">Trending Parts</h3>
+                    <div class="row g-4">
+                        <?php foreach ($trendingProducts as $index => $trendingProduct): ?>
+                            <?php echo fasProductCard($trendingProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($recentProducts)): ?>
+                <div>
+                    <h3 class="h5 fw-bold mb-3">Recently Added</h3>
+                    <div class="row g-4">
+                        <?php foreach ($recentProducts as $index => $recentProduct): ?>
+                            <?php echo fasProductCard($recentProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </section>
             <?php endif; ?>
 
             <!-- Pagination -->
@@ -717,10 +809,14 @@ function loadProductsAndSidebar(params) {
                     el.style.removeProperty('transform');
                     el.style.removeProperty('transition-property');
                 });
-                console.log('Removed AOS attributes from', aosElements.length, 'dynamically loaded elements');
-                
-                // Update sidebar if provided
-                if (data.sidebar) {
+console.log('Removed AOS attributes from', aosElements.length, 'dynamically loaded elements');
+
+if (window.fasAnalytics && typeof window.fasAnalytics.refreshProductImpressions === 'function') {
+window.fasAnalytics.refreshProductImpressions();
+}
+
+// Update sidebar if provided
+if (data.sidebar) {
                     const sidebarContainer = document.querySelector('#categoryMenu .list-group');
                     if (sidebarContainer) {
                         sidebarContainer.innerHTML = data.sidebar;

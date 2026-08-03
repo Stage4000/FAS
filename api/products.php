@@ -24,6 +24,7 @@ require_once __DIR__ . '/../src/utils/ProductAltText.php';
 require_once __DIR__ . '/../src/utils/SyncLogger.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../includes/sale-helper.php';
+require_once __DIR__ . '/../includes/product-merchandising.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -95,6 +96,12 @@ try {
 // Get products from database
 $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
 $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+$currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
+$noResultsProducts = [];
+
+if (empty($products)) {
+    $noResultsProducts = fasAnalyticsRankedProducts($db, $productModel, 6, $currentProductIds);
+}
 
 // Get unique manufacturers
 $allManufacturers = $productModel->getManufacturers();
@@ -115,6 +122,16 @@ if (($ebayCat3 || $ebayCat2 || $ebayCat1) && $ebayAPI) {
         $currentCategoryName = $flatCategories[$ebayCat1]['name'] ?? 'Category';
     }
 }
+
+$merchandisingCategory = $currentCategoryName !== 'All Products' ? $currentCategoryName : null;
+$merchandisingManufacturer = !empty($manufacturer) ? (string) $manufacturer : null;
+$trendingProducts = fasAnalyticsRankedProducts($db, $productModel, 8, $currentProductIds);
+$recentProducts = $productModel->getRecentVisible(
+    8,
+    array_merge($currentProductIds, array_column($trendingProducts, 'id')),
+    $merchandisingCategory,
+    $merchandisingManufacturer
+);
 
 // Build HTML output
 ob_start();
@@ -182,9 +199,40 @@ ob_start();
 
 <!-- Products Grid -->
 <?php if (empty($products)): ?>
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> No products found in this category. Try browsing other categories or use the search function.
-    </div>
+<div class="card border-0 shadow-sm mb-4">
+<div class="card-body p-4">
+<div class="d-flex align-items-start gap-3">
+<i class="fas fa-search text-danger fs-3 mt-1"></i>
+<div>
+<h4 class="mb-2">No exact matches found</h4>
+<p class="text-muted mb-3">Try a broader keyword, remove a filter, or browse a high-demand category below.</p>
+<div class="d-flex flex-wrap gap-2">
+<a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
+<a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
+<a href="/products/boat" class="btn btn-outline-danger btn-sm">Boat Parts</a>
+<a href="/products/automotive" class="btn btn-outline-danger btn-sm">Automotive Parts</a>
+<a href="/products" class="btn btn-danger btn-sm">View All Inventory</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<?php if (!empty($noResultsProducts)): ?>
+<section class="mb-5" aria-labelledby="ajax-no-results-recommendations">
+<div class="d-flex align-items-center justify-content-between mb-3">
+<div>
+<p class="text-danger text-uppercase fw-semibold small mb-1">Recommended Starting Points</p>
+<h2 id="ajax-no-results-recommendations" class="h4 fw-bold mb-0">Popular Parts Shoppers Are Viewing</h2>
+</div>
+<a href="/products" class="btn btn-outline-danger btn-sm">Browse All</a>
+</div>
+<div class="row g-4">
+<?php foreach ($noResultsProducts as $index => $recommendedProduct): ?>
+<?php echo fasProductCard($recommendedProduct, 'col-lg-4 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+<?php endforeach; ?>
+</div>
+</section>
+<?php endif; ?>
 <?php else: ?>
 <div class="row g-4">
     <?php foreach ($products as $index => $product): ?>
@@ -282,6 +330,40 @@ ob_start();
         </div>
     <?php endforeach; ?>
 </div>
+<?php endif; ?>
+
+<?php if (!empty($products) && (!empty($trendingProducts) || !empty($recentProducts))): ?>
+<section class="mt-5" aria-labelledby="ajax-catalog-merchandising-heading">
+<div class="d-flex align-items-center justify-content-between mb-3">
+<div>
+<p class="text-danger text-uppercase fw-semibold small mb-1">More Ways To Shop</p>
+<h2 id="ajax-catalog-merchandising-heading" class="h4 fw-bold mb-0">Trending And Recently Added Parts</h2>
+</div>
+<a href="/products" class="btn btn-outline-danger btn-sm">View All Inventory</a>
+</div>
+
+<?php if (!empty($trendingProducts)): ?>
+<div class="mb-4">
+<h3 class="h5 fw-bold mb-3">Trending Parts</h3>
+<div class="row g-4">
+<?php foreach ($trendingProducts as $index => $trendingProduct): ?>
+<?php echo fasProductCard($trendingProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+<?php endforeach; ?>
+</div>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($recentProducts)): ?>
+<div>
+<h3 class="h5 fw-bold mb-3">Recently Added</h3>
+<div class="row g-4">
+<?php foreach ($recentProducts as $index => $recentProduct): ?>
+<?php echo fasProductCard($recentProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+<?php endforeach; ?>
+</div>
+</div>
+<?php endif; ?>
+</section>
 <?php endif; ?>
 
 <!-- Pagination -->

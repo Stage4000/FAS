@@ -310,6 +310,8 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     link_text TEXT,
     target_url TEXT,
     target_host TEXT,
+    banner_id TEXT,
+    campaign_name TEXT,
     event_value REAL DEFAULT 0,
     scroll_depth INTEGER DEFAULT 0,
     duration_seconds INTEGER DEFAULT 0,
@@ -328,3 +330,4 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events(sess
 CREATE INDEX IF NOT EXISTS idx_analytics_events_coupon ON analytics_events(coupon_code);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_order ON analytics_events(order_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_target_host ON analytics_events(target_host);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_banner ON analytics_events(banner_id);
