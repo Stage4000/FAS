@@ -1951,7 +1951,6 @@ class Analytics
             'cloudflare_connecting_ipv6' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IPV6', 'CF_CONNECTING_IPV6', 'CF-Connecting-IPv6', 'cf-connecting-ipv6']),
             'cloudflare_true_client_ip' => $this->serverValue($server, ['HTTP_TRUE_CLIENT_IP', 'TRUE_CLIENT_IP', 'True-Client-IP', 'true-client-ip']),
             'x_forwarded_for' => $this->serverValue($server, ['HTTP_X_FORWARDED_FOR', 'X_FORWARDED_FOR', 'X-Forwarded-For', 'x-forwarded-for']),
-            'x_real_ip' => $this->serverValue($server, ['HTTP_X_REAL_IP', 'X_REAL_IP', 'X-Real-IP', 'x-real-ip']),
             'remote_addr' => $this->serverValue($server, ['REMOTE_ADDR']),
         ];
 
