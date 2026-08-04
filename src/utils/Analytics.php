@@ -1241,7 +1241,7 @@ class Analytics
         if ($existing) {
             $stickyTextColumns = [
                 'referrer', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-                'client_ip_source', 'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
+                'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
                 'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason',
             ];
             $nullableColumns = ['cf_latitude', 'cf_longitude', 'cf_bot_score'];
@@ -1943,20 +1943,39 @@ class Analytics
     private function clientIpWithSource(array $server): array
     {
         $candidates = [
-            'cf_connecting_ip' => $server['HTTP_CF_CONNECTING_IP'] ?? '',
-            'true_client_ip' => $server['HTTP_TRUE_CLIENT_IP'] ?? '',
-            'x_forwarded_for' => $server['HTTP_X_FORWARDED_FOR'] ?? '',
-            'remote_addr' => $server['REMOTE_ADDR'] ?? '',
+            'cloudflare_connecting_ip' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IP', 'CF_CONNECTING_IP']),
+            'cloudflare_connecting_ipv6' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IPV6', 'CF_CONNECTING_IPV6']),
+            'cloudflare_true_client_ip' => $this->serverValue($server, ['HTTP_TRUE_CLIENT_IP', 'TRUE_CLIENT_IP']),
+            'x_forwarded_for' => $this->serverValue($server, ['HTTP_X_FORWARDED_FOR', 'X_FORWARDED_FOR']),
+            'x_real_ip' => $this->serverValue($server, ['HTTP_X_REAL_IP', 'X_REAL_IP']),
+            'remote_addr' => $this->serverValue($server, ['REMOTE_ADDR']),
         ];
 
         foreach ($candidates as $source => $value) {
             $ip = trim(explode(',', (string) $value)[0]);
-            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
-                return ['ip' => $ip, 'source' => $source];
+            if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP)) {
+                continue;
+            }
+
+            if ($source === 'remote_addr' && $this->hasCloudflareSignal($server)) {
+                return ['ip' => $ip, 'source' => 'cloudflare_proxy_remote_addr'];
+            }
+
+            return ['ip' => $ip, 'source' => $source];
+        }
+
+        return ['ip' => '', 'source' => $this->hasCloudflareSignal($server) ? 'cloudflare_headers_missing_ip' : ''];
+    }
+
+    private function hasCloudflareSignal(array $server): bool
+    {
+        foreach (['HTTP_CF_RAY', 'HTTP_CF_IPCOUNTRY', 'HTTP_CF_VISITOR', 'HTTP_CF_CONNECTING_IP', 'HTTP_CF_CONNECTING_IPV6'] as $key) {
+            if (!empty($server[$key])) {
+                return true;
             }
         }
 
-        return ['ip' => '', 'source' => ''];
+        return false;
     }
 
     private function cloudflareGeo(array $server): array

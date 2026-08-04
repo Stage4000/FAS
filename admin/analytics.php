@@ -133,6 +133,24 @@ function sessionBotBadgeClass(array $session): string
     return ((int) ($session['is_potential_bot'] ?? 0) === 1) ? 'text-bg-warning' : 'text-bg-light';
 }
 
+function sessionIpSourceLabel(array $session): string
+{
+    $source = (string) ($session['client_ip_source'] ?? '');
+    $labels = [
+        'cloudflare_connecting_ip' => 'Cloudflare visitor IP',
+        'cloudflare_connecting_ipv6' => 'Cloudflare visitor IPv6',
+        'cloudflare_true_client_ip' => 'Cloudflare True-Client-IP',
+        'cloudflare_proxy_remote_addr' => 'Cloudflare edge IP only',
+        'cloudflare_headers_missing_ip' => 'Cloudflare IP header missing',
+        'x_forwarded_for' => 'X-Forwarded-For',
+        'x_real_ip' => 'X-Real-IP',
+        'true_client_ip' => 'True-Client-IP',
+        'remote_addr' => 'Server remote address',
+    ];
+
+    return $labels[$source] ?? ($source !== '' ? str_replace('_', ' ', $source) : 'Unknown');
+}
+
 function safe($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -318,7 +336,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                     </td>
                                     <td>
                                         <div><?php echo safe(sessionGeoLabel($row)); ?></div>
-                                        <div class="small text-muted"><?php echo safe($row['client_ip_source'] ?: 'ip source unknown'); ?></div>
+                                        <div class="small text-muted"><?php echo safe(sessionIpSourceLabel($row)); ?></div>
                                     </td>
                                     <td>
                                         <span class="badge <?php echo sessionBotBadgeClass($row); ?>"><?php echo safe(sessionBotLabel($row)); ?></span>
@@ -930,6 +948,23 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         return 'No bot signal';
     }
 
+    function ipSourceLabel(summary) {
+        const source = text(summary.client_ip_source, '');
+        const labels = {
+            cloudflare_connecting_ip: 'Cloudflare visitor IP',
+            cloudflare_connecting_ipv6: 'Cloudflare visitor IPv6',
+            cloudflare_true_client_ip: 'Cloudflare True-Client-IP',
+            cloudflare_proxy_remote_addr: 'Cloudflare edge IP only',
+            cloudflare_headers_missing_ip: 'Cloudflare IP header missing',
+            x_forwarded_for: 'X-Forwarded-For',
+            x_real_ip: 'X-Real-IP',
+            true_client_ip: 'True-Client-IP',
+            remote_addr: 'Server remote address'
+        };
+
+        return labels[source] || (source ? source.replace(/_/g, ' ') : 'Unknown');
+    }
+
     function setState(state, message = '') {
         loading.classList.toggle('d-none', state !== 'loading');
         errorBox.classList.toggle('d-none', state !== 'error');
@@ -992,7 +1027,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         userDetails.appendChild(detailRow('Language', summary.language));
         userDetails.appendChild(detailRow('Timezone', summary.timezone || summary.cf_timezone));
         userDetails.appendChild(detailRow('Location', location));
-        userDetails.appendChild(detailRow('IP Source', summary.client_ip_source));
+        userDetails.appendChild(detailRow('IP Source', ipSourceLabel(summary)));
         userDetails.appendChild(detailRow('Bot Signal', botLabel(summary)));
 
         contextDetails.appendChild(detailRow('Started', summary.started_at));
