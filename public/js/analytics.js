@@ -949,10 +949,12 @@
 
     window.setInterval(() => {
         track('session_heartbeat', {
+            event_name: 'Session active duration update',
             duration_seconds: getDurationSeconds(),
+            active_page_seconds: getDurationSeconds(),
             scroll_depth: maxScrollDepth
         }, { immediate: true });
-    }, 30000);
+    }, 120000);
 
     document.addEventListener('DOMContentLoaded', () => {
         const sessionStartedKey = 'fas_analytics_started_' + sessionId;

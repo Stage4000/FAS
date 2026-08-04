@@ -261,8 +261,24 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     viewport_height INT,
     ip_hash VARCHAR(64),
     user_agent VARCHAR(1000),
+    client_ip_source VARCHAR(40),
+    cf_country VARCHAR(10),
+    cf_region VARCHAR(255),
+    cf_region_code VARCHAR(50),
+    cf_city VARCHAR(255),
+    cf_postal_code VARCHAR(40),
+    cf_latitude DECIMAL(10, 6) NULL,
+    cf_longitude DECIMAL(10, 6) NULL,
+    cf_timezone VARCHAR(100),
+    cf_ray VARCHAR(80),
+    cf_bot_score INT NULL,
+    cf_verified_bot TINYINT(1) DEFAULT 0,
+    is_potential_bot TINYINT(1) DEFAULT 0,
+    bot_reason VARCHAR(500),
     INDEX idx_analytics_sessions_started (started_at),
-    INDEX idx_analytics_sessions_visitor (visitor_id)
+    INDEX idx_analytics_sessions_visitor (visitor_id),
+    INDEX idx_analytics_sessions_country (cf_country),
+    INDEX idx_analytics_sessions_bot (is_potential_bot)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS analytics_events (

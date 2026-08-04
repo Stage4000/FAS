@@ -68,6 +68,23 @@ class Analytics
         'custom_event',
     ];
 
+    private static $sessionColumns = [
+        'client_ip_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
+        'cf_country' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(10)'],
+        'cf_region' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'cf_region_code' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(50)'],
+        'cf_city' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'cf_postal_code' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
+        'cf_latitude' => ['sqlite' => 'REAL', 'mysql' => 'DECIMAL(10, 6) NULL'],
+        'cf_longitude' => ['sqlite' => 'REAL', 'mysql' => 'DECIMAL(10, 6) NULL'],
+        'cf_timezone' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
+        'cf_ray' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'cf_bot_score' => ['sqlite' => 'INTEGER', 'mysql' => 'INT NULL'],
+        'cf_verified_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
+        'is_potential_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
+        'bot_reason' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(500)'],
+    ];
+
     private static $eventColumns = [
         'referrer_host' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'previous_page_path' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(1000)'],
@@ -135,6 +152,7 @@ class Analytics
             $this->createMysqlTables();
         }
 
+        $this->ensureSessionColumns();
         $this->ensureEventColumns();
         $this->createIndexes();
         $this->tablesReady = true;
@@ -168,6 +186,12 @@ class Analytics
                 $event['original_event_type'] = $this->cleanKey($originalEventType, 'custom_event');
             }
             $event['event_type'] = $eventType;
+
+            if ($eventType === 'session_heartbeat') {
+                $duration = $this->intValue($event['duration_seconds'] ?? null);
+                $this->touchSessionDuration($sessionId, $duration, $context, $now);
+                continue;
+            }
 
             $this->insertEvent($sessionId, $visitorId, $event, $context, $server, $now);
             $count++;
@@ -704,6 +728,7 @@ class Analytics
                     revenue,
                     created_at
              FROM analytics_events
+             WHERE event_type <> 'session_heartbeat'
              ORDER BY created_at DESC
             LIMIT " . (int) $limit
         );
@@ -734,7 +759,7 @@ class Analytics
             FROM analytics_sessions s
             LEFT JOIN (
                 SELECT session_id,
-                    COUNT(*) AS events,
+                    SUM(CASE WHEN event_type <> 'session_heartbeat' THEN 1 ELSE 0 END) AS events,
                     SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
                     SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS product_views,
                     SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
@@ -779,7 +804,7 @@ class Analytics
         }
 
         $stats = $this->fetchOne(
-            "SELECT COUNT(*) AS events,
+            "SELECT SUM(CASE WHEN event_type <> 'session_heartbeat' THEN 1 ELSE 0 END) AS events,
                 SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
                 SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS product_views,
                 SUM(CASE WHEN event_type = 'product_impression' THEN 1 ELSE 0 END) AS product_impressions,
@@ -924,8 +949,22 @@ class Analytics
                 screen_height INTEGER,
                 viewport_width INTEGER,
                 viewport_height INTEGER,
-                ip_hash TEXT,
-                user_agent TEXT
+    ip_hash TEXT,
+    user_agent TEXT,
+    client_ip_source TEXT,
+    cf_country TEXT,
+    cf_region TEXT,
+    cf_region_code TEXT,
+    cf_city TEXT,
+    cf_postal_code TEXT,
+    cf_latitude REAL,
+    cf_longitude REAL,
+    cf_timezone TEXT,
+    cf_ray TEXT,
+    cf_bot_score INTEGER,
+    cf_verified_bot INTEGER DEFAULT 0,
+    is_potential_bot INTEGER DEFAULT 0,
+    bot_reason TEXT
             )"
         );
 
@@ -1025,8 +1064,22 @@ class Analytics
                 screen_height INT,
                 viewport_width INT,
                 viewport_height INT,
-                ip_hash VARCHAR(64),
-                user_agent VARCHAR(1000)
+    ip_hash VARCHAR(64),
+    user_agent VARCHAR(1000),
+    client_ip_source VARCHAR(40),
+    cf_country VARCHAR(10),
+    cf_region VARCHAR(255),
+    cf_region_code VARCHAR(50),
+    cf_city VARCHAR(255),
+    cf_postal_code VARCHAR(40),
+    cf_latitude DECIMAL(10, 6) NULL,
+    cf_longitude DECIMAL(10, 6) NULL,
+    cf_timezone VARCHAR(100),
+    cf_ray VARCHAR(80),
+    cf_bot_score INT NULL,
+    cf_verified_bot TINYINT(1) DEFAULT 0,
+    is_potential_bot TINYINT(1) DEFAULT 0,
+    bot_reason VARCHAR(500)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
 
@@ -1101,6 +1154,14 @@ class Analytics
         );
     }
 
+    private function ensureSessionColumns(): void
+    {
+        foreach (self::$sessionColumns as $column => $definitions) {
+            $definition = $this->driver === 'sqlite' ? $definitions['sqlite'] : $definitions['mysql'];
+            $this->addColumnIfMissing('analytics_sessions', $column, $definition);
+        }
+    }
+
     private function ensureEventColumns(): void
     {
         foreach (self::$eventColumns as $column => $definitions) {
@@ -1113,6 +1174,8 @@ class Analytics
     {
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_started', 'started_at');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_visitor', 'visitor_id');
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_country', 'cf_country');
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_bot', 'is_potential_bot');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_created', 'created_at');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_type', 'event_type');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_page', 'page_path', 255);
@@ -1129,6 +1192,10 @@ class Analytics
     private function upsertSession(string $sessionId, string $visitorId, array $context, array $server, string $now): void
     {
         $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
+        $clientIp = $this->clientIpWithSource($server);
+        $cloudflareGeo = $this->cloudflareGeo($server);
+        $bot = $this->botAssessment($server);
+
         $existing = $this->fetchOne(
             "SELECT session_id FROM analytics_sessions WHERE session_id = ?",
             [$sessionId]
@@ -1155,72 +1222,66 @@ class Analytics
             'viewport_height' => $this->intValue($context['viewport_height'] ?? null),
             'ip_hash' => $this->hashIp($server),
             'user_agent' => $this->cleanText($server['HTTP_USER_AGENT'] ?? '', 1000),
+            'client_ip_source' => $clientIp['source'],
+            'cf_country' => $cloudflareGeo['country'],
+            'cf_region' => $cloudflareGeo['region'],
+            'cf_region_code' => $cloudflareGeo['region_code'],
+            'cf_city' => $cloudflareGeo['city'],
+            'cf_postal_code' => $cloudflareGeo['postal_code'],
+            'cf_latitude' => $cloudflareGeo['latitude'],
+            'cf_longitude' => $cloudflareGeo['longitude'],
+            'cf_timezone' => $cloudflareGeo['timezone'],
+            'cf_ray' => $cloudflareGeo['ray'],
+            'cf_bot_score' => $bot['cf_bot_score'],
+            'cf_verified_bot' => $bot['cf_verified_bot'],
+            'is_potential_bot' => $bot['is_potential_bot'],
+            'bot_reason' => $bot['bot_reason'],
         ];
 
         if ($existing) {
+            $stickyTextColumns = [
+                'referrer', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                'client_ip_source', 'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
+                'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason',
+            ];
+            $nullableColumns = ['cf_latitude', 'cf_longitude', 'cf_bot_score'];
+            $stickyBooleanColumns = ['cf_verified_bot', 'is_potential_bot'];
+            $assignments = [];
+            $values = [];
+
+            foreach ($data as $column => $value) {
+                if (in_array($column, $stickyTextColumns, true)) {
+                    $assignments[] = "{$column} = COALESCE(NULLIF({$column}, ''), ?)";
+                } elseif (in_array($column, $nullableColumns, true)) {
+                    $assignments[] = "{$column} = COALESCE({$column}, ?)";
+                } elseif (in_array($column, $stickyBooleanColumns, true)) {
+                    $assignments[] = "{$column} = CASE WHEN {$column} = 1 OR ? = 1 THEN 1 ELSE 0 END";
+                } else {
+                    $assignments[] = "{$column} = ?";
+                }
+
+                $values[] = $value;
+            }
+
+            $values[] = $sessionId;
             $stmt = $this->db->prepare(
-                "UPDATE analytics_sessions
-                 SET visitor_id = ?,
-                     last_seen_at = ?,
-                     last_page = ?,
-                     referrer = COALESCE(NULLIF(referrer, ''), ?),
-                     utm_source = COALESCE(NULLIF(utm_source, ''), ?),
-                     utm_medium = COALESCE(NULLIF(utm_medium, ''), ?),
-                     utm_campaign = COALESCE(NULLIF(utm_campaign, ''), ?),
-                     utm_term = COALESCE(NULLIF(utm_term, ''), ?),
-                     utm_content = COALESCE(NULLIF(utm_content, ''), ?),
-                     device_type = ?,
-                     browser = ?,
-                     os = ?,
-                     language = ?,
-                     timezone = ?,
-                     screen_width = ?,
-                     screen_height = ?,
-                     viewport_width = ?,
-                     viewport_height = ?,
-                     ip_hash = ?,
-                     user_agent = ?
-                 WHERE session_id = ?"
+                "UPDATE analytics_sessions SET " . implode(', ', $assignments) . " WHERE session_id = ?"
             );
-            $stmt->execute(array_merge(array_values($data), [$sessionId]));
+            $stmt->execute($values);
             return;
         }
 
-        $stmt = $this->db->prepare(
-            "INSERT INTO analytics_sessions (
-                session_id, visitor_id, started_at, last_seen_at, landing_page, last_page, referrer,
-                utm_source, utm_medium, utm_campaign, utm_term, utm_content,
-                device_type, browser, os, language, timezone,
-                screen_width, screen_height, viewport_width, viewport_height,
-                ip_hash, user_agent
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
+        $insertData = array_merge([
+            'session_id' => $sessionId,
+            'started_at' => $now,
+            'landing_page' => $this->cleanText($context['landing_page'] ?? $pagePath, 1000),
+        ], $data);
 
-        $stmt->execute([
-            $sessionId,
-            $visitorId,
-            $now,
-            $now,
-            $this->cleanText($context['landing_page'] ?? $pagePath, 1000),
-            $pagePath,
-            $data['referrer'],
-            $data['utm_source'],
-            $data['utm_medium'],
-            $data['utm_campaign'],
-            $data['utm_term'],
-            $data['utm_content'],
-            $data['device_type'],
-            $data['browser'],
-            $data['os'],
-            $data['language'],
-            $data['timezone'],
-            $data['screen_width'],
-            $data['screen_height'],
-            $data['viewport_width'],
-            $data['viewport_height'],
-            $data['ip_hash'],
-            $data['user_agent'],
-        ]);
+        $columns = array_keys($insertData);
+        $stmt = $this->db->prepare(
+            "INSERT INTO analytics_sessions (" . implode(', ', $columns) . ") VALUES (" . implode(', ', array_fill(0, count($columns), '?')) . ")"
+        );
+        $stmt->execute(array_values($insertData));
     }
 
     private function insertEvent(string $sessionId, string $visitorId, array $event, array $context, array $server, string $now): void
@@ -1879,15 +1940,105 @@ class Analytics
         return $this->cleanText($value, 1000);
     }
 
+    private function clientIpWithSource(array $server): array
+    {
+        $candidates = [
+            'cf_connecting_ip' => $server['HTTP_CF_CONNECTING_IP'] ?? '',
+            'true_client_ip' => $server['HTTP_TRUE_CLIENT_IP'] ?? '',
+            'x_forwarded_for' => $server['HTTP_X_FORWARDED_FOR'] ?? '',
+            'remote_addr' => $server['REMOTE_ADDR'] ?? '',
+        ];
+
+        foreach ($candidates as $source => $value) {
+            $ip = trim(explode(',', (string) $value)[0]);
+            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                return ['ip' => $ip, 'source' => $source];
+            }
+        }
+
+        return ['ip' => '', 'source' => ''];
+    }
+
+    private function cloudflareGeo(array $server): array
+    {
+        return [
+            'country' => strtoupper($this->cleanText($this->serverValue($server, ['HTTP_CF_IPCOUNTRY']), 10)),
+            'region' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPREGION']), 255),
+            'region_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPREGION_CODE']), 50),
+            'city' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPCITY']), 255),
+            'postal_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPPOSTAL_CODE']), 40),
+            'latitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLATITUDE'])),
+            'longitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLONGITUDE'])),
+            'timezone' => $this->cleanText($this->serverValue($server, ['HTTP_CF_TIMEZONE']), 100),
+            'ray' => $this->cleanText($this->serverValue($server, ['HTTP_CF_RAY']), 80),
+        ];
+    }
+
+    private function botAssessment(array $server): array
+    {
+        $userAgent = strtolower((string) ($server['HTTP_USER_AGENT'] ?? ''));
+        $botScore = $this->nullableInt($this->serverValue($server, ['HTTP_CF_BOT_SCORE', 'HTTP_CF_BOTSCORE']));
+        $verifiedBot = $this->truthyHeader($this->serverValue($server, ['HTTP_CF_VERIFIED_BOT', 'HTTP_CF_CLIENT_BOT'])) ? 1 : 0;
+        $reasons = [];
+
+        if ($userAgent === '') {
+            $reasons[] = 'missing user agent';
+        } elseif (preg_match('/bot|crawler|spider|slurp|curl|wget|python-requests|httpclient|headless|phantom|selenium|scrapy|ahrefs|semrush|mj12|dotbot|petalbot|bytespider|ccbot|facebookexternalhit|bingpreview/i', $userAgent)) {
+            $reasons[] = 'bot-like user agent';
+        }
+
+        if ($botScore !== null && $botScore <= 29) {
+            $reasons[] = 'low Cloudflare bot score';
+        }
+
+        if ($verifiedBot === 1) {
+            $reasons[] = 'Cloudflare verified bot';
+        }
+
+        return [
+            'cf_bot_score' => $botScore,
+            'cf_verified_bot' => $verifiedBot,
+            'is_potential_bot' => empty($reasons) ? 0 : 1,
+            'bot_reason' => $this->cleanText(implode(', ', array_unique($reasons)), 500),
+        ];
+    }
+
+    private function serverValue(array $server, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (isset($server[$key]) && $server[$key] !== '') {
+                return (string) $server[$key];
+            }
+        }
+
+        return '';
+    }
+
+    private function truthyHeader(string $value): bool
+    {
+        $value = strtolower(trim($value));
+        return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function nullableFloat($value): ?float
+    {
+        return is_numeric($value) ? round((float) $value, 6) : null;
+    }
+
+    private function nullableInt($value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
+    }
+
     private function hashIp(array $server): string
     {
-        $ip = $server['REMOTE_ADDR'] ?? '';
-        if ($ip === '') {
+        $clientIp = $this->clientIpWithSource($server);
+        if ($clientIp['ip'] === '') {
             return '';
         }
 
         $salt = $server['HTTP_HOST'] ?? 'flipandstrip';
-        return hash('sha256', $ip . '|' . $salt);
+        return hash('sha256', $clientIp['ip'] . '|' . $salt);
     }
 
     private function since(int $days): string

@@ -78,8 +78,8 @@ class Banner
             $data['text_color']    ?? 'white',
             !empty($data['link_url'])   ? $data['link_url']   : null,
             !empty($data['link_text'])  ? $data['link_text']  : null,
-            isset($data['is_dismissible']) ? (int) $data['is_dismissible'] : 1,
-            isset($data['is_active'])      ? (int) $data['is_active']      : 1,
+            $this->checkboxValue($data, 'is_dismissible', 1),
+            $this->checkboxValue($data, 'is_active', 1),
             isset($data['sort_order'])     ? (int) $data['sort_order']     : 0,
             isset($data['show_countdown']) ? (int) $data['show_countdown'] : 0,
             !empty($data['countdown_end']) ? $data['countdown_end'] : null,
@@ -115,8 +115,8 @@ class Banner
             $data['text_color']    ?? 'white',
             !empty($data['link_url'])   ? $data['link_url']   : null,
             !empty($data['link_text'])  ? $data['link_text']  : null,
-            isset($data['is_dismissible']) ? (int) $data['is_dismissible'] : 1,
-            isset($data['is_active'])      ? (int) $data['is_active']      : 1,
+            $this->checkboxValue($data, 'is_dismissible', 0),
+            $this->checkboxValue($data, 'is_active', 0),
             isset($data['sort_order'])     ? (int) $data['sort_order']     : 0,
             isset($data['show_countdown']) ? (int) $data['show_countdown'] : 0,
             !empty($data['countdown_end']) ? $data['countdown_end'] : null,
@@ -169,6 +169,15 @@ class Banner
      *
      * @return int|false|null
      */
+    private function checkboxValue(array $data, string $field, int $default): int
+    {
+        if (!array_key_exists($field, $data)) {
+            return $default;
+        }
+
+        return !empty($data[$field]) ? 1 : 0;
+    }
+
     private function parseDateTime($value)
     {
         if ($value === null || $value === '') {

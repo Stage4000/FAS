@@ -327,14 +327,18 @@ $textColorOptions = [
     document.getElementById('editBannerModal').addEventListener('show.bs.modal', function (event) {
         const btn = event.relatedTarget;
         const modal = this;
-        const fields = ['id', 'message', 'bg_color', 'text_color', 'link_url', 'link_text',
-                        'is_dismissible', 'is_active', 'sort_order',
-                        'show_countdown', 'countdown_end',
-                        'starts_at', 'ends_at'];
+ const fields = ['id', 'message', 'bg_color', 'text_color', 'link_url', 'link_text',
+ 'is_dismissible', 'is_active', 'sort_order',
+ 'show_countdown', 'countdown_end',
+ 'starts_at', 'ends_at'];
+ const checkboxFields = ['is_dismissible', 'is_active', 'show_countdown'];
 
-        fields.forEach(function(field) {
-            const el = modal.querySelector(field === 'id' ? '#edit_id' : '[name="' + field + '"]');
-            if (!el) return;
+ fields.forEach(function(field) {
+ const selector = field === 'id'
+ ? '#edit_id'
+ : (checkboxFields.includes(field) ? 'input[type="checkbox"][name="' + field + '"]' : '[name="' + field + '"]');
+ const el = modal.querySelector(selector);
+ if (!el) return;
             const val = btn.getAttribute('data-' + field) || '';
             if (el.type === 'checkbox') {
                 el.checked = val === '1';
@@ -438,23 +442,26 @@ function renderBannerFormFields(array $colorOptions, array $textColorOptions, st
         <input type="number" name="sort_order" class="form-control" value="0" min="0"
                id="<?php echo $prefix; ?>sort_order">
         <small class="text-muted">Lower number = shown first</small>
-    </div>
-    <div class="mb-3 form-check">
-        <input type="checkbox" name="is_dismissible" value="1" class="form-check-input"
-               id="<?php echo $prefix; ?>is_dismissible" checked>
+ </div>
+ <div class="mb-3 form-check">
+ <input type="hidden" name="is_dismissible" value="0">
+ <input type="checkbox" name="is_dismissible" value="1" class="form-check-input"
+ id="<?php echo $prefix; ?>is_dismissible" checked>
         <label class="form-check-label" for="<?php echo $prefix; ?>is_dismissible">
             Dismissible (users can close the banner)
-        </label>
-    </div>
-    <div class="mb-3 form-check">
-        <input type="checkbox" name="is_active" value="1" class="form-check-input"
-               id="<?php echo $prefix; ?>is_active" checked>
+ </label>
+ </div>
+<div class="mb-3 form-check">
+ <input type="hidden" name="is_active" value="0">
+ <input type="checkbox" name="is_active" value="1" class="form-check-input"
+ id="<?php echo $prefix; ?>is_active" checked>
         <label class="form-check-label" for="<?php echo $prefix; ?>is_active">Active</label>
-    </div>
-    <hr>
-    <div class="mb-2 form-check">
-        <input type="checkbox" name="show_countdown" value="1" class="form-check-input banner-countdown-toggle"
-               id="<?php echo $prefix; ?>show_countdown"
+ </div>
+ <hr>
+ <div class="mb-2 form-check">
+ <input type="hidden" name="show_countdown" value="0">
+ <input type="checkbox" name="show_countdown" value="1" class="form-check-input banner-countdown-toggle"
+ id="<?php echo $prefix; ?>show_countdown"
                onchange="toggleCountdownField('<?php echo $prefix; ?>')">
         <label class="form-check-label fw-semibold" for="<?php echo $prefix; ?>show_countdown">
             <i class="fas fa-clock me-1"></i>Show Countdown Timer

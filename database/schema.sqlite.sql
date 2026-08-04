@@ -274,7 +274,21 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     viewport_width INTEGER,
     viewport_height INTEGER,
     ip_hash TEXT,
-    user_agent TEXT
+    user_agent TEXT,
+    client_ip_source TEXT,
+    cf_country TEXT,
+    cf_region TEXT,
+    cf_region_code TEXT,
+    cf_city TEXT,
+    cf_postal_code TEXT,
+    cf_latitude REAL,
+    cf_longitude REAL,
+    cf_timezone TEXT,
+    cf_ray TEXT,
+    cf_bot_score INTEGER,
+    cf_verified_bot INTEGER DEFAULT 0,
+    is_potential_bot INTEGER DEFAULT 0,
+    bot_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS analytics_events (
@@ -345,6 +359,8 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_started ON analytics_sessions(started_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor ON analytics_sessions(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_country ON analytics_sessions(cf_country);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_bot ON analytics_sessions(is_potential_bot);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_page ON analytics_events(page_path);
