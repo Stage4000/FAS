@@ -310,7 +310,6 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                             <?php foreach ($recentSessions as $row): ?>
                                 <?php
                                 $sessionLength = (int) (($row['max_session_age_seconds'] ?? 0) ?: ($row['duration_seconds'] ?? 0));
-                                $sessionUrl = '?days=' . urlencode((string) $days) . '&session=' . urlencode((string) $row['session_id']) . '#session-explorer';
                                 ?>
                                 <tr class="<?php echo $selectedSessionId === ($row['session_id'] ?? '') ? 'table-light' : ''; ?>">
                                     <td class="text-break">
@@ -341,7 +340,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                         <div><?php echo safe($row['last_seen_at'] ?? ''); ?></div>
                                         <div class="small text-muted"><?php echo safe($row['landing_page'] ?? ''); ?></div>
                                     </td>
-                                    <td class="text-end"><a class="btn btn-sm btn-outline-danger" href="<?php echo safe($sessionUrl); ?>">View</a></td>
+                                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">View</button></td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (empty($recentSessions)): ?>
@@ -351,101 +350,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                     </table>
                 </div>
 
-                <?php if ($selectedSession): ?>
-                    <div class="border rounded p-3 bg-light">
-                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                            <div>
-                                <div class="small text-uppercase text-muted fw-semibold">Selected Session</div>
-                                <div class="fw-semibold text-break"><?php echo safe($selectedSession['session_id']); ?></div>
-                                <div class="small text-muted">Visitor <?php echo safe($selectedSession['visitor_id']); ?></div>
-                            </div>
-                            <div class="text-lg-end small">
-                                <div><strong>Started:</strong> <?php echo safe($selectedSession['started_at']); ?></div>
-                                <div><strong>Last seen:</strong> <?php echo safe($selectedSession['last_seen_at']); ?></div>
-                                <div><strong>Length:</strong> <?php echo fmtSeconds($selectedSession['max_session_age_seconds'] ?: $selectedSession['duration_seconds']); ?></div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2 small">
-                            <div class="col-md-3"><strong>Landing:</strong><br><?php echo safe($selectedSession['landing_page']); ?></div>
-                            <div class="col-md-3"><strong>Last Page:</strong><br><?php echo safe($selectedSession['last_page']); ?></div>
-                            <div class="col-md-3"><strong>Source:</strong><br><?php echo safe($selectedSession['utm_source'] ?: $selectedSession['referrer'] ?: 'Direct / unknown'); ?></div>
-                            <div class="col-md-3"><strong>Location:</strong><br><?php echo safe(sessionGeoLabel($selectedSession)); ?></div>
-                        </div>
-                        <div class="row g-3 mt-2 small">
-                            <div class="col-md-3"><strong>Bot Signal:</strong><br><span class="badge <?php echo sessionBotBadgeClass($selectedSession); ?>"><?php echo safe(sessionBotLabel($selectedSession)); ?></span></div>
-                            <div class="col-md-3"><strong>IP Source:</strong><br><?php echo safe($selectedSession['client_ip_source'] ?: 'Unknown'); ?></div>
-                            <div class="col-md-3"><strong>Device:</strong><br><?php echo safe(trim(($selectedSession['device_type'] ?? '') . ' ' . ($selectedSession['browser'] ?? '') . ' ' . ($selectedSession['os'] ?? '')) ?: 'Unknown'); ?></div>
-                            <div class="col-md-3"><strong>Browser Signals:</strong><br><?php echo safe(compactLabel([
-                                $selectedSession['viewport_orientation'] ?? '',
-                                $selectedSession['connection_type'] ?? '',
-                                $selectedSession['color_scheme'] ?? '',
-                                ((int) ($selectedSession['cookies_enabled'] ?? 0) === 1) ? 'Cookies on' : '',
-                            ]) ?: 'Unknown'); ?></div>
-                        </div>
-                        <div class="d-flex flex-wrap gap-2 mt-3">
-                            <span class="badge text-bg-light">Events <?php echo fmtNumber($selectedSession['events']); ?></span>
-                            <span class="badge text-bg-light">Pages <?php echo fmtNumber($selectedSession['page_views']); ?></span>
-                            <span class="badge text-bg-light">Product Views <?php echo fmtNumber($selectedSession['product_views']); ?></span>
-                            <span class="badge text-bg-light">Cart Adds <?php echo fmtNumber($selectedSession['cart_adds']); ?></span>
-                            <span class="badge text-bg-light">Checkout Starts <?php echo fmtNumber($selectedSession['checkout_starts']); ?></span>
-                            <span class="badge text-bg-light">eBay Exits <?php echo fmtNumber($selectedSession['ebay_clicks']); ?></span>
-                            <span class="badge text-bg-light">Cart <?php echo fmtMoney($selectedSession['cart_value']); ?></span>
-                            <span class="badge text-bg-light">Revenue <?php echo fmtMoney($selectedSession['revenue']); ?></span>
-                        </div>
 
-                        <details class="mt-3">
-                            <summary class="fw-semibold small">View event history for this session</summary>
-                            <div class="table-responsive mt-3">
-                                <table class="table table-sm align-middle mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th>
-                                            <th>Event</th>
-                                            <th>Page / Step</th>
-                                            <th>Product / Link</th>
-                                            <th class="text-end">Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($selectedSessionEvents as $row): ?>
-                                            <tr>
-                                                <td class="text-nowrap"><?php echo safe($row['created_at']); ?></td>
-                                                <td>
-                                                    <span class="badge text-bg-light"><?php echo safe($row['event_type']); ?></span>
-                                                    <div class="small text-muted">Seq <?php echo fmtNumber($row['page_sequence']); ?> ? <?php echo fmtSeconds($row['session_age_seconds']); ?></div>
-                                                </td>
-                                                <td class="text-break">
-                                                    <div><?php echo safe($row['page_path'] ?: 'Unknown page'); ?></div>
-                                                    <div class="small text-muted"><?php echo safe($row['checkout_step'] ?: $row['previous_page_path'] ?: $row['referrer_host']); ?></div>
-                                                </td>
-                                                <td class="text-break">
-                                                    <div><?php echo safe($row['product_name'] ?: $row['link_text'] ?: $row['search_term'] ?: $row['campaign_name']); ?></div>
-                                                    <div class="small text-muted"><?php echo safe(compactLabel([
-                                                        $row['product_sku'] ?? '',
-                                                        $row['condition_name'] ?? '',
-                                                        !empty($row['stock_quantity']) ? 'Stock ' . (int) $row['stock_quantity'] : '',
-                                                        $row['target_host'] ?? '',
-                                                        $row['coupon_code'] ?? '',
-                                                        $row['list_name'] ?? '',
-                                                    ])); ?></div>
-                                                </td>
-                                                <td class="text-end text-nowrap">
-                                                    <?php echo fmtMoney($row['revenue'] ?: $row['cart_value'] ?: $row['event_value']); ?>
-                                                    <?php if (!empty($row['currency'])): ?>
-                                                        <div class="small text-muted"><?php echo safe($row['currency']); ?></div>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($selectedSessionEvents)): ?>
-                                            <tr><td colspan="5" class="text-muted">No events recorded for this session.</td></tr>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </details>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -918,6 +823,258 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
     Use this report weekly to identify high-demand products, category revenue patterns, coupon effectiveness, and checkout steps where shoppers leave before buying.
 </div>
 
+
+<div class="modal fade" id="sessionDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="small text-muted text-uppercase fw-semibold">Analytics Session</div>
+                    <h5 class="modal-title mb-0" id="sessionDetailsTitle">Session Details</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sessionDetailsLoading" class="alert alert-light border small mb-0">Loading session details...</div>
+                <div id="sessionDetailsError" class="alert alert-danger small d-none mb-0"></div>
+                <div id="sessionDetailsContent" class="d-none">
+                    <div class="row g-3 mb-4" id="sessionDetailsStats"></div>
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="fw-bold mb-3">User / Visitor</h6>
+                                <dl class="row small mb-0" id="sessionDetailsUser"></dl>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="fw-bold mb-3">Session Context</h6>
+                                <dl class="row small mb-0" id="sessionDetailsContext"></dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0">Chronological Action History</h6>
+                        <span class="small text-muted" id="sessionDetailsEventCount"></span>
+                    </div>
+                    <div class="table-responsive border rounded">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Event</th>
+                                    <th>Page / Step</th>
+                                    <th>Product / Link</th>
+                                    <th class="text-end">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessionDetailsEvents"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php include __DIR__ . '/includes/footer.php'; ?>
+
+<script>
+(function () {
+    const modalElement = document.getElementById('sessionDetailsModal');
+    if (!modalElement) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const loading = document.getElementById('sessionDetailsLoading');
+    const errorBox = document.getElementById('sessionDetailsError');
+    const content = document.getElementById('sessionDetailsContent');
+    const title = document.getElementById('sessionDetailsTitle');
+    const stats = document.getElementById('sessionDetailsStats');
+    const userDetails = document.getElementById('sessionDetailsUser');
+    const contextDetails = document.getElementById('sessionDetailsContext');
+    const eventCount = document.getElementById('sessionDetailsEventCount');
+    const eventsBody = document.getElementById('sessionDetailsEvents');
+
+    function text(value, fallback = 'Unknown') {
+        if (value === null || value === undefined || value === '') return fallback;
+        return String(value);
+    }
+
+    function number(value) {
+        const parsed = Number(value || 0);
+        return new Intl.NumberFormat().format(Number.isFinite(parsed) ? parsed : 0);
+    }
+
+    function money(value) {
+        const parsed = Number(value || 0);
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number.isFinite(parsed) ? parsed : 0);
+    }
+
+    function seconds(value) {
+        const total = Math.max(0, Number.parseInt(value || 0, 10));
+        if (total < 60) return total + 's';
+        const minutes = Math.floor(total / 60);
+        const remaining = total % 60;
+        if (minutes < 60) return minutes + 'm ' + remaining + 's';
+        const hours = Math.floor(minutes / 60);
+        return hours + 'h ' + (minutes % 60) + 'm';
+    }
+
+    function compact(parts) {
+        return parts.map(part => text(part, '')).filter(Boolean).join(' ? ') || 'Unknown';
+    }
+
+    function botLabel(summary) {
+        if (Number(summary.is_potential_bot || 0) === 1) return text(summary.bot_reason, 'Potential bot');
+        if (summary.cf_bot_score !== null && summary.cf_bot_score !== undefined && summary.cf_bot_score !== '') return 'No bot signal ? CF ' + Number(summary.cf_bot_score);
+        return 'No bot signal';
+    }
+
+    function setState(state, message = '') {
+        loading.classList.toggle('d-none', state !== 'loading');
+        errorBox.classList.toggle('d-none', state !== 'error');
+        content.classList.toggle('d-none', state !== 'ready');
+        if (message) errorBox.textContent = message;
+    }
+
+    function clearNode(node) {
+        while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function appendText(parent, value) {
+        parent.appendChild(document.createTextNode(value));
+    }
+
+    function statCard(label, value, note) {
+        const col = document.createElement('div');
+        col.className = 'col-sm-6 col-lg-3';
+        col.innerHTML = '<div class="border rounded p-3 h-100 bg-light"><div class="small text-muted"></div><div class="h4 mb-0"></div><div class="small text-muted mt-1"></div></div>';
+        col.querySelectorAll('div')[1].textContent = label;
+        col.querySelector('.h4').textContent = value;
+        col.querySelectorAll('div')[3].textContent = note;
+        return col;
+    }
+
+    function detailRow(label, value) {
+        const fragment = document.createDocumentFragment();
+        const dt = document.createElement('dt');
+        dt.className = 'col-sm-4 text-muted';
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.className = 'col-sm-8 text-break';
+        dd.textContent = text(value);
+        fragment.appendChild(dt);
+        fragment.appendChild(dd);
+        return fragment;
+    }
+
+    function renderDetails(summary, events) {
+        clearNode(stats);
+        clearNode(userDetails);
+        clearNode(contextDetails);
+        clearNode(eventsBody);
+
+        const activeSeconds = Number(summary.max_session_age_seconds || summary.duration_seconds || 0);
+        const location = compact([summary.cf_city, summary.cf_region_code || summary.cf_region, summary.cf_country]);
+        const source = summary.utm_source || summary.referrer || 'Direct / unknown';
+        const device = compact([summary.device_type, summary.browser, summary.os]);
+
+        title.textContent = 'Session ' + text(summary.session_id, 'Unknown');
+        stats.appendChild(statCard('Active Time', seconds(activeSeconds), 'Last seen ' + text(summary.last_seen_at)));
+        stats.appendChild(statCard('Events', number(summary.events), number(summary.page_views) + ' page views'));
+        stats.appendChild(statCard('Cart Value', money(summary.cart_value), number(summary.cart_adds) + ' adds ? ' + number(summary.checkout_starts) + ' checkout'));
+        stats.appendChild(statCard('Revenue', money(summary.revenue), number(summary.purchases) + ' orders ? ' + number(summary.ebay_clicks) + ' eBay exits'));
+
+        userDetails.appendChild(detailRow('Visitor ID', summary.visitor_id));
+        userDetails.appendChild(detailRow('Visitor Type', Number(summary.is_returning_visitor || 0) === 1 ? 'Returning visitor' : 'New visitor'));
+        userDetails.appendChild(detailRow('Visitor Pageviews', number(summary.visitor_pageviews)));
+        userDetails.appendChild(detailRow('Device', device));
+        userDetails.appendChild(detailRow('Language', summary.language));
+        userDetails.appendChild(detailRow('Timezone', summary.timezone || summary.cf_timezone));
+        userDetails.appendChild(detailRow('Location', location));
+        userDetails.appendChild(detailRow('IP Source', summary.client_ip_source));
+        userDetails.appendChild(detailRow('Bot Signal', botLabel(summary)));
+
+        contextDetails.appendChild(detailRow('Started', summary.started_at));
+        contextDetails.appendChild(detailRow('Last Seen', summary.last_seen_at));
+        contextDetails.appendChild(detailRow('Landing Page', summary.landing_page));
+        contextDetails.appendChild(detailRow('Last Page', summary.last_page));
+        contextDetails.appendChild(detailRow('Traffic Source', source));
+        contextDetails.appendChild(detailRow('Campaign', compact([summary.utm_campaign, summary.utm_medium, summary.utm_term])));
+        contextDetails.appendChild(detailRow('Browser Signals', compact([summary.viewport_orientation, summary.connection_type, summary.color_scheme, Number(summary.cookies_enabled || 0) === 1 ? 'Cookies on' : ''])));
+        contextDetails.appendChild(detailRow('Cloudflare', compact([summary.cf_ray, summary.cf_bot_score !== null && summary.cf_bot_score !== undefined && summary.cf_bot_score !== '' ? 'Bot score ' + summary.cf_bot_score : ''])));
+
+        eventCount.textContent = number(events.length) + ' events shown';
+        if (events.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="5" class="text-muted">No non-heartbeat actions recorded for this session.</td>';
+            eventsBody.appendChild(row);
+            return;
+        }
+
+        events.forEach(event => {
+            const row = document.createElement('tr');
+            const value = Number(event.revenue || event.cart_value || event.event_value || 0);
+            const product = event.product_name || event.link_text || event.search_term || event.campaign_name || '';
+            const productMeta = compact([event.product_sku, event.condition_name, event.stock_quantity ? 'Stock ' + event.stock_quantity : '', event.target_host, event.coupon_code, event.list_name]);
+            const pageMeta = event.checkout_step || event.previous_page_path || event.referrer_host || '';
+
+            [
+                text(event.created_at, ''),
+                text(event.event_type, ''),
+                compact([event.page_path || 'Unknown page', pageMeta]),
+                compact([product, productMeta]),
+                money(value)
+            ].forEach((cellValue, index) => {
+                const cell = document.createElement('td');
+                if (index === 1) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge text-bg-light';
+                    badge.textContent = cellValue;
+                    cell.appendChild(badge);
+                    const meta = document.createElement('div');
+                    meta.className = 'small text-muted';
+                    meta.textContent = 'Seq ' + number(event.page_sequence) + ' ? ' + seconds(event.session_age_seconds);
+                    cell.appendChild(meta);
+                } else {
+                    cell.className = index === 4 ? 'text-end text-nowrap' : 'text-break';
+                    appendText(cell, cellValue);
+                }
+                row.appendChild(cell);
+            });
+            eventsBody.appendChild(row);
+        });
+    }
+
+    async function openSession(sessionId) {
+        title.textContent = 'Session ' + sessionId;
+        setState('loading');
+        modal.show();
+
+        try {
+            const response = await fetch('session-details.php?session=' + encodeURIComponent(sessionId), {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to load session details.');
+            renderDetails(payload.summary || {}, payload.events || []);
+            setState('ready');
+        } catch (error) {
+            setState('error', error.message || 'Unable to load session details.');
+        }
+    }
+
+    document.querySelectorAll('.js-session-view').forEach(button => {
+        button.addEventListener('click', () => openSession(button.dataset.sessionId || ''));
+    });
+
+    const initialSessionId = <?php echo json_encode($selectedSessionId); ?>;
+    if (initialSessionId) {
+        openSession(initialSessionId);
+    }
+})();
+</script>
+
 </body>
 </html>

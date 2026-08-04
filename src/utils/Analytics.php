@@ -901,7 +901,7 @@ class Analytics
                 created_at
             FROM analytics_events
             WHERE session_id = ?
-            ORDER BY id ASC
+            ORDER BY created_at ASC, id ASC
             LIMIT " . $limit,
             [$sessionId]
         );
