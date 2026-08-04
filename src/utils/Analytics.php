@@ -20,6 +20,7 @@ class Analytics
         'shipping_method_selected' => 'shipping_rate_selected',
         'shipping_selected' => 'shipping_rate_selected',
         'coupon_apply_attempted' => 'coupon_attempted',
+        'coupon_apply_invalid' => 'coupon_rejected',
         'coupon_attempt' => 'coupon_attempted',
         'order_completed' => 'purchase_completed',
         'purchase' => 'purchase_completed',
@@ -56,6 +57,7 @@ class Analytics
         'coupon_attempted',
         'coupon_applied',
         'coupon_rejected',
+        'coupon_removed',
         'purchase_completed',
         'purchase_failed',
         'banner_view',
@@ -67,9 +69,27 @@ class Analytics
     ];
 
     private static $eventColumns = [
+        'referrer_host' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'previous_page_path' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(1000)'],
+        'page_sequence' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'session_age_seconds' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'session_expires_at' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
+        'session_ttl_days' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'visitor_first_seen_at' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
+        'visitor_pageviews' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'is_returning_visitor' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
+        'viewport_orientation' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(20)'],
+        'connection_type' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(50)'],
+        'save_data' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
+        'color_scheme' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(20)'],
+        'cookies_enabled' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
         'manufacturer' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'product_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
         'product_price' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'condition_name' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
+        'stock_quantity' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
+        'list_name' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'list_position' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
         'cart_items_count' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
         'cart_unique_items' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'INT DEFAULT 0'],
         'coupon_code' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
@@ -77,11 +97,16 @@ class Analytics
         'discount_amount' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
         'shipping_service' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'shipping_cost' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'destination_state' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'checkout_step' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
+        'payment_provider' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
         'order_id' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
         'order_number' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
         'revenue' => ['sqlite' => 'REAL DEFAULT 0', 'mysql' => 'DECIMAL(10, 2) DEFAULT 0'],
+        'currency' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(10)'],
         'search_term' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'link_text' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
+        'link_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
         'target_url' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(1000)'],
         'target_host' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
         'banner_id' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
@@ -147,9 +172,12 @@ class Analytics
             $this->insertEvent($sessionId, $visitorId, $event, $context, $server, $now);
             $count++;
 
-            if (in_array($eventType, ['page_exit', 'session_end'], true)) {
+            if ($eventType === 'session_end') {
                 $duration = $this->intValue($event['duration_seconds'] ?? null);
                 $this->endSession($sessionId, $duration, $context, $now);
+            } elseif ($eventType === 'page_exit') {
+                $duration = $this->intValue($event['duration_seconds'] ?? null);
+                $this->touchSessionDuration($sessionId, $duration, $context, $now);
             }
         }
 
@@ -677,7 +705,180 @@ class Analytics
                     created_at
              FROM analytics_events
              ORDER BY created_at DESC
-             LIMIT " . (int) $limit
+            LIMIT " . (int) $limit
+        );
+    }
+
+    public function getRecentSessions(int $days, int $limit = 50): array
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $limit = max(1, min(200, $limit));
+
+        return $this->fetchAll(
+            "SELECT s.*,
+                COALESCE(e.events, 0) AS events,
+                COALESCE(e.page_views, 0) AS page_views,
+                COALESCE(e.product_views, 0) AS product_views,
+                COALESCE(e.cart_adds, 0) AS cart_adds,
+                COALESCE(e.checkout_starts, 0) AS checkout_starts,
+                COALESCE(e.purchases, 0) AS purchases,
+                COALESCE(e.ebay_clicks, 0) AS ebay_clicks,
+                COALESCE(e.cart_value, 0) AS cart_value,
+                COALESCE(e.revenue, 0) AS revenue,
+                COALESCE(e.max_session_age_seconds, s.duration_seconds, 0) AS max_session_age_seconds,
+                COALESCE(e.session_ttl_days, 0) AS session_ttl_days,
+                COALESCE(e.visitor_pageviews, 0) AS visitor_pageviews,
+                COALESCE(e.is_returning_visitor, 0) AS is_returning_visitor
+            FROM analytics_sessions s
+            LEFT JOIN (
+                SELECT session_id,
+                    COUNT(*) AS events,
+                    SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
+                    SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS product_views,
+                    SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
+                    SUM(CASE WHEN event_type = 'checkout_start' THEN 1 ELSE 0 END) AS checkout_starts,
+                    SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS purchases,
+                    SUM(CASE WHEN event_type = 'ebay_link_click' THEN 1 ELSE 0 END) AS ebay_clicks,
+                    MAX(cart_value) AS cart_value,
+                    COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue,
+                    MAX(session_age_seconds) AS max_session_age_seconds,
+                    MAX(session_ttl_days) AS session_ttl_days,
+                    MAX(visitor_pageviews) AS visitor_pageviews,
+                    MAX(is_returning_visitor) AS is_returning_visitor
+                FROM analytics_events
+                WHERE created_at >= ?
+                GROUP BY session_id
+            ) e ON e.session_id = s.session_id
+            WHERE s.started_at >= ?
+                OR s.last_seen_at >= ?
+                OR e.events IS NOT NULL
+            ORDER BY s.last_seen_at DESC
+            LIMIT " . $limit,
+            [$since, $since, $since]
+        );
+    }
+
+    public function getSessionSummary(string $sessionId): ?array
+    {
+        $this->ensureTables();
+
+        $sessionId = $this->cleanLookupId($sessionId);
+        if ($sessionId === '') {
+            return null;
+        }
+
+        $session = $this->fetchOne(
+            "SELECT * FROM analytics_sessions WHERE session_id = ?",
+            [$sessionId]
+        );
+
+        if (!$session) {
+            return null;
+        }
+
+        $stats = $this->fetchOne(
+            "SELECT COUNT(*) AS events,
+                SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views,
+                SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) AS product_views,
+                SUM(CASE WHEN event_type = 'product_impression' THEN 1 ELSE 0 END) AS product_impressions,
+                SUM(CASE WHEN event_type = 'product_click' THEN 1 ELSE 0 END) AS product_clicks,
+                SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
+                SUM(CASE WHEN event_type = 'checkout_start' THEN 1 ELSE 0 END) AS checkout_starts,
+                SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS purchases,
+                SUM(CASE WHEN event_type = 'ebay_link_click' THEN 1 ELSE 0 END) AS ebay_clicks,
+                MAX(cart_value) AS cart_value,
+                COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue,
+                MAX(session_age_seconds) AS max_session_age_seconds,
+                MAX(session_ttl_days) AS session_ttl_days,
+                MAX(visitor_pageviews) AS visitor_pageviews,
+                MAX(is_returning_visitor) AS is_returning_visitor,
+                MAX(viewport_orientation) AS viewport_orientation,
+                MAX(connection_type) AS connection_type,
+                MAX(color_scheme) AS color_scheme,
+                MAX(cookies_enabled) AS cookies_enabled,
+                MIN(created_at) AS first_event_at,
+                MAX(created_at) AS last_event_at
+            FROM analytics_events
+            WHERE session_id = ?",
+            [$sessionId]
+        );
+
+        return array_merge($session, $stats ?: []);
+    }
+
+    public function getSessionEvents(string $sessionId, int $limit = 250): array
+    {
+        $this->ensureTables();
+
+        $sessionId = $this->cleanLookupId($sessionId);
+        if ($sessionId === '') {
+            return [];
+        }
+
+        $limit = max(1, min(500, $limit));
+
+        return $this->fetchAll(
+            "SELECT id,
+                event_type,
+                event_name,
+                page_path,
+                previous_page_path,
+                referrer_host,
+                page_sequence,
+                session_age_seconds,
+                session_expires_at,
+                session_ttl_days,
+                visitor_first_seen_at,
+                visitor_pageviews,
+                is_returning_visitor,
+                viewport_orientation,
+                connection_type,
+                save_data,
+                color_scheme,
+                cookies_enabled,
+                product_id,
+                product_name,
+                product_sku,
+                category,
+                manufacturer,
+                product_price,
+                condition_name,
+                stock_quantity,
+                list_name,
+                list_position,
+                quantity,
+                cart_items_count,
+                cart_value,
+                coupon_code,
+                coupon_status,
+                discount_amount,
+                shipping_service,
+                shipping_cost,
+                destination_state,
+                checkout_step,
+                payment_provider,
+                order_number,
+                revenue,
+                currency,
+                search_term,
+                link_text,
+                link_source,
+                target_url,
+                target_host,
+                banner_id,
+                campaign_name,
+                event_value,
+                scroll_depth,
+                duration_seconds,
+                metadata,
+                created_at
+            FROM analytics_events
+            WHERE session_id = ?
+            ORDER BY id ASC
+            LIMIT " . $limit,
+            [$sessionId]
         );
     }
 
@@ -739,6 +940,20 @@ class Analytics
                 page_path TEXT,
                 page_title TEXT,
                 referrer TEXT,
+                referrer_host TEXT,
+                previous_page_path TEXT,
+                page_sequence INTEGER DEFAULT 0,
+                session_age_seconds INTEGER DEFAULT 0,
+                session_expires_at TEXT,
+                session_ttl_days INTEGER DEFAULT 0,
+                visitor_first_seen_at TEXT,
+                visitor_pageviews INTEGER DEFAULT 0,
+                is_returning_visitor INTEGER DEFAULT 0,
+                viewport_orientation TEXT,
+                connection_type TEXT,
+                save_data INTEGER DEFAULT 0,
+                color_scheme TEXT,
+                cookies_enabled INTEGER DEFAULT 0,
                 product_id TEXT,
                 product_name TEXT,
                 product_sku TEXT,
@@ -746,6 +961,10 @@ class Analytics
                 manufacturer TEXT,
                 product_source TEXT,
                 product_price REAL DEFAULT 0,
+                condition_name TEXT,
+                stock_quantity INTEGER DEFAULT 0,
+                list_name TEXT,
+                list_position INTEGER DEFAULT 0,
                 quantity INTEGER DEFAULT 0,
                 cart_items_count INTEGER DEFAULT 0,
                 cart_unique_items INTEGER DEFAULT 0,
@@ -755,11 +974,16 @@ class Analytics
                 discount_amount REAL DEFAULT 0,
                 shipping_service TEXT,
                 shipping_cost REAL DEFAULT 0,
+                destination_state TEXT,
+                checkout_step TEXT,
+                payment_provider TEXT,
                 order_id TEXT,
                 order_number TEXT,
                 revenue REAL DEFAULT 0,
+                currency TEXT,
                 search_term TEXT,
                 link_text TEXT,
+                link_source TEXT,
                 target_url TEXT,
                 target_host TEXT,
                 banner_id TEXT,
@@ -817,6 +1041,20 @@ class Analytics
                 page_path VARCHAR(1000),
                 page_title VARCHAR(255),
                 referrer VARCHAR(1000),
+                referrer_host VARCHAR(255),
+                previous_page_path VARCHAR(1000),
+                page_sequence INT DEFAULT 0,
+                session_age_seconds INT DEFAULT 0,
+                session_expires_at VARCHAR(40),
+                session_ttl_days INT DEFAULT 0,
+                visitor_first_seen_at VARCHAR(40),
+                visitor_pageviews INT DEFAULT 0,
+                is_returning_visitor TINYINT(1) DEFAULT 0,
+                viewport_orientation VARCHAR(20),
+                connection_type VARCHAR(50),
+                save_data TINYINT(1) DEFAULT 0,
+                color_scheme VARCHAR(20),
+                cookies_enabled TINYINT(1) DEFAULT 0,
                 product_id VARCHAR(80),
                 product_name VARCHAR(500),
                 product_sku VARCHAR(255),
@@ -824,6 +1062,10 @@ class Analytics
                 manufacturer VARCHAR(255),
                 product_source VARCHAR(80),
                 product_price DECIMAL(10, 2) DEFAULT 0,
+                condition_name VARCHAR(100),
+                stock_quantity INT DEFAULT 0,
+                list_name VARCHAR(255),
+                list_position INT DEFAULT 0,
                 quantity INT DEFAULT 0,
                 cart_items_count INT DEFAULT 0,
                 cart_unique_items INT DEFAULT 0,
@@ -833,11 +1075,16 @@ class Analytics
                 discount_amount DECIMAL(10, 2) DEFAULT 0,
                 shipping_service VARCHAR(255),
                 shipping_cost DECIMAL(10, 2) DEFAULT 0,
+                destination_state VARCHAR(80),
+                checkout_step VARCHAR(100),
+                payment_provider VARCHAR(100),
                 order_id VARCHAR(80),
                 order_number VARCHAR(100),
                 revenue DECIMAL(10, 2) DEFAULT 0,
+                currency VARCHAR(10),
                 search_term VARCHAR(255),
                 link_text VARCHAR(255),
+                link_source VARCHAR(100),
                 target_url VARCHAR(1000),
                 target_host VARCHAR(255),
                 banner_id VARCHAR(80),
@@ -871,6 +1118,8 @@ class Analytics
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_page', 'page_path', 255);
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_product', 'product_id');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_session', 'session_id');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_referrer_host', 'referrer_host');
+        $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_link_source', 'link_source');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_coupon', 'coupon_code');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_order', 'order_id');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_target_host', 'target_host');
@@ -985,17 +1234,24 @@ class Analytics
         $pageUrl = $this->cleanText($this->firstValue([$event, $context], ['page_url', 'url'], ''), 1000);
         $pagePath = $this->pagePath($this->firstValue([$event, $context], ['page_path'], null), $pageUrl, $server);
 
+        $columns = [
+            'session_id', 'visitor_id', 'event_type', 'event_name', 'page_url', 'page_path', 'page_title', 'referrer',
+            'referrer_host', 'previous_page_path', 'page_sequence', 'session_age_seconds',
+            'session_expires_at', 'session_ttl_days', 'visitor_first_seen_at', 'visitor_pageviews', 'is_returning_visitor',
+            'viewport_orientation', 'connection_type', 'save_data', 'color_scheme', 'cookies_enabled',
+            'product_id', 'product_name', 'product_sku', 'category', 'manufacturer', 'product_source', 'product_price',
+            'condition_name', 'stock_quantity',
+            'list_name', 'list_position',
+            'quantity', 'cart_items_count', 'cart_unique_items', 'cart_value',
+            'coupon_code', 'coupon_status', 'discount_amount',
+            'shipping_service', 'shipping_cost', 'destination_state', 'checkout_step', 'payment_provider',
+            'order_id', 'order_number', 'revenue', 'currency', 'search_term',
+            'link_text', 'link_source', 'target_url', 'target_host', 'banner_id', 'campaign_name',
+            'event_value', 'scroll_depth', 'duration_seconds', 'metadata', 'created_at',
+        ];
+
         $stmt = $this->db->prepare(
-            "INSERT INTO analytics_events (
-                session_id, visitor_id, event_type, event_name, page_url, page_path, page_title, referrer,
-                product_id, product_name, product_sku, category, manufacturer, product_source, product_price,
-                quantity, cart_items_count, cart_unique_items, cart_value,
-                coupon_code, coupon_status, discount_amount,
-                shipping_service, shipping_cost,
-                order_id, order_number, revenue, search_term,
-                link_text, target_url, target_host, banner_id, campaign_name,
-                event_value, scroll_depth, duration_seconds, metadata, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO analytics_events (" . implode(', ', $columns) . ") VALUES (" . implode(', ', array_fill(0, count($columns), '?')) . ")"
         );
 
         $stmt->execute([
@@ -1007,6 +1263,20 @@ class Analytics
             $pagePath,
             $this->cleanText($this->firstValue([$event, $context], ['page_title', 'title'], ''), 255),
             $this->cleanText($this->firstValue([$event, $context], ['referrer'], $server['HTTP_REFERER'] ?? ''), 1000),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['referrer_host'], $this->hostFromUrl($this->firstValue([$event, $context], ['referrer'], $server['HTTP_REFERER'] ?? ''))), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['previous_page_path'], ''), 1000),
+            max(0, $this->intValue($this->firstValue([$event, $metadata, $context], ['page_sequence'], 0))),
+            max(0, $this->intValue($this->firstValue([$event, $metadata, $context], ['session_age_seconds'], 0))),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['session_expires_at'], ''), 40),
+            max(0, $this->intValue($this->firstValue([$event, $metadata, $context], ['session_ttl_days'], 0))),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['visitor_first_seen_at'], ''), 40),
+            max(0, $this->intValue($this->firstValue([$event, $metadata, $context], ['visitor_pageviews'], 0))),
+            max(0, min(1, $this->intValue($this->firstValue([$event, $metadata, $context], ['is_returning_visitor'], 0)))),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['viewport_orientation'], ''), 20),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['connection_type'], ''), 50),
+            max(0, min(1, $this->intValue($this->firstValue([$event, $metadata, $context], ['save_data'], 0)))),
+            $this->cleanText($this->firstValue([$event, $metadata, $context], ['color_scheme'], ''), 20),
+            max(0, min(1, $this->intValue($this->firstValue([$event, $metadata, $context], ['cookies_enabled'], 0)))),
             $this->cleanText($this->firstValue([$event, $metadata], ['product_id', 'id'], ''), 80),
             $this->cleanText($this->firstValue([$event, $metadata], ['product_name', 'name'], ''), 500),
             $this->cleanText($this->firstValue([$event, $metadata], ['product_sku', 'sku'], ''), 255),
@@ -1014,6 +1284,10 @@ class Analytics
             $this->cleanText($this->firstValue([$event, $metadata], ['manufacturer', 'brand'], ''), 255),
             $this->cleanText($this->firstValue([$event, $metadata], ['product_source', 'source'], ''), 80),
             $productPrice,
+            $this->cleanText($this->firstValue([$event, $metadata], ['condition_name', 'condition'], ''), 100),
+            max(0, $this->intValue($this->firstValue([$event, $metadata], ['stock_quantity', 'stock'], 0))),
+            $this->cleanText($this->firstValue([$event, $metadata], ['list_name'], ''), 255),
+            max(0, $this->intValue($this->firstValue([$event, $metadata], ['list_position'], 0))),
             $this->quantityForEvent($eventType, $event, $metadata),
             $this->intValue($this->firstValue([$event, $metadata, $cartSummary], ['cart_items_count'], 0)),
             $this->intValue($this->firstValue([$event, $metadata, $cartSummary], ['cart_unique_items'], 0)),
@@ -1023,11 +1297,16 @@ class Analytics
             $this->floatValue($this->firstValue([$event, $metadata], ['discount_amount'], 0)),
             $this->shippingService($event, $metadata),
             $this->floatValue($this->firstValue([$event, $metadata], ['shipping_cost', 'cost', 'total_charge'], 0)),
+            $this->cleanText($this->firstValue([$event, $metadata], ['destination_state', 'state'], ''), 80),
+            $this->cleanText($this->firstValue([$event, $metadata], ['checkout_step'], ''), 100),
+            $this->cleanText($this->firstValue([$event, $metadata], ['payment_provider', 'provider'], ''), 100),
             $this->cleanText($this->firstValue([$event, $metadata], ['order_id'], ''), 80),
             $this->cleanText($this->firstValue([$event, $metadata], ['order_number'], ''), 100),
             $revenue,
+            strtoupper($this->cleanText($this->firstValue([$event, $metadata], ['currency'], 'USD'), 10)),
             $this->cleanText($this->firstValue([$event, $metadata], ['search_term', 'query'], ''), 255),
             $this->cleanText($this->firstValue([$event, $metadata], ['link_text'], ''), 255),
+            $this->cleanText($this->firstValue([$event, $metadata], ['link_source'], ''), 100),
             $this->cleanText($this->firstValue([$event, $metadata], ['target_url'], ''), 1000),
             $this->cleanText($this->firstValue([$event, $metadata], ['target_host'], ''), 255),
             $this->cleanText($this->firstValue([$event, $metadata], ['banner_id'], ''), 80),
@@ -1044,12 +1323,33 @@ class Analytics
     {
         $stmt = $this->db->prepare(
             "UPDATE analytics_sessions
-             SET ended_at = ?, duration_seconds = ?, last_seen_at = ?, last_page = ?
+            SET ended_at = ?, duration_seconds = ?, last_seen_at = ?, last_page = ?
              WHERE session_id = ?"
         );
         $stmt->execute([
             $now,
             max(0, $duration),
+            $now,
+            $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, []),
+            $sessionId,
+        ]);
+    }
+
+    private function touchSessionDuration(string $sessionId, int $duration, array $context, string $now): void
+    {
+        $current = $this->fetchOne(
+            "SELECT duration_seconds FROM analytics_sessions WHERE session_id = ?",
+            [$sessionId]
+        );
+        $duration = max((int) ($current['duration_seconds'] ?? 0), max(0, $duration));
+
+        $stmt = $this->db->prepare(
+            "UPDATE analytics_sessions
+            SET duration_seconds = ?, last_seen_at = ?, last_page = ?
+            WHERE session_id = ?"
+        );
+        $stmt->execute([
+            $duration,
             $now,
             $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, []),
             $sessionId,
@@ -1092,6 +1392,20 @@ class Analytics
             'page_title',
             'title',
             'referrer',
+            'referrer_host',
+            'previous_page_path',
+            'page_sequence',
+            'session_age_seconds',
+            'session_expires_at',
+            'session_ttl_days',
+            'visitor_first_seen_at',
+            'visitor_pageviews',
+            'is_returning_visitor',
+            'viewport_orientation',
+            'connection_type',
+            'save_data',
+            'color_scheme',
+            'cookies_enabled',
             'product_id',
             'id',
             'product_name',
@@ -1107,6 +1421,12 @@ class Analytics
             'product_price',
             'price',
             'unit_price',
+            'condition_name',
+            'condition',
+            'stock_quantity',
+            'stock',
+            'list_name',
+            'list_position',
             'quantity',
             'quantity_added',
             'new_quantity',
@@ -1124,14 +1444,20 @@ class Analytics
             'shipping_cost',
             'cost',
             'total_charge',
+            'destination_state',
+            'checkout_step',
+            'payment_provider',
+            'provider',
             'order_id',
             'order_number',
             'revenue',
             'total_amount',
             'subtotal',
+            'currency',
             'search_term',
             'query',
             'link_text',
+            'link_source',
             'target_url',
             'target_host',
             'banner_id',
@@ -1291,6 +1617,8 @@ class Analytics
                     category,
                     manufacturer,
                     MAX(product_price) AS product_price,
+                    MAX(condition_name) AS condition_name,
+                    MAX(stock_quantity) AS stock_quantity,
                     MAX(quantity) AS quantity,
                     MAX(created_at) AS last_added_at
              FROM analytics_events
@@ -1456,6 +1784,12 @@ class Analytics
         return $this->cleanText($path !== '' ? $path : '/', 1000);
     }
 
+    private function hostFromUrl($url): string
+    {
+        $host = parse_url((string) $url, PHP_URL_HOST);
+        return $host ? strtolower((string) $host) : '';
+    }
+
     private function arrayValue(array $source, string $key): array
     {
         return isset($source[$key]) && is_array($source[$key]) ? $source[$key] : [];
@@ -1482,6 +1816,12 @@ class Analytics
         $text = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $value);
         $text = substr((string) $text, 0, 80);
         return $text !== '' ? $text : $prefix . '_' . bin2hex(random_bytes(16));
+    }
+
+    private function cleanLookupId($value): string
+    {
+        $text = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $value);
+        return substr((string) $text, 0, 80);
     }
 
     private function cleanKey($value, string $default): string

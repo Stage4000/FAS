@@ -103,6 +103,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
                             data-category="<?php echo htmlspecialchars($category); ?>"
                             data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
                             data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
+                            data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
                             data-weight="<?php echo !empty($product['weight']) ? (float)$product['weight'] : 1.0; ?>"
                             data-length="<?php echo !empty($product['length']) ? (float)$product['length'] : 10.0; ?>"
                             data-width="<?php echo !empty($product['width']) ? (float)$product['width'] : 10.0; ?>"

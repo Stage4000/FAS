@@ -32,6 +32,10 @@ $topPages = $analytics->getTopPages($days, 10);
 $trafficSources = $analytics->getTrafficSources($days, 10);
 $searchTerms = $analytics->getSearchTerms($days, 10);
 $recentEvents = $analytics->getRecentEvents(30);
+$recentSessions = $analytics->getRecentSessions($days, 50);
+$selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
+$selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
+$selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
 
 function fmtNumber($value): string
 {
@@ -56,6 +60,19 @@ function fmtSeconds($seconds): string
     }
 
     return floor($seconds / 60) . 'm ' . ($seconds % 60) . 's';
+}
+
+function compactLabel(array $parts): string
+{
+    $labels = [];
+    foreach ($parts as $part) {
+        $label = trim((string) $part);
+        if ($label !== '') {
+            $labels[] = $label;
+        }
+    }
+
+    return implode(' · ', $labels);
 }
 
 function safe($value): string
@@ -133,9 +150,12 @@ function metricCard(string $label, string $value, string $note, string $icon): s
             <h1 class="display-6 fw-bold mb-2">Conversion and merchandising dashboard</h1>
             <p class="mb-0 text-white-50">Tracks traffic quality, product demand, cart behavior, checkout friction, coupons, and completed-order revenue.</p>
         </div>
-        <form method="get" class="align-self-lg-start">
-            <label for="days" class="form-label text-white-50 small mb-1">Reporting range</label>
-            <select class="form-select" id="days" name="days" onchange="this.form.submit()">
+<form method="get" class="align-self-lg-start">
+<label for="days" class="form-label text-white-50 small mb-1">Reporting range</label>
+<?php if ($selectedSessionId !== ''): ?>
+<input type="hidden" name="session" value="<?php echo safe($selectedSessionId); ?>">
+<?php endif; ?>
+<select class="form-select" id="days" name="days" onchange="this.form.submit()">
                 <?php foreach ($allowedDays as $option): ?>
                     <option value="<?php echo $option; ?>" <?php echo $days === $option ? 'selected' : ''; ?>>
                         Last <?php echo $option; ?> days
@@ -155,8 +175,166 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     echo metricCard('Orders', fmtNumber($overview['orders']), fmtPercent($overview['checkout_to_order_rate']) . ' checkout-to-order', 'fa-receipt');
     echo metricCard('Revenue', fmtMoney($overview['revenue']), 'Completed orders', 'fa-dollar-sign');
     echo metricCard('Abandoned Carts', fmtNumber($overview['abandoned_carts']), fmtMoney($overview['abandoned_cart_value']) . ' at risk', 'fa-cart-arrow-down');
-    echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outbound eBay clicks', 'fa-up-right-from-square');
-    ?>
+echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outbound eBay clicks', 'fa-up-right-from-square');
+?>
+</div>
+
+<div class="row g-4 mb-4" id="session-explorer">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" data-aos="fade-up">
+            <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div>
+                    <h5 class="mb-1"><i class="fas fa-timeline text-danger me-2"></i>Session Explorer</h5>
+                    <div class="small text-muted">Find a shopper session, then review its page path, product actions, cart changes, checkout events, and outbound exits.</div>
+                </div>
+                <form method="get" class="d-flex gap-2">
+                    <input type="hidden" name="days" value="<?php echo $days; ?>">
+                    <input type="text" name="session" class="form-control form-control-sm" placeholder="Session ID" value="<?php echo safe($selectedSessionId); ?>">
+                    <button class="btn btn-danger btn-sm" type="submit">View Session</button>
+                </form>
+            </div>
+            <div class="card-body">
+                <?php if ($selectedSessionId !== '' && !$selectedSession): ?>
+                    <div class="alert alert-warning small">No session found for <code><?php echo safe($selectedSessionId); ?></code>.</div>
+                <?php endif; ?>
+
+                <?php if ($selectedSession): ?>
+                    <div class="border rounded p-3 mb-4 bg-light">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                            <div>
+                                <div class="fw-semibold text-break"><?php echo safe($selectedSession['session_id']); ?></div>
+                                <div class="small text-muted">Visitor <?php echo safe($selectedSession['visitor_id']); ?></div>
+                            </div>
+                            <div class="text-lg-end small">
+                                <div><strong>Started:</strong> <?php echo safe($selectedSession['started_at']); ?></div>
+                                <div><strong>Last seen:</strong> <?php echo safe($selectedSession['last_seen_at']); ?></div>
+                                <div><strong>Length:</strong> <?php echo fmtSeconds($selectedSession['max_session_age_seconds'] ?: $selectedSession['duration_seconds']); ?></div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2 small">
+                            <div class="col-md-3"><strong>Landing:</strong><br><?php echo safe($selectedSession['landing_page']); ?></div>
+                            <div class="col-md-3"><strong>Last Page:</strong><br><?php echo safe($selectedSession['last_page']); ?></div>
+                            <div class="col-md-3"><strong>Source:</strong><br><?php echo safe($selectedSession['utm_source'] ?: $selectedSession['referrer'] ?: 'Direct / unknown'); ?></div>
+                            <div class="col-md-3"><strong>Device:</strong><br><?php echo safe(trim(($selectedSession['device_type'] ?? '') . ' ' . ($selectedSession['browser'] ?? '') . ' ' . ($selectedSession['os'] ?? ''))); ?></div>
+                        </div>
+                        <div class="row g-3 mt-2 small">
+                            <div class="col-md-3"><strong>Visitor:</strong><br><?php echo ((int) ($selectedSession['is_returning_visitor'] ?? 0) === 1) ? 'Returning visitor' : 'New visitor'; ?></div>
+                            <div class="col-md-3"><strong>Visitor Pageviews:</strong><br><?php echo fmtNumber($selectedSession['visitor_pageviews'] ?? 0); ?></div>
+                            <div class="col-md-3"><strong>Session Window:</strong><br><?php echo fmtNumber($selectedSession['session_ttl_days'] ?? 30); ?> days</div>
+                            <div class="col-md-3"><strong>Browser Signals:</strong><br><?php echo safe(compactLabel([
+                                $selectedSession['viewport_orientation'] ?? '',
+                                $selectedSession['connection_type'] ?? '',
+                                $selectedSession['color_scheme'] ?? '',
+                                ((int) ($selectedSession['cookies_enabled'] ?? 0) === 1) ? 'Cookies on' : '',
+                            ]) ?: 'Unknown'); ?></div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <span class="badge text-bg-light">Events <?php echo fmtNumber($selectedSession['events']); ?></span>
+                            <span class="badge text-bg-light">Pages <?php echo fmtNumber($selectedSession['page_views']); ?></span>
+                            <span class="badge text-bg-light">Product Views <?php echo fmtNumber($selectedSession['product_views']); ?></span>
+                            <span class="badge text-bg-light">Cart Adds <?php echo fmtNumber($selectedSession['cart_adds']); ?></span>
+                            <span class="badge text-bg-light">Checkout Starts <?php echo fmtNumber($selectedSession['checkout_starts']); ?></span>
+                            <span class="badge text-bg-light">Purchases <?php echo fmtNumber($selectedSession['purchases']); ?></span>
+                            <span class="badge text-bg-light">eBay Exits <?php echo fmtNumber($selectedSession['ebay_clicks']); ?></span>
+                            <span class="badge text-bg-light">Revenue <?php echo fmtMoney($selectedSession['revenue']); ?></span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Event</th>
+                                    <th>Page / Step</th>
+                                    <th>Product / Link</th>
+                                    <th class="text-end">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($selectedSessionEvents as $row): ?>
+                                <tr>
+                                    <td class="text-nowrap"><?php echo safe($row['created_at']); ?></td>
+                                    <td>
+                                        <span class="badge text-bg-light"><?php echo safe($row['event_type']); ?></span>
+                                        <div class="small text-muted">Seq <?php echo fmtNumber($row['page_sequence']); ?> · <?php echo fmtSeconds($row['session_age_seconds']); ?></div>
+                                    </td>
+                                    <td class="text-break">
+                                        <div><?php echo safe($row['page_path'] ?: 'Unknown page'); ?></div>
+                                        <div class="small text-muted"><?php echo safe($row['checkout_step'] ?: $row['previous_page_path'] ?: $row['referrer_host']); ?></div>
+                                    </td>
+                                    <td class="text-break">
+                                        <div><?php echo safe($row['product_name'] ?: $row['link_text'] ?: $row['search_term'] ?: $row['campaign_name']); ?></div>
+                                        <div class="small text-muted">
+                                            <?php
+                                            echo safe(compactLabel([
+                                                $row['product_sku'] ?? '',
+                                                $row['condition_name'] ?? '',
+                                                !empty($row['stock_quantity']) ? 'Stock ' . (int) $row['stock_quantity'] : '',
+                                                $row['target_host'] ?? '',
+                                                $row['coupon_code'] ?? '',
+                                                $row['list_name'] ?? '',
+                                            ]));
+                                            ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <?php echo fmtMoney($row['revenue'] ?: $row['cart_value'] ?: $row['event_value']); ?>
+                                        <?php if (!empty($row['currency'])): ?>
+                                            <div class="small text-muted"><?php echo safe($row['currency']); ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($selectedSessionEvents)): ?>
+                                <tr><td colspan="5" class="text-muted">No events recorded for this session.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+
+                <h6 class="fw-bold">Recent Sessions</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Session</th>
+                                <th>Landing / Last Page</th>
+                                <th>Source</th>
+                                <th class="text-end">Events</th>
+                                <th class="text-end">Cart</th>
+                                <th class="text-end">Revenue</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentSessions as $row): ?>
+                            <tr>
+                                <td class="text-break">
+                                    <div class="fw-semibold"><?php echo safe($row['session_id']); ?></div>
+                                    <div class="small text-muted"><?php echo safe($row['last_seen_at']); ?> · <?php echo fmtSeconds($row['max_session_age_seconds'] ?: $row['duration_seconds']); ?></div>
+                                </td>
+                                <td class="text-break">
+                                    <div><?php echo safe($row['landing_page']); ?></div>
+                                    <div class="small text-muted"><?php echo safe($row['last_page']); ?></div>
+                                </td>
+                                <td class="text-break small"><?php echo safe($row['utm_source'] ?: $row['referrer'] ?: 'Direct / unknown'); ?></td>
+                                <td class="text-end"><?php echo fmtNumber($row['events']); ?></td>
+                                <td class="text-end"><?php echo fmtMoney($row['cart_value']); ?></td>
+                                <td class="text-end"><?php echo fmtMoney($row['revenue']); ?></td>
+                                <td class="text-end"><a class="btn btn-outline-danger btn-sm" href="?days=<?php echo $days; ?>&session=<?php echo urlencode($row['session_id']); ?>#session-explorer">View</a></td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($recentSessions)): ?>
+                            <tr><td colspan="7" class="text-muted">No sessions tracked in this range yet.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -255,7 +433,16 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                                 <?php if (!empty($row['products'])): ?>
                                     <?php foreach ($row['products'] as $product): ?>
                                         <div><?php echo safe($product['product_name']); ?></div>
-                                        <div class="small text-muted mb-1"><?php echo safe($product['product_sku'] ?: $product['category']); ?></div>
+                                        <div class="small text-muted mb-1">
+                                            <?php
+                                            echo safe(compactLabel([
+                                                $product['product_sku'] ?? '',
+                                                $product['condition_name'] ?? '',
+                                                !empty($product['stock_quantity']) ? 'Stock ' . (int) $product['stock_quantity'] : '',
+                                                $product['category'] ?? '',
+                                            ]));
+                                            ?>
+                                        </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <span class="text-muted">Cart contents unavailable</span>

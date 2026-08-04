@@ -216,7 +216,14 @@ function escapeHtml(value) {
 
 function trackCheckoutEvent(eventType, data = {}) {
     if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
-        window.fasAnalytics.track(eventType, data, { immediate: true });
+        const payload = Object.assign({}, data);
+        if (!payload.checkout_step) {
+            payload.checkout_step = eventType;
+        }
+        if (payload.provider && !payload.payment_provider) {
+            payload.payment_provider = payload.provider;
+        }
+        window.fasAnalytics.track(eventType, payload, { immediate: true });
     }
 }
 

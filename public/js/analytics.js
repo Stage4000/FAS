@@ -11,6 +11,11 @@
     const pageStartedAt = Date.now();
     const batchSize = 20;
     const maxQueueSize = 120;
+    const sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
+    const sessionTtlDays = 30;
+    const sessionStateKey = 'fas_session_state';
+    const visitorStateKey = 'fas_visitor_state';
+    const currentPagePath = location.pathname + location.search;
 
     let maxScrollDepth = 0;
     let flushTimer = null;
@@ -27,6 +32,7 @@
         shipping_rates_requested: 'shipping_rate_requested',
         shipping_method_selected: 'shipping_rate_selected',
         coupon_apply_attempted: 'coupon_attempted',
+        coupon_apply_invalid: 'coupon_rejected',
         order_completed: 'purchase_completed',
         order_completion_failed: 'purchase_failed',
         ebay_exit_click: 'ebay_link_click',
@@ -67,29 +73,101 @@
         }
     }
 
-    function getVisitorId() {
-        let visitorId = storageGet(window.localStorage, 'fas_visitor_id');
+    function storageGetJson(storage, key) {
+        const value = storageGet(storage, key);
+        if (!value) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(value);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function storageSetJson(storage, key, value) {
+        storageSet(storage, key, JSON.stringify(value));
+    }
+
+    function isoNow(timestamp) {
+        return new Date(timestamp || Date.now()).toISOString();
+    }
+
+    function getVisitorState() {
+        const now = Date.now();
+        const existing = storageGetJson(window.localStorage, visitorStateKey) || {};
+        let visitorId = existing.visitor_id || storageGet(window.localStorage, 'fas_visitor_id');
+        const isNewVisitor = !visitorId;
+
         if (!visitorId) {
             visitorId = createId('vis');
-            storageSet(window.localStorage, 'fas_visitor_id', visitorId);
         }
 
-        return visitorId;
+        const state = {
+            visitor_id: visitorId,
+            first_seen_at: existing.first_seen_at || isoNow(now),
+            last_seen_at: isoNow(now),
+            pageviews: toInteger(existing.pageviews, 0) + 1,
+            is_returning_visitor: !isNewVisitor && !!existing.last_seen_at
+        };
+
+        storageSet(window.localStorage, 'fas_visitor_id', visitorId);
+        storageSetJson(window.localStorage, visitorStateKey, state);
+
+        return state;
     }
 
-    function getSessionId() {
-        let sessionId = storageGet(window.sessionStorage, 'fas_session_id');
-        if (!sessionId) {
-            sessionId = createId('ses');
-            storageSet(window.sessionStorage, 'fas_session_id', sessionId);
-            storageSet(window.sessionStorage, 'fas_landing_page', location.pathname + location.search);
+    function getSessionState() {
+        const now = Date.now();
+        const existing = storageGetJson(window.localStorage, sessionStateKey) || {};
+        const lastActivityAt = toInteger(existing.last_activity_at, 0);
+        const isExpired = !existing.session_id || !lastActivityAt || (now - lastActivityAt) > sessionTtlMs;
+        const state = isExpired ? {
+            session_id: createId('ses'),
+            landing_page: currentPagePath,
+            started_at: isoNow(now),
+            page_sequence: 0,
+            previous_page_path: ''
+        } : Object.assign({}, existing);
+
+        state.previous_page_path = state.last_page || '';
+        state.page_sequence = toInteger(state.page_sequence, 0) + 1;
+        state.last_page = currentPagePath;
+        state.last_activity_at = now;
+        state.last_seen_at = isoNow(now);
+        state.session_expires_at = isoNow(now + sessionTtlMs);
+
+        storageSetJson(window.localStorage, sessionStateKey, state);
+        storageSet(window.sessionStorage, 'fas_session_id', state.session_id);
+        storageSet(window.sessionStorage, 'fas_landing_page', state.landing_page);
+
+        return state;
+    }
+
+    let activeSessionState = getSessionState();
+
+    function touchSessionState() {
+        activeSessionState.last_activity_at = Date.now();
+        activeSessionState.last_seen_at = isoNow(activeSessionState.last_activity_at);
+        activeSessionState.session_expires_at = isoNow(activeSessionState.last_activity_at + sessionTtlMs);
+        storageSetJson(window.localStorage, sessionStateKey, activeSessionState);
+    }
+
+    function getSessionAgeSeconds() {
+        const started = Date.parse(activeSessionState.started_at || '');
+        if (!Number.isFinite(started)) {
+            return getDurationSeconds();
         }
 
-        return sessionId;
+        return Math.max(0, Math.round((Date.now() - started) / 1000));
     }
 
-    const visitorId = getVisitorId();
-    const sessionId = getSessionId();
+    const visitorState = getVisitorState();
+    const visitorId = visitorState.visitor_id;
+    const sessionId = activeSessionState.session_id;
+    const pageSequence = activeSessionState.page_sequence || 1;
+    const previousPagePath = activeSessionState.previous_page_path || '';
 
     function normalizeEventType(eventType) {
         const normalized = String(eventType || 'custom_event')
@@ -141,6 +219,42 @@
         return 'Other';
     }
 
+    function getReferrerHost(referrer) {
+        if (!referrer) {
+            return '';
+        }
+
+        try {
+            return new URL(referrer).hostname;
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function getConnectionType() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return connection && connection.effectiveType ? connection.effectiveType : '';
+    }
+
+    function getSaveDataPreference() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return connection && connection.saveData ? 1 : 0;
+    }
+
+    function getColorScheme() {
+        if (!window.matchMedia) {
+            return '';
+        }
+
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function getViewportOrientation() {
+        const width = window.innerWidth || document.documentElement.clientWidth || 0;
+        const height = window.innerHeight || document.documentElement.clientHeight || 0;
+        return width >= height ? 'landscape' : 'portrait';
+    }
+
     function getUtmContext() {
         const params = new URLSearchParams(location.search);
         return {
@@ -157,10 +271,20 @@
             session_id: sessionId,
             visitor_id: visitorId,
             page_url: location.href,
-            page_path: location.pathname + location.search,
+            page_path: currentPagePath,
             page_title: document.title,
-            landing_page: storageGet(window.sessionStorage, 'fas_landing_page') || location.pathname + location.search,
+            landing_page: activeSessionState.landing_page || currentPagePath,
+            session_started_at: activeSessionState.started_at || '',
+            session_expires_at: activeSessionState.session_expires_at || '',
+            session_ttl_days: sessionTtlDays,
+            session_age_seconds: getSessionAgeSeconds(),
+            page_sequence: pageSequence,
+            previous_page_path: previousPagePath,
             referrer: document.referrer || '',
+            referrer_host: getReferrerHost(document.referrer || ''),
+            visitor_first_seen_at: visitorState.first_seen_at || '',
+            visitor_pageviews: visitorState.pageviews || 1,
+            is_returning_visitor: visitorState.is_returning_visitor ? 1 : 0,
             device_type: getDeviceType(),
             browser: getBrowser(),
             os: getOS(),
@@ -169,7 +293,12 @@
             screen_width: window.screen ? window.screen.width : 0,
             screen_height: window.screen ? window.screen.height : 0,
             viewport_width: window.innerWidth || document.documentElement.clientWidth || 0,
-            viewport_height: window.innerHeight || document.documentElement.clientHeight || 0
+            viewport_height: window.innerHeight || document.documentElement.clientHeight || 0,
+            viewport_orientation: getViewportOrientation(),
+            connection_type: getConnectionType(),
+            save_data: getSaveDataPreference(),
+            color_scheme: getColorScheme(),
+            cookies_enabled: navigator.cookieEnabled ? 1 : 0
         }, getUtmContext());
     }
 
@@ -214,6 +343,20 @@
             'page_path',
             'page_title',
             'referrer',
+            'referrer_host',
+            'previous_page_path',
+            'page_sequence',
+            'session_age_seconds',
+            'session_expires_at',
+            'session_ttl_days',
+            'visitor_first_seen_at',
+            'visitor_pageviews',
+            'is_returning_visitor',
+            'viewport_orientation',
+            'connection_type',
+            'save_data',
+            'color_scheme',
+            'cookies_enabled',
             'product_id',
             'product_name',
             'product_sku',
@@ -221,6 +364,10 @@
             'manufacturer',
             'product_source',
             'product_price',
+            'condition_name',
+            'stock_quantity',
+            'list_name',
+            'list_position',
             'quantity',
             'cart_items_count',
             'cart_unique_items',
@@ -230,13 +377,20 @@
             'discount_amount',
             'shipping_service',
             'shipping_cost',
+            'destination_state',
+            'checkout_step',
+            'payment_provider',
             'order_id',
             'order_number',
             'revenue',
+            'currency',
             'search_term',
             'link_text',
+            'link_source',
             'target_url',
             'target_host',
+            'banner_id',
+            'campaign_name',
             'event_value',
             'scroll_depth',
             'duration_seconds'
@@ -284,14 +438,31 @@
             return;
         }
 
+        touchSessionState();
+
         const cart = eventData.cart_summary || eventData.cart || getCartSummary();
         const event = Object.assign({
             event_type: normalizedEventType,
             event_name: eventData.event_name || normalizedEventType,
             page_url: location.href,
-            page_path: location.pathname + location.search,
+            page_path: currentPagePath,
             page_title: document.title,
             referrer: document.referrer || '',
+            referrer_host: getReferrerHost(document.referrer || ''),
+            previous_page_path: previousPagePath,
+            page_sequence: eventData.page_sequence !== undefined ? eventData.page_sequence : pageSequence,
+            session_age_seconds: eventData.session_age_seconds !== undefined ? eventData.session_age_seconds : getSessionAgeSeconds(),
+            session_expires_at: activeSessionState.session_expires_at || '',
+            session_ttl_days: sessionTtlDays,
+            visitor_first_seen_at: visitorState.first_seen_at || '',
+            visitor_pageviews: visitorState.pageviews || 1,
+            is_returning_visitor: visitorState.is_returning_visitor ? 1 : 0,
+            viewport_orientation: getViewportOrientation(),
+            connection_type: getConnectionType(),
+            save_data: getSaveDataPreference(),
+            color_scheme: getColorScheme(),
+            cookies_enabled: navigator.cookieEnabled ? 1 : 0,
+            currency: eventData.currency || 'USD',
             duration_seconds: eventData.duration_seconds !== undefined ? eventData.duration_seconds : getDurationSeconds(),
             scroll_depth: eventData.scroll_depth !== undefined ? eventData.scroll_depth : maxScrollDepth,
             cart_items_count: eventData.cart_items_count !== undefined ? eventData.cart_items_count : cart.cart_items_count,
@@ -399,6 +570,8 @@
             manufacturer: button.dataset.manufacturer || '',
             product_source: button.dataset.source || '',
             product_price: productPrice,
+            condition_name: button.dataset.condition || '',
+            stock_quantity: toInteger(button.dataset.stock, 0),
             event_value: productPrice
         };
     }
@@ -414,6 +587,8 @@
             manufacturer: item.manufacturer || '',
             product_source: item.product_source || item.source || '',
             product_price: price,
+            condition_name: item.condition_name || item.condition || '',
+            stock_quantity: toInteger(item.stock || item.stock_quantity, 0),
             quantity,
             event_value: price * Math.max(1, quantity)
         };
@@ -781,10 +956,11 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const sessionStartedKey = 'fas_analytics_started_' + sessionId;
-        if (!storageGet(window.sessionStorage, sessionStartedKey)) {
-            storageSet(window.sessionStorage, sessionStartedKey, '1');
+        if (!storageGet(window.localStorage, sessionStartedKey)) {
+            storageSet(window.localStorage, sessionStartedKey, '1');
             track('session_start', {
-                event_name: 'Session started'
+                event_name: 'Session started',
+                session_ttl_days: sessionTtlDays
             }, { immediate: true });
         }
 

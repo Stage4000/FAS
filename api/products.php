@@ -321,7 +321,9 @@ ob_start();
                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                             data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
                             data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
-                            data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>">
+                            data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
+                            data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
+                            data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     </div>

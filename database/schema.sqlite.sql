@@ -287,6 +287,20 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     page_path TEXT,
     page_title TEXT,
     referrer TEXT,
+    referrer_host TEXT,
+    previous_page_path TEXT,
+    page_sequence INTEGER DEFAULT 0,
+    session_age_seconds INTEGER DEFAULT 0,
+    session_expires_at TEXT,
+    session_ttl_days INTEGER DEFAULT 0,
+    visitor_first_seen_at TEXT,
+    visitor_pageviews INTEGER DEFAULT 0,
+    is_returning_visitor INTEGER DEFAULT 0,
+    viewport_orientation TEXT,
+    connection_type TEXT,
+    save_data INTEGER DEFAULT 0,
+    color_scheme TEXT,
+    cookies_enabled INTEGER DEFAULT 0,
     product_id TEXT,
     product_name TEXT,
     product_sku TEXT,
@@ -294,6 +308,10 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     manufacturer TEXT,
     product_source TEXT,
     product_price REAL DEFAULT 0,
+    condition_name TEXT,
+    stock_quantity INTEGER DEFAULT 0,
+    list_name TEXT,
+    list_position INTEGER DEFAULT 0,
     quantity INTEGER DEFAULT 0,
     cart_items_count INTEGER DEFAULT 0,
     cart_unique_items INTEGER DEFAULT 0,
@@ -303,11 +321,16 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     discount_amount REAL DEFAULT 0,
     shipping_service TEXT,
     shipping_cost REAL DEFAULT 0,
+    destination_state TEXT,
+    checkout_step TEXT,
+    payment_provider TEXT,
     order_id TEXT,
     order_number TEXT,
     revenue REAL DEFAULT 0,
+    currency TEXT,
     search_term TEXT,
     link_text TEXT,
+    link_source TEXT,
     target_url TEXT,
     target_host TEXT,
     banner_id TEXT,
@@ -327,6 +350,8 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_t
 CREATE INDEX IF NOT EXISTS idx_analytics_events_page ON analytics_events(page_path);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_product ON analytics_events(product_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_referrer_host ON analytics_events(referrer_host);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_link_source ON analytics_events(link_source);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_coupon ON analytics_events(coupon_code);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_order ON analytics_events(order_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_target_host ON analytics_events(target_host);
