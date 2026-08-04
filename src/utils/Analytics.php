@@ -69,6 +69,7 @@ class Analytics
     ];
 
     private static $sessionColumns = [
+        'client_ip' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(45)'],
         'client_ip_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
         'cf_country' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(10)'],
         'cf_region' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
@@ -951,6 +952,7 @@ class Analytics
                 viewport_height INTEGER,
     ip_hash TEXT,
     user_agent TEXT,
+    client_ip TEXT,
     client_ip_source TEXT,
     cf_country TEXT,
     cf_region TEXT,
@@ -1066,6 +1068,7 @@ class Analytics
                 viewport_height INT,
     ip_hash VARCHAR(64),
     user_agent VARCHAR(1000),
+    client_ip VARCHAR(45),
     client_ip_source VARCHAR(40),
     cf_country VARCHAR(10),
     cf_region VARCHAR(255),
@@ -1222,6 +1225,7 @@ class Analytics
             'viewport_height' => $this->intValue($context['viewport_height'] ?? null),
             'ip_hash' => $this->hashIp($server),
             'user_agent' => $this->cleanText($server['HTTP_USER_AGENT'] ?? '', 1000),
+            'client_ip' => $clientIp['ip'],
             'client_ip_source' => $clientIp['source'],
             'cf_country' => $cloudflareGeo['country'],
             'cf_region' => $cloudflareGeo['region'],
@@ -1943,11 +1947,11 @@ class Analytics
     private function clientIpWithSource(array $server): array
     {
         $candidates = [
-            'cloudflare_connecting_ip' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IP', 'CF_CONNECTING_IP']),
-            'cloudflare_connecting_ipv6' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IPV6', 'CF_CONNECTING_IPV6']),
-            'cloudflare_true_client_ip' => $this->serverValue($server, ['HTTP_TRUE_CLIENT_IP', 'TRUE_CLIENT_IP']),
-            'x_forwarded_for' => $this->serverValue($server, ['HTTP_X_FORWARDED_FOR', 'X_FORWARDED_FOR']),
-            'x_real_ip' => $this->serverValue($server, ['HTTP_X_REAL_IP', 'X_REAL_IP']),
+            'cloudflare_connecting_ip' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IP', 'CF_CONNECTING_IP', 'CF-Connecting-IP', 'cf-connecting-ip']),
+            'cloudflare_connecting_ipv6' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IPV6', 'CF_CONNECTING_IPV6', 'CF-Connecting-IPv6', 'cf-connecting-ipv6']),
+            'cloudflare_true_client_ip' => $this->serverValue($server, ['HTTP_TRUE_CLIENT_IP', 'TRUE_CLIENT_IP', 'True-Client-IP', 'true-client-ip']),
+            'x_forwarded_for' => $this->serverValue($server, ['HTTP_X_FORWARDED_FOR', 'X_FORWARDED_FOR', 'X-Forwarded-For', 'x-forwarded-for']),
+            'x_real_ip' => $this->serverValue($server, ['HTTP_X_REAL_IP', 'X_REAL_IP', 'X-Real-IP', 'x-real-ip']),
             'remote_addr' => $this->serverValue($server, ['REMOTE_ADDR']),
         ];
 
@@ -1981,15 +1985,15 @@ class Analytics
     private function cloudflareGeo(array $server): array
     {
         return [
-            'country' => strtoupper($this->cleanText($this->serverValue($server, ['HTTP_CF_IPCOUNTRY']), 10)),
-            'region' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPREGION']), 255),
-            'region_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPREGION_CODE']), 50),
-            'city' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPCITY']), 255),
-            'postal_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPPOSTAL_CODE']), 40),
-            'latitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLATITUDE'])),
-            'longitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLONGITUDE'])),
-            'timezone' => $this->cleanText($this->serverValue($server, ['HTTP_CF_TIMEZONE']), 100),
-            'ray' => $this->cleanText($this->serverValue($server, ['HTTP_CF_RAY']), 80),
+            'country' => strtoupper($this->cleanText($this->serverValue($server, ['HTTP_CF_IPCOUNTRY', 'CF_IPCOUNTRY', 'CF-IPCountry', 'cf-ipcountry']), 10)),
+            'region' => $this->cleanText($this->serverValue($server, ['HTTP_CF_REGION', 'HTTP_CF_IPREGION', 'CF_REGION', 'CF-Region', 'cf-region']), 255),
+            'region_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_REGION_CODE', 'HTTP_CF_REGIONCODE', 'HTTP_CF_IPREGION_CODE', 'CF_REGION_CODE', 'CF-Region-Code', 'cf-region-code']), 50),
+            'city' => $this->cleanText($this->serverValue($server, ['HTTP_CF_IPCITY', 'HTTP_CF_IP_CITY', 'CF_IPCITY', 'CF-IPCity', 'cf-ipcity']), 255),
+            'postal_code' => $this->cleanText($this->serverValue($server, ['HTTP_CF_POSTAL_CODE', 'HTTP_CF_POSTALCODE', 'HTTP_CF_IPPOSTAL_CODE', 'CF_POSTAL_CODE', 'CF-Postal-Code', 'cf-postal-code']), 40),
+            'latitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLATITUDE', 'HTTP_CF_IP_LATITUDE', 'CF_IPLATITUDE', 'CF-IPLatitude', 'cf-iplatitude'])),
+            'longitude' => $this->nullableFloat($this->serverValue($server, ['HTTP_CF_IPLONGITUDE', 'HTTP_CF_IP_LONGITUDE', 'CF_IPLONGITUDE', 'CF-IPLongitude', 'cf-iplongitude'])),
+            'timezone' => $this->cleanText($this->serverValue($server, ['HTTP_CF_TIMEZONE', 'CF_TIMEZONE', 'CF-Timezone', 'cf-timezone']), 100),
+            'ray' => $this->cleanText($this->serverValue($server, ['HTTP_CF_RAY', 'CF_RAY', 'CF-Ray', 'cf-ray']), 80),
         ];
     }
 

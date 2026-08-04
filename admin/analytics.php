@@ -122,7 +122,7 @@ function sessionBotLabel(array $session): string
     }
 
     if (($session['cf_bot_score'] ?? null) !== null && $session['cf_bot_score'] !== '') {
-        return 'No bot signal ? CF ' . (int) $session['cf_bot_score'];
+        return 'No bot signal - CF ' . (int) $session['cf_bot_score'];
     }
 
     return 'No bot signal';
@@ -307,7 +307,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
 
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold mb-0">Recent Sessions</h6>
-                    <span class="small text-muted">Last <?php echo $days; ?> days ? <?php echo fmtNumber(count($recentSessions)); ?> shown</span>
+                <span class="small text-muted">Last <?php echo $days; ?> days &middot; <?php echo fmtNumber(count($recentSessions)); ?> shown</span>
                 </div>
                 <div class="table-responsive mb-4">
                     <table class="table table-sm align-middle">
@@ -336,7 +336,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                     </td>
                                     <td>
                                         <div><?php echo safe(sessionGeoLabel($row)); ?></div>
-                                        <div class="small text-muted"><?php echo safe(sessionIpSourceLabel($row)); ?></div>
+                                        <div class="small text-muted"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?></div>
                                     </td>
                                     <td>
                                         <span class="badge <?php echo sessionBotBadgeClass($row); ?>"><?php echo safe(sessionBotLabel($row)); ?></span>
@@ -348,7 +348,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                     </td>
                                     <td class="text-end">
                                         <div><?php echo fmtMoney($row['cart_value'] ?? 0); ?></div>
-                                        <div class="small text-muted"><?php echo fmtNumber($row['cart_adds'] ?? 0); ?> adds ? <?php echo fmtNumber($row['checkout_starts'] ?? 0); ?> checkout</div>
+                                        <div class="small text-muted"><?php echo fmtNumber($row['cart_adds'] ?? 0); ?> adds &middot; <?php echo fmtNumber($row['checkout_starts'] ?? 0); ?> checkout</div>
                                     </td>
                                     <td class="text-end">
                                         <div><?php echo fmtMoney($row['revenue'] ?? 0); ?></div>
@@ -939,12 +939,12 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
     }
 
     function compact(parts) {
-        return parts.map(part => text(part, '')).filter(Boolean).join(' ? ') || 'Unknown';
+        return parts.map(part => text(part, '')).filter(Boolean).join(' \u00b7 ') || 'Unknown';
     }
 
     function botLabel(summary) {
         if (Number(summary.is_potential_bot || 0) === 1) return text(summary.bot_reason, 'Potential bot');
-        if (summary.cf_bot_score !== null && summary.cf_bot_score !== undefined && summary.cf_bot_score !== '') return 'No bot signal ? CF ' + Number(summary.cf_bot_score);
+        if (summary.cf_bot_score !== null && summary.cf_bot_score !== undefined && summary.cf_bot_score !== '') return 'No bot signal \u00b7 CF ' + Number(summary.cf_bot_score);
         return 'No bot signal';
     }
 
@@ -1017,8 +1017,8 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         title.textContent = 'Session ' + text(summary.session_id, 'Unknown');
         stats.appendChild(statCard('Active Time', seconds(activeSeconds), 'Last seen ' + text(summary.last_seen_at)));
         stats.appendChild(statCard('Events', number(summary.events), number(summary.page_views) + ' page views'));
-        stats.appendChild(statCard('Cart Value', money(summary.cart_value), number(summary.cart_adds) + ' adds ? ' + number(summary.checkout_starts) + ' checkout'));
-        stats.appendChild(statCard('Revenue', money(summary.revenue), number(summary.purchases) + ' orders ? ' + number(summary.ebay_clicks) + ' eBay exits'));
+        stats.appendChild(statCard('Cart Value', money(summary.cart_value), number(summary.cart_adds) + ' adds \u00b7 ' + number(summary.checkout_starts) + ' checkout'));
+        stats.appendChild(statCard('Revenue', money(summary.revenue), number(summary.purchases) + ' orders \u00b7 ' + number(summary.ebay_clicks) + ' eBay exits'));
 
         userDetails.appendChild(detailRow('Visitor ID', summary.visitor_id));
         userDetails.appendChild(detailRow('Visitor Type', Number(summary.is_returning_visitor || 0) === 1 ? 'Returning visitor' : 'New visitor'));
@@ -1027,6 +1027,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         userDetails.appendChild(detailRow('Language', summary.language));
         userDetails.appendChild(detailRow('Timezone', summary.timezone || summary.cf_timezone));
         userDetails.appendChild(detailRow('Location', location));
+        userDetails.appendChild(detailRow('IP Address', summary.client_ip));
         userDetails.appendChild(detailRow('IP Source', ipSourceLabel(summary)));
         userDetails.appendChild(detailRow('Bot Signal', botLabel(summary)));
 
@@ -1069,7 +1070,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                     cell.appendChild(badge);
                     const meta = document.createElement('div');
                     meta.className = 'small text-muted';
-                    meta.textContent = 'Seq ' + number(event.page_sequence) + ' ? ' + seconds(event.session_age_seconds);
+                    meta.textContent = 'Seq ' + number(event.page_sequence) + ' \u00b7 ' + seconds(event.session_age_seconds);
                     cell.appendChild(meta);
                 } else {
                     cell.className = index === 4 ? 'text-end text-nowrap' : 'text-break';

@@ -261,6 +261,7 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     viewport_height INT,
     ip_hash VARCHAR(64),
     user_agent VARCHAR(1000),
+    client_ip VARCHAR(45),
     client_ip_source VARCHAR(40),
     cf_country VARCHAR(10),
     cf_region VARCHAR(255),

@@ -28,6 +28,33 @@ function analyticsHost(string $host): string
     return preg_replace('/^www\./', '', $host);
 }
 
+function analyticsServerContext(array $server): array
+{
+    if (!function_exists('getallheaders')) {
+        return $server;
+    }
+
+    $headers = getallheaders();
+    if (!is_array($headers)) {
+        return $server;
+    }
+
+    foreach ($headers as $name => $value) {
+        $headerName = trim((string) $name);
+        if ($headerName === '') {
+            continue;
+        }
+
+        $server[$headerName] = $value;
+        $normalized = 'HTTP_' . strtoupper(str_replace('-', '_', $headerName));
+        if (!isset($server[$normalized]) || $server[$normalized] === '') {
+            $server[$normalized] = $value;
+        }
+    }
+
+    return $server;
+}
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $host = $_SERVER['HTTP_HOST'] ?? '';
 if ($origin !== '' && $host !== '') {
@@ -66,7 +93,7 @@ try {
 
     $db = \FAS\Config\Database::getInstance()->getConnection();
     $analytics = new \FAS\Utils\Analytics($db);
-    $count = $analytics->recordBatch($payload, $_SERVER);
+    $count = $analytics->recordBatch($payload, analyticsServerContext($_SERVER));
 
     echo json_encode([
         'success' => true,
