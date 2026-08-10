@@ -2,9 +2,11 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Analytics.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 use FAS\Config\Database;
 use FAS\Utils\Analytics;
+use FAS\Utils\CSRF;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -19,6 +21,26 @@ if (!in_array($days, $allowedDays, true)) {
     $days = 30;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_admin_session') {
+    $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['session_id'] ?? ''));
+    $visitorId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['visitor_id'] ?? ''));
+
+    if ($sessionId !== '' && CSRF::validateToken($_POST['csrf_token'] ?? '')) {
+        $analytics->markAdminSession(
+            $sessionId,
+            $visitorId,
+            (string) ($_SESSION['admin_username'] ?? ''),
+            ['page_path' => $_SERVER['REQUEST_URI'] ?? '/admin/analytics.php'],
+            $_SERVER
+        );
+    }
+
+    $query = ['days' => $days, 'session' => $sessionId];
+    header('Location: analytics.php?' . http_build_query($query) . '#session-explorer');
+    exit;
+}
+
+$csrfToken = CSRF::generateToken();
 $overview = $analytics->getOverview($days);
 $funnel = $analytics->getFunnel($days);
 $checkoutDropoff = $analytics->getCheckoutDropoff($days);
@@ -685,9 +707,15 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                             </td>
                             <td class="text-end analytics-action-cell">
                                 <?php if ((int) ($row['is_admin_session'] ?? 0) !== 1): ?>
-                                <button type="button" class="btn btn-sm btn-outline-success analytics-open-button js-session-mark-admin" data-session-id="<?php echo safe($row['session_id']); ?>" data-visitor-id="<?php echo safe($row['visitor_id'] ?? ''); ?>" title="Mark session <?php echo safe($row['session_id']); ?> as admin" aria-label="Mark session <?php echo safe($row['session_id']); ?> as admin">
-                                    <i class="fas fa-user-shield"></i>
-                                </button>
+                                <form method="post" class="analytics-inline-action">
+                                    <input type="hidden" name="action" value="mark_admin_session">
+                                    <input type="hidden" name="csrf_token" value="<?php echo safe($csrfToken); ?>">
+                                    <input type="hidden" name="session_id" value="<?php echo safe($row['session_id']); ?>">
+                                    <input type="hidden" name="visitor_id" value="<?php echo safe($row['visitor_id'] ?? ''); ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-success analytics-open-button" title="Mark session <?php echo safe($row['session_id']); ?> as admin" aria-label="Mark session <?php echo safe($row['session_id']); ?> as admin">
+                                        <i class="fas fa-user-shield"></i>
+                                    </button>
+                                </form>
                                 <?php endif; ?>
                                 <button type="button" class="btn btn-sm btn-danger analytics-open-button js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="Open session <?php echo safe($row['session_id']); ?>">
                                     <i class="fas fa-up-right-from-square"></i><span>Open</span>
@@ -1500,44 +1528,6 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         }
     }
 
-    async function markSessionAdmin(sessionId, visitorId, button) {
-        sessionId = text(sessionId, '').trim();
-        if (!sessionId) return;
-
-        if (button) {
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Marking</span>';
-        }
-
-        try {
-            const response = await fetch('mark-analytics-session.php', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    visitor_id: visitorId || '',
-                    context: {
-                        page_path: window.location.pathname + window.location.search
-                    }
-                })
-            });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success || !data.marked) {
-                throw new Error(data.error || 'Unable to mark session');
-            }
-            window.location.reload();
-        } catch (error) {
-            if (button) {
-                button.disabled = false;
-                button.innerHTML = '<i class="fas fa-triangle-exclamation"></i><span>Failed</span>';
-            }
-        }
-    }
-
     async function openSession(sessionId) {
         sessionId = text(sessionId, '').trim();
         if (!sessionId) return;
@@ -1569,14 +1559,6 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     }
 
     document.addEventListener('click', event => {
-        const markButton = event.target.closest('.js-session-mark-admin');
-        if (markButton) {
-            event.preventDefault();
-            event.stopPropagation();
-            markSessionAdmin(markButton.dataset.sessionId || '', markButton.dataset.visitorId || '', markButton);
-            return;
-        }
-
         const button = event.target.closest('.js-session-view');
         if (button) {
             event.preventDefault();
