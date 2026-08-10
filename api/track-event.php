@@ -28,19 +28,66 @@ function analyticsHost(string $host): string
     return preg_replace('/^www\./', '', $host);
 }
 
+function analyticsAdminCookieSecret(): string
+{
+    $configPath = __DIR__ . '/../src/config/config.php';
+    $config = file_exists($configPath) ? require $configPath : [];
+    $salt = is_array($config) ? (string) ($config['security']['admin_password_salt'] ?? '') : '';
+    if ($salt === '') {
+        $salt = __DIR__ . '|' . (string) ($_SERVER['HTTP_HOST'] ?? 'flipandstrip');
+    }
+
+    return hash('sha256', $salt . '|analytics-admin-cookie');
+}
+
+function analyticsBase64UrlDecode(string $value): string
+{
+    $padding = strlen($value) % 4;
+    if ($padding > 0) {
+        $value .= str_repeat('=', 4 - $padding);
+    }
+
+    $decoded = base64_decode(strtr($value, '-_', '+/'), true);
+    return is_string($decoded) ? $decoded : '';
+}
+
+function analyticsSignedAdminCookieContext(): array
+{
+    $cookie = (string) ($_COOKIE['fas_admin_analytics'] ?? '');
+    if ($cookie === '' || strpos($cookie, '.') === false) {
+        return [];
+    }
+
+    [$payload, $signature] = explode('.', $cookie, 2);
+    $expectedSignature = hash_hmac('sha256', $payload, analyticsAdminCookieSecret());
+    if (!hash_equals($expectedSignature, $signature)) {
+        return [];
+    }
+
+    $decoded = json_decode(analyticsBase64UrlDecode($payload), true);
+    if (!is_array($decoded) || (int) ($decoded['expires_at'] ?? 0) < time()) {
+        return [];
+    }
+
+    return [
+        'ANALYTICS_ADMIN_SESSION' => '1',
+        'ANALYTICS_ADMIN_USERNAME' => (string) ($decoded['admin_username'] ?? ''),
+    ];
+}
+
 function analyticsAdminContext(): array
 {
     if (session_status() === PHP_SESSION_NONE) {
         $sessionName = session_name();
         if ($sessionName === '' || empty($_COOKIE[$sessionName])) {
-            return [];
+            return analyticsSignedAdminCookieContext();
         }
 
         @session_start(['read_and_close' => true]);
     }
 
     if (empty($_SESSION['admin_logged_in'])) {
-        return [];
+        return analyticsSignedAdminCookieContext();
     }
 
     return [

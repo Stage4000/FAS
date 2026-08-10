@@ -11,6 +11,9 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
 
 class AdminAuth
 {
+    private const ANALYTICS_ADMIN_COOKIE = 'fas_admin_analytics';
+    private const ANALYTICS_ADMIN_COOKIE_TTL = 2592000;
+
     private $db;
     
     public function __construct($db = null)
@@ -48,6 +51,7 @@ class AdminAuth
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_username'] = $admin['username'];
             $_SESSION['admin_email'] = $admin['email'];
+            $this->issueAnalyticsAdminCookie();
             
             // Update last login
             $stmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now') WHERE id = ?");
@@ -64,6 +68,7 @@ class AdminAuth
      */
     public function logout()
     {
+        $this->clearAnalyticsAdminCookie();
         $_SESSION = [];
         session_destroy();
     }
@@ -116,5 +121,78 @@ class AdminAuth
             header('Location: login.php');
             exit;
         }
+
+        $this->issueAnalyticsAdminCookie();
+    }
+
+    private function issueAnalyticsAdminCookie(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        $adminId = (string) ($_SESSION['admin_id'] ?? '');
+        $username = (string) ($_SESSION['admin_username'] ?? '');
+        if ($adminId === '' && $username === '') {
+            return;
+        }
+
+        $expiresAt = time() + self::ANALYTICS_ADMIN_COOKIE_TTL;
+        $payload = $this->base64UrlEncode(json_encode([
+            'admin_id' => $adminId,
+            'admin_username' => $username,
+            'expires_at' => $expiresAt,
+        ], JSON_UNESCAPED_SLASHES));
+        $signature = hash_hmac('sha256', $payload, $this->analyticsCookieSecret());
+        $value = $payload . '.' . $signature;
+
+        setcookie(self::ANALYTICS_ADMIN_COOKIE, $value, [
+            'expires' => $expiresAt,
+            'path' => '/',
+            'secure' => $this->isHttps(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_COOKIE[self::ANALYTICS_ADMIN_COOKIE] = $value;
+    }
+
+    private function clearAnalyticsAdminCookie(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        setcookie(self::ANALYTICS_ADMIN_COOKIE, '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => $this->isHttps(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        unset($_COOKIE[self::ANALYTICS_ADMIN_COOKIE]);
+    }
+
+    private function analyticsCookieSecret(): string
+    {
+        $configPath = __DIR__ . '/../src/config/config.php';
+        $config = file_exists($configPath) ? require $configPath : [];
+        $salt = is_array($config) ? (string) ($config['security']['admin_password_salt'] ?? '') : '';
+        if ($salt === '') {
+            $salt = __DIR__ . '|' . (string) ($_SERVER['HTTP_HOST'] ?? 'flipandstrip');
+        }
+
+        return hash('sha256', $salt . '|analytics-admin-cookie');
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function isHttps(): bool
+    {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+            || (($_SERVER['HTTP_CF_VISITOR'] ?? '') !== '' && strpos((string) $_SERVER['HTTP_CF_VISITOR'], '"scheme":"https"') !== false);
     }
 }

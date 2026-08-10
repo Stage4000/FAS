@@ -1724,12 +1724,12 @@ class Analytics
 
     private function nonAdminEventCondition(string $eventAlias = ''): string
     {
-        $prefix = $eventAlias !== '' ? "{$eventAlias}." : '';
+        $sessionColumn = $eventAlias !== '' ? "{$eventAlias}.session_id" : 'analytics_events.session_id';
 
         return "NOT EXISTS (
             SELECT 1
             FROM analytics_sessions admin_session
-            WHERE admin_session.session_id = {$prefix}session_id
+            WHERE admin_session.session_id = {$sessionColumn}
                 AND COALESCE(admin_session.is_admin_session, 0) = 1
         )";
     }
