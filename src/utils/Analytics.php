@@ -7,6 +7,10 @@ namespace FAS\Utils;
 
 class Analytics
 {
+    private static $ipGeoEndpoint = 'https://ipwho.is/%s?fields=success,message,country_code,region,region_code,city,postal,latitude,longitude,timezone';
+    private static $ipGeoSuccessCacheSeconds = 2592000;
+    private static $ipGeoFailureCacheSeconds = 21600;
+
     private static $eventAliases = [
         'cart_item_added' => 'add_to_cart',
         'cart_added' => 'add_to_cart',
@@ -80,6 +84,7 @@ class Analytics
         'cf_longitude' => ['sqlite' => 'REAL', 'mysql' => 'DECIMAL(10, 6) NULL'],
         'cf_timezone' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(100)'],
         'cf_ray' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(80)'],
+        'geo_source' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(40)'],
         'cf_bot_score' => ['sqlite' => 'INTEGER', 'mysql' => 'INT NULL'],
         'cf_verified_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
         'is_potential_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
@@ -153,6 +158,7 @@ class Analytics
             $this->createMysqlTables();
         }
 
+        $this->createIpGeoCacheTable();
         $this->ensureSessionColumns();
         $this->ensureEventColumns();
         $this->createIndexes();
@@ -960,11 +966,12 @@ class Analytics
     cf_city TEXT,
     cf_postal_code TEXT,
     cf_latitude REAL,
-    cf_longitude REAL,
-    cf_timezone TEXT,
-    cf_ray TEXT,
-    cf_bot_score INTEGER,
-    cf_verified_bot INTEGER DEFAULT 0,
+            cf_longitude REAL,
+            cf_timezone TEXT,
+            cf_ray TEXT,
+            geo_source TEXT,
+            cf_bot_score INTEGER,
+            cf_verified_bot INTEGER DEFAULT 0,
     is_potential_bot INTEGER DEFAULT 0,
     bot_reason TEXT
             )"
@@ -1076,10 +1083,11 @@ class Analytics
     cf_city VARCHAR(255),
     cf_postal_code VARCHAR(40),
     cf_latitude DECIMAL(10, 6) NULL,
-    cf_longitude DECIMAL(10, 6) NULL,
-    cf_timezone VARCHAR(100),
-    cf_ray VARCHAR(80),
-    cf_bot_score INT NULL,
+            cf_longitude DECIMAL(10, 6) NULL,
+            cf_timezone VARCHAR(100),
+            cf_ray VARCHAR(80),
+            geo_source VARCHAR(40),
+            cf_bot_score INT NULL,
     cf_verified_bot TINYINT(1) DEFAULT 0,
     is_potential_bot TINYINT(1) DEFAULT 0,
     bot_reason VARCHAR(500)
@@ -1157,6 +1165,48 @@ class Analytics
         );
     }
 
+    private function createIpGeoCacheTable(): void
+    {
+        if ($this->driver === 'sqlite') {
+            $this->db->exec(
+                "CREATE TABLE IF NOT EXISTS analytics_ip_geo_cache (
+                    ip_hash TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    source TEXT,
+                    country TEXT,
+                    region TEXT,
+                    region_code TEXT,
+                    city TEXT,
+                    postal_code TEXT,
+                    latitude REAL,
+                    longitude REAL,
+                    timezone TEXT,
+                    message TEXT,
+                    looked_up_at TEXT NOT NULL
+                )"
+            );
+            return;
+        }
+
+        $this->db->exec(
+            "CREATE TABLE IF NOT EXISTS analytics_ip_geo_cache (
+                ip_hash VARCHAR(64) PRIMARY KEY,
+                status VARCHAR(20) NOT NULL,
+                source VARCHAR(40),
+                country VARCHAR(10),
+                region VARCHAR(255),
+                region_code VARCHAR(50),
+                city VARCHAR(255),
+                postal_code VARCHAR(40),
+                latitude DECIMAL(10, 6) NULL,
+                longitude DECIMAL(10, 6) NULL,
+                timezone VARCHAR(100),
+                message VARCHAR(500),
+                looked_up_at DATETIME NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    }
+
     private function ensureSessionColumns(): void
     {
         foreach (self::$sessionColumns as $column => $definitions) {
@@ -1178,6 +1228,7 @@ class Analytics
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_started', 'started_at');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_visitor', 'visitor_id');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_country', 'cf_country');
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_geo_source', 'geo_source');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_bot', 'is_potential_bot');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_created', 'created_at');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_type', 'event_type');
@@ -1196,7 +1247,7 @@ class Analytics
     {
         $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
         $clientIp = $this->clientIpWithSource($server);
-        $cloudflareGeo = $this->cloudflareGeo($server);
+        $sessionGeo = $this->sessionGeo($server, $clientIp, $now);
         $bot = $this->botAssessment($server);
 
         $existing = $this->fetchOne(
@@ -1227,15 +1278,16 @@ class Analytics
             'user_agent' => $this->cleanText($server['HTTP_USER_AGENT'] ?? '', 1000),
             'client_ip' => $clientIp['ip'],
             'client_ip_source' => $clientIp['source'],
-            'cf_country' => $cloudflareGeo['country'],
-            'cf_region' => $cloudflareGeo['region'],
-            'cf_region_code' => $cloudflareGeo['region_code'],
-            'cf_city' => $cloudflareGeo['city'],
-            'cf_postal_code' => $cloudflareGeo['postal_code'],
-            'cf_latitude' => $cloudflareGeo['latitude'],
-            'cf_longitude' => $cloudflareGeo['longitude'],
-            'cf_timezone' => $cloudflareGeo['timezone'],
-            'cf_ray' => $cloudflareGeo['ray'],
+            'cf_country' => $sessionGeo['country'],
+            'cf_region' => $sessionGeo['region'],
+            'cf_region_code' => $sessionGeo['region_code'],
+            'cf_city' => $sessionGeo['city'],
+            'cf_postal_code' => $sessionGeo['postal_code'],
+            'cf_latitude' => $sessionGeo['latitude'],
+            'cf_longitude' => $sessionGeo['longitude'],
+            'cf_timezone' => $sessionGeo['timezone'],
+            'cf_ray' => $sessionGeo['ray'],
+            'geo_source' => $sessionGeo['source'],
             'cf_bot_score' => $bot['cf_bot_score'],
             'cf_verified_bot' => $bot['cf_verified_bot'],
             'is_potential_bot' => $bot['is_potential_bot'],
@@ -1994,6 +2046,242 @@ class Analytics
             'timezone' => $this->cleanText($this->serverValue($server, ['HTTP_CF_TIMEZONE', 'CF_TIMEZONE', 'CF-Timezone', 'cf-timezone']), 100),
             'ray' => $this->cleanText($this->serverValue($server, ['HTTP_CF_RAY', 'CF_RAY', 'CF-Ray', 'cf-ray']), 80),
         ];
+    }
+
+    private function sessionGeo(array $server, array $clientIp, string $now): array
+    {
+        $geo = $this->cloudflareGeo($server);
+        $geo['source'] = $this->hasGeoLocation($geo) ? 'cloudflare_headers' : '';
+
+        if (!$this->needsIpGeoFallback($geo)) {
+            return $geo;
+        }
+
+        $ipGeo = $this->ipGeoForClient($clientIp, $now);
+        if ($this->hasGeoLocation($ipGeo)) {
+            $geo = $this->mergeGeo($geo, $ipGeo);
+            $geo['source'] = $ipGeo['source'] ?? 'ipwhois_lookup';
+            return $geo;
+        }
+
+        $geo['source'] = $geo['source'] ?: ($ipGeo['source'] ?? 'ip_lookup_unavailable');
+        return $geo;
+    }
+
+    private function needsIpGeoFallback(array $geo): bool
+    {
+        return trim((string) ($geo['country'] ?? '')) === ''
+            || (trim((string) ($geo['region'] ?? '')) === '' && trim((string) ($geo['region_code'] ?? '')) === '')
+            || trim((string) ($geo['city'] ?? '')) === '';
+    }
+
+    private function hasGeoLocation(array $geo): bool
+    {
+        return trim((string) ($geo['country'] ?? '')) !== ''
+            || trim((string) ($geo['region'] ?? '')) !== ''
+            || trim((string) ($geo['city'] ?? '')) !== '';
+    }
+
+    private function mergeGeo(array $primary, array $fallback): array
+    {
+        foreach (['country', 'region', 'region_code', 'city', 'postal_code', 'latitude', 'longitude', 'timezone'] as $key) {
+            if (($primary[$key] ?? null) === null || $primary[$key] === '') {
+                $primary[$key] = $fallback[$key] ?? $primary[$key] ?? null;
+            }
+        }
+
+        return $primary;
+    }
+
+    private function emptyGeo(string $source): array
+    {
+        return [
+            'country' => '',
+            'region' => '',
+            'region_code' => '',
+            'city' => '',
+            'postal_code' => '',
+            'latitude' => null,
+            'longitude' => null,
+            'timezone' => '',
+            'ray' => '',
+            'source' => $source,
+        ];
+    }
+
+    private function ipGeoForClient(array $clientIp, string $now): array
+    {
+        $ip = trim((string) ($clientIp['ip'] ?? ''));
+        $source = (string) ($clientIp['source'] ?? '');
+
+        if ($ip === '') {
+            return $this->emptyGeo('ip_missing');
+        }
+
+        if ($source === 'cloudflare_proxy_remote_addr') {
+            return $this->emptyGeo('cloudflare_headers_missing_ip');
+        }
+
+        if (!$this->ipGeoEnabled()) {
+            return $this->emptyGeo('ip_lookup_disabled');
+        }
+
+        if (!$this->isPublicIp($ip)) {
+            return $this->emptyGeo('private_or_reserved_ip');
+        }
+
+        $cached = $this->cachedIpGeo($ip, $now);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $geo = $this->fetchIpGeo($ip);
+        $this->storeIpGeoCache($ip, $geo, $now);
+        return $geo;
+    }
+
+    private function ipGeoEnabled(): bool
+    {
+        $value = strtolower(trim((string) getenv('ANALYTICS_IP_GEO_ENABLED')));
+        return !in_array($value, ['0', 'false', 'off', 'no'], true);
+    }
+
+    private function isPublicIp(string $ip): bool
+    {
+        return (bool) filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+    }
+
+    private function ipGeoHash(string $ip): string
+    {
+        return hash('sha256', $ip . '|analytics_ip_geo');
+    }
+
+    private function cachedIpGeo(string $ip, string $now): ?array
+    {
+        $row = $this->fetchOne(
+            "SELECT * FROM analytics_ip_geo_cache WHERE ip_hash = ?",
+            [$this->ipGeoHash($ip)]
+        );
+
+        if (!$row) {
+            return null;
+        }
+
+        $lookedUpAt = strtotime((string) ($row['looked_up_at'] ?? ''));
+        $nowTime = strtotime($now) ?: time();
+        $ttl = ($row['status'] ?? '') === 'success' ? self::$ipGeoSuccessCacheSeconds : self::$ipGeoFailureCacheSeconds;
+        if ($lookedUpAt === false || $lookedUpAt < ($nowTime - $ttl)) {
+            return null;
+        }
+
+        return [
+            'country' => $this->cleanText($row['country'] ?? '', 10),
+            'region' => $this->cleanText($row['region'] ?? '', 255),
+            'region_code' => $this->cleanText($row['region_code'] ?? '', 50),
+            'city' => $this->cleanText($row['city'] ?? '', 255),
+            'postal_code' => $this->cleanText($row['postal_code'] ?? '', 40),
+            'latitude' => $this->nullableFloat($row['latitude'] ?? null),
+            'longitude' => $this->nullableFloat($row['longitude'] ?? null),
+            'timezone' => $this->cleanText($row['timezone'] ?? '', 100),
+            'ray' => '',
+            'source' => ($row['status'] ?? '') === 'success' ? 'ipwhois_cache' : 'ip_lookup_unavailable',
+        ];
+    }
+
+    private function fetchIpGeo(string $ip): array
+    {
+        $body = $this->httpGet(sprintf(self::$ipGeoEndpoint, rawurlencode($ip)));
+        if ($body === '') {
+            return $this->emptyGeo('ip_lookup_unavailable');
+        }
+
+        $payload = json_decode($body, true);
+        if (!is_array($payload) || empty($payload['success'])) {
+            $geo = $this->emptyGeo('ip_lookup_unavailable');
+            $geo['message'] = $this->cleanText($payload['message'] ?? 'Lookup failed', 500);
+            return $geo;
+        }
+
+        $timezone = $payload['timezone'] ?? '';
+        if (is_array($timezone)) {
+            $timezone = $timezone['id'] ?? '';
+        }
+
+        return [
+            'country' => strtoupper($this->cleanText($payload['country_code'] ?? '', 10)),
+            'region' => $this->cleanText($payload['region'] ?? '', 255),
+            'region_code' => $this->cleanText($payload['region_code'] ?? '', 50),
+            'city' => $this->cleanText($payload['city'] ?? '', 255),
+            'postal_code' => $this->cleanText($payload['postal'] ?? '', 40),
+            'latitude' => $this->nullableFloat($payload['latitude'] ?? null),
+            'longitude' => $this->nullableFloat($payload['longitude'] ?? null),
+            'timezone' => $this->cleanText($timezone, 100),
+            'ray' => '',
+            'source' => 'ipwhois_lookup',
+        ];
+    }
+
+    private function httpGet(string $url): string
+    {
+        if (function_exists('curl_init')) {
+            $curl = curl_init($url);
+            if ($curl === false) {
+                return '';
+            }
+
+            curl_setopt_array($curl, [
+                CURLOPT_CONNECTTIMEOUT_MS => 800,
+                CURLOPT_FAILONERROR => false,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT_MS => 1200,
+                CURLOPT_USERAGENT => 'FAS-Analytics/1.0',
+            ]);
+            $body = curl_exec($curl);
+            $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+            curl_close($curl);
+
+            return is_string($body) && $status < 500 ? $body : '';
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'header' => "User-Agent: FAS-Analytics/1.0\r\n",
+                'ignore_errors' => true,
+                'timeout' => 1.2,
+            ],
+        ]);
+        $body = @file_get_contents($url, false, $context);
+        return is_string($body) ? $body : '';
+    }
+
+    private function storeIpGeoCache(string $ip, array $geo, string $now): void
+    {
+        try {
+            $status = $this->hasGeoLocation($geo) ? 'success' : 'failed';
+            $stmt = $this->db->prepare(
+                "REPLACE INTO analytics_ip_geo_cache
+                (ip_hash, status, source, country, region, region_code, city, postal_code, latitude, longitude, timezone, message, looked_up_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $this->ipGeoHash($ip),
+                $status,
+                $geo['source'] ?? '',
+                $geo['country'] ?? '',
+                $geo['region'] ?? '',
+                $geo['region_code'] ?? '',
+                $geo['city'] ?? '',
+                $geo['postal_code'] ?? '',
+                $geo['latitude'] ?? null,
+                $geo['longitude'] ?? null,
+                $geo['timezone'] ?? '',
+                $geo['message'] ?? '',
+                $now,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Analytics IP geo cache write failed: ' . $e->getMessage());
+        }
     }
 
     private function botAssessment(array $server): array

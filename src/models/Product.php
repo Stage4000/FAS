@@ -179,10 +179,14 @@ class Product
     /**
      * Get unique manufacturers for filtering
      */
-    public function getManufacturers()
+    public function getManufacturers($includeHidden = false)
     {
         $sql = "SELECT DISTINCT manufacturer FROM products 
-                WHERE is_active = 1 AND show_on_website = 1 AND manufacturer IS NOT NULL 
+                WHERE is_active = 1 AND manufacturer IS NOT NULL ";
+        if (!$includeHidden) {
+            $sql .= "AND show_on_website = 1 ";
+        }
+        $sql .= "
                 ORDER BY manufacturer";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -842,11 +846,14 @@ class Product
     /**
      * Get all products with pagination, filtered by eBay store category IDs
      */
-    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false)
     {
         $offset = ($page - 1) * $perPage;
         
-        $sql = "SELECT * FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $sql = "SELECT * FROM products WHERE is_active = 1";
+        if (!$includeHidden) {
+            $sql .= " AND show_on_website = 1";
+        }
         $params = [];
         
         // Filter by eBay category (most specific first)
@@ -887,9 +894,12 @@ class Product
     /**
      * Get count of products filtered by eBay store category IDs
      */
-    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null)
+    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false)
     {
-        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
+        $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1";
+        if (!$includeHidden) {
+            $sql .= " AND show_on_website = 1";
+        }
         $params = [];
         
         // Filter by eBay category (most specific first)
@@ -930,11 +940,14 @@ class Product
      * Returns a lookup array keyed by category ID so sidebar hierarchies can be
      * pruned without exposing empty branches to customers.
      */
-    public function getVisibleEbayCategoryIds()
+    public function getVisibleEbayCategoryIds($includeHidden = false)
     {
         $sql = "SELECT ebay_store_cat1_id, ebay_store_cat2_id, ebay_store_cat3_id
                 FROM products
-                WHERE is_active = 1 AND show_on_website = 1";
+                WHERE is_active = 1";
+        if (!$includeHidden) {
+            $sql .= " AND show_on_website = 1";
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

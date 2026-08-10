@@ -69,10 +69,13 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
                     <?php if (!empty($product['condition_name'])): ?>
                         <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                     <?php endif; ?>
-                    <?php if ($priceInfo['on_sale']): ?>
-                        <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
-                    <?php endif; ?>
-                </div>
+            <?php if ($priceInfo['on_sale']): ?>
+                <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+            <?php endif; ?>
+            <?php if (isset($product['show_on_website']) && (int)$product['show_on_website'] === 0): ?>
+                <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">Hidden</span>
+            <?php endif; ?>
+        </div>
             </a>
             <div class="card-body d-flex flex-column">
                 <a href="<?php echo htmlspecialchars($productUrl); ?>" class="text-decoration-none text-dark">

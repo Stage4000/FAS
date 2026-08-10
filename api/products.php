@@ -18,6 +18,20 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
     exit;
 });
 
+function canViewHiddenProducts(): bool
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        $sessionName = session_name();
+        if (empty($_COOKIE[$sessionName])) {
+            return false;
+        }
+
+        @session_start();
+    }
+
+    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+}
+
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/utils/ProductAltText.php';
@@ -76,11 +90,13 @@ $manufacturer = $_GET['manufacturer'] ?? null;
 $search = $_GET['search'] ?? null;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $perPage = 24;
+$canViewHiddenProducts = canViewHiddenProducts();
+$includeHiddenProducts = $canViewHiddenProducts && (($_GET['show_hidden'] ?? '') === '1');
 
 // Initialize database and product model
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
-$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds();
+$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds($includeHiddenProducts);
 
 // Get eBay API for category names
 try {
@@ -94,8 +110,8 @@ try {
 }
 
 // Get products from database
-$products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
-$totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer);
+$products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts);
+$totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts);
 $currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
 $noResultsProducts = [];
 
@@ -104,7 +120,7 @@ if (empty($products)) {
 }
 
 // Get unique manufacturers
-$allManufacturers = $productModel->getManufacturers();
+$allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
 
 $totalPages = ceil($totalProducts / $perPage);
 
@@ -146,15 +162,37 @@ ob_start();
                 <?php echo htmlspecialchars($currentCategoryName); ?>
             <?php endif; ?>
         </h1>
-        <p class="text-muted"><?php echo $totalProducts; ?> products found</p>
-    </div>
+<p class="text-muted mb-2">
+    <?php echo $totalProducts; ?> products found<?php echo $includeHiddenProducts ? ' including hidden products' : ''; ?>
+</p>
+<?php if ($canViewHiddenProducts): ?>
+    <?php
+    $hiddenToggleParams = $_GET;
+    unset($hiddenToggleParams['page'], $hiddenToggleParams['include_sidebar']);
+    if ($includeHiddenProducts) {
+        unset($hiddenToggleParams['show_hidden']);
+        $hiddenToggleLabel = 'Hide hidden products';
+        $hiddenToggleClass = 'btn-outline-secondary';
+    } else {
+        $hiddenToggleParams['show_hidden'] = '1';
+        $hiddenToggleLabel = 'Show hidden products';
+        $hiddenToggleClass = 'btn-outline-danger';
+    }
+    $hiddenToggleUrl = '/products' . (!empty($hiddenToggleParams) ? '?' . http_build_query($hiddenToggleParams) : '');
+    ?>
+    <a href="<?php echo htmlspecialchars($hiddenToggleUrl); ?>" class="btn btn-sm <?php echo $hiddenToggleClass; ?>">
+        <i class="fas fa-eye-slash me-1"></i><?php echo htmlspecialchars($hiddenToggleLabel); ?>
+    </a>
+<?php endif; ?>
+</div>
     <div class="col-md-6">
         <!-- Search Box -->
         <form method="get" action="/products" id="search-form">
             <?php if ($ebayCat1): ?><input type="hidden" name="cat1" value="<?php echo $ebayCat1; ?>"><?php endif; ?>
-            <?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
-            <?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
-            <?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
+<?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
+<?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
+<?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
+<?php if ($includeHiddenProducts): ?><input type="hidden" name="show_hidden" value="1"><?php endif; ?>
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
                 <?php if ($search): ?>
@@ -162,10 +200,11 @@ ob_start();
                         $clearUrl = '/products';
                         $clearParams = [];
                         if ($ebayCat1) $clearParams[] = 'cat1=' . urlencode($ebayCat1);
-                        if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
-                        if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
-                        if ($manufacturer) $clearParams[] = 'manufacturer=' . urlencode($manufacturer);
-                        if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
+if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
+if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
+if ($manufacturer) $clearParams[] = 'manufacturer=' . urlencode($manufacturer);
+if ($includeHiddenProducts) $clearParams[] = 'show_hidden=1';
+if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                     ?>
                     <a href="<?php echo htmlspecialchars($clearUrl); ?>" class="btn btn-outline-secondary" title="Clear search">
                         <i class="fas fa-times"></i> Clear
@@ -377,10 +416,11 @@ ob_start();
             $queryParams = [];
             if ($ebayCat1) $queryParams[] = 'cat1=' . urlencode($ebayCat1);
             if ($ebayCat2) $queryParams[] = 'cat2=' . urlencode($ebayCat2);
-            if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
-            if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
-            if ($search) $queryParams[] = 'search=' . urlencode($search);
-            $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
+if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
+if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
+if ($search) $queryParams[] = 'search=' . urlencode($search);
+if ($includeHiddenProducts) $queryParams[] = 'show_hidden=1';
+$queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
             
             // Smart pagination
             $paginationRange = 2;

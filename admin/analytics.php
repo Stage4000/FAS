@@ -156,6 +156,24 @@ function sessionIpSourceLabel(array $session): string
     return $labels[$source] ?? ($source !== '' ? str_replace('_', ' ', $source) : 'Unknown');
 }
 
+function sessionGeoSourceLabel(array $session): string
+{
+    $source = (string) ($session['geo_source'] ?? '');
+    $labels = [
+        'cloudflare_headers' => 'Cloudflare geo',
+        'ipwhois_lookup' => 'IP lookup',
+        'ipwhois_cache' => 'IP lookup cache',
+        'ip_lookup_unavailable' => 'IP lookup unavailable',
+        'ip_lookup_disabled' => 'IP lookup disabled',
+        'cloudflare_headers_missing_ip' => 'Cloudflare IP missing',
+        'private_or_reserved_ip' => 'Private/reserved IP',
+        'ip_missing' => 'IP missing',
+        'unknown' => 'Unknown',
+    ];
+
+    return $labels[$source] ?? ($source !== '' ? str_replace('_', ' ', $source) : 'Unknown');
+}
+
 function safe($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -635,7 +653,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                             </td>
                             <td class="analytics-session-cell">
                                 <div class="analytics-session-primary" title="<?php echo safe(sessionGeoLabel($row)); ?>"><?php echo safe(sessionGeoLabel($row)); ?></div>
-                                <div class="analytics-session-muted" title="<?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?>"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?></div>
+                                <div class="analytics-session-muted" title="<?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?> &middot; <?php echo safe(sessionGeoSourceLabel($row)); ?>"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionGeoSourceLabel($row)); ?></div>
                             </td>
                             <td class="analytics-session-cell">
                                 <span class="badge analytics-session-badge <?php echo sessionBotBadgeClass($row); ?>" title="<?php echo safe(sessionBotLabel($row)); ?>"><?php echo safe(sessionBotLabel($row)); ?></span>
@@ -1275,6 +1293,23 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         return labels[source] || (source ? source.replace(/_/g, ' ') : 'Unknown');
     }
 
+    function geoSourceLabel(summary) {
+        const source = text(summary.geo_source, '');
+        const labels = {
+            cloudflare_headers: 'Cloudflare geo',
+            ipwhois_lookup: 'IP lookup',
+            ipwhois_cache: 'IP lookup cache',
+            ip_lookup_unavailable: 'IP lookup unavailable',
+            ip_lookup_disabled: 'IP lookup disabled',
+            cloudflare_headers_missing_ip: 'Cloudflare IP missing',
+            private_or_reserved_ip: 'Private/reserved IP',
+            ip_missing: 'IP missing',
+            unknown: 'Unknown'
+        };
+
+        return labels[source] || (source ? source.replace(/_/g, ' ') : 'Unknown');
+    }
+
     function eventLabel(type) {
         return text(type, 'event').replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     }
@@ -1355,6 +1390,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         userDetails.appendChild(detailRow('Language', summary.language));
         userDetails.appendChild(detailRow('Timezone', summary.timezone || summary.cf_timezone));
         userDetails.appendChild(detailRow('Location', location));
+        userDetails.appendChild(detailRow('Geolocation Source', geoSourceLabel(summary)));
         userDetails.appendChild(detailRow('IP Address', summary.client_ip));
         userDetails.appendChild(detailRow('IP Source', ipSourceLabel(summary)));
         userDetails.appendChild(detailRow('Bot Signal', botLabel(summary)));

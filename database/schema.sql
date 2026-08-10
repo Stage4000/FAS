@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     cf_longitude DECIMAL(10, 6) NULL,
     cf_timezone VARCHAR(100),
     cf_ray VARCHAR(80),
+    geo_source VARCHAR(40),
     cf_bot_score INT NULL,
     cf_verified_bot TINYINT(1) DEFAULT 0,
     is_potential_bot TINYINT(1) DEFAULT 0,
@@ -279,7 +280,24 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     INDEX idx_analytics_sessions_started (started_at),
     INDEX idx_analytics_sessions_visitor (visitor_id),
     INDEX idx_analytics_sessions_country (cf_country),
+    INDEX idx_analytics_sessions_geo_source (geo_source),
     INDEX idx_analytics_sessions_bot (is_potential_bot)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS analytics_ip_geo_cache (
+    ip_hash VARCHAR(64) PRIMARY KEY,
+    status VARCHAR(20) NOT NULL,
+    source VARCHAR(40),
+    country VARCHAR(10),
+    region VARCHAR(255),
+    region_code VARCHAR(50),
+    city VARCHAR(255),
+    postal_code VARCHAR(40),
+    latitude DECIMAL(10, 6) NULL,
+    longitude DECIMAL(10, 6) NULL,
+    timezone VARCHAR(100),
+    message VARCHAR(500),
+    looked_up_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS analytics_events (

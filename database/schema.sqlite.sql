@@ -286,6 +286,7 @@ CREATE TABLE IF NOT EXISTS analytics_sessions (
     cf_longitude REAL,
     cf_timezone TEXT,
     cf_ray TEXT,
+    geo_source TEXT,
     cf_bot_score INTEGER,
     cf_verified_bot INTEGER DEFAULT 0,
     is_potential_bot INTEGER DEFAULT 0,
@@ -358,9 +359,26 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id)
 );
 
+CREATE TABLE IF NOT EXISTS analytics_ip_geo_cache (
+    ip_hash TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    source TEXT,
+    country TEXT,
+    region TEXT,
+    region_code TEXT,
+    city TEXT,
+    postal_code TEXT,
+    latitude REAL,
+    longitude REAL,
+    timezone TEXT,
+    message TEXT,
+    looked_up_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_started ON analytics_sessions(started_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor ON analytics_sessions(visitor_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_country ON analytics_sessions(cf_country);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_geo_source ON analytics_sessions(geo_source);
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_bot ON analytics_sessions(is_potential_bot);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
