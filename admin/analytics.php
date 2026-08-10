@@ -219,14 +219,18 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         .progress-thin {
             height: .45rem;
         }
-        .analytics-mini-card {
-            background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
-            border: 1px solid rgba(31, 31, 36, .08);
-            border-radius: 1rem;
-            box-shadow: 0 .5rem 1.25rem rgba(31, 31, 36, .04);
-        }
-        .analytics-mini-card .analytics-icon {
-            align-items: center;
+.analytics-mini-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+    border: 1px solid rgba(31, 31, 36, .08);
+    border-radius: 1rem;
+    box-shadow: 0 .5rem 1.25rem rgba(31, 31, 36, .04);
+    color: #242629;
+}
+.analytics-mini-card .text-muted {
+    color: #667085 !important;
+}
+.analytics-mini-card .analytics-icon {
+    align-items: center;
             background: rgba(219, 3, 53, .1);
             border-radius: .85rem;
             color: #db0335;
@@ -238,53 +242,195 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         .analytics-session-search {
             min-width: min(100%, 28rem);
         }
-        .analytics-session-table {
-            min-width: 1080px;
-        }
-        .analytics-session-row {
-            cursor: pointer;
-            transition: background-color .15s ease, box-shadow .15s ease;
-        }
+.analytics-session-table {
+    min-width: 1180px;
+    table-layout: fixed;
+}
+.analytics-session-table th,
+.analytics-session-table td {
+    line-height: 1.18;
+    padding: .42rem .65rem;
+    vertical-align: middle;
+}
+.analytics-session-table th {
+    color: #667085;
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.analytics-session-table th:nth-child(1),
+.analytics-session-table td:nth-child(1) {
+    width: 12.5rem;
+}
+.analytics-session-table th:nth-child(2),
+.analytics-session-table td:nth-child(2) {
+    width: 16rem;
+}
+.analytics-session-table th:nth-child(3),
+.analytics-session-table td:nth-child(3) {
+    width: 12rem;
+}
+.analytics-session-table th:nth-child(4),
+.analytics-session-table td:nth-child(4) {
+    width: 6.5rem;
+}
+.analytics-session-table th:nth-child(5),
+.analytics-session-table td:nth-child(5),
+.analytics-session-table th:nth-child(6),
+.analytics-session-table td:nth-child(6),
+.analytics-session-table th:nth-child(7),
+.analytics-session-table td:nth-child(7) {
+    width: 8rem;
+}
+.analytics-session-table th:nth-child(8),
+.analytics-session-table td:nth-child(8) {
+    width: 22rem;
+}
+.analytics-session-table th:nth-child(9),
+.analytics-session-table td:nth-child(9) {
+    width: 5.75rem;
+}
+.analytics-session-row {
+    cursor: pointer;
+    transition: background-color .15s ease, box-shadow .15s ease;
+}
         .analytics-session-row:hover td,
         .analytics-session-row:focus-within td {
             background-color: #fff7f9;
         }
-        .analytics-session-id {
-            background: transparent;
-            border: 0;
-            color: #b8022d;
-            font: inherit;
-            font-weight: 700;
-            padding: 0;
-            text-align: left;
-        }
-        .analytics-session-id:hover,
-        .analytics-session-id:focus {
-            color: #db0335;
-            text-decoration: underline;
-        }
-        .analytics-action-cell {
-            background: #fff;
-            box-shadow: -10px 0 16px rgba(31, 31, 36, .06);
+.analytics-session-id {
+    background: transparent;
+    border: 0;
+    color: #b8022d;
+    display: block;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.15;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.analytics-session-id:hover,
+.analytics-session-id:focus {
+    color: #db0335;
+    text-decoration: underline;
+}
+.analytics-action-cell {
+    background: #fff;
+    box-shadow: -10px 0 16px rgba(31, 31, 36, .06);
             position: sticky;
             right: 0;
             z-index: 2;
         }
-        .analytics-session-row:hover .analytics-action-cell,
-        .analytics-session-row:focus-within .analytics-action-cell {
-            background-color: #fff7f9;
-        }
-        .analytics-event-badge {
-            border-radius: 999px;
-            font-weight: 700;
+.analytics-session-row:hover .analytics-action-cell,
+.analytics-session-row:focus-within .analytics-action-cell {
+    background-color: #fff7f9;
+}
+.analytics-session-cell {
+    overflow: hidden;
+}
+.analytics-session-primary,
+.analytics-session-muted,
+.analytics-session-path {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.analytics-session-muted {
+    color: #667085;
+    font-size: .74rem;
+    line-height: 1.18;
+    margin-top: .1rem;
+}
+.analytics-session-metric {
+    display: block;
+    white-space: nowrap;
+}
+.analytics-session-badge {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.analytics-open-button {
+    align-items: center;
+    display: inline-flex;
+    gap: .28rem;
+    justify-content: center;
+    line-height: 1;
+    padding: .38rem .55rem;
+    white-space: nowrap;
+}
+.analytics-event-badge {
+    border-radius: 999px;
+    font-weight: 700;
             letter-spacing: .01em;
         }
-        .analytics-modal-panel {
-            background: #fff;
-            border: 1px solid rgba(31, 31, 36, .08);
-            border-radius: 1rem;
-        }
-        @media (max-width: 991.98px) {
+.analytics-modal-panel {
+    background: #fff;
+    border: 1px solid rgba(31, 31, 36, .08);
+    border-radius: 1rem;
+    color: #242629;
+}
+[data-theme="dark"] .analytics-mini-card {
+    background: linear-gradient(180deg, #363636 0%, #2d2d2d 100%);
+    border-color: rgba(255, 255, 255, .14);
+    box-shadow: 0 .75rem 1.5rem rgba(0, 0, 0, .24);
+    color: #f3f4f6;
+}
+[data-theme="dark"] .analytics-mini-card .text-muted {
+    color: #c5cbd3 !important;
+}
+[data-theme="dark"] .analytics-session-table th {
+    color: #c5cbd3;
+}
+[data-theme="dark"] .analytics-session-muted {
+    color: #c5cbd3;
+}
+[data-theme="dark"] .analytics-mini-card .analytics-icon {
+    background: rgba(255, 82, 121, .18);
+    color: #ff5f83;
+}
+[data-theme="dark"] .analytics-session-id {
+    color: #ff7f9d;
+}
+[data-theme="dark"] .analytics-session-id:hover,
+[data-theme="dark"] .analytics-session-id:focus {
+    color: #ff9ab2;
+}
+[data-theme="dark"] #session-explorer .text-bg-light,
+[data-theme="dark"] #sessionDetailsModal .text-bg-light {
+    background-color: #3a3a3a !important;
+    border-color: rgba(255, 255, 255, .18) !important;
+    color: #f3f4f6 !important;
+}
+[data-theme="dark"] .analytics-session-row:hover td,
+[data-theme="dark"] .analytics-session-row:focus-within td {
+    background-color: rgba(219, 3, 53, .16);
+}
+[data-theme="dark"] .analytics-action-cell {
+    background: var(--admin-card-bg);
+    box-shadow: -10px 0 18px rgba(0, 0, 0, .28);
+}
+[data-theme="dark"] .analytics-session-row:hover .analytics-action-cell,
+[data-theme="dark"] .analytics-session-row:focus-within .analytics-action-cell {
+    background-color: #3a252b;
+}
+[data-theme="dark"] .analytics-modal-panel {
+    background: #333;
+    border-color: rgba(255, 255, 255, .14);
+    color: var(--admin-text);
+}
+@media (max-width: 991.98px) {
             .analytics-session-search {
                 width: 100%;
             }
@@ -481,39 +627,39 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                                 $sessionLength = (int) (($row['max_session_age_seconds'] ?? 0) ?: ($row['duration_seconds'] ?? 0));
                                 ?>
                         <tr class="analytics-session-row <?php echo $selectedSessionId === ($row['session_id'] ?? '') ? 'table-light' : ''; ?>" data-session-id="<?php echo safe($row['session_id']); ?>" tabindex="0" role="button" aria-label="Open analytics session <?php echo safe($row['session_id']); ?>">
-                            <td class="text-break">
-                                <button type="button" class="analytics-session-id js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">
+                            <td class="analytics-session-cell">
+                                <button type="button" class="analytics-session-id js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="<?php echo safe($row['session_id']); ?>">
                                     <?php echo safe($row['session_id']); ?>
                                 </button>
-                                <div class="small text-muted"><?php echo safe($row['visitor_id'] ?? ''); ?></div>
+                                <div class="analytics-session-muted" title="<?php echo safe($row['visitor_id'] ?? ''); ?>"><?php echo safe($row['visitor_id'] ?? ''); ?></div>
                             </td>
-                                    <td>
-                                        <div><?php echo safe(sessionGeoLabel($row)); ?></div>
-                                        <div class="small text-muted"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?></div>
-                                    </td>
-                                    <td>
-                                        <span class="badge <?php echo sessionBotBadgeClass($row); ?>"><?php echo safe(sessionBotLabel($row)); ?></span>
-                                    </td>
-                                    <td class="text-end text-nowrap"><?php echo fmtSeconds($sessionLength); ?></td>
-                                    <td class="text-end">
-                                        <div><?php echo fmtNumber($row['events'] ?? 0); ?></div>
-                                        <div class="small text-muted"><?php echo fmtNumber($row['page_views'] ?? 0); ?> pages</div>
-                                    </td>
-                                    <td class="text-end">
-                                        <div><?php echo fmtMoney($row['cart_value'] ?? 0); ?></div>
-                                        <div class="small text-muted"><?php echo fmtNumber($row['cart_adds'] ?? 0); ?> adds &middot; <?php echo fmtNumber($row['checkout_starts'] ?? 0); ?> checkout</div>
-                                    </td>
-                                    <td class="text-end">
-                                        <div><?php echo fmtMoney($row['revenue'] ?? 0); ?></div>
-                                        <div class="small text-muted"><?php echo fmtNumber($row['purchases'] ?? 0); ?> orders</div>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        <div><?php echo safe($row['last_seen_at'] ?? ''); ?></div>
-                                        <div class="small text-muted"><?php echo safe($row['landing_page'] ?? ''); ?></div>
-                                    </td>
+                            <td class="analytics-session-cell">
+                                <div class="analytics-session-primary" title="<?php echo safe(sessionGeoLabel($row)); ?>"><?php echo safe(sessionGeoLabel($row)); ?></div>
+                                <div class="analytics-session-muted" title="<?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?>"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?></div>
+                            </td>
+                            <td class="analytics-session-cell">
+                                <span class="badge analytics-session-badge <?php echo sessionBotBadgeClass($row); ?>" title="<?php echo safe(sessionBotLabel($row)); ?>"><?php echo safe(sessionBotLabel($row)); ?></span>
+                            </td>
+                            <td class="text-end text-nowrap"><?php echo fmtSeconds($sessionLength); ?></td>
+                            <td class="text-end text-nowrap">
+                                <span class="analytics-session-metric"><?php echo fmtNumber($row['events'] ?? 0); ?></span>
+                                <span class="analytics-session-muted"><?php echo fmtNumber($row['page_views'] ?? 0); ?> pages</span>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <span class="analytics-session-metric"><?php echo fmtMoney($row['cart_value'] ?? 0); ?></span>
+                                <span class="analytics-session-muted"><?php echo fmtNumber($row['cart_adds'] ?? 0); ?> adds &middot; <?php echo fmtNumber($row['checkout_starts'] ?? 0); ?> checkout</span>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <span class="analytics-session-metric"><?php echo fmtMoney($row['revenue'] ?? 0); ?></span>
+                                <span class="analytics-session-muted"><?php echo fmtNumber($row['purchases'] ?? 0); ?> orders</span>
+                            </td>
+                            <td class="analytics-session-cell">
+                                <span class="analytics-session-primary"><?php echo safe($row['last_seen_at'] ?? ''); ?></span>
+                                <span class="analytics-session-path analytics-session-muted" title="<?php echo safe($row['landing_page'] ?? ''); ?>"><?php echo safe($row['landing_page'] ?? ''); ?></span>
+                            </td>
                             <td class="text-end analytics-action-cell">
-                                <button type="button" class="btn btn-sm btn-danger js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">
-                                    <i class="fas fa-up-right-from-square me-1"></i>Open
+                                <button type="button" class="btn btn-sm btn-danger analytics-open-button js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="Open session <?php echo safe($row['session_id']); ?>">
+                                    <i class="fas fa-up-right-from-square"></i><span>Open</span>
                                 </button>
                             </td>
                         </tr>
