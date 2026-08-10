@@ -36,6 +36,11 @@ $recentSessions = $analytics->getRecentSessions($days, 50);
 $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
+$averageOrderValue = ((int) ($overview['orders'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['orders']) : 0;
+$revenuePerSession = ((int) ($overview['sessions'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['sessions']) : 0;
+$abandonedCartRate = (((int) ($overview['abandoned_carts'] ?? 0)) + ((int) ($overview['orders'] ?? 0))) > 0
+    ? round((((int) $overview['abandoned_carts']) / (((int) $overview['abandoned_carts']) + ((int) $overview['orders']))) * 100, 1)
+    : null;
 $sessionExplorerStats = [
     'sessions' => count($recentSessions),
     'potential_bots' => 0,
@@ -214,6 +219,79 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         .progress-thin {
             height: .45rem;
         }
+        .analytics-mini-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+            border: 1px solid rgba(31, 31, 36, .08);
+            border-radius: 1rem;
+            box-shadow: 0 .5rem 1.25rem rgba(31, 31, 36, .04);
+        }
+        .analytics-mini-card .analytics-icon {
+            align-items: center;
+            background: rgba(219, 3, 53, .1);
+            border-radius: .85rem;
+            color: #db0335;
+            display: inline-flex;
+            height: 2.25rem;
+            justify-content: center;
+            width: 2.25rem;
+        }
+        .analytics-session-search {
+            min-width: min(100%, 28rem);
+        }
+        .analytics-session-table {
+            min-width: 1080px;
+        }
+        .analytics-session-row {
+            cursor: pointer;
+            transition: background-color .15s ease, box-shadow .15s ease;
+        }
+        .analytics-session-row:hover td,
+        .analytics-session-row:focus-within td {
+            background-color: #fff7f9;
+        }
+        .analytics-session-id {
+            background: transparent;
+            border: 0;
+            color: #b8022d;
+            font: inherit;
+            font-weight: 700;
+            padding: 0;
+            text-align: left;
+        }
+        .analytics-session-id:hover,
+        .analytics-session-id:focus {
+            color: #db0335;
+            text-decoration: underline;
+        }
+        .analytics-action-cell {
+            background: #fff;
+            box-shadow: -10px 0 16px rgba(31, 31, 36, .06);
+            position: sticky;
+            right: 0;
+            z-index: 2;
+        }
+        .analytics-session-row:hover .analytics-action-cell,
+        .analytics-session-row:focus-within .analytics-action-cell {
+            background-color: #fff7f9;
+        }
+        .analytics-event-badge {
+            border-radius: 999px;
+            font-weight: 700;
+            letter-spacing: .01em;
+        }
+        .analytics-modal-panel {
+            background: #fff;
+            border: 1px solid rgba(31, 31, 36, .08);
+            border-radius: 1rem;
+        }
+        @media (max-width: 991.98px) {
+            .analytics-session-search {
+                width: 100%;
+            }
+            .analytics-session-search .input-group {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -251,22 +329,72 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     echo metricCard('Orders', fmtNumber($overview['orders']), fmtPercent($overview['checkout_to_order_rate']) . ' checkout-to-order', 'fa-receipt');
     echo metricCard('Revenue', fmtMoney($overview['revenue']), 'Completed orders', 'fa-dollar-sign');
     echo metricCard('Abandoned Carts', fmtNumber($overview['abandoned_carts']), fmtMoney($overview['abandoned_cart_value']) . ' at risk', 'fa-cart-arrow-down');
-echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outbound eBay clicks', 'fa-up-right-from-square');
-?>
+    echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outbound eBay clicks', 'fa-up-right-from-square');
+    ?>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="analytics-mini-card p-3 h-100">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                <div>
+                    <div class="small text-muted">Funnel Health</div>
+                    <div class="h5 mb-0"><?php echo fmtPercent($overview['product_view_to_cart_rate']); ?> view-to-cart</div>
+                </div>
+                <span class="analytics-icon"><i class="fas fa-filter-circle-dollar"></i></span>
+            </div>
+            <div class="small text-muted">
+                <?php echo fmtPercent($overview['cart_to_checkout_rate']); ?> cart-to-checkout &middot;
+                <?php echo fmtPercent($overview['checkout_to_order_rate']); ?> checkout-to-order
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="analytics-mini-card p-3 h-100">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                <div>
+                    <div class="small text-muted">Revenue Quality</div>
+                    <div class="h5 mb-0"><?php echo fmtMoney($averageOrderValue); ?> avg order</div>
+                </div>
+                <span class="analytics-icon"><i class="fas fa-chart-line"></i></span>
+            </div>
+            <div class="small text-muted"><?php echo fmtMoney($revenuePerSession); ?> revenue per tracked session</div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="analytics-mini-card p-3 h-100">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                <div>
+                    <div class="small text-muted">Recovery Opportunity</div>
+                    <div class="h5 mb-0"><?php echo fmtMoney($overview['abandoned_cart_value']); ?> at risk</div>
+                </div>
+                <span class="analytics-icon"><i class="fas fa-cart-arrow-down"></i></span>
+            </div>
+            <div class="small text-muted">
+                <?php echo fmtNumber($overview['abandoned_carts']); ?> abandoned carts
+                <?php if ($abandonedCartRate !== null): ?>
+                    &middot; <?php echo fmtPercent($abandonedCartRate); ?> of carts with outcome
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4 mb-4" id="session-explorer">
     <div class="col-12">
         <div class="card border-0 shadow-sm" data-aos="fade-up">
-            <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                 <div>
                     <h5 class="mb-1"><i class="fas fa-timeline text-danger me-2"></i>Session Explorer</h5>
-                    <div class="small text-muted">Recent shopper sessions with duration, conversion activity, approximate Cloudflare location, and bot signals.</div>
+                    <div class="small text-muted">Open any session to inspect visitor context, cart/revenue activity, bot signals, and chronological actions.</div>
                 </div>
-                <form method="get" class="d-flex gap-2">
+                <form method="get" class="analytics-session-search">
                     <input type="hidden" name="days" value="<?php echo $days; ?>">
-                    <input type="text" name="session" class="form-control form-control-sm" placeholder="Session ID" value="<?php echo safe($selectedSessionId); ?>">
-                    <button class="btn btn-danger btn-sm" type="submit">View</button>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="session" class="form-control" placeholder="Paste a session ID" value="<?php echo safe($selectedSessionId); ?>" aria-label="Session ID">
+                        <button class="btn btn-danger" type="submit"><i class="fas fa-up-right-from-square me-1"></i>Open Session</button>
+                    </div>
                 </form>
             </div>
             <div class="card-body">
@@ -275,42 +403,65 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                 <?php endif; ?>
 
                 <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 h-100 bg-light">
-                            <div class="small text-muted">Sessions Shown</div>
-                            <div class="h4 mb-0"><?php echo fmtNumber($sessionExplorerStats['sessions']); ?></div>
-                            <div class="small text-muted"><?php echo fmtNumber($sessionExplorerStats['human_sessions']); ?> likely human</div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="analytics-mini-card p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                    <div class="small text-muted">Sessions Shown</div>
+                                    <div class="h4 mb-0"><?php echo fmtNumber($sessionExplorerStats['sessions']); ?></div>
+                                    <div class="small text-muted"><?php echo fmtNumber($sessionExplorerStats['human_sessions']); ?> likely human</div>
+                                </div>
+                                <span class="analytics-icon"><i class="fas fa-users"></i></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 h-100 bg-light">
-                            <div class="small text-muted">Avg Active Time</div>
-                            <div class="h4 mb-0"><?php echo fmtSeconds($sessionExplorerStats['avg_length_seconds']); ?></div>
-                            <div class="small text-muted">Heartbeats update this quietly</div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="analytics-mini-card p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                    <div class="small text-muted">Avg Active Time</div>
+                                    <div class="h4 mb-0"><?php echo fmtSeconds($sessionExplorerStats['avg_length_seconds']); ?></div>
+                                    <div class="small text-muted">Based on quiet heartbeats</div>
+                                </div>
+                                <span class="analytics-icon"><i class="fas fa-stopwatch"></i></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 h-100 bg-light">
-                            <div class="small text-muted">Cart Value In Sessions</div>
-                            <div class="h4 mb-0"><?php echo fmtMoney($sessionExplorerStats['cart_value']); ?></div>
-                            <div class="small text-muted"><?php echo fmtNumber($sessionExplorerStats['checkout_starts']); ?> checkout starts</div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="analytics-mini-card p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                    <div class="small text-muted">Cart Value In Sessions</div>
+                                    <div class="h4 mb-0"><?php echo fmtMoney($sessionExplorerStats['cart_value']); ?></div>
+                                    <div class="small text-muted"><?php echo fmtNumber($sessionExplorerStats['checkout_starts']); ?> checkout starts</div>
+                                </div>
+                                <span class="analytics-icon"><i class="fas fa-cart-shopping"></i></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 h-100 bg-light">
-                            <div class="small text-muted">Potential Bots</div>
-                            <div class="h4 mb-0"><?php echo fmtNumber($sessionExplorerStats['potential_bots']); ?></div>
-                            <div class="small text-muted">Flagged for review</div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="analytics-mini-card p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                    <div class="small text-muted">Potential Bots</div>
+                                    <div class="h4 mb-0"><?php echo fmtNumber($sessionExplorerStats['potential_bots']); ?></div>
+                                    <div class="small text-muted">Flagged for review</div>
+                                </div>
+                                <span class="analytics-icon"><i class="fas fa-robot"></i></span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold mb-0">Recent Sessions</h6>
-                <span class="small text-muted">Last <?php echo $days; ?> days &middot; <?php echo fmtNumber(count($recentSessions)); ?> shown</span>
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-0">Recent Sessions</h6>
+                        <div class="small text-muted">Click a session ID, row, or Open button to view the full session timeline.</div>
+                    </div>
+                    <span class="badge text-bg-light border">Last <?php echo $days; ?> days &middot; <?php echo fmtNumber(count($recentSessions)); ?> shown</span>
                 </div>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm align-middle">
+                <div class="table-responsive mb-4 border rounded">
+                    <table class="table table-sm align-middle analytics-session-table mb-0">
                         <thead>
                             <tr>
                                 <th>Session</th>
@@ -321,7 +472,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                 <th class="text-end">Cart</th>
                                 <th class="text-end">Revenue</th>
                                 <th>Last Seen</th>
-                                <th></th>
+                            <th class="text-end analytics-action-cell">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -329,11 +480,13 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                 <?php
                                 $sessionLength = (int) (($row['max_session_age_seconds'] ?? 0) ?: ($row['duration_seconds'] ?? 0));
                                 ?>
-                                <tr class="<?php echo $selectedSessionId === ($row['session_id'] ?? '') ? 'table-light' : ''; ?>">
-                                    <td class="text-break">
-                                        <div class="fw-semibold"><?php echo safe($row['session_id']); ?></div>
-                                        <div class="small text-muted"><?php echo safe($row['visitor_id'] ?? ''); ?></div>
-                                    </td>
+                        <tr class="analytics-session-row <?php echo $selectedSessionId === ($row['session_id'] ?? '') ? 'table-light' : ''; ?>" data-session-id="<?php echo safe($row['session_id']); ?>" tabindex="0" role="button" aria-label="Open analytics session <?php echo safe($row['session_id']); ?>">
+                            <td class="text-break">
+                                <button type="button" class="analytics-session-id js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">
+                                    <?php echo safe($row['session_id']); ?>
+                                </button>
+                                <div class="small text-muted"><?php echo safe($row['visitor_id'] ?? ''); ?></div>
+                            </td>
                                     <td>
                                         <div><?php echo safe(sessionGeoLabel($row)); ?></div>
                                         <div class="small text-muted"><?php echo safe($row['client_ip'] ?? 'IP unknown'); ?> &middot; <?php echo safe(sessionIpSourceLabel($row)); ?></div>
@@ -358,8 +511,12 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                                         <div><?php echo safe($row['last_seen_at'] ?? ''); ?></div>
                                         <div class="small text-muted"><?php echo safe($row['landing_page'] ?? ''); ?></div>
                                     </td>
-                                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">View</button></td>
-                                </tr>
+                            <td class="text-end analytics-action-cell">
+                                <button type="button" class="btn btn-sm btn-danger js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>">
+                                    <i class="fas fa-up-right-from-square me-1"></i>Open
+                                </button>
+                            </td>
+                        </tr>
                             <?php endforeach; ?>
                             <?php if (empty($recentSessions)): ?>
                                 <tr><td colspan="9" class="text-muted">No recent sessions recorded yet.</td></tr>
@@ -850,7 +1007,12 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                     <div class="small text-muted text-uppercase fw-semibold">Analytics Session</div>
                     <h5 class="modal-title mb-0" id="sessionDetailsTitle">Session Details</h5>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="sessionDetailsCopy">
+                        <i class="fas fa-link me-1"></i>Copy Link
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="sessionDetailsLoading" class="alert alert-light border small mb-0">Loading session details...</div>
@@ -858,14 +1020,14 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                 <div id="sessionDetailsContent" class="d-none">
                     <div class="row g-3 mb-4" id="sessionDetailsStats"></div>
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-6">
-                            <div class="border rounded p-3 h-100">
+                    <div class="col-lg-6">
+                        <div class="analytics-modal-panel p-3 h-100">
                                 <h6 class="fw-bold mb-3">User / Visitor</h6>
                                 <dl class="row small mb-0" id="sessionDetailsUser"></dl>
                             </div>
                         </div>
-                        <div class="col-lg-6">
-                            <div class="border rounded p-3 h-100">
+                    <div class="col-lg-6">
+                        <div class="analytics-modal-panel p-3 h-100">
                                 <h6 class="fw-bold mb-3">Session Context</h6>
                                 <dl class="row small mb-0" id="sessionDetailsContext"></dl>
                             </div>
@@ -912,6 +1074,8 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
     const contextDetails = document.getElementById('sessionDetailsContext');
     const eventCount = document.getElementById('sessionDetailsEventCount');
     const eventsBody = document.getElementById('sessionDetailsEvents');
+    const copyButton = document.getElementById('sessionDetailsCopy');
+    let activeSessionId = '';
 
     function text(value, fallback = 'Unknown') {
         if (value === null || value === undefined || value === '') return fallback;
@@ -965,6 +1129,24 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         return labels[source] || (source ? source.replace(/_/g, ' ') : 'Unknown');
     }
 
+    function eventLabel(type) {
+        return text(type, 'event').replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function eventBadgeClass(type) {
+        const eventType = text(type, '').toLowerCase();
+        if (['purchase_completed', 'checkout_completed'].includes(eventType)) return 'text-bg-success';
+        if (['checkout_start', 'shipping_rate_requested', 'shipping_rate_selected'].includes(eventType)) return 'text-bg-primary';
+        if (['add_to_cart', 'cart_view', 'cart_quantity_changed', 'cart_abandonment_signal'].includes(eventType)) return 'text-bg-warning';
+        if (['ebay_link_click', 'external_link_click'].includes(eventType)) return 'text-bg-info';
+        if (['coupon_attempted', 'coupon_applied', 'coupon_rejected', 'banner_click'].includes(eventType)) return 'text-bg-secondary';
+        return 'text-bg-light';
+    }
+
+    function eventValue(value) {
+        return Number(value || 0) > 0 ? money(value) : '—';
+    }
+
     function setState(state, message = '') {
         loading.classList.toggle('d-none', state !== 'loading');
         errorBox.classList.toggle('d-none', state !== 'error');
@@ -983,7 +1165,7 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
     function statCard(label, value, note) {
         const col = document.createElement('div');
         col.className = 'col-sm-6 col-lg-3';
-        col.innerHTML = '<div class="border rounded p-3 h-100 bg-light"><div class="small text-muted"></div><div class="h4 mb-0"></div><div class="small text-muted mt-1"></div></div>';
+        col.innerHTML = '<div class="analytics-mini-card p-3 h-100"><div class="small text-muted"></div><div class="h4 mb-0"></div><div class="small text-muted mt-1"></div></div>';
         col.querySelectorAll('div')[1].textContent = label;
         col.querySelector('.h4').textContent = value;
         col.querySelectorAll('div')[3].textContent = note;
@@ -1060,13 +1242,13 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
                 text(event.event_type, ''),
                 compact([event.page_path || 'Unknown page', pageMeta]),
                 compact([product, productMeta]),
-                money(value)
+                eventValue(value)
             ].forEach((cellValue, index) => {
                 const cell = document.createElement('td');
                 if (index === 1) {
                     const badge = document.createElement('span');
-                    badge.className = 'badge text-bg-light';
-                    badge.textContent = cellValue;
+                    badge.className = 'badge analytics-event-badge ' + eventBadgeClass(cellValue);
+                    badge.textContent = eventLabel(cellValue);
                     cell.appendChild(badge);
                     const meta = document.createElement('div');
                     meta.className = 'small text-muted';
@@ -1082,10 +1264,59 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
         });
     }
 
+    function sessionLink(sessionId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('days', String(<?php echo json_encode($days); ?>));
+        url.searchParams.set('session', sessionId);
+        return url.toString();
+    }
+
+    function rememberSession(sessionId) {
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', sessionLink(sessionId));
+        }
+    }
+
+    async function copySessionLink() {
+        if (!activeSessionId || !copyButton) return;
+
+        const link = sessionLink(activeSessionId);
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(link);
+            } else {
+                const field = document.createElement('textarea');
+                field.value = link;
+                field.setAttribute('readonly', '');
+                field.style.position = 'fixed';
+                field.style.left = '-9999px';
+                document.body.appendChild(field);
+                field.select();
+                document.execCommand('copy');
+                document.body.removeChild(field);
+            }
+            copyButton.innerHTML = '<i class="fas fa-check me-1"></i>Copied';
+            window.setTimeout(() => {
+                copyButton.innerHTML = '<i class="fas fa-link me-1"></i>Copy Link';
+            }, 1600);
+        } catch (error) {
+            copyButton.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>Copy Failed';
+        }
+    }
+
     async function openSession(sessionId) {
+        sessionId = text(sessionId, '').trim();
+        if (!sessionId) return;
+
+        activeSessionId = sessionId;
         title.textContent = 'Session ' + sessionId;
         setState('loading');
+        if (copyButton) {
+            copyButton.disabled = true;
+            copyButton.innerHTML = '<i class="fas fa-link me-1"></i>Copy Link';
+        }
         modal.show();
+        rememberSession(sessionId);
 
         try {
             const response = await fetch('session-details.php?session=' + encodeURIComponent(sessionId), {
@@ -1096,14 +1327,40 @@ echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outboun
             if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to load session details.');
             renderDetails(payload.summary || {}, payload.events || []);
             setState('ready');
+            if (copyButton) copyButton.disabled = false;
         } catch (error) {
             setState('error', error.message || 'Unable to load session details.');
+            if (copyButton) copyButton.disabled = false;
         }
     }
 
-    document.querySelectorAll('.js-session-view').forEach(button => {
-        button.addEventListener('click', () => openSession(button.dataset.sessionId || ''));
+    document.addEventListener('click', event => {
+        const button = event.target.closest('.js-session-view');
+        if (button) {
+            event.preventDefault();
+            event.stopPropagation();
+            openSession(button.dataset.sessionId || '');
+            return;
+        }
+
+        const row = event.target.closest('.analytics-session-row');
+        if (row && !event.target.closest('a, button, input, select, textarea')) {
+            openSession(row.dataset.sessionId || '');
+        }
     });
+
+    document.querySelectorAll('.analytics-session-row').forEach(row => {
+        row.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openSession(row.dataset.sessionId || '');
+            }
+        });
+    });
+
+    if (copyButton) {
+        copyButton.addEventListener('click', copySessionLink);
+    }
 
     const initialSessionId = <?php echo json_encode($selectedSessionId); ?>;
     if (initialSessionId) {
