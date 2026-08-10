@@ -28,10 +28,31 @@ function analyticsHost(string $host): string
     return preg_replace('/^www\./', '', $host);
 }
 
+function analyticsAdminContext(): array
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        $sessionName = session_name();
+        if ($sessionName === '' || empty($_COOKIE[$sessionName])) {
+            return [];
+        }
+
+        @session_start(['read_and_close' => true]);
+    }
+
+    if (empty($_SESSION['admin_logged_in'])) {
+        return [];
+    }
+
+    return [
+        'ANALYTICS_ADMIN_SESSION' => '1',
+        'ANALYTICS_ADMIN_USERNAME' => (string) ($_SESSION['admin_username'] ?? ''),
+    ];
+}
+
 function analyticsServerContext(array $server): array
 {
     if (!function_exists('getallheaders')) {
-        return $server;
+        return array_merge($server, analyticsAdminContext());
     }
 
     $headers = getallheaders();
@@ -52,7 +73,7 @@ function analyticsServerContext(array $server): array
         }
     }
 
-    return $server;
+    return array_merge($server, analyticsAdminContext());
 }
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';

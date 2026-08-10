@@ -89,6 +89,8 @@ class Analytics
         'cf_verified_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
         'is_potential_bot' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
         'bot_reason' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(500)'],
+        'is_admin_session' => ['sqlite' => 'INTEGER DEFAULT 0', 'mysql' => 'TINYINT(1) DEFAULT 0'],
+        'admin_username' => ['sqlite' => 'TEXT', 'mysql' => 'VARCHAR(255)'],
     ];
 
     private static $eventColumns = [
@@ -220,12 +222,15 @@ class Analytics
         $this->ensureTables();
 
         $since = $this->since($days);
+        $nonAdminSessionCondition = $this->nonAdminSessionCondition();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
         $sessionStats = $this->fetchOne(
             "SELECT COUNT(*) AS sessions,
                     COUNT(DISTINCT visitor_id) AS visitors,
                     AVG(CASE WHEN duration_seconds > 0 THEN duration_seconds END) AS avg_duration
-             FROM analytics_sessions
-             WHERE started_at >= ?",
+            FROM analytics_sessions
+            WHERE started_at >= ?
+                AND {$nonAdminSessionCondition}",
             [$since]
         );
 
@@ -244,10 +249,11 @@ class Analytics
                 SUM(CASE WHEN event_type = 'coupon_applied' THEN 1 ELSE 0 END) AS coupons_applied,
                 SUM(CASE WHEN event_type = 'coupon_rejected' THEN 1 ELSE 0 END) AS coupons_rejected,
                 SUM(CASE WHEN event_type = 'ebay_link_click' THEN 1 ELSE 0 END) AS ebay_link_clicks,
-                SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS tracked_orders,
-                COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS tracked_revenue
-             FROM analytics_events
-             WHERE created_at >= ?",
+                    SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS tracked_orders,
+                    COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS tracked_revenue
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND {$nonAdminEventCondition}",
             [$since]
         );
 
@@ -300,16 +306,18 @@ class Analytics
     public function getTopPages(int $days, int $limit = 10): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT page_path,
                     COUNT(*) AS views,
                     COUNT(DISTINCT session_id) AS sessions
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = 'page_view'
-               AND page_path IS NOT NULL
-               AND page_path <> ''
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = 'page_view'
+                AND {$nonAdminEventCondition}
+                AND page_path IS NOT NULL
+                AND page_path <> ''
              GROUP BY page_path
              ORDER BY views DESC
              LIMIT " . (int) $limit,
@@ -320,16 +328,18 @@ class Analytics
     public function getExitPages(int $days, int $limit = 10): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT page_path,
                     COUNT(*) AS exits,
                     AVG(CASE WHEN duration_seconds > 0 THEN duration_seconds END) AS avg_seconds
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = 'page_exit'
-               AND page_path IS NOT NULL
-               AND page_path <> ''
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = 'page_exit'
+                AND {$nonAdminEventCondition}
+                AND page_path IS NOT NULL
+                AND page_path <> ''
              GROUP BY page_path
              ORDER BY exits DESC
              LIMIT " . (int) $limit,
@@ -342,6 +352,7 @@ class Analytics
         $this->ensureTables();
 
         $since = $this->since($days);
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
         $rowsByKey = [];
         $eventRows = $this->fetchAll(
             "SELECT COALESCE(NULLIF(product_id, ''), NULLIF(product_sku, ''), NULLIF(product_name, '')) AS product_key,
@@ -358,10 +369,11 @@ class Analytics
                     SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
                     SUM(CASE WHEN event_type = 'purchase_completed' THEN 1 ELSE 0 END) AS purchases,
                     COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type IN ('product_view', 'product_impression', 'product_click', 'add_to_cart', 'purchase_completed')
-               AND COALESCE(NULLIF(product_id, ''), NULLIF(product_sku, ''), NULLIF(product_name, '')) IS NOT NULL
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND {$nonAdminEventCondition}
+                AND event_type IN ('product_view', 'product_impression', 'product_click', 'add_to_cart', 'purchase_completed')
+                AND COALESCE(NULLIF(product_id, ''), NULLIF(product_sku, ''), NULLIF(product_name, '')) IS NOT NULL
              GROUP BY product_key",
             [$since]
         );
@@ -407,6 +419,7 @@ class Analytics
     public function getBannerPerformance(int $days, int $limit = 10): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT banner_id,
@@ -416,11 +429,12 @@ class Analytics
                     SUM(CASE WHEN event_type = 'banner_view' THEN 1 ELSE 0 END) AS views,
                     SUM(CASE WHEN event_type = 'banner_click' THEN 1 ELSE 0 END) AS clicks,
                     MAX(created_at) AS last_activity
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type IN ('banner_view', 'banner_click')
-               AND banner_id IS NOT NULL
-               AND banner_id <> ''
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type IN ('banner_view', 'banner_click')
+                AND {$nonAdminEventCondition}
+                AND banner_id IS NOT NULL
+                AND banner_id <> ''
              GROUP BY banner_id, campaign_name
              ORDER BY clicks DESC, views DESC, last_activity DESC
              LIMIT " . (int) $limit,
@@ -431,6 +445,7 @@ class Analytics
     public function getTrafficSources(int $days, int $limit = 10): array
     {
         $this->ensureTables();
+        $nonAdminSessionCondition = $this->nonAdminSessionCondition();
 
         $rows = $this->fetchAll(
             "SELECT utm_source,
@@ -438,9 +453,10 @@ class Analytics
                     utm_campaign,
                     referrer,
                     COUNT(*) AS sessions
-             FROM analytics_sessions
-             WHERE started_at >= ?
-             GROUP BY utm_source, utm_medium, utm_campaign, referrer",
+            FROM analytics_sessions
+            WHERE started_at >= ?
+                AND {$nonAdminSessionCondition}
+            GROUP BY utm_source, utm_medium, utm_campaign, referrer",
             [$this->since($days)]
         );
 
@@ -477,14 +493,16 @@ class Analytics
     public function getSearchTerms(int $days, int $limit = 10): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT search_term,
                     COUNT(*) AS searches
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = 'search_submitted'
-               AND search_term IS NOT NULL
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = 'search_submitted'
+                AND {$nonAdminEventCondition}
+                AND search_term IS NOT NULL
                AND search_term <> ''
              GROUP BY search_term
              ORDER BY searches DESC
@@ -535,6 +553,7 @@ class Analytics
 
         $since = $this->since($days);
         $cutoff = $this->abandonedCartCutoff();
+        $nonAdminEventCondition = $this->nonAdminEventCondition('e');
         $rows = $this->fetchAll(
             "SELECT e.session_id,
                     e.visitor_id,
@@ -557,10 +576,11 @@ class Analytics
                 WHERE created_at >= ?
                 GROUP BY session_id
              ) latest ON latest.last_event_id = e.id
-             LEFT JOIN analytics_sessions s ON s.session_id = e.session_id
-             WHERE e.created_at <= ?
-               AND (e.cart_items_count > 0 OR e.cart_value > 0)
-               AND NOT EXISTS (
+            LEFT JOIN analytics_sessions s ON s.session_id = e.session_id
+            WHERE e.created_at <= ?
+                AND (e.cart_items_count > 0 OR e.cart_value > 0)
+                AND {$nonAdminEventCondition}
+                AND NOT EXISTS (
                     SELECT 1
                     FROM analytics_events purchase
                     WHERE purchase.session_id = e.session_id
@@ -583,6 +603,7 @@ class Analytics
     public function getEbayLinkClicks(int $days, int $limit = 20): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT page_path,
@@ -594,10 +615,11 @@ class Analytics
                     target_host,
                     COUNT(*) AS clicks,
                     MAX(created_at) AS last_click
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = 'ebay_link_click'
-             GROUP BY page_path, product_id, product_name, product_sku, link_text, target_url, target_host
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = 'ebay_link_click'
+                AND {$nonAdminEventCondition}
+            GROUP BY page_path, product_id, product_name, product_sku, link_text, target_url, target_host
              ORDER BY clicks DESC, last_click DESC
              LIMIT " . (int) $limit,
             [$this->since($days)]
@@ -609,6 +631,7 @@ class Analytics
         $this->ensureTables();
 
         $since = $this->since($days);
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
         $rowsByCode = [];
         $eventRows = $this->fetchAll(
             "SELECT coupon_code,
@@ -617,10 +640,11 @@ class Analytics
                     SUM(CASE WHEN event_type = 'coupon_rejected' THEN 1 ELSE 0 END) AS rejected,
                     COALESCE(SUM(discount_amount), 0) AS discount_amount,
                     COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND coupon_code IS NOT NULL
-               AND coupon_code <> ''
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND {$nonAdminEventCondition}
+                AND coupon_code IS NOT NULL
+                AND coupon_code <> ''
              GROUP BY coupon_code",
             [$since]
         );
@@ -699,15 +723,18 @@ class Analytics
             }
         }
 
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
+
         return $this->fetchAll(
             "SELECT COALESCE(NULLIF(category, ''), 'Uncategorized') AS category,
                     COUNT(DISTINCT order_id) AS orders,
                     COUNT(*) AS units_sold,
                     COALESCE(SUM(revenue), 0) AS revenue
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = 'purchase_completed'
-             GROUP BY category
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = 'purchase_completed'
+                AND {$nonAdminEventCondition}
+            GROUP BY category
              ORDER BY revenue DESC
              LIMIT " . (int) $limit,
             [$since]
@@ -717,6 +744,7 @@ class Analytics
     public function getRecentEvents(int $limit = 25): array
     {
         $this->ensureTables();
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
 
         return $this->fetchAll(
             "SELECT event_type,
@@ -734,9 +762,10 @@ class Analytics
                     cart_value,
                     revenue,
                     created_at
-             FROM analytics_events
-             WHERE event_type <> 'session_heartbeat'
-             ORDER BY created_at DESC
+            FROM analytics_events
+            WHERE event_type <> 'session_heartbeat'
+                AND {$nonAdminEventCondition}
+            ORDER BY created_at DESC
             LIMIT " . (int) $limit
         );
     }
@@ -759,7 +788,8 @@ class Analytics
                 COALESCE(e.ebay_clicks, 0) AS ebay_clicks,
                 COALESCE(e.cart_value, 0) AS cart_value,
                 COALESCE(e.revenue, 0) AS revenue,
-                COALESCE(e.max_session_age_seconds, s.duration_seconds, 0) AS max_session_age_seconds,
+                COALESCE(e.max_session_age_seconds, 0) AS max_session_age_seconds,
+                COALESCE(NULLIF(s.duration_seconds, 0), e.active_duration_seconds, 0) AS active_duration_seconds,
                 COALESCE(e.session_ttl_days, 0) AS session_ttl_days,
                 COALESCE(e.visitor_pageviews, 0) AS visitor_pageviews,
                 COALESCE(e.is_returning_visitor, 0) AS is_returning_visitor
@@ -776,6 +806,7 @@ class Analytics
                     MAX(cart_value) AS cart_value,
                     COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue,
                     MAX(session_age_seconds) AS max_session_age_seconds,
+                    MAX(duration_seconds) AS active_duration_seconds,
                     MAX(session_ttl_days) AS session_ttl_days,
                     MAX(visitor_pageviews) AS visitor_pageviews,
                     MAX(is_returning_visitor) AS is_returning_visitor
@@ -823,6 +854,7 @@ class Analytics
                 MAX(cart_value) AS cart_value,
                 COALESCE(SUM(CASE WHEN event_type = 'purchase_completed' THEN revenue ELSE 0 END), 0) AS revenue,
                 MAX(session_age_seconds) AS max_session_age_seconds,
+                MAX(duration_seconds) AS active_duration_seconds,
                 MAX(session_ttl_days) AS session_ttl_days,
                 MAX(visitor_pageviews) AS visitor_pageviews,
                 MAX(is_returning_visitor) AS is_returning_visitor,
@@ -1292,16 +1324,18 @@ class Analytics
             'cf_verified_bot' => $bot['cf_verified_bot'],
             'is_potential_bot' => $bot['is_potential_bot'],
             'bot_reason' => $bot['bot_reason'],
+            'is_admin_session' => $this->isAdminSession($server),
+            'admin_username' => $this->adminUsername($server),
         ];
 
         if ($existing) {
             $stickyTextColumns = [
                 'referrer', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
                 'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
-                'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason',
+                'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason', 'admin_username',
             ];
             $nullableColumns = ['cf_latitude', 'cf_longitude', 'cf_bot_score'];
-            $stickyBooleanColumns = ['cf_verified_bot', 'is_potential_bot'];
+            $stickyBooleanColumns = ['cf_verified_bot', 'is_potential_bot', 'is_admin_session'];
             $assignments = [];
             $values = [];
 
@@ -1681,13 +1715,34 @@ class Analytics
         return $stages;
     }
 
+    private function nonAdminSessionCondition(string $sessionAlias = ''): string
+    {
+        $prefix = $sessionAlias !== '' ? "{$sessionAlias}." : '';
+
+        return "COALESCE({$prefix}is_admin_session, 0) = 0";
+    }
+
+    private function nonAdminEventCondition(string $eventAlias = ''): string
+    {
+        $prefix = $eventAlias !== '' ? "{$eventAlias}." : '';
+
+        return "NOT EXISTS (
+            SELECT 1
+            FROM analytics_sessions admin_session
+            WHERE admin_session.session_id = {$prefix}session_id
+                AND COALESCE(admin_session.is_admin_session, 0) = 1
+        )";
+    }
+
     private function countDistinctSessionsByEvent(string $since, string $eventType): int
     {
+        $nonAdminEventCondition = $this->nonAdminEventCondition();
         $row = $this->fetchOne(
             "SELECT COUNT(DISTINCT session_id) AS sessions
-             FROM analytics_events
-             WHERE created_at >= ?
-               AND event_type = ?",
+            FROM analytics_events
+            WHERE created_at >= ?
+                AND event_type = ?
+                AND {$nonAdminEventCondition}",
             [$since, $eventType]
         );
 
@@ -1696,6 +1751,7 @@ class Analytics
 
     private function getAbandonedCartSummary(string $since): array
     {
+        $nonAdminEventCondition = $this->nonAdminEventCondition('e');
         $row = $this->fetchOne(
             "SELECT COUNT(*) AS abandoned_carts,
                     COALESCE(SUM(e.cart_value), 0) AS abandoned_cart_value,
@@ -1706,10 +1762,11 @@ class Analytics
                 FROM analytics_events
                 WHERE created_at >= ?
                 GROUP BY session_id
-             ) latest ON latest.last_event_id = e.id
-             WHERE e.created_at <= ?
-               AND (e.cart_items_count > 0 OR e.cart_value > 0)
-               AND NOT EXISTS (
+            ) latest ON latest.last_event_id = e.id
+            WHERE e.created_at <= ?
+                AND (e.cart_items_count > 0 OR e.cart_value > 0)
+                AND {$nonAdminEventCondition}
+                AND NOT EXISTS (
                     SELECT 1
                     FROM analytics_events purchase
                     WHERE purchase.session_id = e.session_id
@@ -2311,6 +2368,16 @@ class Analytics
             'is_potential_bot' => empty($reasons) ? 0 : 1,
             'bot_reason' => $this->cleanText(implode(', ', array_unique($reasons)), 500),
         ];
+    }
+
+    private function isAdminSession(array $server): int
+    {
+        return $this->truthyHeader($this->serverValue($server, ['ANALYTICS_ADMIN_SESSION'])) ? 1 : 0;
+    }
+
+    private function adminUsername(array $server): string
+    {
+        return $this->cleanText($this->serverValue($server, ['ANALYTICS_ADMIN_USERNAME']), 255);
     }
 
     private function serverValue(array $server, array $keys): string

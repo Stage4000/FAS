@@ -51,7 +51,7 @@ $sessionExplorerStats = [
 ];
 
 foreach ($recentSessions as $sessionRow) {
-    $sessionLength = (int) (($sessionRow['max_session_age_seconds'] ?? 0) ?: ($sessionRow['duration_seconds'] ?? 0));
+    $sessionLength = (int) (($sessionRow['active_duration_seconds'] ?? 0) ?: ($sessionRow['duration_seconds'] ?? 0));
     $sessionExplorerStats['total_length_seconds'] += $sessionLength;
     $sessionExplorerStats['cart_value'] += (float) ($sessionRow['cart_value'] ?? 0);
     $sessionExplorerStats['checkout_starts'] += (int) ($sessionRow['checkout_starts'] ?? 0);
@@ -122,6 +122,10 @@ function sessionGeoLabel(array $session): string
 
 function sessionBotLabel(array $session): string
 {
+    if ((int) ($session['is_admin_session'] ?? 0) === 1) {
+        return 'Admin User';
+    }
+
     if ((int) ($session['is_potential_bot'] ?? 0) === 1) {
         return trim((string) ($session['bot_reason'] ?? '')) ?: 'Potential bot';
     }
@@ -135,6 +139,10 @@ function sessionBotLabel(array $session): string
 
 function sessionBotBadgeClass(array $session): string
 {
+    if ((int) ($session['is_admin_session'] ?? 0) === 1) {
+        return 'text-bg-success';
+    }
+
     return ((int) ($session['is_potential_bot'] ?? 0) === 1) ? 'text-bg-warning' : 'text-bg-light';
 }
 
@@ -585,7 +593,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                                 <div>
                                     <div class="small text-muted">Avg Active Time</div>
                                     <div class="h4 mb-0"><?php echo fmtSeconds($sessionExplorerStats['avg_length_seconds']); ?></div>
-                                    <div class="small text-muted">Based on quiet heartbeats</div>
+                                    <div class="small text-muted">Based on tracked active time</div>
                                 </div>
                                 <span class="analytics-icon"><i class="fas fa-stopwatch"></i></span>
                             </div>
@@ -631,7 +639,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                                 <th>Session</th>
                                 <th>Location</th>
                                 <th>Bot Signal</th>
-                                <th class="text-end">Length</th>
+                                <th class="text-end">Active</th>
                                 <th class="text-end">Events</th>
                                 <th class="text-end">Cart</th>
                                 <th class="text-end">Revenue</th>
@@ -642,7 +650,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                         <tbody>
                             <?php foreach ($recentSessions as $row): ?>
                                 <?php
-                                $sessionLength = (int) (($row['max_session_age_seconds'] ?? 0) ?: ($row['duration_seconds'] ?? 0));
+                                $sessionLength = (int) (($row['active_duration_seconds'] ?? 0) ?: ($row['duration_seconds'] ?? 0));
                                 ?>
                         <tr class="analytics-session-row <?php echo $selectedSessionId === ($row['session_id'] ?? '') ? 'table-light' : ''; ?>" data-session-id="<?php echo safe($row['session_id']); ?>" tabindex="0" role="button" aria-label="Open analytics session <?php echo safe($row['session_id']); ?>">
                             <td class="analytics-session-cell">
@@ -1271,6 +1279,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     }
 
     function botLabel(summary) {
+        if (Number(summary.is_admin_session || 0) === 1) return 'Admin User';
         if (Number(summary.is_potential_bot || 0) === 1) return text(summary.bot_reason, 'Potential bot');
         if (summary.cf_bot_score !== null && summary.cf_bot_score !== undefined && summary.cf_bot_score !== '') return 'No bot signal \u00b7 CF ' + Number(summary.cf_bot_score);
         return 'No bot signal';
@@ -1372,7 +1381,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         clearNode(contextDetails);
         clearNode(eventsBody);
 
-        const activeSeconds = Number(summary.max_session_age_seconds || summary.duration_seconds || 0);
+        const activeSeconds = Number(summary.active_duration_seconds || summary.duration_seconds || 0);
         const location = compact([summary.cf_city, summary.cf_region_code || summary.cf_region, summary.cf_country]);
         const source = summary.utm_source || summary.referrer || 'Direct / unknown';
         const device = compact([summary.device_type, summary.browser, summary.os]);
