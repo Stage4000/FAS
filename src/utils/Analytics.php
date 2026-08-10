@@ -246,7 +246,12 @@ class Analytics
 
         $this->upsertSession($sessionId, $visitorId, $context, $server, gmdate('Y-m-d H:i:s'));
 
-        return true;
+        $marked = $this->fetchOne(
+            "SELECT is_admin_session FROM analytics_sessions WHERE session_id = ?",
+            [$sessionId]
+        );
+
+        return (int) ($marked['is_admin_session'] ?? 0) === 1;
     }
 
     public function getOverview(int $days): array

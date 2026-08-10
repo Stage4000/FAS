@@ -24,18 +24,29 @@ if (!in_array($days, $allowedDays, true)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_admin_session') {
     $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['session_id'] ?? ''));
     $visitorId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['visitor_id'] ?? ''));
+    $markStatus = 'failed';
 
-    if ($sessionId !== '' && CSRF::validateToken($_POST['csrf_token'] ?? '')) {
-        $analytics->markAdminSession(
-            $sessionId,
-            $visitorId,
-            (string) ($_SESSION['admin_username'] ?? ''),
-            ['page_path' => $_SERVER['REQUEST_URI'] ?? '/admin/analytics.php'],
-            $_SERVER
-        );
+    if ($sessionId === '') {
+        $markStatus = 'missing_session';
+    } elseif (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
+        $markStatus = 'csrf';
+    } else {
+        try {
+            $marked = $analytics->markAdminSession(
+                $sessionId,
+                $visitorId,
+                (string) ($_SESSION['admin_username'] ?? ''),
+                ['page_path' => $_SERVER['REQUEST_URI'] ?? '/admin/analytics.php'],
+                $_SERVER
+            );
+            $markStatus = $marked ? 'marked' : 'not_persisted';
+        } catch (Throwable $e) {
+            error_log('Manual admin analytics session mark failed: ' . $e->getMessage());
+            $markStatus = 'error';
+        }
     }
 
-    $query = ['days' => $days, 'session' => $sessionId];
+    $query = ['days' => $days, 'session' => $sessionId, 'admin_mark' => $markStatus];
     header('Location: analytics.php?' . http_build_query($query) . '#session-explorer');
     exit;
 }
@@ -58,6 +69,7 @@ $recentSessions = $analytics->getRecentSessions($days, 50);
 $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
+$adminMarkStatus = isset($_GET['admin_mark']) ? preg_replace('/[^a-z_]/', '', (string) $_GET['admin_mark']) : '';
 $averageOrderValue = ((int) ($overview['orders'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['orders']) : 0;
 $revenuePerSession = ((int) ($overview['sessions'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['sessions']) : 0;
 $abandonedCartRate = (((int) ($overview['abandoned_carts'] ?? 0)) + ((int) ($overview['orders'] ?? 0))) > 0
@@ -574,9 +586,25 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     </div>
 </div>
 
-<div class="row g-4 mb-4" id="session-explorer">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm" data-aos="fade-up">
+    <div class="row g-4 mb-4" id="session-explorer">
+        <div class="col-12">
+            <?php if ($adminMarkStatus !== ''): ?>
+                <?php
+                $adminMarkMessages = [
+                    'marked' => ['success', 'Session marked as Admin User.'],
+                    'csrf' => ['danger', 'Security token expired. Refresh the page and try again.'],
+                    'missing_session' => ['danger', 'No session ID was submitted.'],
+                    'not_persisted' => ['danger', 'Session was not marked. Check that the analytics admin columns exist and the database user can update analytics_sessions.'],
+                    'error' => ['danger', 'Session mark failed. Check the PHP error log for the database error.'],
+                    'failed' => ['danger', 'Session mark failed.'],
+                ];
+                $adminMarkMessage = $adminMarkMessages[$adminMarkStatus] ?? ['warning', 'Unknown admin mark status.'];
+                ?>
+                <div class="alert alert-<?php echo safe($adminMarkMessage[0]); ?> border-0 shadow-sm small mb-3">
+                    <?php echo safe($adminMarkMessage[1]); ?>
+                </div>
+            <?php endif; ?>
+            <div class="card border-0 shadow-sm" data-aos="fade-up">
             <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                 <div>
                     <h5 class="mb-1"><i class="fas fa-timeline text-danger me-2"></i>Session Explorer</h5>
