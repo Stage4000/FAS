@@ -15,6 +15,8 @@
     const sessionTtlDays = 30;
     const sessionStateKey = 'fas_session_state';
     const visitorStateKey = 'fas_visitor_state';
+    const adminHintKey = 'fas_admin_analytics_hint';
+    const adminMarkerEndpoint = '/admin/mark-analytics-session.php';
     const currentPagePath = location.pathname + location.search;
 
     let maxScrollDepth = 0;
@@ -504,6 +506,53 @@
         });
     }
 
+    function markAdminSessionIfNeeded() {
+        const hint = storageGetJson(window.localStorage, adminHintKey);
+        const now = Date.now();
+        if (!hint || toInteger(hint.expires_at, 0) < now) {
+            try {
+                window.localStorage.removeItem(adminHintKey);
+            } catch (error) {}
+            return;
+        }
+
+        const markedKey = 'fas_admin_marked_' + sessionId;
+        if (storageGet(window.localStorage, markedKey) === '1') {
+            return;
+        }
+
+        const checkedKey = 'fas_admin_marker_checked_' + sessionId;
+        const lastCheckedAt = toInteger(storageGet(window.localStorage, checkedKey), 0);
+        if (lastCheckedAt && now - lastCheckedAt < 60000) {
+            return;
+        }
+
+        storageSet(window.localStorage, checkedKey, String(now));
+
+        fetch(adminMarkerEndpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                visitor_id: visitorId,
+                context: getContext()
+            })
+        })
+            .then(response => response.ok ? response.json().catch(() => ({})) : {})
+            .then(data => {
+                if (data && data.admin === true && data.marked === true) {
+                    storageSet(window.localStorage, markedKey, '1');
+                } else if (data && data.admin === false) {
+                    window.localStorage.removeItem(adminHintKey);
+                }
+            })
+            .catch(() => {});
+    }
+
     function flush(useBeacon) {
         if (flushInFlight || queue.length === 0) {
             return flushInFlight || Promise.resolve(false);
@@ -957,6 +1006,8 @@
     }, 120000);
 
     document.addEventListener('DOMContentLoaded', () => {
+        markAdminSessionIfNeeded();
+
         const sessionStartedKey = 'fas_analytics_started_' + sessionId;
         if (!storageGet(window.localStorage, sessionStartedKey)) {
             storageSet(window.localStorage, sessionStartedKey, '1');

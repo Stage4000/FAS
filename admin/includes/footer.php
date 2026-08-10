@@ -7,11 +7,19 @@
 <!-- AOS (Animate On Scroll) -->
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script>
-    AOS.init({
-        duration: 600,
-        once: true,
-        offset: 50
-    });
+AOS.init({
+    duration: 600,
+    once: true,
+    offset: 50
+});
+</script>
+<script>
+try {
+    localStorage.setItem('fas_admin_analytics_hint', JSON.stringify({
+        seen_at: Date.now(),
+        expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000)
+    }));
+} catch (error) {}
 </script>
 
 <!-- Theme Toggle Button -->

@@ -217,6 +217,38 @@ class Analytics
         return $count;
     }
 
+    public function markAdminSession(string $sessionId, string $visitorId, string $adminUsername, array $context, array $server): bool
+    {
+        $this->ensureTables();
+
+        $sessionId = $this->cleanLookupId($sessionId);
+        if ($sessionId === '') {
+            return false;
+        }
+
+        $existing = $this->fetchOne(
+            "SELECT visitor_id FROM analytics_sessions WHERE session_id = ?",
+            [$sessionId]
+        );
+
+        $visitorId = $this->cleanLookupId($visitorId);
+        if ($visitorId === '' && $existing) {
+            $visitorId = $this->cleanLookupId($existing['visitor_id'] ?? '');
+        }
+        if ($visitorId === '') {
+            $visitorId = 'vis_admin_' . substr(hash('sha256', $sessionId), 0, 16);
+        }
+
+        $server['ANALYTICS_ADMIN_SESSION'] = '1';
+        $server['ANALYTICS_ADMIN_USERNAME'] = $adminUsername;
+        $context['session_id'] = $sessionId;
+        $context['visitor_id'] = $visitorId;
+
+        $this->upsertSession($sessionId, $visitorId, $context, $server, gmdate('Y-m-d H:i:s'));
+
+        return true;
+    }
+
     public function getOverview(int $days): array
     {
         $this->ensureTables();

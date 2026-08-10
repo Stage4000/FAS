@@ -684,6 +684,11 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                                 <span class="analytics-session-path analytics-session-muted" title="<?php echo safe($row['landing_page'] ?? ''); ?>"><?php echo safe($row['landing_page'] ?? ''); ?></span>
                             </td>
                             <td class="text-end analytics-action-cell">
+                                <?php if ((int) ($row['is_admin_session'] ?? 0) !== 1): ?>
+                                <button type="button" class="btn btn-sm btn-outline-success analytics-open-button js-session-mark-admin" data-session-id="<?php echo safe($row['session_id']); ?>" data-visitor-id="<?php echo safe($row['visitor_id'] ?? ''); ?>" title="Mark session <?php echo safe($row['session_id']); ?> as admin" aria-label="Mark session <?php echo safe($row['session_id']); ?> as admin">
+                                    <i class="fas fa-user-shield"></i>
+                                </button>
+                                <?php endif; ?>
                                 <button type="button" class="btn btn-sm btn-danger analytics-open-button js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="Open session <?php echo safe($row['session_id']); ?>">
                                     <i class="fas fa-up-right-from-square"></i><span>Open</span>
                                 </button>
@@ -1495,6 +1500,44 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         }
     }
 
+    async function markSessionAdmin(sessionId, visitorId, button) {
+        sessionId = text(sessionId, '').trim();
+        if (!sessionId) return;
+
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Marking</span>';
+        }
+
+        try {
+            const response = await fetch('mark-analytics-session.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    visitor_id: visitorId || '',
+                    context: {
+                        page_path: window.location.pathname + window.location.search
+                    }
+                })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success || !data.marked) {
+                throw new Error(data.error || 'Unable to mark session');
+            }
+            window.location.reload();
+        } catch (error) {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-triangle-exclamation"></i><span>Failed</span>';
+            }
+        }
+    }
+
     async function openSession(sessionId) {
         sessionId = text(sessionId, '').trim();
         if (!sessionId) return;
@@ -1526,6 +1569,14 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     }
 
     document.addEventListener('click', event => {
+        const markButton = event.target.closest('.js-session-mark-admin');
+        if (markButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            markSessionAdmin(markButton.dataset.sessionId || '', markButton.dataset.visitorId || '', markButton);
+            return;
+        }
+
         const button = event.target.closest('.js-session-view');
         if (button) {
             event.preventDefault();
