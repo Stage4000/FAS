@@ -226,6 +226,8 @@ class Analytics
             return false;
         }
 
+        $this->ensureAdminSessionColumns();
+
         $existing = $this->fetchOne(
             "SELECT visitor_id FROM analytics_sessions WHERE session_id = ?",
             [$sessionId]
@@ -239,12 +241,36 @@ class Analytics
             $visitorId = 'vis_admin_' . substr(hash('sha256', $sessionId), 0, 16);
         }
 
-        $server['ANALYTICS_ADMIN_SESSION'] = '1';
-        $server['ANALYTICS_ADMIN_USERNAME'] = $adminUsername;
-        $context['session_id'] = $sessionId;
-        $context['visitor_id'] = $visitorId;
+        $now = gmdate('Y-m-d H:i:s');
+        $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
+        $adminUsername = $this->cleanText($adminUsername, 255);
 
-        $this->upsertSession($sessionId, $visitorId, $context, $server, gmdate('Y-m-d H:i:s'));
+        if ($existing) {
+            $stmt = $this->db->prepare(
+                "UPDATE analytics_sessions
+                SET is_admin_session = 1,
+                    admin_username = ?,
+                    visitor_id = COALESCE(NULLIF(visitor_id, ''), ?),
+                    last_seen_at = ?,
+                    last_page = ?
+                WHERE session_id = ?"
+            );
+            $stmt->execute([$adminUsername, $visitorId, $now, $pagePath, $sessionId]);
+        } else {
+            $stmt = $this->db->prepare(
+                "INSERT INTO analytics_sessions (
+                    session_id,
+                    visitor_id,
+                    started_at,
+                    last_seen_at,
+                    landing_page,
+                    last_page,
+                    is_admin_session,
+                    admin_username
+                ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)"
+            );
+            $stmt->execute([$sessionId, $visitorId, $now, $now, $pagePath, $pagePath, $adminUsername]);
+        }
 
         $marked = $this->fetchOne(
             "SELECT is_admin_session FROM analytics_sessions WHERE session_id = ?",
@@ -1281,6 +1307,29 @@ class Analytics
         foreach (self::$sessionColumns as $column => $definitions) {
             $definition = $this->driver === 'sqlite' ? $definitions['sqlite'] : $definitions['mysql'];
             $this->addColumnIfMissing('analytics_sessions', $column, $definition);
+        }
+    }
+
+    private function ensureAdminSessionColumns(): void
+    {
+        $columns = [
+            'is_admin_session' => [
+                'sqlite' => 'INTEGER NOT NULL DEFAULT 0',
+                'mysql' => 'TINYINT(1) NOT NULL DEFAULT 0',
+            ],
+            'admin_username' => [
+                'sqlite' => 'TEXT',
+                'mysql' => 'VARCHAR(255) NULL',
+            ],
+        ];
+
+        foreach ($columns as $column => $definitions) {
+            $definition = $this->driver === 'sqlite' ? $definitions['sqlite'] : $definitions['mysql'];
+            $this->addColumnIfMissing('analytics_sessions', $column, $definition);
+
+            if (!$this->columnExistsStrict('analytics_sessions', $column)) {
+                throw new \RuntimeException("Missing analytics_sessions.{$column} after migration attempt");
+            }
         }
     }
 
@@ -2494,6 +2543,25 @@ class Analytics
             error_log("Analytics column check failed for {$table}.{$column}: " . $e->getMessage());
             return true;
         }
+    }
+
+    private function columnExistsStrict(string $table, string $column): bool
+    {
+        if ($this->driver === 'sqlite') {
+            $stmt = $this->db->query("PRAGMA table_info({$table})");
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                if (strcasecmp((string) ($row['name'] ?? ''), $column) === 0) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $stmt = $this->db->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
+        $stmt->execute([$column]);
+
+        return (bool) $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
     private function createIndexIfMissing(string $table, string $index, string $column, int $prefixLength = 0): void

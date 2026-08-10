@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_
     $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['session_id'] ?? ''));
     $visitorId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['visitor_id'] ?? ''));
     $markStatus = 'failed';
+    $markError = '';
 
     if ($sessionId === '') {
         $markStatus = 'missing_session';
@@ -43,10 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_
         } catch (Throwable $e) {
             error_log('Manual admin analytics session mark failed: ' . $e->getMessage());
             $markStatus = 'error';
+            $markError = substr($e->getMessage(), 0, 180);
         }
     }
 
     $query = ['days' => $days, 'session' => $sessionId, 'admin_mark' => $markStatus];
+    if ($markError !== '') {
+        $query['admin_mark_error'] = $markError;
+    }
     header('Location: analytics.php?' . http_build_query($query) . '#session-explorer');
     exit;
 }
@@ -70,6 +75,7 @@ $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', 
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
 $adminMarkStatus = isset($_GET['admin_mark']) ? preg_replace('/[^a-z_]/', '', (string) $_GET['admin_mark']) : '';
+$adminMarkError = isset($_GET['admin_mark_error']) ? substr((string) $_GET['admin_mark_error'], 0, 180) : '';
 $averageOrderValue = ((int) ($overview['orders'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['orders']) : 0;
 $revenuePerSession = ((int) ($overview['sessions'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['sessions']) : 0;
 $abandonedCartRate = (((int) ($overview['abandoned_carts'] ?? 0)) + ((int) ($overview['orders'] ?? 0))) > 0
@@ -510,19 +516,24 @@ function metricCard(string $label, string $value, string $note, string $icon): s
             <h1 class="display-6 fw-bold mb-2">Conversion and merchandising dashboard</h1>
             <p class="mb-0 text-white-50">Tracks traffic quality, product demand, cart behavior, checkout friction, coupons, and completed-order revenue.</p>
         </div>
-<form method="get" class="align-self-lg-start">
-<label for="days" class="form-label text-white-50 small mb-1">Reporting range</label>
-<?php if ($selectedSessionId !== ''): ?>
-<input type="hidden" name="session" value="<?php echo safe($selectedSessionId); ?>">
-<?php endif; ?>
-<select class="form-select" id="days" name="days" onchange="this.form.submit()">
-                <?php foreach ($allowedDays as $option): ?>
-                    <option value="<?php echo $option; ?>" <?php echo $days === $option ? 'selected' : ''; ?>>
-                        Last <?php echo $option; ?> days
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+<div class="align-self-lg-start d-flex flex-column gap-2">
+    <form method="get">
+        <label for="days" class="form-label text-white-50 small mb-1">Reporting range</label>
+        <?php if ($selectedSessionId !== ''): ?>
+        <input type="hidden" name="session" value="<?php echo safe($selectedSessionId); ?>">
+        <?php endif; ?>
+        <select class="form-select" id="days" name="days" onchange="this.form.submit()">
+            <?php foreach ($allowedDays as $option): ?>
+            <option value="<?php echo $option; ?>" <?php echo $days === $option ? 'selected' : ''; ?>>
+                Last <?php echo $option; ?> days
+            </option>
+            <?php endforeach; ?>
+        </select>
+    </form>
+    <a class="btn btn-light btn-sm fw-semibold" href="/database/migrate-add-analytics-admin-session-columns.php">
+        <i class="fas fa-database me-1"></i>Run Analytics Migration
+    </a>
+</div>
     </div>
 </div>
 
@@ -602,6 +613,9 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                 ?>
                 <div class="alert alert-<?php echo safe($adminMarkMessage[0]); ?> border-0 shadow-sm small mb-3">
                     <?php echo safe($adminMarkMessage[1]); ?>
+                    <?php if ($adminMarkError !== ''): ?>
+                        <div class="mt-2"><code><?php echo safe($adminMarkError); ?></code></div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
             <div class="card border-0 shadow-sm" data-aos="fade-up">
