@@ -246,7 +246,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                         <?php endif; ?>
                         <?php if ($productFreeShipping): ?>
-                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping</span>
+                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
                         <?php endif; ?>
                     </div>
 
@@ -266,7 +266,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if ($productFreeShipping): ?>
                         <div class="alert alert-success border-0 shadow-sm small mb-4">
                             <i class="fas fa-truck-fast me-2"></i>
-                            This item qualifies for free shipping. The $0 shipping option appears during checkout.
+                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
                         </div>
                     <?php endif; ?>
 

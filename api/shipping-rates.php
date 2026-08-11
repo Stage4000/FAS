@@ -85,6 +85,7 @@ try {
     $db = Database::getInstance()->getConnection();
     $productModel = new Product($db);
     $settings = ShippingRules::getFreeShippingSettings();
+    $destinationIsContinentalUs = ShippingRules::isContinentalUsAddress($input['address']);
 
     $freeItems = [];
     $ratedItems = [];
@@ -108,7 +109,9 @@ try {
         }
 
         $catalogItem = fasShippingCatalogItem($item, $product);
-        $reason = ShippingRules::getFreeShippingReason($product, $settings);
+        $reason = $destinationIsContinentalUs
+            ? ShippingRules::getFreeShippingReason($product, $settings, $input['address'])
+            : '';
 
         if ($reason !== '') {
             $freeItems[] = $catalogItem + ['free_shipping_reason' => $reason];
@@ -126,6 +129,7 @@ try {
 
     $freeShippingSummary = [
         'enabled' => !empty($settings['enabled']),
+        'destination_eligible' => $destinationIsContinentalUs,
         'item_count' => $freeQuantity,
         'line_count' => count($freeItems),
         'rated_item_count' => $ratedQuantity,

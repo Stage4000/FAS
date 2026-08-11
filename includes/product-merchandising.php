@@ -77,7 +77,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
             <?php endif; ?>
             <?php if ($productFreeShipping): ?>
                 <span class="badge bg-success product-badge" style="top: <?php echo !empty($product['condition_name']) && $priceInfo['on_sale'] ? '90px' : (!empty($product['condition_name']) || $priceInfo['on_sale'] ? '50px' : '10px'); ?>;">
-                    <i class="fas fa-truck-fast me-1"></i>Free Ship
+                    <i class="fas fa-truck-fast me-1"></i>Free Ship*
                 </span>
             <?php endif; ?>
             <?php if (isset($product['show_on_website']) && (int)$product['show_on_website'] === 0): ?>

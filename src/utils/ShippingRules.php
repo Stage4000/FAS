@@ -4,6 +4,18 @@ namespace FAS\Utils;
 
 class ShippingRules
 {
+    private const NON_CONTINENTAL_US_STATES = [
+        'AK', 'ALASKA',
+        'HI', 'HAWAII',
+        'AS', 'AMERICANSAMOA',
+        'GU', 'GUAM',
+        'MP', 'NORTHERNMARIANAISLANDS',
+        'PR', 'PUERTORICO',
+        'VI', 'USVIRGINISLANDS', 'VIRGINISLANDS',
+        'UM', 'USMINOROUTLYINGISLANDS',
+        'AA', 'AE', 'AP',
+    ];
+
     private const DEFAULT_FREE_SHIPPING = [
         'enabled' => true,
         'product_flags_enabled' => true,
@@ -39,16 +51,20 @@ class ShippingRules
         return $normalized;
     }
 
-    public static function productQualifiesForFreeShipping(array $product, ?array $settings = null): bool
+    public static function productQualifiesForFreeShipping(array $product, ?array $settings = null, ?array $address = null): bool
     {
-        return self::getFreeShippingReason($product, $settings) !== '';
+        return self::getFreeShippingReason($product, $settings, $address) !== '';
     }
 
-    public static function getFreeShippingReason(array $product, ?array $settings = null): string
+    public static function getFreeShippingReason(array $product, ?array $settings = null, ?array $address = null): string
     {
         $settings = $settings ?? self::getFreeShippingSettings();
 
         if (empty($settings['enabled'])) {
+            return '';
+        }
+
+        if ($address !== null && !self::isContinentalUsAddress($address)) {
             return '';
         }
 
@@ -67,13 +83,28 @@ class ShippingRules
         return '';
     }
 
+    public static function isContinentalUsAddress(array $address): bool
+    {
+        $country = self::normalizeLocationToken($address['country'] ?? '');
+        if (!in_array($country, ['US', 'USA', 'UNITEDSTATES', 'UNITEDSTATESOFAMERICA'], true)) {
+            return false;
+        }
+
+        $state = self::normalizeLocationToken($address['state'] ?? $address['province'] ?? '');
+        if ($state === '') {
+            return false;
+        }
+
+        return !in_array($state, self::NON_CONTINENTAL_US_STATES, true);
+    }
+
     public static function freeShippingRate(array $summary = []): array
     {
         return [
             'courier_id' => 'free_shipping',
             'courier_name' => 'Flip and Strip',
             'service_name' => 'Free Shipping',
-            'delivery_time_text' => 'Free shipping applied to eligible items',
+            'delivery_time_text' => 'Free shipping applied to eligible continental US items',
             'total_charge' => 0.0,
             'currency' => 'USD',
             'is_free_shipping' => true,
@@ -144,5 +175,10 @@ class ShippingRules
         }
 
         return !empty($value);
+    }
+
+    private static function normalizeLocationToken($value): string
+    {
+        return preg_replace('/[^A-Z]/', '', strtoupper(trim((string)$value))) ?? '';
     }
 }

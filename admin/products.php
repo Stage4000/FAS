@@ -380,7 +380,7 @@ if ($action === 'list') {
                                         <?php echo htmlspecialchars($prod['name']); ?>
                                         <?php if (ShippingRules::productQualifiesForFreeShipping($prod, $freeShippingSettings)): ?>
                                             <div class="small mt-1">
-                                                <span class="badge bg-success"><i class="fas fa-truck-fast me-1"></i>Free shipping</span>
+                                                <span class="badge bg-success"><i class="fas fa-truck-fast me-1"></i>Continental US free shipping</span>
                                             </div>
                                         <?php endif; ?>
                                     </td>
@@ -672,9 +672,9 @@ if ($action === 'list') {
                                     <input class="form-check-input" type="checkbox" name="free_shipping" id="free_shipping"
                                            <?php echo ($product && !empty($product['free_shipping'])) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="free_shipping">
-                                        Always offer free shipping
+                                        Always offer free shipping to continental US addresses
                                     </label>
-                                    <div class="form-text">Overrides size and weight rules when product-level flags are enabled.</div>
+                                    <div class="form-text">Overrides size and weight rules when product-level flags are enabled. Alaska, Hawaii, territories, and military postal regions are excluded.</div>
                                 </div>
                             </div>
                         </div>

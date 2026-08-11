@@ -659,12 +659,20 @@ function displayShippingOptions(rates, freeShippingSummary = null) {
     const card = document.getElementById('shipping-options-card');
 
     let html = '';
+    if (freeShippingSummary && freeShippingSummary.destination_eligible === false && window.cart.cart.some(item => item.free_shipping)) {
+        html += `
+            <div class="alert alert-warning border-0 py-2 px-3 small mb-3">
+                <i class="fas fa-circle-info me-2"></i>Free shipping is limited to continental US addresses. Rates below include all items for this destination.
+            </div>
+        `;
+    }
+
     if (freeShippingSummary && Number(freeShippingSummary.item_count || 0) > 0) {
         const freeCount = Number(freeShippingSummary.item_count || 0);
         const ratedCount = Number(freeShippingSummary.rated_item_count || 0);
         const message = ratedCount > 0
-            ? `${freeCount} item${freeCount === 1 ? '' : 's'} qualify for free shipping. Rates below only cover remaining items.`
-            : `All ${freeCount} item${freeCount === 1 ? '' : 's'} qualify for free shipping.`;
+            ? `${freeCount} item${freeCount === 1 ? '' : 's'} qualify for continental US free shipping. Rates below only cover remaining items.`
+            : `All ${freeCount} item${freeCount === 1 ? '' : 's'} qualify for continental US free shipping.`;
         html += `
             <div class="alert alert-success border-0 py-2 px-3 small mb-3">
                 <i class="fas fa-truck-fast me-2"></i>${message}

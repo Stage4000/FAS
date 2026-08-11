@@ -79,6 +79,7 @@ return [
     ],
 
     'shipping' => [
+        // Free shipping applies only to continental US delivery addresses.
         'free_shipping' => [
             'enabled' => true,
             'product_flags_enabled' => true,

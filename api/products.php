@@ -322,7 +322,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 <?php endif; ?>
 <?php if ($productFreeShipping): ?>
 <span class="badge bg-success product-badge" style="top: <?php echo !empty($product['condition_name']) && $priceInfo['on_sale'] ? '90px' : (!empty($product['condition_name']) || $priceInfo['on_sale'] ? '50px' : '10px'); ?>;">
-<i class="fas fa-truck-fast me-1"></i>Free Ship
+<i class="fas fa-truck-fast me-1"></i>Free Ship*
 </span>
 <?php endif; ?>
 </div>

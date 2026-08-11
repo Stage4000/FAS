@@ -119,7 +119,7 @@ $hasAutoLimit = $settings['max_weight'] !== null
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" name="enabled" id="enabled" value="1" <?php echo !empty($settings['enabled']) ? 'checked' : ''; ?>>
                         <label class="form-check-label fw-semibold" for="enabled">Enable free shipping system</label>
-                        <div class="form-text">Turns both product-level and automatic free-shipping rules on or off.</div>
+                        <div class="form-text">Turns both product-level and automatic free-shipping rules on or off. Free shipping is limited to continental US delivery addresses.</div>
                     </div>
 
                     <div class="form-check form-switch mb-3">
@@ -189,7 +189,9 @@ $hasAutoLimit = $settings['max_weight'] !== null
                 <ul class="mb-0 ps-3">
                     <li>Manual product flags are set on each product edit page.</li>
                     <li>Automatic rules evaluate product weight and dimensions stored in the catalog.</li>
-                    <li>Free-shipping items are removed from rated parcels during checkout.</li>
+                    <li>Free shipping only applies after checkout confirms a continental US address.</li>
+                    <li>Alaska, Hawaii, US territories, and military postal regions are excluded.</li>
+                    <li>Free-shipping items are removed from rated parcels during checkout for eligible addresses.</li>
                     <li>If every cart item qualifies, checkout shows a $0 Free Shipping method.</li>
                     <li>If the cart is mixed, shoppers only pay shipping on non-qualified items.</li>
                 </ul>
