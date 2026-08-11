@@ -35,6 +35,7 @@ function canViewHiddenProducts(): bool
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/utils/ProductAltText.php';
+require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/SyncLogger.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../includes/sale-helper.php';
@@ -43,6 +44,7 @@ require_once __DIR__ . '/../includes/product-merchandising.php';
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Utils\ProductAltText;
+use FAS\Utils\ShippingRules;
 use FAS\Integrations\EbayAPI;
 
 // Normalize image paths to ensure they start with / for local images
@@ -276,10 +278,11 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 <div class="row g-4">
     <?php foreach ($products as $index => $product): ?>
         <?php 
-        // Staggered animation with max delay cap of 400ms
-        $delay = min(($index % 8) * 50, 400); 
-        
-        // Normalize image path for display
+                    // Staggered animation with max delay cap of 400ms
+                    $delay = min(($index % 8) * 50, 400);
+                    $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
+
+                    // Normalize image path for display
         $imageUrl = normalizeImagePath($product['image_url'] ?? null);
         if (empty($imageUrl)) {
             $imageUrl = '/gallery/default.jpg';
@@ -315,9 +318,14 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                         $priceInfo = getEffectivePrice((float)$product['price'], !empty($product['sale_price']) ? (float)$product['sale_price'] : null);
                         if ($priceInfo['on_sale']):
                         ?>
-                            <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
-                        <?php endif; ?>
-                    </div>
+<span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+<?php endif; ?>
+<?php if ($productFreeShipping): ?>
+<span class="badge bg-success product-badge" style="top: <?php echo !empty($product['condition_name']) && $priceInfo['on_sale'] ? '90px' : (!empty($product['condition_name']) || $priceInfo['on_sale'] ? '50px' : '10px'); ?>;">
+<i class="fas fa-truck-fast me-1"></i>Free Ship
+</span>
+<?php endif; ?>
+</div>
                 </a>
                 <div class="card-body d-flex flex-column">
                     <h6 class="card-title">
@@ -359,10 +367,15 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                             data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
-                            data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
-                            data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
-                            data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
-                            data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
+data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
+data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
+data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
+data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
+data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
+data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
+data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
+data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     </div>

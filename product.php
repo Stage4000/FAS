@@ -3,6 +3,7 @@ require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/src/utils/Seo.php';
+require_once __DIR__ . '/src/utils/ShippingRules.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/includes/product-merchandising.php';
@@ -11,6 +12,7 @@ use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Utils\ProductAltText;
 use FAS\Utils\Seo;
+use FAS\Utils\ShippingRules;
 
 // Get product ID
 $productId = $_GET['id'] ?? null;
@@ -33,6 +35,7 @@ if (!$product) {
     exit;
 }
 
+$productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
 $relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 4);
 
 // Parse images from JSON if available
@@ -238,11 +241,14 @@ require_once __DIR__ . '/includes/header.php';
                 <?php if ($priceInfo['on_sale']): ?>
                     <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
                 <?php endif; ?>
-                <span class="badge bg-success me-2">In Stock</span>
-                <?php if (!empty($product['condition_name'])): ?>
-                    <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
-                <?php endif; ?>
-            </div>
+                        <span class="badge bg-success me-2">In Stock</span>
+                        <?php if (!empty($product['condition_name'])): ?>
+                            <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($productFreeShipping): ?>
+                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping</span>
+                        <?php endif; ?>
+                    </div>
 
             <div class="mb-4">
                 <?php if ($priceInfo['on_sale']): ?>
@@ -253,11 +259,18 @@ require_once __DIR__ . '/includes/header.php';
                 <?php endif; ?>
             </div>
             
-            <div class="mb-4">
-                <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
-            </div>
-            
-            <div class="card border-0 mb-4" data-theme-card>
+                    <div class="mb-4">
+                        <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
+                    </div>
+
+                    <?php if ($productFreeShipping): ?>
+                        <div class="alert alert-success border-0 shadow-sm small mb-4">
+                            <i class="fas fa-truck-fast me-2"></i>
+                            This item qualifies for free shipping. The $0 shipping option appears during checkout.
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Part Facts</h6>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
@@ -356,6 +369,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
                         data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
                         data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
+                        data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
@@ -508,6 +522,7 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
         length: parseFloat(this.dataset.length) || 10.0,
         width: parseFloat(this.dataset.width) || 10.0,
         height: parseFloat(this.dataset.height) || 10.0,
+        free_shipping: this.dataset.freeShipping === '1',
         stock: parseInt(this.dataset.stock) || 999
     };
     

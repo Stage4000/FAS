@@ -77,7 +77,19 @@ return [
         'enabled' => false,
         'measurement_id' => 'G-XXXXXXXXXX' // Get from Google Analytics dashboard
     ],
-    
+
+    'shipping' => [
+        'free_shipping' => [
+            'enabled' => true,
+            'product_flags_enabled' => true,
+            'auto_rules_enabled' => false,
+            'max_weight' => null, // lbs; null = no automatic weight threshold
+            'max_length' => null, // inches; null = no automatic length threshold
+            'max_width' => null, // inches; null = no automatic width threshold
+            'max_height' => null, // inches; null = no automatic height threshold
+        ],
+    ],
+
     'site' => [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',

@@ -3,11 +3,13 @@
 require_once __DIR__ . '/sale-helper.php';
 require_once __DIR__ . '/../src/utils/Analytics.php';
 require_once __DIR__ . '/../src/utils/ProductAltText.php';
+require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
 
 use FAS\Models\Product;
 use FAS\Utils\Analytics;
 use FAS\Utils\ProductAltText;
+use FAS\Utils\ShippingRules;
 use FAS\Utils\Seo;
 
 function fasProductImagePath(?string $path): string
@@ -54,6 +56,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
         !empty($product['sale_price']) ? (float)$product['sale_price'] : null
     );
     $category = fasProductCategoryLabel($product);
+    $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
     $stock = isset($product['quantity']) ? (int)$product['quantity'] : 999;
     $productUrl = fasProductCardUrl($product);
 
@@ -71,6 +74,11 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
                     <?php endif; ?>
             <?php if ($priceInfo['on_sale']): ?>
                 <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+            <?php endif; ?>
+            <?php if ($productFreeShipping): ?>
+                <span class="badge bg-success product-badge" style="top: <?php echo !empty($product['condition_name']) && $priceInfo['on_sale'] ? '90px' : (!empty($product['condition_name']) || $priceInfo['on_sale'] ? '50px' : '10px'); ?>;">
+                    <i class="fas fa-truck-fast me-1"></i>Free Ship
+                </span>
             <?php endif; ?>
             <?php if (isset($product['show_on_website']) && (int)$product['show_on_website'] === 0): ?>
                 <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">Hidden</span>
@@ -111,6 +119,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
                             data-length="<?php echo !empty($product['length']) ? (float)$product['length'] : 10.0; ?>"
                             data-width="<?php echo !empty($product['width']) ? (float)$product['width'] : 10.0; ?>"
                             data-height="<?php echo !empty($product['height']) ? (float)$product['height'] : 10.0; ?>"
+                            data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
                             data-stock="<?php echo $stock; ?>">
                         <i class="fas fa-cart-plus"></i> Add to Cart
                     </button>

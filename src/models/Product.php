@@ -10,6 +10,7 @@ class Product
 {
     private $db;
     private $mappingModel = null; // Cache for HomepageCategoryMapping model
+    private static $freeShippingColumnEnsured = false;
     
     /**
      * Gift-specific keywords for category mapping (Priority 1)
@@ -34,6 +35,36 @@ class Product
     public function __construct($db)
     {
         $this->db = $db;
+        $this->ensureFreeShippingColumn();
+    }
+
+    private function ensureFreeShippingColumn(): void
+    {
+        if (self::$freeShippingColumnEnsured) {
+            return;
+        }
+
+        try {
+            $result = $this->db->query("PRAGMA table_info(products)");
+            $columns = $result ? $result->fetchAll(\PDO::FETCH_ASSOC) : [];
+            $hasColumn = false;
+
+            foreach ($columns as $column) {
+                if (($column['name'] ?? '') === 'free_shipping') {
+                    $hasColumn = true;
+                    break;
+                }
+            }
+
+            if (!$hasColumn) {
+                $this->db->exec("ALTER TABLE products ADD COLUMN free_shipping INTEGER NOT NULL DEFAULT 0");
+            }
+
+            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_products_free_shipping ON products(free_shipping)");
+            self::$freeShippingColumnEnsured = true;
+        } catch (\Throwable $e) {
+            error_log('Product free shipping column check failed: ' . $e->getMessage());
+        }
     }
     
     /**
@@ -233,9 +264,9 @@ class Product
     {
         $sql = "INSERT INTO products (
             ebay_item_id, sku, name, description, price, sale_price, quantity, category,
-            manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website,
+            manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website, free_shipping,
             ebay_store_cat1_id, ebay_store_cat1_name, ebay_store_cat2_id, ebay_store_cat2_name, ebay_store_cat3_id, ebay_store_cat3_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
@@ -259,6 +290,7 @@ class Product
             $data['ebay_url'] ?? null,
             $data['source'] ?? 'manual',
             isset($data['show_on_website']) ? $data['show_on_website'] : 1,
+            isset($data['free_shipping']) ? (int)$data['free_shipping'] : 0,
             $data['ebay_store_cat1_id'] ?? null,
             $data['ebay_store_cat1_name'] ?? null,
             $data['ebay_store_cat2_id'] ?? null,
@@ -285,7 +317,7 @@ class Product
         $allowedFields = [
             'sku', 'name', 'description', 'price', 'sale_price', 'quantity', 'category',
             'manufacturer', 'model', 'condition_name', 'weight', 'length', 'width', 'height', 
-            'image_url', 'images', 'ebay_url', 'source', 'show_on_website',
+            'image_url', 'images', 'ebay_url', 'source', 'show_on_website', 'free_shipping',
             'ebay_store_cat1_id', 'ebay_store_cat1_name', 'ebay_store_cat2_id', 'ebay_store_cat2_name', 
             'ebay_store_cat3_id', 'ebay_store_cat3_name'
         ];

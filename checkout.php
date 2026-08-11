@@ -592,16 +592,19 @@ async function calculateShipping() {
     }
     
     const cart = window.cart.cart;
-    const items = cart.map(item => ({
-        name: item.name,
-        sku: item.sku,
-        price: item.price,
-        quantity: item.quantity,
-        weight: item.weight || 1.0, // Use product weight from cart, fallback to 1.0 lb
-        length: item.length || 10.0,
-        width: item.width || 10.0,
-        height: item.height || 10.0
-    }));
+        const items = cart.map(item => ({
+            id: item.id,
+            product_id: item.id,
+            name: item.name,
+            sku: item.sku,
+            price: item.price,
+            quantity: item.quantity,
+            weight: item.weight || 1.0, // Use product weight from cart, fallback to 1.0 lb
+            length: item.length || 10.0,
+            width: item.width || 10.0,
+            height: item.height || 10.0,
+            free_shipping: item.free_shipping === true
+        }));
 
     trackCheckoutEvent('shipping_calculation_started', {
         destination_state: address.state,
@@ -625,12 +628,14 @@ async function calculateShipping() {
         const data = await response.json();
         
     if (data.success && data.rates) {
-        displayShippingOptions(data.rates);
-        trackCheckoutEvent('shipping_rates_returned', {
-            rates_count: data.rates.length,
-            lowest_rate: data.rates.length ? Math.min(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0,
-            highest_rate: data.rates.length ? Math.max(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0
-        });
+                displayShippingOptions(data.rates, data.free_shipping || null);
+                trackCheckoutEvent('shipping_rates_returned', {
+                    rates_count: data.rates.length,
+                    lowest_rate: data.rates.length ? Math.min(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0,
+                    highest_rate: data.rates.length ? Math.max(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0,
+                    free_shipping_items: data.free_shipping ? Number(data.free_shipping.item_count || 0) : 0,
+                    rated_shipping_items: data.free_shipping ? Number(data.free_shipping.rated_item_count || 0) : cart.length
+                });
     } else {
         trackCheckoutEvent('shipping_calculation_failed', {
             error_message: data.error || 'Failed to calculate shipping'
@@ -649,29 +654,45 @@ async function calculateShipping() {
     }
 }
 
-function displayShippingOptions(rates) {
+function displayShippingOptions(rates, freeShippingSummary = null) {
     const container = document.getElementById('shipping-options-container');
     const card = document.getElementById('shipping-options-card');
-    
+
     let html = '';
-    rates.forEach((rate, index) => {
+    if (freeShippingSummary && Number(freeShippingSummary.item_count || 0) > 0) {
+        const freeCount = Number(freeShippingSummary.item_count || 0);
+        const ratedCount = Number(freeShippingSummary.rated_item_count || 0);
+        const message = ratedCount > 0
+            ? `${freeCount} item${freeCount === 1 ? '' : 's'} qualify for free shipping. Rates below only cover remaining items.`
+            : `All ${freeCount} item${freeCount === 1 ? '' : 's'} qualify for free shipping.`;
         html += `
-            <div class="form-check mb-3 p-3 border rounded">
-                <input class="form-check-input" type="radio" name="shipping_method" 
-                       id="shipping_${index}" value="${index}" 
-                       data-cost="${rate.total_charge}" 
-                       data-courier="${rate.courier_id}"
-                       onchange="selectShippingMethod(${index}, ${rate.total_charge})">
-                <label class="form-check-label w-100" for="shipping_${index}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${rate.courier_name}</strong> - ${rate.service_name}<br>
-                            <small class="text-muted">${rate.delivery_time_text}</small>
-                        </div>
-                        <strong class="text-danger">$${rate.total_charge.toFixed(2)}</strong>
-                    </div>
-                </label>
+            <div class="alert alert-success border-0 py-2 px-3 small mb-3">
+                <i class="fas fa-truck-fast me-2"></i>${message}
             </div>
+        `;
+    }
+
+    rates.forEach((rate, index) => {
+        const charge = Number(rate.total_charge || 0);
+        const priceLabel = rate.is_free_shipping ? 'FREE' : `$${charge.toFixed(2)}`;
+        const priceClass = rate.is_free_shipping ? 'text-success' : 'text-danger';
+        html += `
+        <div class="form-check mb-3 p-3 border rounded">
+            <input class="form-check-input" type="radio" name="shipping_method"
+                   id="shipping_${index}" value="${index}"
+                   data-cost="${charge}"
+                   data-courier="${rate.courier_id}"
+                   onchange="selectShippingMethod(${index}, ${charge})">
+            <label class="form-check-label w-100" for="shipping_${index}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${rate.courier_name}</strong> - ${rate.service_name}<br>
+                        <small class="text-muted">${rate.delivery_time_text}</small>
+                    </div>
+                    <strong class="${priceClass}">${priceLabel}</strong>
+                </div>
+            </label>
+        </div>
         `;
     });
     
@@ -752,10 +773,10 @@ function updateCheckoutSummary() {
     document.getElementById('checkout-subtotal').textContent = `$${subtotal.toFixed(2)}`;
     document.getElementById('checkout-tax').textContent = `$${tax.toFixed(2)}`;
     
-    if (selectedShippingRate) {
-        document.getElementById('checkout-shipping').textContent = `$${shipping.toFixed(2)}`;
-        document.getElementById('checkout-shipping').classList.remove('text-muted');
-    } else {
+        if (selectedShippingRate) {
+            document.getElementById('checkout-shipping').textContent = shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`;
+            document.getElementById('checkout-shipping').classList.remove('text-muted');
+        } else {
         document.getElementById('checkout-shipping').textContent = 'Calculate shipping';
         document.getElementById('checkout-shipping').classList.add('text-muted');
     }

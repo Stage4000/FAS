@@ -65,12 +65,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <a href="banners.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'banners.php' ? 'active' : ''; ?>">
                     <i class="fas fa-bullhorn me-2"></i>Banners
                 </a>
-                <a href="sale.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'sale.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-percent me-2"></i>Site-Wide Sale
-                </a>
-                <a href="password.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'password.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-key me-2"></i>Change Password
-                </a>
+        <a href="sale.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'sale.php' ? 'active' : ''; ?>">
+            <i class="fas fa-percent me-2"></i>Site-Wide Sale
+        </a>
+        <a href="free-shipping.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'free-shipping.php' ? 'active' : ''; ?>">
+            <i class="fas fa-truck-fast me-2"></i>Free Shipping
+        </a>
+        <a href="password.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'password.php' ? 'active' : ''; ?>">
+            <i class="fas fa-key me-2"></i>Change Password
+        </a>
             </div>
         </div>
 

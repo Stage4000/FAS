@@ -96,6 +96,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'label'     => 'SALE',
             'starts_at' => null,
             'ends_at'   => null,
+        ],
+        // Preserve free shipping settings managed via admin/free-shipping.php
+        'shipping' => $config['shipping'] ?? [
+            'free_shipping' => [
+                'enabled' => true,
+                'product_flags_enabled' => true,
+                'auto_rules_enabled' => false,
+                'max_weight' => null,
+                'max_length' => null,
+                'max_width' => null,
+                'max_height' => null,
+            ],
         ]
     ];
     

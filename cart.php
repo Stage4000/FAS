@@ -152,6 +152,7 @@ function displayCartItems() {
         const imageAlt = escapeHtml(item.image_alt || item.name || 'Product image');
         const itemName = escapeHtml(item.name || '');
         const sku = escapeHtml(item.sku || 'N/A');
+        const freeShippingBadge = item.free_shipping ? '<small class="text-success fw-semibold d-block mt-1"><i class="fas fa-truck-fast me-1"></i>Free shipping eligible</small>' : '';
 
         html += `
             <div class="card border-0 shadow-sm mb-3 cart-item-card card-entrance" style="animation-delay: ${index * 0.1}s;">
@@ -163,10 +164,11 @@ function displayCartItems() {
                         </div>
                         
                         <!-- Product Details -->
-                        <div class="col-md-4 cart-item-details">
-                            <h6 class="mb-1 fw-bold">${itemName}</h6>
-                            <small class="text-muted d-block">SKU: ${sku}</small>
-                            <div class="d-md-none cart-item-price mt-2">
+            <div class="col-md-4 cart-item-details">
+            <h6 class="mb-1 fw-bold">${itemName}</h6>
+            <small class="text-muted d-block">SKU: ${sku}</small>
+            ${freeShippingBadge}
+            <div class="d-md-none cart-item-price mt-2">
                                 $${(item.price * item.quantity).toFixed(2)}
                             </div>
                         </div>

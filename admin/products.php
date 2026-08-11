@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
+require_once __DIR__ . '/../src/utils/ShippingRules.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -10,6 +11,7 @@ $auth->requireLogin();
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
+use FAS\Utils\ShippingRules;
 
 // Configuration constants
 define('MAX_ADDITIONAL_IMAGES', 10);
@@ -17,6 +19,7 @@ define('MAX_ADDITIONAL_IMAGES', 10);
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $warehouseModel = new Warehouse($db);
+$freeShippingSettings = ShippingRules::getFreeShippingSettings();
 
 $success = '';
 $error = '';
@@ -192,7 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'image_url' => $imageUrl,
                         'images' => $additionalImages,
                         'source' => $_POST['source'] ?? 'manual',
-                        'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0
+                        'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0,
+                        'free_shipping' => isset($_POST['free_shipping']) ? 1 : 0
                     ];
                     
                     if ($_POST['action'] === 'create') {
@@ -372,7 +376,14 @@ if ($action === 'list') {
                                                             </div>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td><?php echo htmlspecialchars($prod['name']); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($prod['name']); ?>
+                                        <?php if (ShippingRules::productQualifiesForFreeShipping($prod, $freeShippingSettings)): ?>
+                                            <div class="small mt-1">
+                                                <span class="badge bg-success"><i class="fas fa-truck-fast me-1"></i>Free shipping</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                                     <td><?php echo htmlspecialchars($prod['sku'] ?? '-'); ?></td>
                                                     <td>$<?php echo number_format($prod['price'], 2); ?></td>
                                                     <td><?php echo $prod['quantity']; ?></td>
@@ -647,16 +658,26 @@ if ($action === 'list') {
                                     <input type="hidden" name="source" value="<?php echo $product['source']; ?>">
                                 <?php endif; ?>
 
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="show_on_website" id="show_on_website" 
-                                               <?php echo (!$product || $product['show_on_website']) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="show_on_website">
-                                            Show on Website
-                                        </label>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="show_on_website" id="show_on_website"
+                                           <?php echo (!$product || $product['show_on_website']) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="show_on_website">
+                                        Show on Website
+                                    </label>
                                 </div>
                             </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="free_shipping" id="free_shipping"
+                                           <?php echo ($product && !empty($product['free_shipping'])) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="free_shipping">
+                                        Always offer free shipping
+                                    </label>
+                                    <div class="form-text">Overrides size and weight rules when product-level flags are enabled.</div>
+                                </div>
+                            </div>
+                        </div>
 
                             <div class="col-md-4">
                                 <div class="mb-3">

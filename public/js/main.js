@@ -47,6 +47,22 @@ class ShoppingCart {
     addItem(product) {
         const existingItem = this.cart.find(item => item.id === product.id);
         if (existingItem) {
+            Object.assign(existingItem, {
+                name: product.name,
+                price: product.price,
+                image: product.image,
+                image_alt: product.image_alt,
+                sku: product.sku,
+                category: product.category,
+                manufacturer: product.manufacturer,
+                source: product.source,
+                weight: product.weight,
+                length: product.length,
+                width: product.width,
+                height: product.height,
+                free_shipping: product.free_shipping,
+                stock: product.stock
+            });
             // Check stock limit before incrementing
             const stockLimit = existingItem.stock || 999;
             if (existingItem.quantity < stockLimit) {
@@ -183,6 +199,7 @@ document.addEventListener('click', (e) => {
             length: parseFloat(button.dataset.length) || 10.0,
             width: parseFloat(button.dataset.width) || 10.0,
             height: parseFloat(button.dataset.height) || 10.0,
+            free_shipping: button.dataset.freeShipping === '1',
             stock: parseInt(button.dataset.stock) || 999
         };
         cart.addItem(productData);

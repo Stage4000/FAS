@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS products (
     ebay_url TEXT,
     source TEXT DEFAULT 'manual', -- 'ebay' or 'manual'
     show_on_website INTEGER DEFAULT 1, -- 1 = visible, 0 = hidden
+    free_shipping INTEGER NOT NULL DEFAULT 0, -- 1 = always free shipping
     warehouse_id INTEGER,
     is_active INTEGER DEFAULT 1,
     -- eBay store category hierarchy (exact 3-level mapping)

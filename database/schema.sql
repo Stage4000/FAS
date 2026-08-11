@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS products (
     ebay_url VARCHAR(500),
     source VARCHAR(20) DEFAULT 'manual', -- 'ebay' or 'manual'
     show_on_website BOOLEAN DEFAULT TRUE, -- TRUE = visible, FALSE = hidden
+    free_shipping BOOLEAN DEFAULT FALSE, -- TRUE = always free shipping
     is_active BOOLEAN DEFAULT TRUE,
     -- eBay store category hierarchy (exact 3-level mapping)
     ebay_store_cat1_id INT,
