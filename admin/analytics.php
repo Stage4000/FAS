@@ -2,11 +2,9 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Analytics.php';
-require_once __DIR__ . '/../src/utils/CSRF.php';
 
 use FAS\Config\Database;
 use FAS\Utils\Analytics;
-use FAS\Utils\CSRF;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -21,42 +19,6 @@ if (!in_array($days, $allowedDays, true)) {
     $days = 30;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_admin_session') {
-    $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['session_id'] ?? ''));
-    $visitorId = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_POST['visitor_id'] ?? ''));
-    $markStatus = 'failed';
-    $markError = '';
-
-    if ($sessionId === '') {
-        $markStatus = 'missing_session';
-    } elseif (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
-        $markStatus = 'csrf';
-    } else {
-        try {
-            $marked = $analytics->markAdminSession(
-                $sessionId,
-                $visitorId,
-                (string) ($_SESSION['admin_username'] ?? ''),
-                ['page_path' => $_SERVER['REQUEST_URI'] ?? '/admin/analytics.php'],
-                $_SERVER
-            );
-            $markStatus = $marked ? 'marked' : 'not_persisted';
-        } catch (Throwable $e) {
-            error_log('Manual admin analytics session mark failed: ' . $e->getMessage());
-            $markStatus = 'error';
-            $markError = substr($e->getMessage(), 0, 180);
-        }
-    }
-
-    $query = ['days' => $days, 'session' => $sessionId, 'admin_mark' => $markStatus];
-    if ($markError !== '') {
-        $query['admin_mark_error'] = $markError;
-    }
-    header('Location: analytics.php?' . http_build_query($query) . '#session-explorer');
-    exit;
-}
-
-$csrfToken = CSRF::generateToken();
 $overview = $analytics->getOverview($days);
 $funnel = $analytics->getFunnel($days);
 $checkoutDropoff = $analytics->getCheckoutDropoff($days);
@@ -74,8 +36,6 @@ $recentSessions = $analytics->getRecentSessions($days, 50);
 $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
-$adminMarkStatus = isset($_GET['admin_mark']) ? preg_replace('/[^a-z_]/', '', (string) $_GET['admin_mark']) : '';
-$adminMarkError = isset($_GET['admin_mark_error']) ? substr((string) $_GET['admin_mark_error'], 0, 180) : '';
 $averageOrderValue = ((int) ($overview['orders'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['orders']) : 0;
 $revenuePerSession = ((int) ($overview['sessions'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['sessions']) : 0;
 $abandonedCartRate = (((int) ($overview['abandoned_carts'] ?? 0)) + ((int) ($overview['orders'] ?? 0))) > 0
@@ -599,25 +559,6 @@ function metricCard(string $label, string $value, string $note, string $icon): s
 
     <div class="row g-4 mb-4" id="session-explorer">
         <div class="col-12">
-            <?php if ($adminMarkStatus !== ''): ?>
-                <?php
-                $adminMarkMessages = [
-                    'marked' => ['success', 'Session marked as Admin User.'],
-                    'csrf' => ['danger', 'Security token expired. Refresh the page and try again.'],
-                    'missing_session' => ['danger', 'No session ID was submitted.'],
-                    'not_persisted' => ['danger', 'Session was not marked. Check that the analytics admin columns exist and the database user can update analytics_sessions.'],
-                    'error' => ['danger', 'Session mark failed. Check the PHP error log for the database error.'],
-                    'failed' => ['danger', 'Session mark failed.'],
-                ];
-                $adminMarkMessage = $adminMarkMessages[$adminMarkStatus] ?? ['warning', 'Unknown admin mark status.'];
-                ?>
-                <div class="alert alert-<?php echo safe($adminMarkMessage[0]); ?> border-0 shadow-sm small mb-3">
-                    <?php echo safe($adminMarkMessage[1]); ?>
-                    <?php if ($adminMarkError !== ''): ?>
-                        <div class="mt-2"><code><?php echo safe($adminMarkError); ?></code></div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
             <div class="card border-0 shadow-sm" data-aos="fade-up">
             <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                 <div>
@@ -746,22 +687,11 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                             <td class="analytics-session-cell">
                                 <span class="analytics-session-primary"><?php echo safe($row['last_seen_at'] ?? ''); ?></span>
                                 <span class="analytics-session-path analytics-session-muted" title="<?php echo safe($row['landing_page'] ?? ''); ?>"><?php echo safe($row['landing_page'] ?? ''); ?></span>
-                            </td>
-                            <td class="text-end analytics-action-cell">
-                                <?php if ((int) ($row['is_admin_session'] ?? 0) !== 1): ?>
-                                <form method="post" class="analytics-inline-action">
-                                    <input type="hidden" name="action" value="mark_admin_session">
-                                    <input type="hidden" name="csrf_token" value="<?php echo safe($csrfToken); ?>">
-                                    <input type="hidden" name="session_id" value="<?php echo safe($row['session_id']); ?>">
-                                    <input type="hidden" name="visitor_id" value="<?php echo safe($row['visitor_id'] ?? ''); ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-success analytics-open-button" title="Mark session <?php echo safe($row['session_id']); ?> as admin" aria-label="Mark session <?php echo safe($row['session_id']); ?> as admin">
-                                        <i class="fas fa-user-shield"></i>
+                                </td>
+                                <td class="text-end analytics-action-cell">
+                                    <button type="button" class="btn btn-sm btn-danger analytics-open-button js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="Open session <?php echo safe($row['session_id']); ?>">
+                                        <i class="fas fa-up-right-from-square"></i><span>Open</span>
                                     </button>
-                                </form>
-                                <?php endif; ?>
-                                <button type="button" class="btn btn-sm btn-danger analytics-open-button js-session-view" data-session-id="<?php echo safe($row['session_id']); ?>" title="Open session <?php echo safe($row['session_id']); ?>">
-                                    <i class="fas fa-up-right-from-square"></i><span>Open</span>
-                                </button>
                             </td>
                         </tr>
                             <?php endforeach; ?>
