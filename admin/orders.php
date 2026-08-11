@@ -82,9 +82,9 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
-    <h1 class="mb-4">
-        <i class="fas fa-shopping-cart me-2"></i>Orders Management
-    </h1>
+    <div class="admin-hero" data-aos="fade-down">
+    <h1 class="display-6 fw-bold"><i class="fas fa-shopping-cart me-2"></i>Orders Management</h1>
+</div>
     
     <!-- Statistics Cards -->
     <div class="row mb-4">

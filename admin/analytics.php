@@ -19,6 +19,17 @@ if (!in_array($days, $allowedDays, true)) {
     $days = 30;
 }
 
+$sessionsPerPage = 25;
+$sessionPage = isset($_GET['session_page']) ? max(1, (int) $_GET['session_page']) : 1;
+$totalSessions = $analytics->getRecentSessionCount($days);
+$totalSessionPages = max(1, (int) ceil($totalSessions / $sessionsPerPage));
+if ($sessionPage > $totalSessionPages) {
+    $sessionPage = $totalSessionPages;
+}
+$sessionOffset = ($sessionPage - 1) * $sessionsPerPage;
+$sessionPageStart = $totalSessions > 0 ? $sessionOffset + 1 : 0;
+$sessionPageEnd = min($totalSessions, $sessionOffset + $sessionsPerPage);
+
 $overview = $analytics->getOverview($days);
 $funnel = $analytics->getFunnel($days);
 $checkoutDropoff = $analytics->getCheckoutDropoff($days);
@@ -32,7 +43,7 @@ $topPages = $analytics->getTopPages($days, 10);
 $trafficSources = $analytics->getTrafficSources($days, 10);
 $searchTerms = $analytics->getSearchTerms($days, 10);
 $recentEvents = $analytics->getRecentEvents(30);
-$recentSessions = $analytics->getRecentSessions($days, 50);
+$recentSessions = $analytics->getRecentSessions($days, $sessionsPerPage, $sessionOffset);
 $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
@@ -182,6 +193,89 @@ function sessionGeoSourceLabel(array $session): string
     return $labels[$source] ?? ($source !== '' ? str_replace('_', ' ', $source) : 'Unknown');
 }
 
+function sessionPageUrl(int $page, int $days, string $selectedSessionId = ''): string
+{
+    $params = [
+        'days' => $days,
+        'session_page' => max(1, $page),
+    ];
+
+    if ($selectedSessionId !== '') {
+        $params['session'] = $selectedSessionId;
+    }
+
+    return 'analytics.php?' . http_build_query($params) . '#session-explorer';
+}
+
+function sessionPaginationPages(int $currentPage, int $totalPages): array
+{
+    if ($totalPages <= 7) {
+        return range(1, max(1, $totalPages));
+    }
+
+    $pages = [1];
+    $start = max(2, $currentPage - 1);
+    $end = min($totalPages - 1, $currentPage + 1);
+
+    if ($start > 2) {
+        $pages[] = null;
+    }
+
+    for ($page = $start; $page <= $end; $page++) {
+        $pages[] = $page;
+    }
+
+    if ($end < $totalPages - 1) {
+        $pages[] = null;
+    }
+
+    $pages[] = $totalPages;
+
+    return $pages;
+}
+
+function renderSessionPagination(int $currentPage, int $totalPages, int $days, string $selectedSessionId = ''): string
+{
+    if ($totalPages <= 1) {
+        return '';
+    }
+
+    $item = static function (
+        string $label,
+        int $page,
+        bool $disabled = false,
+        bool $active = false,
+        string $ariaLabel = ''
+    ) use ($days, $selectedSessionId): string {
+        $classes = 'page-item' . ($disabled ? ' disabled' : '') . ($active ? ' active' : '');
+        $aria = $ariaLabel !== '' ? ' aria-label="' . safe($ariaLabel) . '"' : '';
+
+        if ($disabled || $active) {
+            $current = $active ? ' aria-current="page"' : ' aria-disabled="true"';
+            return '<li class="' . $classes . '"><span class="page-link"' . $aria . $current . '>' . safe($label) . '</span></li>';
+        }
+
+        return '<li class="' . $classes . '"><a class="page-link" href="' . safe(sessionPageUrl($page, $days, $selectedSessionId)) . '"' . $aria . '>' . safe($label) . '</a></li>';
+    };
+
+    $html = '<nav class="analytics-session-pagination" aria-label="Analytics session list pages"><ul class="pagination pagination-sm mb-0 flex-wrap">';
+    $html .= $item('Previous', max(1, $currentPage - 1), $currentPage <= 1, false, 'Previous sessions page');
+
+    foreach (sessionPaginationPages($currentPage, $totalPages) as $page) {
+        if ($page === null) {
+            $html .= '<li class="page-item disabled"><span class="page-link" aria-hidden="true">&hellip;</span></li>';
+            continue;
+        }
+
+        $html .= $item((string) $page, (int) $page, false, (int) $page === $currentPage, 'Sessions page ' . $page);
+    }
+
+    $html .= $item('Next', min($totalPages, $currentPage + 1), $currentPage >= $totalPages, false, 'Next sessions page');
+    $html .= '</ul></nav>';
+
+    return $html;
+}
+
 function safe($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -222,24 +316,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="css/admin-style.css">
     <style>
-        .analytics-hero {
-            background: linear-gradient(135deg, #1f1f24 0%, #3b0b16 48%, #db0335 100%);
-            border-radius: 1.25rem;
-            color: #fff;
-            overflow: hidden;
-            position: relative;
-        }
-        .analytics-hero::after {
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, .22), transparent 32rem);
-            content: "";
-            inset: 0;
-            position: absolute;
-        }
-        .analytics-hero > * {
-            position: relative;
-            z-index: 1;
-        }
-        .table-fixed {
+.table-fixed {
             min-width: 720px;
         }
         .progress-thin {
@@ -265,9 +342,28 @@ function metricCard(string $label, string $value, string $note, string $icon): s
             justify-content: center;
             width: 2.25rem;
         }
-        .analytics-session-search {
-            min-width: min(100%, 28rem);
-        }
+.analytics-session-search {
+    min-width: min(100%, 28rem);
+}
+.analytics-session-toolbar {
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fb 100%);
+    border: 1px solid rgba(31, 31, 36, .08);
+    border-radius: .95rem;
+    padding: .85rem 1rem;
+}
+.analytics-session-pagination .page-link {
+    border-color: rgba(31, 31, 36, .12);
+    color: #b8022d;
+    font-weight: 600;
+}
+.analytics-session-pagination .page-item.active .page-link {
+    background-color: #db0335;
+    border-color: #db0335;
+    color: #fff;
+}
+.analytics-session-pagination .page-item.disabled .page-link {
+    color: #98a2b3;
+}
 .analytics-session-table {
     min-width: 1180px;
     table-layout: fixed;
@@ -416,6 +512,25 @@ function metricCard(string $label, string $value, string $note, string $icon): s
 [data-theme="dark"] .analytics-mini-card .text-muted {
     color: #c5cbd3 !important;
 }
+[data-theme="dark"] .analytics-session-toolbar {
+    background: linear-gradient(180deg, #363636 0%, #2d2d2d 100%);
+    border-color: rgba(255, 255, 255, .14);
+    color: #f3f4f6;
+}
+[data-theme="dark"] .analytics-session-pagination .page-link {
+    background: #242629;
+    border-color: rgba(255, 255, 255, .14);
+    color: #f8a6b9;
+}
+[data-theme="dark"] .analytics-session-pagination .page-item.active .page-link {
+    background-color: #db0335;
+    border-color: #db0335;
+    color: #fff;
+}
+[data-theme="dark"] .analytics-session-pagination .page-item.disabled .page-link {
+    background: #242629;
+    color: #98a2b3;
+}
 [data-theme="dark"] .analytics-session-table th {
     color: #c5cbd3;
 }
@@ -473,7 +588,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
         <div>
             <p class="text-white-50 text-uppercase fw-semibold small mb-2">Website Sales Analytics</p>
-            <h1 class="display-6 fw-bold mb-2">Conversion and merchandising dashboard</h1>
+            <h1 class="display-6 fw-bold mb-2"><i class="fas fa-chart-line me-2"></i>Conversion and merchandising dashboard</h1>
             <p class="mb-0 text-white-50">Tracks traffic quality, product demand, cart behavior, checkout friction, coupons, and completed-order revenue.</p>
         </div>
 <div class="align-self-lg-start d-flex flex-column gap-2">
@@ -565,9 +680,10 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                     <h5 class="mb-1"><i class="fas fa-timeline text-danger me-2"></i>Session Explorer</h5>
                     <div class="small text-muted">Open any session to inspect visitor context, cart/revenue activity, bot signals, and chronological actions.</div>
                 </div>
-                <form method="get" class="analytics-session-search">
-                    <input type="hidden" name="days" value="<?php echo $days; ?>">
-                    <div class="input-group input-group-sm">
+                        <form method="get" class="analytics-session-search">
+                            <input type="hidden" name="days" value="<?php echo $days; ?>">
+                            <input type="hidden" name="session_page" value="<?php echo $sessionPage; ?>">
+                            <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="session" class="form-control" placeholder="Paste a session ID" value="<?php echo safe($selectedSessionId); ?>" aria-label="Session ID">
                         <button class="btn btn-danger" type="submit"><i class="fas fa-up-right-from-square me-1"></i>Open Session</button>
@@ -584,9 +700,11 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                         <div class="analytics-mini-card p-3 h-100">
                             <div class="d-flex align-items-start justify-content-between gap-3">
                                 <div>
-                                    <div class="small text-muted">Sessions Shown</div>
+                                    <div class="small text-muted">Sessions This Page</div>
                                     <div class="h4 mb-0"><?php echo fmtNumber($sessionExplorerStats['sessions']); ?></div>
-                                    <div class="small text-muted"><?php echo fmtNumber($sessionExplorerStats['human_sessions']); ?> likely human</div>
+                                    <div class="small text-muted">
+                                        <?php echo $totalSessions > 0 ? fmtNumber($sessionPageStart) . '&ndash;' . fmtNumber($sessionPageEnd) . ' of ' . fmtNumber($totalSessions) : 'No sessions'; ?>
+                                    </div>
                                 </div>
                                 <span class="analytics-icon"><i class="fas fa-users"></i></span>
                             </div>
@@ -630,14 +748,23 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-2">
-                    <div>
-                        <h6 class="fw-bold mb-0">Recent Sessions</h6>
-                        <div class="small text-muted">Click a session ID, row, or Open button to view the full session timeline.</div>
-                    </div>
-                    <span class="badge text-bg-light border">Last <?php echo $days; ?> days &middot; <?php echo fmtNumber(count($recentSessions)); ?> shown</span>
-                </div>
-                <div class="table-responsive mb-4 border rounded">
+<div class="analytics-session-toolbar d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-3">
+<div>
+<h6 class="fw-bold mb-1">Recent Sessions</h6>
+<div class="small text-muted">
+<?php if ($totalSessions > 0): ?>
+Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($sessionPageEnd); ?> of <?php echo fmtNumber($totalSessions); ?> sessions from the last <?php echo $days; ?> days. Open any row for the full timeline.
+<?php else: ?>
+No sessions recorded in the last <?php echo $days; ?> days.
+<?php endif; ?>
+</div>
+</div>
+<div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-end gap-2">
+<span class="badge text-bg-light border">Page <?php echo fmtNumber($sessionPage); ?> of <?php echo fmtNumber($totalSessionPages); ?></span>
+<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days); ?>
+</div>
+</div>
+<div class="table-responsive mb-3 border rounded">
                     <table class="table table-sm align-middle analytics-session-table mb-0">
                         <thead>
                             <tr>
@@ -698,12 +825,20 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                             <?php if (empty($recentSessions)): ?>
                                 <tr><td colspan="9" class="text-muted">No recent sessions recorded yet.</td></tr>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+</tbody>
+</table>
+</div>
+<?php if ($totalSessionPages > 1): ?>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+<div class="small text-muted">
+Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($sessionPageEnd); ?> of <?php echo fmtNumber($totalSessions); ?> sessions
+</div>
+<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days); ?>
+</div>
+<?php endif; ?>
 
 
-            </div>
+</div>
         </div>
     </div>
 </div>

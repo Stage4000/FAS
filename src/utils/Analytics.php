@@ -833,12 +833,36 @@ class Analytics
         );
     }
 
-    public function getRecentSessions(int $days, int $limit = 50): array
+    public function getRecentSessionCount(int $days): int
+    {
+        $this->ensureTables();
+
+        $since = $this->since($days);
+        $row = $this->fetchOne(
+            "SELECT COUNT(*) AS total
+            FROM analytics_sessions s
+            LEFT JOIN (
+                SELECT session_id, COUNT(*) AS events
+                FROM analytics_events
+                WHERE created_at >= ?
+                GROUP BY session_id
+            ) e ON e.session_id = s.session_id
+            WHERE s.started_at >= ?
+               OR s.last_seen_at >= ?
+               OR e.events IS NOT NULL",
+            [$since, $since, $since]
+        );
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    public function getRecentSessions(int $days, int $limit = 50, int $offset = 0): array
     {
         $this->ensureTables();
 
         $since = $this->since($days);
         $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
 
         return $this->fetchAll(
             "SELECT s.*,
@@ -881,7 +905,7 @@ class Analytics
                 OR s.last_seen_at >= ?
                 OR e.events IS NOT NULL
             ORDER BY s.last_seen_at DESC
-            LIMIT " . $limit,
+            LIMIT " . $limit . " OFFSET " . $offset,
             [$since, $since, $since]
         );
     }

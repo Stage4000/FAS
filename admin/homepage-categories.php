@@ -88,8 +88,8 @@ $pageTitle = 'Homepage Category Mappings';
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
+            <div class="admin-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+                <h1><i class="fas fa-sitemap me-2"></i><?php echo htmlspecialchars($pageTitle); ?></h1>
             </div>
 
             <?php if ($success): ?>

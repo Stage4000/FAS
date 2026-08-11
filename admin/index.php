@@ -59,9 +59,9 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <h1 class="mb-4" data-aos="fade-down">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </h1>
+                <div class="admin-hero" data-aos="fade-down">
+    <h1 class="display-6 fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+</div>
 
                 <!-- Stats Cards -->
                 <div class="row mb-4">

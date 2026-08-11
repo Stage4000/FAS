@@ -14,11 +14,14 @@ $auth->requireLogin();
     <link rel="manifest" href="/admin/manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/admin-style.css">
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
 
-            <h1 class="mb-4"><i class="bi bi-question-circle"></i> How to Obtain eBay User Token</h1>
+            <div class="admin-hero">
+    <h1 class="display-6 fw-bold"><i class="bi bi-question-circle me-2"></i>How to Obtain eBay User Token</h1>
+</div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">

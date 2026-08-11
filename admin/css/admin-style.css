@@ -13,6 +13,12 @@
     --admin-text: #333333;
     --admin-card-bg: #ffffff;
     --admin-border: #e0e0e0;
+    --admin-hero-bg: linear-gradient(135deg, #ffffff 0%, #fff5f7 48%, #ffe1e9 100%);
+    --admin-hero-text: #241f22;
+    --admin-hero-muted: #765a63;
+    --admin-hero-border: rgba(219, 3, 53, 0.14);
+    --admin-hero-shadow: 0 1rem 2.5rem rgba(36, 38, 41, 0.09);
+    --admin-hero-highlight: radial-gradient(circle at top right, rgba(219, 3, 53, 0.18), transparent 30rem);
 }
 
 /* Dark mode for admin */
@@ -21,12 +27,81 @@
     --admin-text: #e0e0e0;
     --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - lighter card background for strong contrast */
     --admin-border: #555555;  /* Lighter border for better visibility */
+    --admin-hero-bg: linear-gradient(135deg, #1f1f24 0%, #3b0b16 48%, #db0335 100%);
+    --admin-hero-text: #ffffff;
+    --admin-hero-muted: rgba(255, 255, 255, 0.74);
+    --admin-hero-border: rgba(255, 255, 255, 0.12);
+    --admin-hero-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.34);
+    --admin-hero-highlight: radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 32rem);
 }
 
 body {
     background-color: var(--admin-bg) !important;
     color: var(--admin-text);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-hero,
+.analytics-hero {
+    background: var(--admin-hero-bg);
+    border: 1px solid var(--admin-hero-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--admin-hero-shadow);
+    color: var(--admin-hero-text);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    padding: 1.5rem;
+    position: relative;
+}
+
+@media (min-width: 992px) {
+    .admin-hero,
+    .analytics-hero {
+        padding: 2.5rem;
+    }
+}
+
+.admin-hero::after,
+.analytics-hero::after {
+    background: var(--admin-hero-highlight);
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+}
+
+.admin-hero > *,
+.analytics-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.admin-hero .text-muted,
+.admin-hero .text-white-50,
+.analytics-hero .text-muted,
+.analytics-hero .text-white-50 {
+    color: var(--admin-hero-muted) !important;
+}
+
+.admin-hero h1,
+.analytics-hero h1 {
+    color: var(--admin-hero-text);
+    font-size: calc(1.375rem + 1.5vw);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0;
+}
+
+@media (min-width: 1200px) {
+    .admin-hero h1,
+    .analytics-hero h1 {
+        font-size: 2.5rem;
+    }
+}
+
+.admin-hero .badge,
+.analytics-hero .badge {
+    box-shadow: 0 0.45rem 1rem rgba(31, 31, 36, 0.1);
 }
 
 /* Placeholder text visibility in dark mode */

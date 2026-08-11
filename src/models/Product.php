@@ -355,6 +355,17 @@ class Product
         $stmt->execute([$id]);
         return $stmt->rowCount() > 0;
     }
+
+    /**
+     * Toggle product-level free shipping flag
+     */
+    public function toggleFreeShipping($id)
+    {
+        $sql = "UPDATE products SET free_shipping = CASE WHEN free_shipping = 1 THEN 0 ELSE 1 END WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
+    }
     
     /**
      * Delete product (soft delete)

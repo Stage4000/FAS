@@ -43,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <h1 class="mb-4">
-                    <i class="fas fa-key me-2"></i>Change Password
-                </h1>
+                <div class="admin-hero" data-aos="fade-down">
+    <h1 class="display-6 fw-bold"><i class="fas fa-key me-2"></i>Change Password</h1>
+</div>
 
                 <?php if ($success): ?>
                     <div class="alert alert-success alert-dismissible fade show">

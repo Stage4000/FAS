@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
     
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="admin-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
         <h1>
             <i class="fas fa-shopping-cart me-2"></i>Order Details
         </h1>

@@ -41,39 +41,39 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <a href="index.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
         <i class="fas fa-tachometer-alt me-2"></i>Dashboard
     </a>
-    <a href="analytics.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'analytics.php' ? 'active' : ''; ?>">
-        <i class="fas fa-chart-line me-2"></i>Analytics
-    </a>
     <a href="products.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'products.php' ? 'active' : ''; ?>">
         <i class="fas fa-box me-2"></i>Products
     </a>
-                <a href="homepage-categories.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'homepage-categories.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-sitemap me-2"></i>Homepage Categories
-                </a>
-                <a href="orders.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'orders.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-shopping-cart me-2"></i>Orders
-                </a>
-                <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-warehouse me-2"></i>Warehouses
-                </a>
-                <a href="settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-cog me-2"></i>Settings
-                </a>
-                <a href="coupons.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'coupons.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-tags me-2"></i>Coupons
-                </a>
+    <a href="orders.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'orders.php' ? 'active' : ''; ?>">
+        <i class="fas fa-shopping-cart me-2"></i>Orders
+    </a>
+    <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">
+        <i class="fas fa-warehouse me-2"></i>Warehouses
+    </a>
+    <a href="coupons.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'coupons.php' ? 'active' : ''; ?>">
+        <i class="fas fa-tags me-2"></i>Coupons
+    </a>
                 <a href="banners.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'banners.php' ? 'active' : ''; ?>">
                     <i class="fas fa-bullhorn me-2"></i>Banners
                 </a>
         <a href="sale.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'sale.php' ? 'active' : ''; ?>">
             <i class="fas fa-percent me-2"></i>Site-Wide Sale
         </a>
-        <a href="free-shipping.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'free-shipping.php' ? 'active' : ''; ?>">
-            <i class="fas fa-truck-fast me-2"></i>Free Shipping
-        </a>
-        <a href="password.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'password.php' ? 'active' : ''; ?>">
-            <i class="fas fa-key me-2"></i>Change Password
-        </a>
+    <a href="free-shipping.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'free-shipping.php' ? 'active' : ''; ?>">
+        <i class="fas fa-truck-fast me-2"></i>Free Shipping
+    </a>
+    <a href="analytics.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'analytics.php' ? 'active' : ''; ?>">
+        <i class="fas fa-chart-line me-2"></i>Analytics
+    </a>
+    <a href="settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
+        <i class="fas fa-cog me-2"></i>Settings
+    </a>
+    <a href="homepage-categories.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'homepage-categories.php' ? 'active' : ''; ?>">
+        <i class="fas fa-sitemap me-2"></i>Homepage Categories
+    </a>
+    <a href="password.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'password.php' ? 'active' : ''; ?>">
+        <i class="fas fa-key me-2"></i>Change Password
+    </a>
             </div>
         </div>
 

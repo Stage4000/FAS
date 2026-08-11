@@ -83,7 +83,7 @@ $hasAutoLimit = $settings['max_weight'] !== null
 <body class="bg-light">
 <?php require __DIR__ . '/includes/nav.php'; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="admin-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
     <h1><i class="fas fa-truck-fast me-2"></i>Free Shipping</h1>
     <?php if (!empty($settings['enabled'])): ?>
         <span class="badge bg-success fs-6 px-3 py-2">Enabled</span>
