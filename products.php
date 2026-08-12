@@ -33,17 +33,17 @@ if (false && $homepageCategory) {
     require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
     require_once __DIR__ . '/src/utils/SyncLogger.php';
     require_once __DIR__ . '/src/integrations/EbayAPI.php';
-    
+
     $db = \FAS\Config\Database::getInstance()->getConnection();
     $mappingModel = new \FAS\Models\HomepageCategoryMapping($db);
     $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
-    
+
     if (!empty($ebayCategoryNames)) {
         try {
             $config = require __DIR__ . '/src/config/config.php';
             $ebayAPI = new \FAS\Integrations\EbayAPI($config);
             $flatCategories = $ebayAPI->getStoreCategories();
-            
+
             // Find the first eBay category ID that matches
             $redirectCat1 = null;
             foreach ($ebayCategoryNames as $ebayCategoryName) {
@@ -54,19 +54,19 @@ if (false && $homepageCategory) {
                     }
                 }
             }
-            
+
             // Redirect to eBay category if found
             if ($redirectCat1) {
                 $search = $_GET['search'] ?? null;
                 $manufacturer = $_GET['manufacturer'] ?? null;
                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-                
+
                 $redirectUrl = '/products?cat1=' . urlencode($redirectCat1);
                 if ($search) $redirectUrl .= '&search=' . urlencode($search);
                 if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
                 if ($page > 1) $redirectUrl .= '&page=' . (int)$page;
                 if ($includeHiddenProducts) $redirectUrl .= '&show_hidden=1';
-                
+
                 header('Location: ' . $redirectUrl);
                 exit;
             }
@@ -139,9 +139,30 @@ $ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
 $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
 $manufacturer = $_GET['manufacturer'] ?? null;
+$fitmentModel = $_GET['model'] ?? null;
+$discoveryCollections = [
+    'trending' => 'Trending Parts',
+    'best' => 'Best Sellers',
+    'recent' => 'Recent Arrivals',
+];
+$discoveryCollection = $_GET['collection'] ?? '';
+if (!isset($discoveryCollections[$discoveryCollection])) {
+    $discoveryCollection = '';
+}
 $search = $_GET['search'] ?? null;
 $page = max(1, isset($_GET['page']) ? (int)$_GET['page'] : 1);
 $perPage = 24;
+
+if ($discoveryCollection !== '') {
+    $ebayCat1 = null;
+    $ebayCat2 = null;
+    $ebayCat3 = null;
+    $homepageCategory = null;
+    $manufacturer = null;
+    $fitmentModel = null;
+    $search = null;
+    $page = 1;
+}
 
 // Initialize database and product model
 $db = Database::getInstance()->getConnection();
@@ -155,7 +176,7 @@ try {
     $ebayAPI = new EbayAPI($config);
     $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
     $ebayCategories = pruneEmptyEbayCategories($ebayCategories, $visibleCategoryIds);
-    
+
     // Debug logging
     if (empty($ebayCategories)) {
         error_log("DEBUG: eBay categories are empty after getStoreCategoriesHierarchical()");
@@ -192,18 +213,32 @@ if ($homepageCategory && !$ebayCat1 && !empty($flatCategories)) {
     }
 }
 
-// Use eBay category filters (or show all products if no filters set)
-$products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts);
-$totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts);
+// Use virtual discovery collections, eBay category filters, or all products.
+if ($discoveryCollection === 'trending') {
+    $products = fasAnalyticsRankedProducts($db, $productModel, $perPage);
+    $totalProducts = count($products);
+} elseif ($discoveryCollection === 'best') {
+    $products = fasBestSellingProducts($db, $productModel, $perPage);
+    $totalProducts = count($products);
+} elseif ($discoveryCollection === 'recent') {
+    $products = $productModel->getRecentVisible($perPage);
+    $totalProducts = count($products);
+} else {
+    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
+    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
+}
 
 // Get unique manufacturers for filter (from all products)
 $allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
+$allModels = $productModel->getModels($includeHiddenProducts, $manufacturer);
 
 $totalPages = ceil($totalProducts / $perPage);
 
 // Get current category name for display
 $currentCategoryName = 'All Products';
-if ($ebayCat3 || $ebayCat2 || $ebayCat1) {
+if ($discoveryCollection !== '') {
+    $currentCategoryName = $discoveryCollections[$discoveryCollection];
+} elseif ($ebayCat3 || $ebayCat2 || $ebayCat1) {
     $flatCategories = $ebayAPI->getStoreCategories();
     if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
         $cat = $flatCategories[$ebayCat3];
@@ -244,6 +279,7 @@ $categoryMeta = [
 
 $searchTerm = Seo::cleanText($search ?? '');
 $manufacturerName = Seo::cleanText($manufacturer ?? '');
+$fitmentModelName = Seo::cleanText($fitmentModel ?? '');
 $categoryLabel = ($homepageCategory && isset($categoryMeta[$homepageCategory]))
     ? $categoryMeta[$homepageCategory]['label']
     : Seo::cleanText($currentCategoryName);
@@ -255,7 +291,9 @@ if ($homepageCategory && isset($categoryMeta[$homepageCategory]) && $ebayCat1) {
 }
 
 $canonicalParams = [];
-if (!$homepageCategory) {
+if ($discoveryCollection !== '') {
+    $canonicalParams['collection'] = $discoveryCollection;
+} elseif (!$homepageCategory) {
     if ($ebayCat1) {
         $canonicalParams['cat1'] = $ebayCat1;
     }
@@ -269,6 +307,9 @@ if (!$homepageCategory) {
 if ($manufacturerName !== '') {
     $canonicalParams['manufacturer'] = $manufacturerName;
 }
+if ($fitmentModelName !== '') {
+    $canonicalParams['model'] = $fitmentModelName;
+}
 if ($searchTerm !== '') {
     $canonicalParams['search'] = $searchTerm;
 }
@@ -280,13 +321,17 @@ $canonicalQuery = $canonicalParams ? '?' . http_build_query($canonicalParams) : 
 $canonicalUrl = Seo::canonicalUrl($canonicalPath . $canonicalQuery);
 $robotsMeta = 'index, follow';
 
-if ($searchTerm !== '') {
+if ($discoveryCollection !== '') {
+    $metaTitle = Seo::metaTitle($currentCategoryName . ' | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Browse ' . strtolower($currentCategoryName) . ' from Flip and Strip.');
+} elseif ($searchTerm !== '') {
     $metaTitle = Seo::metaTitle('Search results for ' . $searchTerm . ' | Flip and Strip');
     $metaDescription = Seo::metaDescription('Browse matching Flip and Strip parts for ' . $searchTerm . '. Product search pages are provided for shopping navigation.');
     $robotsMeta = 'noindex, follow';
-} elseif ($manufacturerName !== '') {
-    $metaTitle = Seo::metaTitle($manufacturerName . ' Parts | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Browse available ' . $manufacturerName . ' parts from Flip and Strip.');
+} elseif ($manufacturerName !== '' || $fitmentModelName !== '') {
+    $fitmentLabel = trim($manufacturerName . ' ' . $fitmentModelName);
+    $metaTitle = Seo::metaTitle($fitmentLabel . ' Parts | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Browse available ' . $fitmentLabel . ' parts from Flip and Strip.');
     $robotsMeta = 'noindex, follow';
 } elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
     $metaTitle = Seo::metaTitle($categoryLabel . $pageSuffix . ' | Flip and Strip');
@@ -310,13 +355,19 @@ $ogDescription = $metaDescription;
 $currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
 $merchandisingCategory = $categoryLabel !== 'All Products' ? $categoryLabel : null;
 $merchandisingManufacturer = $manufacturerName !== '' ? $manufacturerName : null;
-$trendingProducts = fasAnalyticsRankedProducts($db, $productModel, 8, $currentProductIds);
-$recentExcludeIds = array_merge($currentProductIds, array_column($trendingProducts, 'id'));
-$recentProducts = $productModel->getRecentVisible(8, $recentExcludeIds, $merchandisingCategory, $merchandisingManufacturer);
 $noResultsProducts = [];
+$searchSuggestions = $searchTerm !== '' ? $productModel->getSearchSuggestionQueries($searchTerm, 6) : [];
 
 if (empty($products)) {
-    $noResultsProducts = fasAnalyticsRankedProducts($db, $productModel, 6);
+    $noResultsProducts = $searchTerm !== ''
+        ? $productModel->getSearchFallbackRecommendations($searchTerm, 6, [], $ebayCat1, $ebayCat2, $ebayCat3, $manufacturer, $includeHiddenProducts, $fitmentModel)
+        : [];
+    if (count($noResultsProducts) < 6) {
+        $noResultsProducts = array_merge(
+            $noResultsProducts,
+            fasAnalyticsRankedProducts($db, $productModel, 6 - count($noResultsProducts), array_column($noResultsProducts, 'id'))
+        );
+    }
     if (count($noResultsProducts) < 6) {
         $noResultsProducts = array_merge(
             $noResultsProducts,
@@ -356,34 +407,43 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="card-body p-0 collapse show" id="categoryMenu">
                     <div class="list-group list-group-flush">
                         <!-- All Products Link -->
-                        <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3) ? 'active' : ''; ?>">
+                        <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === '') ? 'active' : ''; ?>">
                             <i class="fas fa-th"></i> All Products
-                            <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3): ?>
+                            <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === ''): ?>
                                 <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
                             <?php endif; ?>
                         </a>
-                        
+                        <a href="#" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
+                            <i class="fas fa-chart-line"></i> Trending Parts
+                        </a>
+                        <a href="#" data-collection="best" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'best' ? 'active' : ''; ?>">
+                            <i class="fas fa-star"></i> Best Sellers
+                        </a>
+                        <a href="#" data-collection="recent" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'recent' ? 'active' : ''; ?>">
+                            <i class="fas fa-clock"></i> Recent Arrivals
+                        </a>
+
                         <?php if (!empty($ebayCategories)): ?>
                             <?php foreach ($ebayCategories as $cat1): ?>
                                 <!-- Level 1 Category -->
-                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>" 
+                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>"
                                    class="category-link list-group-item list-group-item-action <?php echo $ebayCat1 == $cat1['id'] && !$ebayCat2 ? 'active' : ''; ?>"
                                    style="font-weight: bold;">
                                     <i class="fas fa-folder"></i> <?php echo htmlspecialchars($cat1['name']); ?>
                                 </a>
-                                
+
                                 <!-- Level 2 Categories (show ONLY if THIS level 1 is selected) -->
                                 <?php if ($ebayCat1 == $cat1['id'] && !empty($cat1['children'])): ?>
                                     <?php foreach ($cat1['children'] as $cat2): ?>
-                                        <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" 
+                                        <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>"
                                            class="category-link list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
                                             <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($cat2['name']); ?>
                                         </a>
-                                        
+
                                         <!-- Level 3 Categories (show ONLY if THIS level 2 is selected) -->
                                         <?php if ($ebayCat2 == $cat2['id'] && !empty($cat2['children'])): ?>
                                             <?php foreach ($cat2['children'] as $cat3): ?>
-                                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>" 
+                                                <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>"
                                                    class="category-link list-group-item list-group-item-action ps-5 <?php echo $ebayCat3 == $cat3['id'] ? 'active' : ''; ?>">
                                                     <i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat3['name']); ?>
                                                 </a>
@@ -401,18 +461,20 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
         </div>
-        
+
         <!-- Main Content -->
         <div class="col-lg-9 col-md-8" id="productsContent">
             <!-- Page Header -->
             <div class="row mb-4">
                 <div class="col-md-6">
                     <h1 class="fw-bold">
-                        <?php if ($search): ?>
-                            Search Results for "<?php echo htmlspecialchars($search); ?>"
-                        <?php else: ?>
-                            <?php echo htmlspecialchars($currentCategoryName); ?>
-                        <?php endif; ?>
+<?php if ($search): ?>
+Search Results for "<?php echo htmlspecialchars($search); ?>"
+<?php elseif ($manufacturer || $fitmentModel): ?>
+<?php echo htmlspecialchars(trim(($manufacturer ?? '') . ' ' . ($fitmentModel ?? ''))); ?> Parts
+<?php else: ?>
+<?php echo htmlspecialchars($currentCategoryName); ?>
+<?php endif; ?>
                     </h1>
 <p class="text-muted mb-2">
     <?php echo $totalProducts; ?> products found<?php echo $includeHiddenProducts ? ' including hidden products' : ''; ?>
@@ -444,6 +506,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
 <?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
 <?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
+<?php if ($fitmentModel): ?><input type="hidden" name="model" value="<?php echo htmlspecialchars($fitmentModel); ?>"><?php endif; ?>
 <?php if ($includeHiddenProducts): ?><input type="hidden" name="show_hidden" value="1"><?php endif; ?>
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
@@ -455,6 +518,7 @@ require_once __DIR__ . '/includes/header.php';
 if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
 if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
 if ($manufacturer) $clearParams[] = 'manufacturer=' . urlencode($manufacturer);
+if ($fitmentModel) $clearParams[] = 'model=' . urlencode($fitmentModel);
 if ($includeHiddenProducts) $clearParams[] = 'show_hidden=1';
 if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                 ?>
@@ -462,34 +526,61 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                     <i class="fas fa-times"></i> Clear
                                 </a>
                             <?php endif; ?>
-                            <button class="btn btn-danger" type="submit">
-                                <i class="fas fa-search"></i> Search
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+<button class="btn btn-danger" type="submit">
+<i class="fas fa-search"></i> Search
+</button>
+<button class="btn btn-outline-danger saved-search-save" type="button">
+<i class="fas fa-bookmark"></i> Save
+</button>
+</div>
+</form>
+</div>
+</div>
 
-            <!-- Manufacturer Filter -->
-            <?php if (!empty($allManufacturers)): ?>
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Filter by Manufacturer</label>
-                    <select class="form-select" id="manufacturerFilter">
-                        <option value="">All Manufacturers</option>
-                        <?php foreach ($allManufacturers as $mfg): ?>
-                            <option value="<?php echo htmlspecialchars($mfg); ?>" 
-                                    <?php echo $manufacturer === $mfg ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($mfg); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-            <?php endif; ?>
+<!-- Fitment Filters -->
+<?php if (!empty($allManufacturers) || !empty($allModels)): ?>
+<div class="row mb-4 g-3">
+<div class="col-md-6">
+                            <label class="form-label fw-bold">Make / Manufacturer</label>
+                            <select class="form-select" id="manufacturerFilter">
+                                <option value="">All Makes / Manufacturers</option>
+<?php foreach ($allManufacturers as $mfg): ?>
+<option value="<?php echo htmlspecialchars($mfg); ?>"
+<?php echo $manufacturer === $mfg ? 'selected' : ''; ?>>
+<?php echo htmlspecialchars($mfg); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+<div class="col-md-6">
+                            <label class="form-label fw-bold">Model / Fitment</label>
+                            <select class="form-select" id="modelFilter" <?php echo empty($allModels) ? 'disabled' : ''; ?>>
+                                <option value="">All Models / Fitments</option>
+<?php foreach ($allModels as $modelOption): ?>
+<option value="<?php echo htmlspecialchars($modelOption); ?>"
+<?php echo $fitmentModel === $modelOption ? 'selected' : ''; ?>>
+<?php echo htmlspecialchars($modelOption); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+</div>
+<?php endif; ?>
 
-            <!-- Products Grid -->
-            <?php if (empty($products)): ?>
+<div class="card border-0 shadow-sm mb-4 saved-searches-card">
+<div class="card-body py-3">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+<div>
+<h2 class="h6 fw-bold mb-1"><i class="fas fa-bookmark text-danger me-2"></i>Saved Searches</h2>
+<div class="small text-muted">Save fitment, keyword, and category searches on this device for quick return visits.</div>
+</div>
+<div id="savedSearches" class="d-flex flex-wrap gap-2 justify-content-lg-end"></div>
+</div>
+</div>
+</div>
+
+<!-- Products Grid -->
+<?php if (empty($products)): ?>
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-start gap-3">
@@ -497,10 +588,27 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                         <div>
                             <h4 class="mb-2">No exact matches found</h4>
                             <p class="text-muted mb-3">
-                                Try a broader keyword, remove a filter, or browse one of the highest-demand parts categories below.
+                                We checked close spellings and related terms. Try one related search, remove a filter, or browse high-demand categories below.
                                 Inventory changes often, so recently added and popular parts may still fit your project.
                             </p>
-                            <div class="d-flex flex-wrap gap-2">
+                        <?php if (!empty($searchSuggestions)): ?>
+                            <div class="mb-3">
+                                <div class="small fw-semibold text-muted mb-2">Try a related search:</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($searchSuggestions as $suggestion): ?>
+                                        <?php
+                                        $suggestionParams = $_GET;
+                                        $suggestionParams['search'] = $suggestion;
+                                        unset($suggestionParams['page'], $suggestionParams['collection']);
+                                        ?>
+                                        <a href="/products?<?php echo htmlspecialchars(http_build_query($suggestionParams)); ?>" class="btn btn-outline-secondary btn-sm">
+                                            <?php echo htmlspecialchars($suggestion); ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        <div class="d-flex flex-wrap gap-2">
                                 <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
                                 <a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
                                 <a href="/products/boat" class="btn btn-outline-danger btn-sm">Boat Parts</a>
@@ -530,11 +638,11 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
             <?php else: ?>
             <div class="row g-4">
                 <?php foreach ($products as $index => $product): ?>
-                    <?php 
+                    <?php
                     // Staggered animation with max delay cap of 400ms
-                    $delay = min(($index % 8) * 50, 400); 
+                    $delay = min(($index % 8) * 50, 400);
                     $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
-                    
+
                     // Normalize image path for display
                             $imageUrl = normalizeImagePath($product['image_url'] ?? null);
                             if (empty($imageUrl)) {
@@ -546,17 +654,17 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                         <div class="card product-card h-100">
                             <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none">
                                 <div class="position-relative">
-                                    <?php 
+                                    <?php
                                     // Check if image is external or local
                                     $isExternal = strpos($imageUrl, 'http://') === 0 || strpos($imageUrl, 'https://') === 0;
                                     $hasImage = !empty($imageUrl) && (
-                                        $isExternal || 
+                                        $isExternal ||
                                         file_exists(__DIR__ . $imageUrl)
                                     );
                                     ?>
                                     <?php if ($hasImage): ?>
-                                        <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
-                                             class="card-img-top product-image" 
+                                        <img src="<?php echo htmlspecialchars($imageUrl); ?>"
+                                             class="card-img-top product-image"
                                              alt="<?php echo htmlspecialchars($imageAltText); ?>"
                                              style="cursor: pointer;">
                                     <?php else: ?>
@@ -587,7 +695,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                     </a>
                                 </h6>
                                 <p class="card-text text-muted small flex-grow-1">
-                                    <?php 
+                                    <?php
                                     // Show eBay store category path if available
                                     $catPath = $productModel->getEbayStoreCategoryPath($product);
                                     if ($catPath): ?>
@@ -612,7 +720,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                         </div>
                                         <small class="text-muted">SKU: <?php echo htmlspecialchars($product['sku']); ?></small>
                                     </div>
-                                    <button class="btn btn-danger w-100 add-to-cart" 
+                                    <button class="btn btn-danger w-100 add-to-cart"
                                             data-id="<?php echo $product['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                             data-price="<?php echo $priceInfo['effective_price']; ?>"
@@ -639,60 +747,28 @@ data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']
             </div>
             <?php endif; ?>
 
-            <?php if (!empty($products) && (!empty($trendingProducts) || !empty($recentProducts))): ?>
-            <section class="mt-5" aria-labelledby="catalog-merchandising-heading">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div>
-                        <p class="text-danger text-uppercase fw-semibold small mb-1">More Ways To Shop</p>
-                        <h2 id="catalog-merchandising-heading" class="h4 fw-bold mb-0">Trending And Recently Added Parts</h2>
-                    </div>
-                    <a href="/products" class="btn btn-outline-danger btn-sm">View All Inventory</a>
-                </div>
-
-                <?php if (!empty($trendingProducts)): ?>
-                <div class="mb-4">
-                    <h3 class="h5 fw-bold mb-3">Trending Parts</h3>
-                    <div class="row g-4">
-                        <?php foreach ($trendingProducts as $index => $trendingProduct): ?>
-                            <?php echo fasProductCard($trendingProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <?php if (!empty($recentProducts)): ?>
-                <div>
-                    <h3 class="h5 fw-bold mb-3">Recently Added</h3>
-                    <div class="row g-4">
-                        <?php foreach ($recentProducts as $index => $recentProduct): ?>
-                            <?php echo fasProductCard($recentProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </section>
-            <?php endif; ?>
-
             <!-- Pagination -->
             <?php if ($totalPages > 1): ?>
                 <nav aria-label="Product pagination" class="mt-5">
                     <ul class="pagination justify-content-center flex-wrap">
                         <?php
                         // Build query parameters
-                        $queryParams = [];
-                        if ($ebayCat1) $queryParams[] = 'cat1=' . urlencode($ebayCat1);
-                        if ($ebayCat2) $queryParams[] = 'cat2=' . urlencode($ebayCat2);
-                        if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
+$queryParams = [];
+if ($discoveryCollection) $queryParams[] = 'collection=' . urlencode($discoveryCollection);
+if ($ebayCat1) $queryParams[] = 'cat1=' . urlencode($ebayCat1);
+if ($ebayCat2) $queryParams[] = 'cat2=' . urlencode($ebayCat2);
+if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
 if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
+if ($fitmentModel) $queryParams[] = 'model=' . urlencode($fitmentModel);
 if ($search) $queryParams[] = 'search=' . urlencode($search);
 if ($includeHiddenProducts) $queryParams[] = 'show_hidden=1';
 $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
-                        
+
                         // Smart pagination: show first, last, current and nearby pages with ellipsis
                         $paginationRange = 2;
                         $maxPagesToShowAll = 7;
                         $showPages = [];
-                        
+
                         if ($totalPages <= $maxPagesToShowAll) {
                             for ($i = 1; $i <= $totalPages; $i++) {
                                 $showPages[] = $i;
@@ -709,30 +785,30 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
                             sort($showPages);
                         }
                         ?>
-                        
+
                         <!-- Previous Button -->
                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
                             <a class="page-link" href="/products?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
-                        
-                        <?php 
+
+                        <?php
                         $prevPage = 0;
-                        foreach ($showPages as $i): 
+                        foreach ($showPages as $i):
                             if ($i - $prevPage > 1): ?>
                                 <li class="page-item disabled d-none d-sm-block">
                                     <span class="page-link">...</span>
                                 </li>
                             <?php endif; ?>
-                            
+
                             <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
                                 <a class="page-link" href="/products?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
                             </li>
-                            
+
                             <?php $prevPage = $i; ?>
                         <?php endforeach; ?>
-                        
+
                         <!-- Next Button -->
                         <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
                             <a class="page-link" href="/products?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" aria-label="Next">
@@ -751,7 +827,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 document.getElementById('categoryToggle').addEventListener('click', function() {
     const menu = document.getElementById('categoryMenu');
     const icon = this.querySelector('i');
-    
+
     if (menu.classList.contains('show')) {
         menu.classList.remove('show');
         icon.classList.remove('fa-chevron-down');
@@ -763,37 +839,133 @@ document.getElementById('categoryToggle').addEventListener('click', function() {
     }
 });
 
+const savedSearchStorageKey = 'fas_saved_product_searches';
+
+function getSavedSearches() {
+    try {
+        return JSON.parse(localStorage.getItem(savedSearchStorageKey) || '[]').filter(item => item && item.url && item.label);
+    } catch (error) {
+        return [];
+    }
+}
+
+function setSavedSearches(searches) {
+    localStorage.setItem(savedSearchStorageKey, JSON.stringify(searches.slice(0, 8)));
+}
+
+function currentSavedSearch() {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('page');
+    const hasSearch = ['search', 'manufacturer', 'model', 'cat1', 'cat2', 'cat3'].some(key => params.has(key));
+    if (!hasSearch) {
+        return null;
+    }
+
+    const title = document.querySelector('#productsContent h1')?.textContent.trim().replace(/\s+/g, ' ') || 'Saved parts search';
+    const keyword = params.get('search');
+    const fitment = [params.get('manufacturer'), params.get('model')].filter(Boolean).join(' ');
+    const label = keyword ? `Search: ${keyword}` : (fitment || title || 'Saved parts search');
+    return {
+        label,
+        url: '/products' + (params.toString() ? '?' + params.toString() : ''),
+        saved_at: Date.now()
+    };
+}
+
+function renderSavedSearches() {
+    const container = document.getElementById('savedSearches');
+    if (!container) return;
+
+    const searches = getSavedSearches();
+    container.innerHTML = '';
+
+    if (searches.length === 0) {
+        container.innerHTML = '<span class="small text-muted">No saved searches yet.</span>';
+        return;
+    }
+
+    searches.forEach((search, index) => {
+        const wrapper = document.createElement('span');
+        wrapper.className = 'btn-group btn-group-sm saved-search-pill';
+        wrapper.innerHTML = `
+            <a class="btn btn-outline-danger" href="${search.url}">${search.label}</a>
+            <button class="btn btn-outline-secondary saved-search-remove" type="button" data-saved-search-index="${index}" aria-label="Remove saved search">&times;</button>
+        `;
+        container.appendChild(wrapper);
+    });
+}
+
+document.addEventListener('click', event => {
+    const saveButton = event.target.closest('.saved-search-save');
+    if (saveButton) {
+        const savedSearch = currentSavedSearch();
+        if (!savedSearch) {
+            saveButton.blur();
+            return;
+        }
+
+        const searches = getSavedSearches().filter(item => item.url !== savedSearch.url);
+        searches.unshift(savedSearch);
+        setSavedSearches(searches);
+        renderSavedSearches();
+        saveButton.innerHTML = '<i class="fas fa-check"></i> Saved';
+        setTimeout(() => {
+            saveButton.innerHTML = '<i class="fas fa-bookmark"></i> Save';
+        }, 1600);
+        return;
+    }
+
+    const removeButton = event.target.closest('.saved-search-remove');
+    if (removeButton) {
+        const index = Number.parseInt(removeButton.dataset.savedSearchIndex || '-1', 10);
+        const searches = getSavedSearches();
+        if (index >= 0) {
+            searches.splice(index, 1);
+            setSavedSearches(searches);
+            renderSavedSearches();
+        }
+    }
+});
+
 // AJAX category filtering
 function attachCategoryHandlers() {
     document.querySelectorAll('.category-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             // Build URL parameters
             const params = new URLSearchParams(window.location.search);
-            
+
             // Reset category parameters
             params.delete('cat1');
             params.delete('cat2');
             params.delete('cat3');
+            params.delete('collection');
             params.delete('page'); // Reset to first page
-            
+
             // Add new category parameters
             const cat1 = this.dataset.cat1;
             const cat2 = this.dataset.cat2;
             const cat3 = this.dataset.cat3;
-            
+            const collection = this.dataset.collection;
+
             if (cat1) params.set('cat1', cat1);
             if (cat2) params.set('cat2', cat2);
             if (cat3) params.set('cat3', cat3);
-            
+            if (collection) {
+                params.set('collection', collection);
+                params.delete('search');
+                params.delete('manufacturer');
+                params.delete('model');
+            }
+
             // Update browser URL without refresh
             const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
             window.history.pushState({}, '', newUrl);
-            
+
             // Load products AND sidebar via AJAX
             loadProductsAndSidebar(params);
-            
+
             // Scroll to products on mobile for better UX
             if (window.innerWidth < 768) {
                 setTimeout(() => {
@@ -812,7 +984,7 @@ function loadProductsAndSidebar(params) {
     // Show loading state
     const content = document.getElementById('productsContent');
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
+
     // Fetch products with sidebar
     fetch('/api/products.php?' + params.toString() + '&include_sidebar=1')
         .then(response => {
@@ -826,7 +998,7 @@ function loadProductsAndSidebar(params) {
             console.log('API Response length:', text.length);
             console.log('API Response (first 500 chars):', text.substring(0, 500));
             console.log('API Response (last 100 chars):', text.substring(Math.max(0, text.length - 100)));
-            
+
             try {
                 const data = JSON.parse(text);
                 console.log('Parsed data keys:', Object.keys(data));
@@ -834,22 +1006,22 @@ function loadProductsAndSidebar(params) {
                 console.log('Sidebar length:', data.sidebar ? data.sidebar.length : 'null');
                 console.log('HTML preview (first 200 chars):', data.html ? data.html.substring(0, 200) : 'null');
                 console.log('HTML preview (last 200 chars):', data.html ? data.html.substring(Math.max(0, data.html.length - 200)) : 'null');
-                
+
                 if (data.error) {
                     throw new Error(data.message || 'Server error');
                 }
-                
+
                 if (!data.html) {
                     throw new Error('No HTML content in response');
                 }
-                
+
                 console.log('Setting content.innerHTML...');
                 console.log('Content element:', content);
                 console.log('Content element ID:', content ? content.id : 'null');
                 content.innerHTML = data.html;
                 console.log('Products HTML updated successfully');
                 console.log('Content element childElementCount after update:', content.childElementCount);
-                
+
                 // Remove AOS attributes from dynamically loaded content to prevent visibility issues
                 // AOS keeps elements hidden until they animate in, which doesn't work well with AJAX
                 const aosElements = content.querySelectorAll('[data-aos]');
@@ -883,13 +1055,15 @@ if (data.sidebar) {
                         console.warn('Sidebar container not found');
                     }
                 }
-                
+
                 // Reattach pagination click handlers
                 attachPaginationHandlers();
-                
-                // Reattach manufacturer filter handler
-                attachManufacturerFilterHandler();
-            } catch (parseError) {
+
+// Reattach manufacturer filter handler
+attachManufacturerFilterHandler();
+attachModelFilterHandler();
+renderSavedSearches();
+} catch (parseError) {
                 console.error('JSON Parse Error:', parseError);
                 console.error('Response text:', text);
                 content.innerHTML = '<div class="alert alert-danger">Error parsing server response. Check console for details.</div>';
@@ -910,17 +1084,17 @@ function attachPaginationHandlers() {
                 e.preventDefault();
                 return;
             }
-            
+
             e.preventDefault();
             const url = new URL(this.href);
             const params = new URLSearchParams(url.search);
-            
+
             // Update browser URL
             window.history.pushState({}, '', url.pathname + url.search);
-            
+
             // Load products
             loadProductsAndSidebar(params);
-            
+
             // Scroll to top of products
             document.getElementById('productsContent').scrollIntoView({ behavior: 'smooth' });
         });
@@ -937,15 +1111,34 @@ window.addEventListener('popstate', function() {
 function handleManufacturerChange() {
     const params = new URLSearchParams(window.location.search);
     const mfg = this.value;
-    
+
     if (mfg) {
         params.set('manufacturer', mfg);
     } else {
         params.delete('manufacturer');
     }
+    params.delete('collection');
+    params.delete('model');
     params.delete('page'); // Reset to first page
-    
+
     // Update URL and load products
+    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState({}, '', newUrl);
+    loadProductsAndSidebar(params);
+}
+
+function handleModelChange() {
+    const params = new URLSearchParams(window.location.search);
+    const model = this.value;
+
+    if (model) {
+        params.set('model', model);
+    } else {
+        params.delete('model');
+    }
+    params.delete('collection');
+    params.delete('page');
+
     const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
     window.history.pushState({}, '', newUrl);
     loadProductsAndSidebar(params);
@@ -958,29 +1151,42 @@ function attachManufacturerFilterHandler() {
         // Remove any existing listener by cloning and replacing the element
         const newElement = filterElement.cloneNode(true);
         filterElement.parentNode.replaceChild(newElement, filterElement);
-        
+
         // Add event listener to the new element
         newElement.addEventListener('change', handleManufacturerChange);
     }
 }
 
+function attachModelFilterHandler() {
+    const filterElement = document.getElementById('modelFilter');
+    if (filterElement) {
+        const newElement = filterElement.cloneNode(true);
+        filterElement.parentNode.replaceChild(newElement, filterElement);
+
+        newElement.addEventListener('change', handleModelChange);
+    }
+}
+
 // Handle manufacturer filter change
 attachManufacturerFilterHandler();
+attachModelFilterHandler();
+renderSavedSearches();
 
 // Handle search form submission
 document.getElementById('search-form')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const params = new URLSearchParams(window.location.search);
     const searchTerm = document.getElementById('product-search').value;
-    
+
     if (searchTerm) {
         params.set('search', searchTerm);
     } else {
         params.delete('search');
     }
+    params.delete('collection');
     params.delete('page'); // Reset to first page
-    
+
     // Update URL and load products
     const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
     window.history.pushState({}, '', newUrl);
@@ -997,7 +1203,7 @@ attachPaginationHandlers();
     #categoryMenu.collapse:not(.show) {
         display: none;
     }
-    
+
     #categoryMenu.collapse.show {
         display: block;
     }

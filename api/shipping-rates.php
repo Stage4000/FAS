@@ -9,12 +9,14 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
+require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Integrations\EasyShipAPI;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
+use FAS\Utils\ErrorMonitor;
 
 header('Content-Type: application/json');
 
@@ -154,6 +156,17 @@ try {
     $rates = $easyship->getShippingRates($ratedItems, $input['address'], $warehouse);
 
     if ($rates === null) {
+        $monitor = new ErrorMonitor($db);
+        $monitor->record(ErrorMonitor::AREA_SHIPPING, 'Shipping rates returned null from EasyShip.', [
+            'source' => 'api/shipping-rates.php',
+            'severity' => 'error',
+            'metadata' => [
+                'items_count' => count($ratedItems),
+                'destination_state' => $input['address']['state'] ?? null,
+                'destination_zip' => $input['address']['zip'] ?? null,
+                'warehouse_id' => $warehouse['id'] ?? null,
+            ],
+        ]);
         fasShippingRatesError(500, 'Failed to fetch shipping rates. Please check your address and try again.');
     }
 
@@ -168,5 +181,20 @@ try {
     ]);
 } catch (Throwable $e) {
     error_log('Shipping rates API error: ' . $e->getMessage());
+    try {
+        if (!isset($db)) {
+            $db = Database::getInstance()->getConnection();
+        }
+        $monitor = new ErrorMonitor($db);
+        $monitor->recordThrowable(ErrorMonitor::AREA_SHIPPING, $e, [
+            'source' => 'api/shipping-rates.php',
+            'severity' => 'error',
+            'metadata' => [
+                'input_preview' => isset($input) ? array_intersect_key((array)$input, array_flip(['address', 'items'])) : null,
+            ],
+        ]);
+    } catch (Throwable $monitorError) {
+        error_log('Shipping rates error monitor write failed: ' . $monitorError->getMessage());
+    }
     fasShippingRatesError(500, 'An error occurred while calculating shipping rates. Please try again.');
 }

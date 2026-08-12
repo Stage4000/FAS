@@ -17,12 +17,37 @@
     const visitorStateKey = 'fas_visitor_state';
     const adminHintKey = 'fas_admin_analytics_hint';
     const adminMarkerEndpoint = '/admin/mark-analytics-session.php';
+    const errorEndpoint = '/api/log-client-error.php';
     const currentPagePath = location.pathname + location.search;
 
     let maxScrollDepth = 0;
     let flushTimer = null;
     let flushInFlight = null;
     let exitSent = false;
+
+    function reportClientError(area, message, context, error) {
+        try {
+            const payload = {
+                area: area || 'analytics',
+                severity: context && context.severity ? context.severity : 'error',
+                source: 'public/js/analytics.js',
+                message: message || (error && error.message) || 'Client error',
+                url: location.href,
+                page: currentPagePath,
+                session_id: sessionId,
+                context: context || {},
+                stack: error && error.stack ? error.stack : ''
+            };
+
+            fetch(errorEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin',
+                keepalive: true
+            }).catch(() => {});
+        } catch (ignored) {}
+    }
 
     const eventAliases = {
         cart_item_added: 'add_to_cart',
@@ -583,10 +608,15 @@
                 }
                 return response.json().catch(() => ({}));
             })
-            .catch(() => {
-                events.reverse().forEach(event => queue.unshift(event));
-                return false;
-            })
+ .catch(error => {
+ reportClientError('analytics', 'Analytics event upload failed.', {
+ severity: 'warning',
+ queued_events: events.length,
+ endpoint
+ }, error);
+ events.reverse().forEach(event => queue.unshift(event));
+ return false;
+ })
             .finally(() => {
                 flushInFlight = null;
                 if (queue.length > 0 && !useBeacon) {
@@ -995,6 +1025,21 @@
 
     window.addEventListener('pagehide', sendExit);
     window.addEventListener('online', () => flush(false));
+    window.addEventListener('error', event => {
+        reportClientError('analytics', event.message || 'Unhandled browser error', {
+            severity: 'error',
+            filename: event.filename || '',
+            line: event.lineno || 0,
+            column: event.colno || 0
+        }, event.error || null);
+    });
+    window.addEventListener('unhandledrejection', event => {
+        const reason = event.reason;
+        reportClientError('analytics', reason && reason.message ? reason.message : 'Unhandled browser promise rejection', {
+            severity: 'error',
+            reason: String(reason || '')
+        }, reason instanceof Error ? reason : null);
+    });
 
     window.setInterval(() => {
         track('session_heartbeat', {

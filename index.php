@@ -17,7 +17,9 @@ $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $sellerRating = fasGetCachedSellerRating();
 $trendingProducts = fasAnalyticsRankedProducts($db, $productModel, 8);
-$recentProducts = $productModel->getRecentVisible(8, array_column($trendingProducts, 'id'));
+$bestSellingProducts = fasBestSellingProducts($db, $productModel, 8, array_column($trendingProducts, 'id'));
+$recentExcludeIds = array_merge(array_column($trendingProducts, 'id'), array_column($bestSellingProducts, 'id'));
+$recentProducts = $productModel->getRecentVisible(8, $recentExcludeIds);
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -115,7 +117,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h2 class="fw-bold mb-0">Trending Parts</h2>
                 <p class="text-muted mb-0">Products ranked from views, carts, and completed-order activity.</p>
             </div>
-            <a href="/products" class="btn btn-outline-danger">Shop All Products</a>
+            <a href="/products?collection=trending" class="btn btn-outline-danger">Shop Trending Parts</a>
         </div>
         <div class="row g-4">
             <?php foreach ($trendingProducts as $index => $trendingProduct): ?>
@@ -126,16 +128,36 @@ require_once __DIR__ . '/includes/header.php';
 </section>
 <?php endif; ?>
 
-<?php if (!empty($recentProducts)): ?>
+<?php if (!empty($bestSellingProducts)): ?>
 <section class="py-5">
-    <div class="container">
+<div class="container">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
+<div>
+<p class="text-danger text-uppercase fw-semibold small mb-1">Customer Favorites</p>
+<h2 class="fw-bold mb-0">Best Sellers</h2>
+<p class="text-muted mb-0">Parts with recent completed-order activity, with demand-based fallback when sales data is limited.</p>
+</div>
+<a href="/products?collection=best" class="btn btn-outline-danger">Shop Best Sellers</a>
+</div>
+<div class="row g-4">
+<?php foreach ($bestSellingProducts as $index => $bestSellingProduct): ?>
+<?php echo fasProductCard($bestSellingProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 50, 300)); ?>
+<?php endforeach; ?>
+</div>
+</div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($recentProducts)): ?>
+<section class="py-5 bg-light">
+<div class="container">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
             <div>
                 <p class="text-danger text-uppercase fw-semibold small mb-1">Fresh Inventory</p>
-                <h2 class="fw-bold mb-0">Recently Added Parts</h2>
+                <h2 class="fw-bold mb-0">Recent Arrivals</h2>
                 <p class="text-muted mb-0">New listings give returning shoppers a reason to keep checking the catalog.</p>
             </div>
-            <a href="/products" class="btn btn-outline-danger">View Recent Inventory</a>
+            <a href="/products?collection=recent" class="btn btn-outline-danger">View Recent Inventory</a>
         </div>
         <div class="row g-4">
             <?php foreach ($recentProducts as $index => $recentProduct): ?>

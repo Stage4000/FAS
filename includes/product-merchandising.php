@@ -152,24 +152,51 @@ function fasAnalyticsRankedProducts(\PDO $db, Product $productModel, int $limit 
     return array_slice($products, 0, $limit);
 }
 
+function fasBestSellingProducts(\PDO $db, Product $productModel, int $limit = 8, array $excludeIds = [], int $days = 90): array
+{
+    $excludeIds = array_values(array_unique(array_filter(array_map('intval', $excludeIds))));
+    $products = [];
+
+    try {
+        $products = $productModel->getBestSellingVisible($limit, $days, $excludeIds);
+    } catch (Throwable $e) {
+        error_log('Merchandising best-seller lookup failed: ' . $e->getMessage());
+    }
+
+    if (count($products) < $limit) {
+        $fallbackExclude = array_merge($excludeIds, array_column($products, 'id'));
+        $products = array_merge($products, fasAnalyticsRankedProducts($db, $productModel, $limit - count($products), $fallbackExclude, 30));
+    }
+
+    return array_slice($products, 0, $limit);
+}
+
 function fasRelatedMerchandisingProducts(\PDO $db, Product $productModel, array $product, int $limit = 4): array
 {
     $currentId = (int)($product['id'] ?? 0);
     $category = fasProductCategoryLabel($product);
     $manufacturer = trim((string)($product['manufacturer'] ?? ''));
+    $model = trim((string)($product['model'] ?? ''));
     $ranked = fasAnalyticsRankedProducts($db, $productModel, $limit * 3, [$currentId]);
-    $related = [];
+    $exactFitmentMatches = [];
+    $broadMatches = [];
 
     foreach ($ranked as $candidate) {
         $candidateCategory = fasProductCategoryLabel($candidate);
         $candidateManufacturer = trim((string)($candidate['manufacturer'] ?? ''));
-        if (($category !== '' && $candidateCategory === $category) || ($manufacturer !== '' && $candidateManufacturer === $manufacturer)) {
-            $related[] = $candidate;
+        $candidateModel = trim((string)($candidate['model'] ?? ''));
+
+        if ($manufacturer !== '' && $model !== '' && $candidateManufacturer === $manufacturer && $candidateModel === $model) {
+            $exactFitmentMatches[] = $candidate;
+            continue;
         }
-        if (count($related) >= $limit) {
-            break;
+
+        if (($category !== '' && $candidateCategory === $category) || ($manufacturer !== '' && $candidateManufacturer === $manufacturer)) {
+            $broadMatches[] = $candidate;
         }
     }
+
+    $related = array_slice(array_merge($exactFitmentMatches, $broadMatches), 0, $limit);
 
     if (count($related) < $limit) {
         $fallbackExclude = array_merge([$currentId], array_column($related, 'id'));

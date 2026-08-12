@@ -158,6 +158,7 @@ if (!is_array($payload)) {
 try {
     require_once __DIR__ . '/../src/config/Database.php';
     require_once __DIR__ . '/../src/utils/Analytics.php';
+    require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
     $db = \FAS\Config\Database::getInstance()->getConnection();
     $analytics = new \FAS\Utils\Analytics($db);
@@ -169,6 +170,23 @@ try {
     ]);
 } catch (\Throwable $e) {
     error_log('Analytics event failed: ' . $e->getMessage());
+    try {
+        if (!isset($db)) {
+            require_once __DIR__ . '/../src/config/Database.php';
+            $db = \FAS\Config\Database::getInstance()->getConnection();
+        }
+        require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
+        $monitor = new \FAS\Utils\ErrorMonitor($db);
+        $monitor->recordThrowable(\FAS\Utils\ErrorMonitor::AREA_ANALYTICS, $e, [
+            'source' => 'api/track-event.php',
+            'severity' => 'error',
+            'metadata' => [
+                'payload_preview' => isset($rawBody) ? substr((string)$rawBody, 0, 500) : null,
+            ],
+        ]);
+    } catch (\Throwable $monitorError) {
+        error_log('Analytics error monitor write failed: ' . $monitorError->getMessage());
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Failed to record analytics event']);
 }

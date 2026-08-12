@@ -13,11 +13,13 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Order.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/integrations/PayPalAPI.php';
+require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Models\Order;
 use FAS\Models\Product;
 use FAS\Integrations\PayPalAPI;
+use FAS\Utils\ErrorMonitor;
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -58,6 +60,23 @@ try {
     
 } catch (Exception $e) {
     error_log('Order API Error: ' . $e->getMessage());
+    try {
+        if (!isset($db)) {
+            $db = Database::getInstance()->getConnection();
+        }
+        $monitor = new ErrorMonitor($db);
+        $monitor->recordThrowable(ErrorMonitor::AREA_CHECKOUT, $e, [
+            'source' => 'api/process-order.php',
+            'severity' => 'error',
+            'metadata' => [
+                'action' => $action ?? null,
+                'customer_email' => $input['customer_email'] ?? null,
+                'items_count' => isset($input['items']) && is_array($input['items']) ? count($input['items']) : null,
+            ],
+        ]);
+    } catch (Throwable $monitorError) {
+        error_log('Order API error monitor write failed: ' . $monitorError->getMessage());
+    }
     http_response_code(500);
     echo json_encode(['error' => 'Internal server error', 'message' => $e->getMessage()]);
 }
@@ -263,10 +282,25 @@ function completeOrder($input, $orderModel, $productModel)
             }
         }
         
-        if (!empty($inventoryIssues)) {
-            $db->rollBack();
-            error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
-            http_response_code(409);
+    if (!empty($inventoryIssues)) {
+        $db->rollBack();
+        error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
+        try {
+            $monitor = new ErrorMonitor($db);
+            $monitor->record(ErrorMonitor::AREA_CHECKOUT, 'Order completion blocked by inventory availability.', [
+                'source' => 'api/process-order.php',
+                'severity' => 'warning',
+                'order_id' => $order['id'] ?? null,
+                'paypal_order_id' => $paypalOrderId ?? null,
+                'metadata' => [
+                    'order_number' => $order['order_number'] ?? null,
+                    'inventory_issues' => $inventoryIssues,
+                ],
+            ]);
+        } catch (Throwable $monitorError) {
+            error_log('Inventory conflict error monitor write failed: ' . $monitorError->getMessage());
+        }
+        http_response_code(409);
             echo json_encode([
                 'error' => 'Inventory no longer available',
                 'details' => $inventoryIssues
@@ -311,6 +345,21 @@ function completeOrder($input, $orderModel, $productModel)
             $db->rollBack();
         }
         error_log('Order completion failed for order #' . $order['order_number'] . ': ' . $e->getMessage());
+        try {
+            $monitor = new ErrorMonitor($db);
+            $monitor->recordThrowable(ErrorMonitor::AREA_CHECKOUT, $e, [
+                'source' => 'api/process-order.php',
+                'severity' => 'critical',
+                'order_id' => $order['id'] ?? null,
+                'paypal_order_id' => $paypalOrderId ?? null,
+                'metadata' => [
+                    'order_number' => $order['order_number'] ?? null,
+                    'action' => 'complete_order',
+                ],
+            ]);
+        } catch (Throwable $monitorError) {
+            error_log('Order completion error monitor write failed: ' . $monitorError->getMessage());
+        }
         http_response_code(500);
         echo json_encode([
             'error' => 'Failed to complete order',

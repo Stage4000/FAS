@@ -219,6 +219,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'bulk_update':
+                $selectedProductIds = $_POST['selected_products'] ?? [];
+                if (!is_array($selectedProductIds)) {
+                    $selectedProductIds = [];
+                }
+                $selectedProductIds = array_values(array_unique(array_filter(array_map('intval', $selectedProductIds), function ($id) {
+                    return $id > 0;
+                })));
+
+                $bulkAction = $_POST['bulk_action'] ?? '';
+                $bulkUpdates = [];
+                $onlyMissingShipping = false;
+
+                if (empty($selectedProductIds)) {
+                    $error = 'Select at least one product before applying a bulk action';
+                } else {
+                    switch ($bulkAction) {
+                        case 'show':
+                            $bulkUpdates['show_on_website'] = 1;
+                            break;
+
+                        case 'hide':
+                            $bulkUpdates['show_on_website'] = 0;
+                            break;
+
+                        case 'enable_free_shipping':
+                            $bulkUpdates['free_shipping'] = 1;
+                            break;
+
+                        case 'disable_free_shipping':
+                            $bulkUpdates['free_shipping'] = 0;
+                            break;
+
+                        case 'assign_category':
+                            $bulkCategory = trim((string)($_POST['bulk_category'] ?? ''));
+                            $allowedCategories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
+                            if (!in_array($bulkCategory, $allowedCategories, true)) {
+                                $error = 'Select a valid category to assign';
+                            } else {
+                                $bulkUpdates['category'] = $bulkCategory;
+                            }
+                            break;
+
+                        case 'update_fitment':
+                            $bulkManufacturer = trim((string)($_POST['bulk_manufacturer'] ?? ''));
+                            $bulkModel = trim((string)($_POST['bulk_model'] ?? ''));
+                            if ($bulkManufacturer !== '') {
+                                $bulkUpdates['manufacturer'] = $bulkManufacturer;
+                            }
+                            if ($bulkModel !== '') {
+                                $bulkUpdates['model'] = $bulkModel;
+                            }
+                            if (empty($bulkUpdates)) {
+                                $error = 'Enter a manufacturer and/or model to update';
+                            }
+                            break;
+
+                        case 'fix_shipping':
+                            foreach (['weight', 'length', 'width', 'height'] as $shippingField) {
+                                $postedValue = $_POST['bulk_' . $shippingField] ?? '';
+                                if ($postedValue === '') {
+                                    continue;
+                                }
+                                $numericValue = (float)$postedValue;
+                                if ($numericValue <= 0) {
+                                    $error = ucfirst($shippingField) . ' must be greater than zero';
+                                    break;
+                                }
+                                $bulkUpdates[$shippingField] = $numericValue;
+                            }
+                            if (empty($bulkUpdates) && empty($error)) {
+                                $error = 'Enter at least one shipping value to apply';
+                            }
+                            $onlyMissingShipping = isset($_POST['only_missing_shipping']);
+                            break;
+
+                        default:
+                            $error = 'Select a valid bulk action';
+                            break;
+                    }
+                }
+
+                if (empty($error)) {
+                    $updatedCount = $productModel->bulkUpdateProducts($selectedProductIds, $bulkUpdates, $onlyMissingShipping);
+                    $selectedCount = count($selectedProductIds);
+                    if ($updatedCount > 0) {
+                        $success = "Bulk action applied to {$updatedCount} of {$selectedCount} selected products";
+                    } else {
+                        $success = "No selected products needed changes";
+                    }
+                }
+
+                $action = 'list';
+                break;
+
             case 'toggle_visibility':
                 $productId = intval($_POST['product_id']);
                 $result = $productModel->toggleWebsiteVisibility($productId);
@@ -271,12 +366,16 @@ $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $perPage = 20;
 $search = $_GET['search'] ?? '';
 $sourceFilter = $_GET['source'] ?? '';
+$visibilityFilter = $_GET['visibility'] ?? '';
+if (!in_array($visibilityFilter, ['', 'visible', 'hidden'], true)) {
+    $visibilityFilter = '';
+}
 $products = [];
 $totalProducts = 0;
 
 if ($action === 'list') {
-    $products = $productModel->getAllProducts($page, $perPage, $search, $sourceFilter);
-    $totalProducts = $productModel->getCountAll($search, $sourceFilter);
+    $products = $productModel->getAllProducts($page, $perPage, $search, $sourceFilter, $visibilityFilter);
+    $totalProducts = $productModel->getCountAll($search, $sourceFilter, $visibilityFilter);
     $totalPages = ceil($totalProducts / $perPage);
 }
 
@@ -309,10 +408,16 @@ if ($action === 'list') {
             <h1 class="mb-4">
                 <i class="fas fa-box me-2"></i>Products
             </h1>
-            <div class="btn-toolbar mb-2 mb-md-0">
-                <a href="?action=create" class="btn btn-primary">
-                    <i class="fas fa-plus-circle me-1"></i> Add Product
-                </a>
+<div class="btn-toolbar mb-2 mb-md-0 gap-2">
+<a href="product-quality.php" class="btn btn-outline-primary">
+<i class="fas fa-clipboard-check me-1"></i> Product Quality
+</a>
+<a href="stale-inventory.php" class="btn btn-outline-danger">
+<i class="fas fa-fire me-1"></i> Stale Inventory
+</a>
+<a href="?action=create" class="btn btn-primary">
+<i class="fas fa-plus-circle me-1"></i> Add Product
+</a>
             </div>
         </div>
 
@@ -334,7 +439,7 @@ if ($action === 'list') {
         <div class="card mb-3">
             <div class="card-body">
                 <form method="GET" class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <input type="text" class="form-control" name="search" placeholder="Search products..." value="<?php echo htmlspecialchars($search); ?>">
                     </div>
                     <div class="col-md-3">
@@ -345,11 +450,109 @@ if ($action === 'list') {
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <select class="form-select" name="visibility">
+                            <option value="" <?php echo $visibilityFilter === '' ? 'selected' : ''; ?>>All Visibility</option>
+                            <option value="visible" <?php echo $visibilityFilter === 'visible' ? 'selected' : ''; ?>>Visible Products</option>
+                            <option value="hidden" <?php echo $visibilityFilter === 'hidden' ? 'selected' : ''; ?>>Hidden Products</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">Search</button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <form method="POST" id="bulkProductsForm" class="mb-0">
+            <input type="hidden" name="action" value="bulk_update">
+
+            <!-- Bulk Product Actions -->
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3">
+                        <div>
+                            <h2 class="h5 mb-1">
+                                <i class="fas fa-layer-group text-primary me-2"></i>Bulk Product Actions
+                            </h2>
+                            <p class="text-muted mb-0 small">
+                                Select products below, then update visibility, free shipping, category, fitment, or missing shipping data.
+                            </p>
+                        </div>
+                        <div class="d-flex flex-column flex-lg-row gap-2 flex-grow-1 justify-content-xl-end">
+                            <select class="form-select" name="bulk_action" id="bulkActionSelect" style="max-width: 260px;">
+                                <option value="">Choose bulk action</option>
+                                <option value="show">Show on website</option>
+                                <option value="hide">Hide from website</option>
+                                <option value="enable_free_shipping">Enable free shipping</option>
+                                <option value="disable_free_shipping">Disable free shipping</option>
+                                <option value="assign_category">Assign category</option>
+                                <option value="update_fitment">Update manufacturer / model</option>
+                                <option value="fix_shipping">Fix missing shipping data</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary" id="bulkApplyButton" disabled>
+                                <i class="fas fa-check me-1"></i>Apply to Selected
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2 d-none bulk-action-fields" data-bulk-fields="assign_category">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Website Category</label>
+                            <select class="form-select" name="bulk_category">
+                                <option value="">Select category</option>
+                                <option value="motorcycle">Motorcycle Parts</option>
+                                <option value="atv">ATV/UTV Parts</option>
+                                <option value="boat">Boat Parts</option>
+                                <option value="automotive">Automotive Parts</option>
+                                <option value="gifts">Gifts</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2 d-none bulk-action-fields" data-bulk-fields="update_fitment">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Manufacturer</label>
+                            <input type="text" class="form-control" name="bulk_manufacturer" placeholder="Leave blank to keep existing">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Model / Fitment</label>
+                            <input type="text" class="form-control" name="bulk_model" placeholder="Leave blank to keep existing">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2 d-none bulk-action-fields" data-bulk-fields="fix_shipping">
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Weight</label>
+                            <input type="number" class="form-control" name="bulk_weight" min="0" step="0.01" placeholder="lb">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Length</label>
+                            <input type="number" class="form-control" name="bulk_length" min="0" step="0.01" placeholder="in">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Width</label>
+                            <input type="number" class="form-control" name="bulk_width" min="0" step="0.01" placeholder="in">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Height</label>
+                            <input type="number" class="form-control" name="bulk_height" min="0" step="0.01" placeholder="in">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="only_missing_shipping" id="onlyMissingShipping" checked>
+                                <label class="form-check-label small" for="onlyMissingShipping">
+                                    Only fill blank or zero shipping fields
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="small text-muted mt-3" id="bulkSelectionSummary">
+                        0 products selected.
+                    </div>
+                </div>
+            </div>
 
         <!-- Products Table -->
         <div class="card">
@@ -358,6 +561,9 @@ if ($action === 'list') {
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th style="width: 42px;">
+                                    <input class="form-check-input" type="checkbox" id="selectAllProducts" aria-label="Select all products on this page">
+                                </th>
                                 <th>Image</th>
                                 <th>Name</th>
                                 <th>SKU</th>
@@ -371,7 +577,7 @@ if ($action === 'list') {
                         <tbody>
                             <?php if (empty($products)): ?>
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
+                                    <td colspan="9" class="text-center text-muted py-4">
                                         No products found. <a href="?action=create">Add your first product</a>
                                     </td>
                                 </tr>
@@ -382,6 +588,9 @@ if ($action === 'list') {
                                 $qualifiesForFreeShipping = ShippingRules::productQualifiesForFreeShipping($prod, $freeShippingSettings);
                                 ?>
                                 <tr>
+                                                    <td>
+                                                        <input class="form-check-input product-select" type="checkbox" name="selected_products[]" value="<?php echo $prod['id']; ?>" aria-label="Select <?php echo htmlspecialchars($prod['name']); ?>">
+                                                    </td>
                                                     <td>
                                                         <?php if ($prod['image_url']): ?>
                                                             <?php
@@ -432,20 +641,20 @@ if ($action === 'list') {
                                                     </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
+                                        <a href="?action=edit&id=<?php echo $prod['id']; ?>" class="btn btn-outline-primary" title="Edit product">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                         <button type="button"
                                                 class="btn <?php echo $manualFreeShipping ? 'btn-success' : 'btn-outline-success'; ?> free-shipping-toggle"
                                                 data-product-id="<?php echo $prod['id']; ?>"
                                                 data-enabled="<?php echo $manualFreeShipping ? '1' : '0'; ?>"
-                                                title="<?php echo $manualFreeShipping ? 'Disable product-level free shipping' : 'Enable product-level free shipping'; ?>"
-                                                aria-label="<?php echo $manualFreeShipping ? 'Disable product-level free shipping' : 'Enable product-level free shipping'; ?>">
+                                                title="<?php echo $manualFreeShipping ? 'Disable free shipping' : 'Enable free shipping'; ?>"
+                                                aria-label="<?php echo $manualFreeShipping ? 'Disable free shipping' : 'Enable free shipping'; ?>">
                                             <i class="fas fa-truck-fast"></i>
                                         </button>
-                                        <a href="?action=edit&id=<?php echo $prod['id']; ?>" class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
                                                             <button type="button" class="btn btn-outline-danger delete-product"
                                                                     data-product-id="<?php echo $prod['id']; ?>"
-                                                                    data-product-name="<?php echo htmlspecialchars($prod['name']); ?>" title="Delete">
+                                                                    data-product-name="<?php echo htmlspecialchars($prod['name']); ?>" title="Delete product">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
                                                         </div>
@@ -463,7 +672,7 @@ if ($action === 'list') {
                                     <ul class="pagination justify-content-center">
                                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                             <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                                                <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&source=<?php echo urlencode($sourceFilter); ?>">
+                                                <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&source=<?php echo urlencode($sourceFilter); ?>&visibility=<?php echo urlencode($visibilityFilter); ?>">
                                                     <?php echo $i; ?>
                                                 </a>
                                             </li>
@@ -472,6 +681,7 @@ if ($action === 'list') {
                                 </nav>
                             <?php endif; ?>
                     </div>
+        </form>
 
     <?php elseif ($action === 'create' || $action === 'edit'): ?>
     <!-- Product Form -->
@@ -846,9 +1056,84 @@ if ($action === 'list') {
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
 
-    <script>
-        // Visibility toggle
-        document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+<script>
+// Bulk product actions
+const bulkProductsForm = document.getElementById('bulkProductsForm');
+const bulkActionSelect = document.getElementById('bulkActionSelect');
+const bulkApplyButton = document.getElementById('bulkApplyButton');
+const bulkSelectionSummary = document.getElementById('bulkSelectionSummary');
+const selectAllProducts = document.getElementById('selectAllProducts');
+
+function getSelectedProductCheckboxes() {
+    return Array.from(document.querySelectorAll('.product-select:checked'));
+}
+
+function updateBulkActionUi() {
+    const selectedCount = getSelectedProductCheckboxes().length;
+    const action = bulkActionSelect ? bulkActionSelect.value : '';
+    const productCheckboxes = Array.from(document.querySelectorAll('.product-select'));
+
+    if (bulkSelectionSummary) {
+        bulkSelectionSummary.textContent = selectedCount === 1 ? '1 product selected.' : `${selectedCount} products selected.`;
+    }
+
+    if (bulkApplyButton) {
+        bulkApplyButton.disabled = selectedCount === 0 || action === '';
+    }
+
+    if (selectAllProducts) {
+        selectAllProducts.checked = productCheckboxes.length > 0 && selectedCount === productCheckboxes.length;
+        selectAllProducts.indeterminate = selectedCount > 0 && selectedCount < productCheckboxes.length;
+    }
+
+    document.querySelectorAll('.bulk-action-fields').forEach(group => {
+        group.classList.toggle('d-none', group.dataset.bulkFields !== action);
+    });
+}
+
+if (selectAllProducts) {
+    selectAllProducts.addEventListener('change', function() {
+        document.querySelectorAll('.product-select').forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkActionUi();
+    });
+}
+
+document.querySelectorAll('.product-select').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionUi);
+});
+
+if (bulkActionSelect) {
+    bulkActionSelect.addEventListener('change', updateBulkActionUi);
+}
+
+if (bulkProductsForm) {
+    bulkProductsForm.addEventListener('submit', function(event) {
+        const selectedCount = getSelectedProductCheckboxes().length;
+        const action = bulkActionSelect ? bulkActionSelect.value : '';
+
+        if (selectedCount === 0 || action === '') {
+            event.preventDefault();
+            alert('Select products and choose a bulk action first.');
+            return;
+        }
+
+        const destructiveActions = {
+            hide: 'Hide selected products from the website?',
+            disable_free_shipping: 'Disable product-level free shipping for selected products?'
+        };
+
+        if (destructiveActions[action] && !confirm(destructiveActions[action])) {
+            event.preventDefault();
+        }
+    });
+}
+
+updateBulkActionUi();
+
+// Visibility toggle
+document.querySelectorAll('.visibility-toggle').forEach(toggle => {
             toggle.addEventListener('change', async function() {
                 const productId = this.dataset.productId;
                 const formData = new FormData();
@@ -900,7 +1185,7 @@ if ($action === 'list') {
                     this.dataset.enabled = enabled ? '1' : '0';
                     this.classList.toggle('btn-success', enabled);
                     this.classList.toggle('btn-outline-success', !enabled);
-                    this.title = enabled ? 'Disable product-level free shipping' : 'Enable product-level free shipping';
+                this.title = enabled ? 'Disable free shipping' : 'Enable free shipping';
                     this.setAttribute('aria-label', this.title);
 
                     const status = this.closest('tr')?.querySelector('.free-shipping-status');

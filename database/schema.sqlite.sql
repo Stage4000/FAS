@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
     items_added INTEGER DEFAULT 0,
     items_updated INTEGER DEFAULT 0,
     items_failed INTEGER DEFAULT 0,
+    items_hidden INTEGER NOT NULL DEFAULT 0,
     status TEXT DEFAULT 'running',
     error_message TEXT,
     started_at TEXT DEFAULT (datetime('now')),
@@ -149,6 +150,74 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
 
 CREATE INDEX IF NOT EXISTS idx_ebay_sync_log_status ON ebay_sync_log(status);
 CREATE INDEX IF NOT EXISTS idx_ebay_sync_log_sync_type ON ebay_sync_log(sync_type);
+
+CREATE TABLE IF NOT EXISTS ebay_sync_item_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sync_log_id INTEGER,
+    ebay_item_id TEXT,
+    product_id INTEGER,
+    product_name TEXT,
+    product_sku TEXT,
+    ebay_url TEXT,
+    event_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    message TEXT,
+    error_message TEXT,
+    metadata TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    last_retry_at TEXT,
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_item_events_sync_log ON ebay_sync_item_events(sync_log_id);
+CREATE INDEX IF NOT EXISTS idx_sync_item_events_item ON ebay_sync_item_events(ebay_item_id);
+CREATE INDEX IF NOT EXISTS idx_sync_item_events_type_status ON ebay_sync_item_events(event_type, status);
+CREATE INDEX IF NOT EXISTS idx_sync_item_events_created ON ebay_sync_item_events(created_at);
+
+CREATE TABLE IF NOT EXISTS ebay_sync_api_errors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sync_log_id INTEGER,
+    api_call TEXT,
+    error_code TEXT,
+    error_message TEXT NOT NULL,
+    request_context TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TEXT DEFAULT (datetime('now')),
+    resolved_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_api_errors_sync_log ON ebay_sync_api_errors(sync_log_id);
+CREATE INDEX IF NOT EXISTS idx_sync_api_errors_status ON ebay_sync_api_errors(status);
+CREATE INDEX IF NOT EXISTS idx_sync_api_errors_created ON ebay_sync_api_errors(created_at);
+
+CREATE TABLE IF NOT EXISTS error_monitor_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    area TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'error',
+    source TEXT,
+    message TEXT NOT NULL,
+    exception_class TEXT,
+    error_code TEXT,
+    url TEXT,
+    request_method TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    session_id TEXT,
+    order_id TEXT,
+    paypal_order_id TEXT,
+    product_id INTEGER,
+    ebay_item_id TEXT,
+    metadata TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_error_monitor_area_created ON error_monitor_events(area, created_at);
+CREATE INDEX IF NOT EXISTS idx_error_monitor_status_created ON error_monitor_events(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_error_monitor_severity_created ON error_monitor_events(severity, created_at);
 
 -- Cached eBay seller rating data
 CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (

@@ -66,15 +66,46 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
 <div class="d-flex justify-content-between mb-2">
 <span>Shipping:</span>
-<span class="text-muted">Calculated at checkout</span>
+<span id="cart-shipping-estimate" class="text-muted">Estimate below</span>
+</div>
+<div class="d-flex justify-content-between mb-2 shipping-estimate-total-row d-none">
+<span>Estimated total:</span>
+<span id="cart-estimated-total" class="fw-semibold">$0.00</span>
 </div>
 <div class="alert alert-light border small mb-3">
 <strong>Before You Pay</strong>
 <ul class="mb-0 ps-3">
-<li>Shipping is calculated after the delivery address is entered.</li>
+<li>Estimate shipping here, then confirm final rates at checkout.</li>
 <li>Any coupon code is applied on the checkout page.</li>
 <li>The final total is shown before secure PayPal payment approval.</li>
 </ul>
+</div>
+<div class="card border-0 bg-light mb-3 shipping-estimator-card">
+<div class="card-body p-3">
+<h5 class="h6 fw-bold mb-2">
+<i class="fas fa-truck-fast text-danger me-1"></i>Shipping Estimate
+</h5>
+<form class="row g-2" data-shipping-estimator data-estimate-mode="cart" data-result-target="#cart-shipping-estimate-result" data-shipping-target="#cart-shipping-estimate" data-total-target="#cart-estimated-total">
+<div class="col-12">
+<label class="form-label small fw-semibold" for="cart-estimate-city">City</label>
+<input type="text" class="form-control form-control-sm" id="cart-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">
+</div>
+<div class="col-5">
+<label class="form-label small fw-semibold" for="cart-estimate-state">State</label>
+<input type="text" class="form-control form-control-sm text-uppercase" id="cart-estimate-state" name="state" maxlength="2" placeholder="OR" autocomplete="address-level1">
+</div>
+<div class="col-7">
+<label class="form-label small fw-semibold" for="cart-estimate-zip">ZIP Code</label>
+<input type="text" class="form-control form-control-sm" id="cart-estimate-zip" name="zip" inputmode="numeric" placeholder="97035" autocomplete="postal-code">
+</div>
+<div class="col-12">
+<button type="submit" class="btn btn-outline-danger btn-sm w-100">
+<i class="fas fa-calculator me-1"></i>Estimate Shipping
+</button>
+</div>
+</form>
+<div id="cart-shipping-estimate-result" class="mt-3"></div>
+</div>
 </div>
 <hr>
                     <div class="d-flex justify-content-between mb-4">
@@ -231,7 +262,22 @@ function updateCartSummary() {
     const subtotal = window.cart.getTotal();
     document.getElementById('cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
     document.getElementById('cart-total').textContent = `$${subtotal.toFixed(2)}`;
+    const shippingEstimate = document.getElementById('cart-shipping-estimate');
+    const estimatedTotalRow = document.querySelector('.shipping-estimate-total-row');
+    const estimateResult = document.getElementById('cart-shipping-estimate-result');
+    if (shippingEstimate) {
+        shippingEstimate.textContent = window.cart.cart.length > 0 ? 'Estimate below' : 'No items';
+        shippingEstimate.classList.add('text-muted');
+        shippingEstimate.classList.remove('text-success', 'text-danger');
+    }
+    if (estimatedTotalRow) {
+        estimatedTotalRow.classList.add('d-none');
+    }
+    if (estimateResult) {
+        estimateResult.innerHTML = '';
+    }
 }
 </script>
+<script src="/public/js/shipping-estimator.js"></script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

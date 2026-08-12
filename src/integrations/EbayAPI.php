@@ -22,8 +22,9 @@ class EbayAPI
     private $sandbox;
     private $siteId;
     private $storeName;
-    private $rateLimitExceeded = false;
-    private $storeCategoriesCache = null; // Cache for store categories
+ private $rateLimitExceeded = false;
+ private $lastApiError = null;
+ private $storeCategoriesCache = null; // Cache for store categories
     private $configFile; // Store config file path for token updates
     
     // API Endpoints
@@ -72,8 +73,24 @@ class EbayAPI
         $this->storeName = $ebayConfig['store_name'] ?? null;
         
         // DON'T auto-refresh in constructor to avoid blocking object creation
-        // Token refresh will happen before first API call
-    }
+ // Token refresh will happen before first API call
+ }
+
+ public function getLastApiError()
+ {
+ return $this->lastApiError;
+ }
+
+ private function rememberApiError($apiCall, $message, $code = null, array $context = [])
+ {
+ $this->lastApiError = [
+ 'api_call' => $apiCall,
+ 'message' => (string)$message,
+ 'code' => $code,
+ 'context' => $context,
+ 'created_at' => date('c'),
+ ];
+ }
     
     /**
      * Check if the access token is expired or about to expire
@@ -563,8 +580,11 @@ class EbayAPI
     /**
      * Make Trading API request
      */
-    private function makeTradingApiRequest($url, $xmlRequest, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES, $callName = 'GetSellerList')
-    {
+ private function makeTradingApiRequest($url, $xmlRequest, $retryCount = 0, $maxRetries = self::RATE_LIMIT_MAX_RETRIES, $callName = 'GetSellerList')
+ {
+ if ($retryCount === 0) {
+ $this->lastApiError = null;
+ }
         // Log the request
         SyncLogger::logRequest($url . ' (Trading API ' . $callName . ')');
         SyncLogger::log('Request body (XML): ' . substr($xmlRequest, 0, 500) . '...');
@@ -595,6 +615,10 @@ class EbayAPI
             $curlError = curl_error($ch);
             error_log('eBay Trading API cURL Error: ' . $curlError);
             SyncLogger::logError('cURL Error: ' . $curlError);
+            $this->rememberApiError($callName, 'cURL Error: ' . $curlError, null, [
+                'url' => $url,
+                'retry_count' => $retryCount,
+            ]);
             curl_close($ch);
             return null;
         }
@@ -608,6 +632,10 @@ class EbayAPI
             if (!$data) {
                 error_log('eBay Trading API: Failed to parse XML response');
                 SyncLogger::logError('Failed to parse XML response');
+                $this->rememberApiError($callName, 'Failed to parse XML response', null, [
+                    'http_code' => $httpCode,
+                    'response_preview' => substr((string)$response, 0, 500),
+                ]);
                 return null;
             }
             
@@ -644,6 +672,11 @@ class EbayAPI
                 
                 error_log('eBay Trading API Error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
                 SyncLogger::logError('Trading API returned error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
+                $this->rememberApiError($callName, $errorMsg, $errorCode, [
+                    'http_code' => $httpCode,
+                    'retry_count' => $retryCount,
+                    'ack' => $data['Ack'] ?? null,
+                ]);
                 
                 // Check for rate limit (error code 21919300)
                 if ($errorCode === '21919300') {
@@ -665,6 +698,10 @@ class EbayAPI
         
         error_log('eBay Trading API HTTP Error: ' . $httpCode);
         SyncLogger::logError('eBay Trading API HTTP Error: ' . $httpCode);
+        $this->rememberApiError($callName, 'eBay Trading API HTTP Error: ' . $httpCode, (string)$httpCode, [
+            'url' => $url,
+            'response_preview' => substr((string)$response, 0, 500),
+        ]);
         return null;
     }
     

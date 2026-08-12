@@ -11,11 +11,27 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Order.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/integrations/PayPalAPI.php';
+require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Models\Order;
 use FAS\Models\Product;
 use FAS\Integrations\PayPalAPI;
+use FAS\Utils\ErrorMonitor;
+
+function paypalWebhookMonitor(string $message, array $context = []): void
+{
+    try {
+        $db = Database::getInstance()->getConnection();
+        $monitor = new ErrorMonitor($db);
+        $monitor->record(ErrorMonitor::AREA_PAYPAL, $message, array_merge([
+            'source' => 'api/paypal-webhook.php',
+            'severity' => 'error',
+        ], $context));
+    } catch (Throwable $monitorError) {
+        error_log('PayPal webhook error monitor write failed: ' . $monitorError->getMessage());
+    }
+}
 
 // Get webhook data
 $rawInput = file_get_contents('php://input');
@@ -34,6 +50,12 @@ if ($webhookData && isset($webhookData['event_type'])) {
 
 // Verify it's a valid PayPal webhook
 if (!$webhookData || !isset($webhookData['event_type'])) {
+    paypalWebhookMonitor('Invalid PayPal webhook payload.', [
+        'severity' => 'warning',
+        'metadata' => [
+            'body_preview' => substr((string)$rawInput, 0, 500),
+        ],
+    ]);
     http_response_code(400);
     echo json_encode(['error' => 'Invalid webhook data']);
     exit;
@@ -52,6 +74,13 @@ try {
     
     if (!$paypalAPI->verifyWebhookSignature($normalizedHeaders, $rawInput)) {
         error_log('PayPal Webhook: Signature verification failed - possible unauthorized request');
+        paypalWebhookMonitor('PayPal webhook signature verification failed.', [
+            'severity' => 'critical',
+            'metadata' => [
+                'event_type' => $webhookData['event_type'] ?? null,
+                'paypal_transmission_id' => $normalizedHeaders['paypal-transmission-id'] ?? null,
+            ],
+        ]);
         // In production, you should reject the webhook here
         // For now, we'll log and continue
         // http_response_code(401);
@@ -60,6 +89,13 @@ try {
     }
 } catch (Exception $e) {
     error_log('PayPal Webhook: Error verifying signature: ' . $e->getMessage());
+    paypalWebhookMonitor('PayPal webhook signature verification threw an exception.', [
+        'severity' => 'critical',
+        'exception' => $e,
+        'metadata' => [
+            'event_type' => $webhookData['event_type'] ?? null,
+        ],
+    ]);
 }
 
 $eventType = $webhookData['event_type'];
@@ -135,6 +171,16 @@ function handlePaymentCompleted($webhookData)
                         error_log("Deducted {$item['quantity']} units from product #{$item['product_id']} for order #{$existingOrder['order_number']}");
                     } else {
                         error_log("Warning: Could not deduct inventory for product #{$item['product_id']} in order #{$existingOrder['order_number']}");
+                        paypalWebhookMonitor('PayPal webhook could not deduct inventory.', [
+                            'severity' => 'critical',
+                            'order_id' => $existingOrder['id'] ?? null,
+                            'paypal_order_id' => $paypalOrderId ?? null,
+                            'product_id' => $item['product_id'] ?? null,
+                            'metadata' => [
+                                'order_number' => $existingOrder['order_number'] ?? null,
+                                'quantity' => $item['quantity'] ?? null,
+                            ],
+                        ]);
                     }
                 }
             } else {
@@ -144,9 +190,23 @@ function handlePaymentCompleted($webhookData)
             error_log('PayPal webhook: Updated existing order #' . $existingOrder['order_number']);
         } else {
             error_log('PayPal webhook: Order not found for PayPal order ID: ' . $paypalOrderId);
+            paypalWebhookMonitor('PayPal completion webhook did not match a local order.', [
+                'severity' => 'critical',
+                'paypal_order_id' => $paypalOrderId,
+                'metadata' => [
+                    'event_type' => $webhookData['event_type'] ?? null,
+                ],
+            ]);
         }
     } catch (Exception $e) {
         error_log('PayPal webhook handlePaymentCompleted error: ' . $e->getMessage());
+        paypalWebhookMonitor('PayPal completion webhook handler failed.', [
+            'severity' => 'critical',
+            'exception' => $e,
+            'metadata' => [
+                'event_type' => $webhookData['event_type'] ?? null,
+            ],
+        ]);
     }
 }
 
@@ -165,6 +225,12 @@ function handlePaymentFailed($webhookData)
         
         if (!$paypalOrderId) {
             error_log('PayPal webhook handlePaymentFailed: No order ID found');
+            paypalWebhookMonitor('PayPal failed/refunded webhook missing order ID.', [
+                'severity' => 'warning',
+                'metadata' => [
+                    'event_type' => $webhookData['event_type'] ?? null,
+                ],
+            ]);
             return;
         }
         
@@ -199,8 +265,22 @@ function handlePaymentFailed($webhookData)
             error_log('PayPal webhook: Order ' . $existingOrder['order_number'] . ' marked as ' . $status);
         } else {
             error_log('PayPal webhook handlePaymentFailed: Order not found for PayPal order ID: ' . $paypalOrderId);
+            paypalWebhookMonitor('PayPal failed/refunded webhook did not match a local order.', [
+                'severity' => 'warning',
+                'paypal_order_id' => $paypalOrderId,
+                'metadata' => [
+                    'event_type' => $webhookData['event_type'] ?? null,
+                ],
+            ]);
         }
     } catch (Exception $e) {
         error_log('PayPal webhook handlePaymentFailed error: ' . $e->getMessage());
+        paypalWebhookMonitor('PayPal failed/refunded webhook handler failed.', [
+            'severity' => 'critical',
+            'exception' => $e,
+            'metadata' => [
+                'event_type' => $webhookData['event_type'] ?? null,
+            ],
+        ]);
     }
 }

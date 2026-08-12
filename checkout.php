@@ -227,6 +227,28 @@ function trackCheckoutEvent(eventType, data = {}) {
     }
 }
 
+function logCheckoutError(area, message, context = {}, error = null) {
+    const payload = {
+        area: area || 'checkout',
+        severity: context.severity || 'error',
+        source: 'checkout.php',
+        message: message || (error && error.message) || 'Checkout error',
+        url: window.location.href,
+        page: 'checkout',
+        order_id: context.order_id || '',
+        paypal_order_id: context.paypal_order_id || '',
+        context: context,
+        stack: error && error.stack ? error.stack : ''
+    };
+
+    fetch('/api/log-client-error.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+    }).catch(() => {});
+}
+
 // Function to check if form is ready for payment
 function isFormReadyForPayment() {
     const form = document.getElementById('checkout-form');
@@ -477,6 +499,12 @@ function setupPayPalButton() {
                 
             } catch (error) {
                 console.error('Payment capture error:', error);
+            logCheckoutError('paypal', 'PayPal approved payment, but checkout finalization failed.', {
+                severity: 'critical',
+                paypal_order_id: data && data.orderID ? data.orderID : '',
+                order_id: pendingOrderResult && pendingOrderResult.order_id ? pendingOrderResult.order_id : '',
+                stage: 'paypal_capture_or_order_finalize'
+            }, error);
                 alert('PayPal approved the payment, but the order could not be finalized. Please contact support with your PayPal confirmation.');
             }
         },
@@ -484,6 +512,11 @@ function setupPayPalButton() {
         // Handle errors
         onError: function(err) {
             console.error('PayPal error:', err);
+            logCheckoutError('paypal', 'PayPal checkout button reported an error.', {
+                severity: 'error',
+                stage: 'paypal_button',
+                reason: err && err.message ? err.message : String(err || 'PayPal error')
+            }, err instanceof Error ? err : null);
             trackCheckoutEvent('payment_error', {
                 provider: 'paypal',
                 reason: err && err.message ? err.message : 'PayPal error'
@@ -644,6 +677,10 @@ async function calculateShipping() {
     }
 } catch (error) {
     console.error('Shipping calculation error:', error);
+        logCheckoutError('shipping', 'Checkout shipping calculation failed.', {
+            severity: 'error',
+            stage: 'shipping_calculation'
+        }, error);
     trackCheckoutEvent('shipping_calculation_failed', {
         error_message: error.message || 'Unknown shipping error'
     });
@@ -860,6 +897,10 @@ async function createOrder() {
         return data;
     } catch (error) {
         console.error('Order creation error:', error);
+        logCheckoutError('checkout', 'Checkout order creation failed.', {
+            severity: 'error',
+            stage: 'create_order'
+        }, error);
         alert('Failed to create order: ' + error.message);
         return null;
     }
@@ -913,6 +954,13 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         
     } catch (error) {
         console.error('Order completion error:', error);
+        logCheckoutError('checkout', 'Checkout order completion failed after PayPal approval.', {
+            severity: 'critical',
+            stage: 'complete_order',
+            order_id: orderId,
+            paypal_order_id: paypalOrderId,
+            paypal_transaction_id: paypalTransactionId
+        }, error);
         trackCheckoutEvent('order_completion_failed', {
             order_id: orderId,
             paypal_order_id: paypalOrderId,

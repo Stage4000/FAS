@@ -155,4 +155,15 @@ class Coupon
         $stmt->execute([$id]);
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Get coupon by code.
+     */
+    public function getByCode($code)
+    {
+        $sql = "SELECT * FROM coupons WHERE code = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([strtoupper((string)$code)]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
 }

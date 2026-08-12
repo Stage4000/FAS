@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
     items_added INT DEFAULT 0,
     items_updated INT DEFAULT 0,
     items_failed INT DEFAULT 0,
+    items_hidden INT NOT NULL DEFAULT 0,
     status VARCHAR(50) DEFAULT 'running',
     error_message TEXT,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -155,6 +156,72 @@ CREATE TABLE IF NOT EXISTS ebay_sync_log (
 
 -- Add last_sync_timestamp column if it doesn't exist
 ALTER TABLE ebay_sync_log ADD COLUMN IF NOT EXISTS last_sync_timestamp TIMESTAMP NULL AFTER completed_at;
+ALTER TABLE ebay_sync_log ADD COLUMN IF NOT EXISTS items_hidden INT NOT NULL DEFAULT 0 AFTER items_failed;
+
+CREATE TABLE IF NOT EXISTS ebay_sync_item_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sync_log_id INT NULL,
+    ebay_item_id VARCHAR(64) NULL,
+    product_id INT NULL,
+    product_name VARCHAR(500) NULL,
+    product_sku VARCHAR(255) NULL,
+    ebay_url VARCHAR(500) NULL,
+    event_type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'open',
+    message TEXT NULL,
+    error_message TEXT NULL,
+    metadata JSON NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    last_retry_at DATETIME NULL,
+    resolved_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sync_item_events_sync_log (sync_log_id),
+    INDEX idx_sync_item_events_item (ebay_item_id),
+    INDEX idx_sync_item_events_type_status (event_type, status),
+    INDEX idx_sync_item_events_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS ebay_sync_api_errors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sync_log_id INT NULL,
+    api_call VARCHAR(100) NULL,
+    error_code VARCHAR(100) NULL,
+    error_message TEXT NOT NULL,
+    request_context JSON NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    resolved_at DATETIME NULL,
+    INDEX idx_sync_api_errors_sync_log (sync_log_id),
+    INDEX idx_sync_api_errors_status (status),
+    INDEX idx_sync_api_errors_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS error_monitor_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    area VARCHAR(50) NOT NULL,
+    severity VARCHAR(30) NOT NULL DEFAULT 'error',
+    source VARCHAR(120) NULL,
+    message TEXT NOT NULL,
+    exception_class VARCHAR(255) NULL,
+    error_code VARCHAR(100) NULL,
+    url VARCHAR(1000) NULL,
+    request_method VARCHAR(20) NULL,
+    ip_address VARCHAR(64) NULL,
+    user_agent VARCHAR(500) NULL,
+    session_id VARCHAR(128) NULL,
+    order_id VARCHAR(100) NULL,
+    paypal_order_id VARCHAR(100) NULL,
+    product_id INT NULL,
+    ebay_item_id VARCHAR(64) NULL,
+    metadata JSON NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'open',
+    resolved_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_error_monitor_area_created (area, created_at),
+    INDEX idx_error_monitor_status_created (status, created_at),
+    INDEX idx_error_monitor_severity_created (severity, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Cached eBay seller rating data
 CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (

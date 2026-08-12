@@ -8,11 +8,15 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/utils/SyncLogger.php';
+require_once __DIR__ . '/../src/utils/EbaySyncHealth.php';
+require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Integrations\EbayAPI;
 use FAS\Models\Product;
 use FAS\Utils\SyncLogger;
+use FAS\Utils\EbaySyncHealth;
+use FAS\Utils\ErrorMonitor;
 
 // Initialize comprehensive logging to log.txt
 SyncLogger::init(__DIR__ . '/../log.txt');
@@ -127,19 +131,30 @@ if ($daysDiff > 120) {
 }
 
 
-try {
-    $db = Database::getInstance()->getConnection();
-    SyncLogger::log("Database connection established");
+ try {
+ $db = Database::getInstance()->getConnection();
+ SyncLogger::log("Database connection established");
+ $syncHealth = new EbaySyncHealth($db);
+ $syncHealth->ensureTables();
+ $errorMonitor = new ErrorMonitor($db);
+ $errorMonitor->ensureTables();
     
     // Load config to check credentials
     $configFile = __DIR__ . '/../src/config/config.php';
     $config = require $configFile;
     
     // Validate eBay credentials are configured
-    if ($config['ebay']['app_id'] === 'YOUR_EBAY_APP_ID' || 
-        strpos($config['ebay']['app_id'], 'YOUR_') === 0) {
-        SyncLogger::log("eBay API credentials not configured");
-        http_response_code(400);
+ if ($config['ebay']['app_id'] === 'YOUR_EBAY_APP_ID' ||
+ strpos($config['ebay']['app_id'], 'YOUR_') === 0) {
+ SyncLogger::log("eBay API credentials not configured");
+ $syncHealth->recordApiError(null, 'configuration', 'eBay API credentials are not configured.', null, [
+ 'endpoint' => 'api/ebay-sync.php',
+ ]);
+ $errorMonitor->record(ErrorMonitor::AREA_EBAY_SYNC, 'eBay API credentials are not configured.', [
+ 'source' => 'api/ebay-sync.php',
+ 'severity' => 'critical',
+ ]);
+ http_response_code(400);
         echo json_encode([
             'error' => 'eBay API credentials not configured',
             'message' => 'Please configure your eBay API credentials in the Settings page before syncing.',
@@ -151,8 +166,8 @@ try {
     
     SyncLogger::log("eBay API credentials validated");
     
-    $ebayAPI = new EbayAPI($config, $configFile);
-    $productModel = new Product($db);
+$ebayAPI = new EbayAPI($config, $configFile);
+$productModel = new Product($db);
     
     // Start sync log
     $stmt = $db->prepare("INSERT INTO ebay_sync_log (sync_type, status) VALUES ('full_sync', 'running')");
@@ -184,7 +199,28 @@ try {
             
             $hasItemsToSync = is_array($result) && !empty($result['items']);
             $hasInactiveItemsToHide = is_array($result) && !empty($result['inactive_item_ids']);
-            
+
+            if (!$result && method_exists($ebayAPI, 'getLastApiError')) {
+                $apiError = $ebayAPI->getLastApiError();
+                if ($apiError) {
+                    $syncHealth->recordApiError($syncLogId, $apiError['api_call'] ?? 'GetSellerList', $apiError['message'] ?? 'eBay API returned no result', $apiError['code'] ?? null, array_merge($apiError['context'] ?? [], [
+                        'start_date' => $rangeStartDate,
+                        'end_date' => $rangeEndDate,
+                        'page' => $page,
+                    ]));
+                    $errorMonitor->record(ErrorMonitor::AREA_EBAY_SYNC, $apiError['message'] ?? 'eBay API returned no result', [
+                        'source' => 'api/ebay-sync.php',
+                        'severity' => $ebayAPI->wasRateLimited() ? 'warning' : 'error',
+                        'error_code' => $apiError['code'] ?? null,
+                        'metadata' => array_merge($apiError['context'] ?? [], [
+                            'start_date' => $rangeStartDate,
+                            'end_date' => $rangeEndDate,
+                            'page' => $page,
+                        ]),
+                    ]);
+                }
+            }
+
             if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToHide)) {
                 // Log if no results on first page
                 if ($page === 1) {
@@ -254,22 +290,39 @@ try {
         
         // Process inactive items (sold/ended on eBay) - hide them from website
         if (!empty($result['inactive_item_ids'])) {
-            SyncLogger::log("Processing " . count($result['inactive_item_ids']) . " inactive items (sold/ended on eBay)");
-            foreach ($result['inactive_item_ids'] as $inactiveItemId) {
-                try {
-                    if ($productModel->hideByEbayId($inactiveItemId)) {
-                        $totalHidden++;
-                        SyncLogger::log("Hidden item from website: $inactiveItemId (sold/ended on eBay)");
-                    }
-                } catch (Exception $e) {
-                    error_log('Failed to hide item ' . $inactiveItemId . ': ' . $e->getMessage());
-                    SyncLogger::logError('Failed to hide item ' . $inactiveItemId, $e);
+                SyncLogger::log("Processing " . count($result['inactive_item_ids']) . " inactive items (sold/ended on eBay)");
+                foreach ($result['inactive_item_ids'] as $inactiveItemId) {
+                    $hiddenProduct = null;
+                    try {
+                        $hiddenProduct = $productModel->getByEbayId($inactiveItemId);
+                        if ($productModel->hideByEbayId($inactiveItemId)) {
+                            $totalHidden++;
+                            $syncHealth->recordHiddenSoldItem($syncLogId, $inactiveItemId, $hiddenProduct ?: null);
+                            SyncLogger::log("Hidden item from website: $inactiveItemId (sold/ended on eBay)");
+                        }
+                    } catch (Exception $e) {
+                        error_log('Failed to hide item ' . $inactiveItemId . ': ' . $e->getMessage());
+                        SyncLogger::logError('Failed to hide item ' . $inactiveItemId, $e);
+                    $syncHealth->recordFailedItem($syncLogId, $inactiveItemId, $hiddenProduct['name'] ?? null, $e->getMessage(), $hiddenProduct['ebay_url'] ?? null, $hiddenProduct['id'] ?? null, [
+                        'action' => 'hide_inactive_item',
+                        'source' => 'manual_api_sync',
+                    ]);
+                    $errorMonitor->recordThrowable(ErrorMonitor::AREA_EBAY_SYNC, $e, [
+                        'source' => 'api/ebay-sync.php',
+                        'severity' => 'error',
+                        'product_id' => $hiddenProduct['id'] ?? null,
+                        'ebay_item_id' => $inactiveItemId,
+                        'metadata' => [
+                            'action' => 'hide_inactive_item',
+                        ],
+                    ]);
                 }
             }
         }
         
-        foreach ($result['items'] as $item) {
-            try {
+            foreach ($result['items'] as $item) {
+                $existing = null;
+                try {
                 $existing = $productModel->getByEbayId($item['id']);
                 
                 if ($existing) {
@@ -283,22 +336,51 @@ try {
                 }
                 
                 $totalProcessed++;
-            } catch (Exception $e) {
-                $totalFailed++;
-                error_log('Failed to sync item ' . $item['id'] . ': ' . $e->getMessage());
-                SyncLogger::logError('Failed to sync item ' . $item['id'], $e);
+                } catch (Exception $e) {
+                    $totalFailed++;
+                    error_log('Failed to sync item ' . $item['id'] . ': ' . $e->getMessage());
+                    SyncLogger::logError('Failed to sync item ' . $item['id'], $e);
+                    $syncHealth->recordFailedItem($syncLogId, $item['id'] ?? null, $item['title'] ?? null, $e->getMessage(), $item['url'] ?? null, $existing['id'] ?? null, [
+                        'action' => 'sync_item',
+                        'source' => 'manual_api_sync',
+                    ]);
+                    $errorMonitor->recordThrowable(ErrorMonitor::AREA_EBAY_SYNC, $e, [
+                        'source' => 'api/ebay-sync.php',
+                        'severity' => 'error',
+                        'product_id' => $existing['id'] ?? null,
+                        'ebay_item_id' => $item['id'] ?? null,
+                        'metadata' => [
+                            'action' => 'sync_item',
+                            'title' => $item['title'] ?? null,
+                        ],
+                    ]);
+                    if (method_exists($ebayAPI, 'getLastApiError')) {
+                        $apiError = $ebayAPI->getLastApiError();
+                        if ($apiError) {
+                        $syncHealth->recordApiError($syncLogId, $apiError['api_call'] ?? 'eBay API', $apiError['message'] ?? $e->getMessage(), $apiError['code'] ?? null, array_merge($apiError['context'] ?? [], [
+                            'ebay_item_id' => $item['id'] ?? null,
+                        ]));
+                        $errorMonitor->record(ErrorMonitor::AREA_EBAY_SYNC, $apiError['message'] ?? $e->getMessage(), [
+                            'source' => 'api/ebay-sync.php',
+                            'severity' => 'error',
+                            'error_code' => $apiError['code'] ?? null,
+                            'ebay_item_id' => $item['id'] ?? null,
+                            'metadata' => $apiError['context'] ?? [],
+                        ]);
+                    }
+                }
+                }
             }
-        }
         
         $page++;
         
         // Update sync log progress
         $stmt = $db->prepare("
             UPDATE ebay_sync_log 
-            SET items_processed = ?, items_added = ?, items_updated = ?, items_failed = ?
+            SET items_processed = ?, items_added = ?, items_updated = ?, items_failed = ?, items_hidden = ?
             WHERE id = ?
         ");
-        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $syncLogId]);
+        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $totalHidden, $syncLogId]);
         
         SyncLogger::log("Progress: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden");
         
@@ -325,10 +407,11 @@ try {
 // Complete sync log
 $stmt = $db->prepare("
     UPDATE ebay_sync_log 
-    SET status = 'completed', completed_at = datetime('now')
+    SET status = 'completed', completed_at = datetime('now'), items_hidden = ?
     WHERE id = ?
 ");
-$stmt->execute([$syncLogId]);
+$stmt->execute([$totalHidden, $syncLogId]);
+$syncHealth->markApiErrorsResolvedForSync($syncLogId);
     
     SyncLogger::log("Sync completed successfully");
     SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden, EmptyRanges=$emptyRanges");
@@ -361,8 +444,23 @@ $stmt->execute([$syncLogId]);
 } catch (Exception $e) {
     // Update sync log with error
     if (isset($syncLogId)) {
+        if (isset($syncHealth)) {
+            $syncHealth->recordApiError($syncLogId, 'sync_exception', $e->getMessage(), null, [
+                'endpoint' => 'api/ebay-sync.php',
+            ]);
+        }
+        if (isset($errorMonitor)) {
+            $errorMonitor->recordThrowable(ErrorMonitor::AREA_EBAY_SYNC, $e, [
+                'source' => 'api/ebay-sync.php',
+                'severity' => 'critical',
+                'metadata' => [
+                    'endpoint' => 'api/ebay-sync.php',
+                ],
+            ]);
+        }
+
         $stmt = $db->prepare("
-            UPDATE ebay_sync_log 
+            UPDATE ebay_sync_log
             SET status = 'failed', error_message = ?, completed_at = datetime('now')
             WHERE id = ?
         ");

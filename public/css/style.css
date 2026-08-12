@@ -1538,3 +1538,32 @@ footer a:hover {
 [data-theme="dark"] .text-muted {
     color: #9ca3af !important;
 }
+
+/* Shipping estimator */
+.shipping-estimator-card {
+    border: 1px solid var(--border-color) !important;
+}
+
+.shipping-estimator-card.bg-light {
+    background: #fff7f8 !important;
+}
+
+.shipping-estimator-card .alert-light {
+    background-color: #ffffff;
+}
+
+[data-theme="dark"] .shipping-estimator-card {
+    background: #24272c !important;
+    border-color: #3a3d41 !important;
+}
+
+[data-theme="dark"] .shipping-estimator-card.bg-light,
+[data-theme="dark"] .shipping-estimator-card .alert-light {
+    background: #2d3035 !important;
+}
+
+[data-theme="dark"] .shipping-estimator-card .badge.bg-light {
+    background: #3a3d41 !important;
+    color: #f3f4f6 !important;
+    border-color: #4b5563 !important;
+}

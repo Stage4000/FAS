@@ -352,9 +352,43 @@ require_once __DIR__ . '/includes/header.php';
                     <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>
                 </div>
             </div>
+
+            <div class="card border-0 shadow-sm mb-4 shipping-estimator-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="text-danger fs-4">
+                            <i class="fas fa-truck-fast"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-bold mb-1">Estimate Shipping Before Checkout</h2>
+                            <p class="small text-muted mb-0">Enter city, state, and ZIP to check estimated shipping or continental US free-shipping eligibility.</p>
+                        </div>
+                    </div>
+                    <form class="row g-2" data-shipping-estimator data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold" for="product-estimate-city">City</label>
+                            <input type="text" class="form-control form-control-sm" id="product-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold" for="product-estimate-state">State</label>
+                            <input type="text" class="form-control form-control-sm text-uppercase" id="product-estimate-state" name="state" maxlength="2" placeholder="OR" autocomplete="address-level1">
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label small fw-semibold" for="product-estimate-zip">ZIP Code</label>
+                            <input type="text" class="form-control form-control-sm" id="product-estimate-zip" name="zip" inputmode="numeric" placeholder="97035" autocomplete="postal-code">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="fas fa-calculator me-1"></i>Estimate Shipping
+                            </button>
+                        </div>
+                    </form>
+                    <div id="product-shipping-estimate-result" class="mt-3"></div>
+                </div>
+            </div>
             
             <div class="d-grid gap-2 mb-4">
-                <button class="btn btn-danger btn-lg add-to-cart"
+                <button class="btn btn-danger btn-lg add-to-cart product-detail-add-to-cart"
                         data-id="<?php echo $product['id']; ?>"
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
                         data-price="<?php echo $priceInfo['effective_price']; ?>"
@@ -609,4 +643,5 @@ if (shareButton) {
 }
 </script>
 
+<script src="/public/js/shipping-estimator.js"></script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
