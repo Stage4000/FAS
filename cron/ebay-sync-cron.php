@@ -102,7 +102,7 @@ try {
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
-    $totalHidden = 0;
+    $totalRemoved = 0;
     
     // Fetch items from eBay using GetSellerEvents
     // This works for both full and incremental sync based on the time range
@@ -110,7 +110,7 @@ try {
         $result = $ebayAPI->getSellerEvents($modTimeFrom, $modTimeTo, $page, 200);
         
         $hasItemsToSync = is_array($result) && !empty($result['items']);
-        $hasInactiveItemsToHide = is_array($result) && !empty($result['inactive_item_ids']);
+        $hasInactiveItemsToRemove = is_array($result) && !empty($result['inactive_item_ids']);
 
         if (!$result && method_exists($ebayAPI, 'getLastApiError')) {
             $apiError = $ebayAPI->getLastApiError();
@@ -133,7 +133,7 @@ try {
             }
         }
         
-        if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToHide)) {
+        if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToRemove)) {
             if ($page == 1) {
                 if (!$lastSync) {
                     echo "[" . date('Y-m-d H:i:s') . "] No events found in 120-day range\n";
@@ -147,44 +147,46 @@ try {
         $itemLabel = !$lastSync ? "items" : "changed items";
         echo "[" . date('Y-m-d H:i:s') . "] Processing page {$page} with " . count($result['items']) . " {$itemLabel}...\n";
         
-        // Handle inactive items - returned by GetSellerEvents
+        // Handle inactive items - returned by GetSellerEvents and remove from active inventory
         if (!empty($result['inactive_item_ids'])) {
-            echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to hide...\n";
+            echo "[" . date('Y-m-d H:i:s') . "] Found " . count($result['inactive_item_ids']) . " inactive items to remove...\n";
             foreach ($result['inactive_item_ids'] as $inactiveItemId) {
-                $hiddenProduct = null;
+                $removedProduct = null;
                 try {
-                    $hiddenProduct = $productModel->getByEbayId($inactiveItemId);
-                    if ($productModel->hideByEbayId($inactiveItemId)) {
-                        $totalHidden++;
-                        $syncHealth->recordHiddenSoldItem($syncLogId, $inactiveItemId, $hiddenProduct ?: null);
-                        echo "[" . date('Y-m-d H:i:s') . "] Hidden inactive item {$inactiveItemId} from website\n";
+                    $removedProduct = $productModel->getByEbayId($inactiveItemId);
+                    if ($productModel->removeByEbayId($inactiveItemId)) {
+                        $totalRemoved++;
+                        $syncHealth->recordRemovedSoldItem($syncLogId, $inactiveItemId, $removedProduct ?: null);
+                        echo "[" . date('Y-m-d H:i:s') . "] Removed inactive item {$inactiveItemId} from active inventory\n";
                     }
                 } catch (Exception $e) {
-                    $syncHealth->recordFailedItem($syncLogId, $inactiveItemId, $hiddenProduct['name'] ?? null, $e->getMessage(), $hiddenProduct['ebay_url'] ?? null, $hiddenProduct['id'] ?? null, [
-                        'action' => 'hide_inactive_item',
+                    $syncHealth->recordFailedItem($syncLogId, $inactiveItemId, $removedProduct['name'] ?? null, $e->getMessage(), $removedProduct['ebay_url'] ?? null, $removedProduct['id'] ?? null, [
+                        'action' => 'remove_inactive_item',
                         'source' => 'scheduled_cron_sync',
                     ]);
                     $errorMonitor->recordThrowable(ErrorMonitor::AREA_EBAY_SYNC, $e, [
                         'source' => 'cron/ebay-sync-cron.php',
                         'severity' => 'error',
-                        'product_id' => $hiddenProduct['id'] ?? null,
+                        'product_id' => $removedProduct['id'] ?? null,
                         'ebay_item_id' => $inactiveItemId,
                         'metadata' => [
-                            'action' => 'hide_inactive_item',
+                            'action' => 'remove_inactive_item',
                         ],
                     ]);
-                    echo "[ERROR] Failed to hide inactive item {$inactiveItemId}: " . $e->getMessage() . "\n";
+                    echo "[ERROR] Failed to remove inactive item {$inactiveItemId}: " . $e->getMessage() . "\n";
                 }
             }
         }
         
         // Pre-fetch existing products in batch to reduce database queries
-        $itemIds = array_column($result['items'], 'id');
-        $existingProducts = [];
-        if (!empty($itemIds)) {
-            $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
-            $stmt = $db->prepare("SELECT id, ebay_item_id FROM products WHERE ebay_item_id IN ($placeholders)");
-            $stmt->execute($itemIds);
+            $itemIds = array_values(array_filter(array_column($result['items'], 'id'), function ($itemId) {
+                return $itemId !== null && $itemId !== '';
+            }));
+            $existingProducts = [];
+            if (!empty($itemIds)) {
+                $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
+                $stmt = $db->prepare("SELECT id, ebay_item_id FROM products WHERE ebay_item_id IN ($placeholders)");
+                $stmt->execute($itemIds);
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $existingProducts[$row['ebay_item_id']] = $row;
             }
@@ -193,7 +195,7 @@ try {
         foreach ($result['items'] as $item) {
                 $existing = null;
             try {
-                    $hiddenProduct = $productModel->getByEbayId($inactiveItemId);
+                    $removedProduct = $productModel->getByEbayId($inactiveItemId);
                 $existing = $existingProducts[$item['id']] ?? null;
                 
                 if ($existing) {
@@ -248,7 +250,7 @@ try {
             SET items_processed = ?, items_added = ?, items_updated = ?, items_failed = ?, items_hidden = ?
             WHERE id = ?
         ");
-        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $totalHidden, $syncLogId]);
+        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $totalRemoved, $syncLogId]);
         
         // Break after processing all pages
         if ($page > $result['pages']) {
@@ -267,10 +269,10 @@ try {
     // Use modTimeTo for both sync types to ensure consistency
     $stmt = $db->prepare("
         UPDATE ebay_sync_log 
-        SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?
+        SET status = 'completed', completed_at = datetime('now'), last_sync_timestamp = ?, items_hidden = ?
         WHERE id = ?
     ");
-    $stmt->execute([$modTimeTo->format('Y-m-d H:i:s'), $totalHidden, $syncLogId]);
+    $stmt->execute([$modTimeTo->format('Y-m-d H:i:s'), $totalRemoved, $syncLogId]);
     
     $syncHealth->markApiErrorsResolvedForSync($syncLogId);
     echo "[" . date('Y-m-d H:i:s') . "] Synchronization completed successfully!\n";
@@ -278,7 +280,7 @@ try {
     echo "  Added: {$totalAdded}\n";
     echo "  Updated: {$totalUpdated}\n";
     echo "  Failed: {$totalFailed}\n";
-    echo "  Hidden: {$totalHidden}\n";
+    echo "  Removed: {$totalRemoved}\n";
     
     SyncLogger::finalize();
     exit(0);

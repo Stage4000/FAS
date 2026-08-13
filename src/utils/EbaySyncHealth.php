@@ -156,7 +156,7 @@ class EbaySyncHealth
         ]);
     }
 
-    public function recordHiddenSoldItem($syncLogId, $ebayItemId, array $product = null, $message = 'Sold or ended on eBay'): void
+    public function recordRemovedSoldItem($syncLogId, $ebayItemId, array $product = null, $message = 'Sold or ended on eBay and removed from active inventory'): void
     {
         $this->recordItemEvent([
             'sync_log_id' => $syncLogId,
@@ -165,12 +165,17 @@ class EbaySyncHealth
             'product_name' => $product['name'] ?? null,
             'product_sku' => $product['sku'] ?? null,
             'ebay_url' => $product['ebay_url'] ?? null,
-            'event_type' => 'hidden_sold',
-            'status' => 'hidden',
+            'event_type' => 'removed_sold',
+            'status' => 'removed',
             'message' => $message,
             'error_message' => null,
             'metadata' => [],
         ]);
+    }
+
+    public function recordHiddenSoldItem($syncLogId, $ebayItemId, array $product = null, $message = 'Sold or ended on eBay and removed from active inventory'): void
+    {
+        $this->recordRemovedSoldItem($syncLogId, $ebayItemId, $product, $message);
     }
 
     public function recordApiError($syncLogId, $apiCall, $errorMessage, $errorCode = null, array $context = []): void
@@ -248,7 +253,7 @@ class EbaySyncHealth
             'syncs_30d' => $this->scalarPrepared("SELECT COUNT(*) FROM ebay_sync_log WHERE started_at >= ?", [$cutoff]),
             'failed_syncs_30d' => $this->scalarPrepared("SELECT COUNT(*) FROM ebay_sync_log WHERE started_at >= ? AND status = 'failed'", [$cutoff]),
             'open_failed_items' => $this->scalar("SELECT COUNT(*) FROM ebay_sync_item_events WHERE event_type = 'failed' AND status IN ('open', 'retry_failed')"),
-            'hidden_sold_30d' => $this->scalarPrepared("SELECT COUNT(*) FROM ebay_sync_item_events WHERE event_type = 'hidden_sold' AND created_at >= ?", [$cutoff]),
+            'hidden_sold_30d' => $this->scalarPrepared("SELECT COUNT(*) FROM ebay_sync_item_events WHERE event_type IN ('hidden_sold', 'removed_sold') AND created_at >= ?", [$cutoff]),
             'current_hidden_ebay' => $this->scalar("SELECT COUNT(*) FROM products WHERE is_active = 1 AND show_on_website = 0 AND source = 'ebay'"),
             'open_api_errors' => $this->scalar("SELECT COUNT(*) FROM ebay_sync_api_errors WHERE status = 'open'"),
         ];
@@ -284,7 +289,7 @@ class EbaySyncHealth
         $stmt = $this->db->prepare("
             SELECT *
             FROM ebay_sync_item_events
-            WHERE event_type = 'hidden_sold'
+            WHERE event_type IN ('hidden_sold', 'removed_sold')
             ORDER BY created_at DESC, id DESC
             LIMIT ?
         ");

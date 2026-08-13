@@ -36,7 +36,7 @@ if (!$product) {
 }
 
 $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
-$relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 4);
+$relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 3);
 
 // Parse images from JSON if available
 $images = [];
@@ -447,7 +447,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
 </div>
 
 <?php if (!empty($relatedProducts)): ?>
-    <section class="mt-5">
+<section class="mt-5 px-3 px-md-4 px-xl-5">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
             <div>
                 <p class="text-danger text-uppercase fw-semibold small mb-1">Related Inventory</p>
@@ -457,7 +457,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
         </div>
         <div class="row g-4">
             <?php foreach ($relatedProducts as $index => $relatedProduct): ?>
-                <?php echo fasProductCard($relatedProduct, 'col-lg-3 col-md-6 col-sm-12', min($index * 75, 300)); ?>
+            <?php echo fasProductCard($relatedProduct, 'col-lg-4 col-md-6 col-sm-12', min($index * 75, 300)); ?>
             <?php endforeach; ?>
         </div>
     </section>

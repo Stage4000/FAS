@@ -47,13 +47,13 @@ function getSaleConfig(): ?array
     // Check optional start / end dates
     $now = time();
     if (!empty($sale['starts_at'])) {
-        $ts = strtotime($sale['starts_at']);
+        $ts = \FAS\Utils\Timezone::toUtcTimestamp($sale['starts_at']);
         if ($ts !== false && $ts > $now) {
             return null;
         }
     }
     if (!empty($sale['ends_at'])) {
-        $ts = strtotime($sale['ends_at']);
+        $ts = \FAS\Utils\Timezone::toUtcTimestamp($sale['ends_at']);
         if ($ts !== false && $ts < $now) {
             return null;
         }

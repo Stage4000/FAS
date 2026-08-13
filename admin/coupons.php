@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Coupon.php';
 
 use FAS\Config\Database;
 use FAS\Models\Coupon;
+use FAS\Utils\Timezone;
 
 $db = Database::getInstance()->getConnection();
 $couponModel = new Coupon($db);
@@ -14,6 +16,10 @@ $error = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['expires_at'])) {
+        $_POST['expires_at'] = Timezone::fromUserInput($_POST['expires_at']);
+    }
+
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'create':
@@ -125,7 +131,7 @@ $coupons = $couponModel->getAll();
                                     </td>
                                     <td>
                                         <?php if ($coupon['expires_at']): ?>
-                                            <?php echo date('Y-m-d', strtotime($coupon['expires_at'])); ?>
+                                            <?php echo Timezone::timestampElement($coupon['expires_at'], 'date'); ?>
                                         <?php else: ?>
                                             Never
                                         <?php endif; ?>

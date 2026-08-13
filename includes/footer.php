@@ -41,10 +41,12 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
                 <p class="mb-0 small">&copy; <?php echo date('Y'); ?> Flip and Strip. All rights reserved.</p>
             </div>
         </div>
-    </footer>
+</footer>
 
-    <?php
-    // Tawk.to Live Chat Integration
+<script src="/public/js/runtime-guard.js"></script>
+
+<?php
+// Tawk.to Live Chat Integration
     $tawkEnabled = false;
     $tawkPropertyId = '';
     $tawkWidgetId = '';
@@ -95,7 +97,8 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
         });
     </script>
 <!-- Custom JS -->
-<script src="/public/js/analytics.js"></script>
+<script src="/public/js/timezone.js"></script>
+<script src="/public/js/analytics.js?v=<?php echo filemtime(__DIR__ . '/../public/js/analytics.js'); ?>"></script>
 <script src="/public/js/main.js"></script>
     <!-- Animation & UX Enhancement JS -->
     <script src="/public/js/animations.js"></script>

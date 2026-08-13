@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/integrations/EbayAPI.php';
 require_once __DIR__ . '/../src/utils/CSRF.php';
@@ -13,6 +14,7 @@ use FAS\Models\Product;
 use FAS\Utils\CSRF;
 use FAS\Utils\EbaySyncHealth;
 use FAS\Utils\ErrorMonitor;
+use FAS\Utils\Timezone;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -20,6 +22,7 @@ $auth->requireLogin();
 $db = Database::getInstance()->getConnection();
 $syncHealth = new EbaySyncHealth($db);
 $syncHealth->ensureTables();
+$productModel = new Product($db);
 
 $configFile = __DIR__ . '/../src/config/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
@@ -45,7 +48,7 @@ function eshDate($value): string
     }
 
     $timestamp = strtotime((string)$value);
-    return $timestamp ? date('M j, Y g:i A', $timestamp) : (string)$value;
+    return $timestamp ? Timezone::timestampElement($value) : (string)$value;
 }
 
 function eshDuration($startedAt, $completedAt): string
@@ -78,7 +81,7 @@ function eshDuration($startedAt, $completedAt): string
 function eshBadgeClass($status): string
 {
     return match ((string)$status) {
-        'completed', 'resolved', 'hidden' => 'success',
+        'completed', 'resolved', 'hidden', 'removed' => 'success',
         'running' => 'primary',
         'failed', 'open', 'retry_failed' => 'danger',
         default => 'secondary',
@@ -188,6 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = 'No sync log was found.';
             }
+        } elseif ($action === 'purge_hidden_ebay') {
+            $purged = $productModel->purgeHiddenProducts('ebay');
+            $success = number_format($purged) . ' hidden eBay product' . ($purged === 1 ? '' : 's') . ' removed from active inventory.';
         }
     }
 }
@@ -290,13 +296,10 @@ $csrfToken = CSRF::generateToken();
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div>
             <p class="text-uppercase fw-semibold small mb-2 text-muted">Operations Dashboard</p>
-            <h1 class="display-6 fw-bold mb-2"><i class="fab fa-ebay me-2"></i>eBay Sync Health</h1>
-            <p class="mb-0 text-muted">Monitor sync freshness, failed items, hidden sold listings, API errors, and retry actions.</p>
+            <h1 class="display-6 fw-bold mb-2"><i class="fas fa-rotate me-2"></i>eBay Sync Health</h1>
+            <p class="mb-0 text-muted">Monitor sync freshness, failed items, removed sold listings, API errors, and retry actions.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="/database/migrate-add-ebay-sync-health.php" class="btn btn-outline-light">
-                <i class="fas fa-database me-2"></i>Run Migration
-            </a>
             <button class="btn btn-light text-danger fw-semibold" id="sync-ebay-health-btn">
                 <i class="fas fa-sync-alt me-2"></i>Run Full Sync
             </button>
@@ -342,7 +345,7 @@ $csrfToken = CSRF::generateToken();
                 <div>
                     <div class="text-muted small fw-semibold">Hidden eBay Products</div>
                     <div class="h3 mb-0 text-warning"><?php echo eshNumber($stats['current_hidden_ebay']); ?></div>
-                    <small class="text-muted"><?php echo eshNumber($stats['hidden_sold_30d']); ?> sync-hidden in 30 days</small>
+                    <small class="text-muted"><?php echo eshNumber($stats['hidden_sold_30d']); ?> sold/ended removed in 30 days</small>
                 </div>
                 <span class="icon bg-warning-subtle text-warning"><i class="fas fa-eye-slash"></i></span>
             </div>
@@ -376,7 +379,7 @@ $csrfToken = CSRF::generateToken();
                             <th>Status</th>
                             <th>Processed</th>
                             <th>Failed</th>
-                            <th>Hidden</th>
+                            <th>Removed</th>
                             <th>Duration</th>
                         </tr>
                     </thead>
@@ -503,20 +506,32 @@ $csrfToken = CSRF::generateToken();
     </div>
     <div class="col-xl-5">
         <div class="card border-0 shadow-sm sync-health-card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-eye-slash text-danger me-2"></i>Hidden / Sold Items</h5>
+            <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+                <div>
+                    <h5 class="mb-0"><i class="fas fa-eye-slash text-danger me-2"></i>Hidden / Removed Items</h5>
+                    <div class="small text-muted">Sold eBay listings are now removed from active inventory during sync.</div>
+                </div>
+                <?php if (!empty($currentHiddenEbayProducts)): ?>
+                <form method="post" class="m-0" onsubmit="return confirm('Remove all currently hidden eBay products from active inventory? This keeps order history intact.');">
+                    <input type="hidden" name="csrf_token" value="<?php echo eshSafe($csrfToken); ?>">
+                    <input type="hidden" name="action" value="purge_hidden_ebay">
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-broom me-1"></i>Purge Hidden eBay
+                    </button>
+                </form>
+                <?php endif; ?>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0 sync-health-table">
                     <thead>
                         <tr>
                             <th>Item</th>
-                            <th>Hidden</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php if (empty($hiddenSoldItems) && empty($currentHiddenEbayProducts)): ?>
-                        <tr><td colspan="2" class="text-muted text-center py-4">No hidden/sold item history yet.</td></tr>
+                        <tr><td colspan="2" class="text-muted text-center py-4">No hidden or removed item history yet.</td></tr>
                     <?php else: ?>
                         <?php foreach ($hiddenSoldItems as $item): ?>
                         <tr>
@@ -526,19 +541,19 @@ $csrfToken = CSRF::generateToken();
                             </td>
                             <td>
                                 <div><?php echo eshSafe(eshDate($item['created_at'] ?? null)); ?></div>
-                                <small class="text-muted"><?php echo eshSafe($item['message'] ?? 'Sold or ended on eBay'); ?></small>
+                                <small class="text-muted"><?php echo eshSafe($item['message'] ?? 'Sold or ended on eBay and removed'); ?></small>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                         <?php if (!empty($currentHiddenEbayProducts)): ?>
                         <tr>
-                            <td colspan="2" class="small text-muted fw-semibold sync-health-subrow">Currently hidden eBay products</td>
+                            <td colspan="2" class="small text-muted fw-semibold sync-health-subrow">Currently hidden eBay products ready to purge</td>
                         </tr>
                         <?php foreach ($currentHiddenEbayProducts as $product): ?>
                         <tr>
                             <td>
                                 <div class="fw-semibold"><?php echo eshSafe($product['name'] ?: ('eBay Item ' . $product['ebay_item_id'])); ?></div>
-                                <small class="text-muted"><?php echo eshSafe($product['ebay_item_id']); ?><?php echo $product['sku'] ? ' · SKU ' . eshSafe($product['sku']) : ''; ?></small>
+                                <small class="text-muted"><?php echo eshSafe($product['ebay_item_id']); ?><?php echo $product['sku'] ? ' ? SKU ' . eshSafe($product['sku']) : ''; ?></small>
                             </td>
                             <td>
                                 <div><?php echo eshSafe(eshDate($product['updated_at'] ?? $product['created_at'] ?? null)); ?></div>
@@ -559,8 +574,10 @@ $csrfToken = CSRF::generateToken();
 </div>
 </div>
 
+<script src="../public/js/runtime-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="../public/js/timezone.js"></script>
 <script src="../public/js/theme-toggle.js"></script>
 <script src="js/pwa-installer.js"></script>
 <script>
@@ -586,7 +603,7 @@ document.getElementById('sync-ebay-health-btn')?.addEventListener('click', funct
                 Added: ${data.added || 0},
                 Updated: ${data.updated || 0},
                 Failed: ${data.failed || 0},
-                Hidden: ${data.hidden || 0}.
+                Removed: ${data.removed || data.hidden || 0}.
                 <a href="ebay-sync-health.php" class="alert-link">Refresh dashboard</a>
             </div>`;
         })

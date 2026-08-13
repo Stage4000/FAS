@@ -83,6 +83,19 @@ body {
     color: var(--admin-hero-muted) !important;
 }
 
+[data-theme="dark"] .admin-hero .stale-inventory-cta {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .admin-hero .stale-inventory-cta:hover,
+[data-theme="dark"] .admin-hero .stale-inventory-cta:focus {
+    color: #db0335;
+    border-color: #ffffff;
+    background: #ffffff;
+}
+
 .admin-hero h1,
 .analytics-hero h1 {
     color: var(--admin-hero-text);

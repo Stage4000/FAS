@@ -2,9 +2,11 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Analytics.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 
 use FAS\Config\Database;
 use FAS\Utils\Analytics;
+use FAS\Utils\Timezone;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -812,7 +814,7 @@ No sessions recorded in the last <?php echo $days; ?> days.
                                 <span class="analytics-session-muted"><?php echo fmtNumber($row['purchases'] ?? 0); ?> orders</span>
                             </td>
                             <td class="analytics-session-cell">
-                                <span class="analytics-session-primary"><?php echo safe($row['last_seen_at'] ?? ''); ?></span>
+                                <span class="analytics-session-primary"><?php echo Timezone::timestampElement($row['last_seen_at'] ?? null); ?></span>
                                 <span class="analytics-session-path analytics-session-muted" title="<?php echo safe($row['landing_page'] ?? ''); ?>"><?php echo safe($row['landing_page'] ?? ''); ?></span>
                                 </td>
                                 <td class="text-end analytics-action-cell">
@@ -1285,7 +1287,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
             <tbody>
             <?php foreach ($recentEvents as $row): ?>
                 <tr>
-                    <td class="text-nowrap"><?php echo safe($row['created_at']); ?></td>
+                    <td class="text-nowrap"><?php echo Timezone::timestampElement($row['created_at']); ?></td>
                     <td><span class="badge text-bg-light"><?php echo safe($row['event_type']); ?></span></td>
                     <td class="text-break">
                         <div><?php echo safe($row['product_name'] ?: $row['page_path']); ?></div>
@@ -1404,7 +1406,11 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
         return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number.isFinite(parsed) ? parsed : 0);
     }
 
-    function seconds(value) {
+    function localTime(value, format) {
+            return window.FASTimezone ? window.FASTimezone.format(value, format || 'datetime') : text(value, '');
+        }
+
+        function seconds(value) {
         const total = Math.max(0, Number.parseInt(value || 0, 10));
         if (total < 60) return total + 's';
         const minutes = Math.floor(total / 60);
@@ -1527,7 +1533,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
         const device = compact([summary.device_type, summary.browser, summary.os]);
 
         title.textContent = 'Session ' + text(summary.session_id, 'Unknown');
-        stats.appendChild(statCard('Active Time', seconds(activeSeconds), 'Last seen ' + text(summary.last_seen_at)));
+        stats.appendChild(statCard('Active Time', seconds(activeSeconds), 'Last seen ' + localTime(summary.last_seen_at)));
         stats.appendChild(statCard('Events', number(summary.events), number(summary.page_views) + ' page views'));
         stats.appendChild(statCard('Cart Value', money(summary.cart_value), number(summary.cart_adds) + ' adds \u00b7 ' + number(summary.checkout_starts) + ' checkout'));
         stats.appendChild(statCard('Revenue', money(summary.revenue), number(summary.purchases) + ' orders \u00b7 ' + number(summary.ebay_clicks) + ' eBay exits'));
@@ -1544,8 +1550,8 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
         userDetails.appendChild(detailRow('IP Source', ipSourceLabel(summary)));
         userDetails.appendChild(detailRow('Bot Signal', botLabel(summary)));
 
-        contextDetails.appendChild(detailRow('Started', summary.started_at));
-        contextDetails.appendChild(detailRow('Last Seen', summary.last_seen_at));
+        contextDetails.appendChild(detailRow('Started', localTime(summary.started_at)));
+        contextDetails.appendChild(detailRow('Last Seen', localTime(summary.last_seen_at)));
         contextDetails.appendChild(detailRow('Landing Page', summary.landing_page));
         contextDetails.appendChild(detailRow('Last Page', summary.last_page));
         contextDetails.appendChild(detailRow('Traffic Source', source));
@@ -1569,7 +1575,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
             const pageMeta = event.checkout_step || event.previous_page_path || event.referrer_host || '';
 
             [
-                text(event.created_at, ''),
+                localTime(event.created_at),
                 text(event.event_type, ''),
                 compact([event.page_path || 'Unknown page', pageMeta]),
                 compact([product, productMeta]),

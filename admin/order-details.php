@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Order.php';
 
 $auth = new AdminAuth();
@@ -8,6 +9,7 @@ $auth->requireLogin();
 
 use FAS\Config\Database;
 use FAS\Models\Order;
+use FAS\Utils\Timezone;
 
 $db = Database::getInstance()->getConnection();
 $orderModel = new Order($db);
@@ -51,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $result = $orderModel->update($orderId, [
                 'tracking_number' => $trackingNumber,
                 'order_status' => 'processing',
-                'shipped_at' => date('Y-m-d H:i:s')
+                'shipped_at' => gmdate('Y-m-d H:i:s')
             ]);
             if ($result) {
                 $success = 'Tracking information updated successfully';
@@ -113,10 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <h5 class="mb-3">Order #<?php echo htmlspecialchars($order['order_number']); ?></h5>
                             <p class="mb-1">
                                 <strong>Date:</strong> 
-                                <?php 
-                                $date = new DateTime($order['created_at']);
-                                echo $date->format('F d, Y g:i A'); 
-                                ?>
+                                <?php echo Timezone::timestampElement($order['created_at']); ?>
                             </p>
                             <p class="mb-1">
                                 <strong>Payment Method:</strong> 
@@ -298,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <?php if ($order['shipped_at']): ?>
                         <div class="mt-3">
                             <small class="text-muted">
-                                Shipped on: <?php echo (new DateTime($order['shipped_at']))->format('F d, Y g:i A'); ?>
+                                Shipped on: <?php echo Timezone::timestampElement($order['shipped_at']); ?>
                             </small>
                         </div>
                     <?php endif; ?>

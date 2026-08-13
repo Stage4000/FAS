@@ -412,7 +412,7 @@ if ($action === 'list') {
 <a href="product-quality.php" class="btn btn-outline-primary">
 <i class="fas fa-clipboard-check me-1"></i> Product Quality
 </a>
-<a href="stale-inventory.php" class="btn btn-outline-danger">
+        <a href="stale-inventory.php" class="btn btn-outline-danger stale-inventory-cta">
 <i class="fas fa-fire me-1"></i> Stale Inventory
 </a>
 <a href="?action=create" class="btn btn-primary">

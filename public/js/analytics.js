@@ -25,8 +25,39 @@
     let flushInFlight = null;
     let exitSent = false;
 
+    function shouldIgnoreRuntimeError(value) {
+        return typeof window.FASShouldIgnoreRuntimeError === 'function'
+            && window.FASShouldIgnoreRuntimeError(value);
+    }
+
+    function isTransientAnalyticsUploadError(error) {
+        const name = String(error && error.name ? error.name : '').toLowerCase();
+        const message = String(error && error.message ? error.message : error || '').toLowerCase();
+
+        return name === 'aborterror'
+            || message.includes('failed to fetch')
+            || message.includes('networkerror')
+            || message.includes('load failed')
+            || message.includes('cancelled')
+            || message.includes('canceled')
+            || message.includes('aborted');
+    }
+
+    function shouldReportAnalyticsUploadError(error) {
+        if (isTransientAnalyticsUploadError(error)) {
+            return false;
+        }
+
+        const status = Number(error && error.status ? error.status : 0);
+        return status >= 400 || status === 0;
+    }
+
     function reportClientError(area, message, context, error) {
         try {
+            if (shouldIgnoreRuntimeError(message) || shouldIgnoreRuntimeError(error)) {
+                return;
+            }
+
             const payload = {
                 area: area || 'analytics',
                 severity: context && context.severity ? context.severity : 'error',
@@ -604,19 +635,26 @@
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Analytics request failed');
+                    const error = new Error('Analytics request failed with HTTP ' + response.status);
+                    error.status = response.status;
+                    error.statusText = response.statusText || '';
+                    throw error;
                 }
                 return response.json().catch(() => ({}));
             })
- .catch(error => {
- reportClientError('analytics', 'Analytics event upload failed.', {
- severity: 'warning',
- queued_events: events.length,
- endpoint
- }, error);
- events.reverse().forEach(event => queue.unshift(event));
- return false;
- })
+            .catch(error => {
+                if (shouldReportAnalyticsUploadError(error)) {
+                    reportClientError('analytics', 'Analytics endpoint rejected event batch.', {
+                        severity: 'warning',
+                        queued_events: events.length,
+                        endpoint,
+                        status: error && error.status ? error.status : null,
+                        status_text: error && error.statusText ? error.statusText : ''
+                    }, error);
+                }
+                events.reverse().forEach(event => queue.unshift(event));
+                return false;
+            })
             .finally(() => {
                 flushInFlight = null;
                 if (queue.length > 0 && !useBeacon) {
@@ -1026,6 +1064,11 @@
     window.addEventListener('pagehide', sendExit);
     window.addEventListener('online', () => flush(false));
     window.addEventListener('error', event => {
+        if (shouldIgnoreRuntimeError(event.message) || shouldIgnoreRuntimeError(event.error)) {
+            event.preventDefault();
+            return;
+        }
+
         reportClientError('analytics', event.message || 'Unhandled browser error', {
             severity: 'error',
             filename: event.filename || '',
@@ -1035,6 +1078,11 @@
     });
     window.addEventListener('unhandledrejection', event => {
         const reason = event.reason;
+        if (shouldIgnoreRuntimeError(reason)) {
+            event.preventDefault();
+            return;
+        }
+
         reportClientError('analytics', reason && reason.message ? reason.message : 'Unhandled browser promise rejection', {
             severity: 'error',
             reason: String(reason || '')

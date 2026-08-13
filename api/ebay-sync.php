@@ -180,7 +180,7 @@ $productModel = new Product($db);
     $totalAdded = 0;
     $totalUpdated = 0;
     $totalFailed = 0;
-    $totalHidden = 0;
+    $totalRemoved = 0;
     $emptyRanges = 0;
     
     // Loop through each date range
@@ -198,7 +198,7 @@ $productModel = new Product($db);
             $result = $ebayAPI->getStoreItems('moto800', $page, 100, $rangeStartDate, $rangeEndDate);
             
             $hasItemsToSync = is_array($result) && !empty($result['items']);
-            $hasInactiveItemsToHide = is_array($result) && !empty($result['inactive_item_ids']);
+            $hasInactiveItemsToRemove = is_array($result) && !empty($result['inactive_item_ids']);
 
             if (!$result && method_exists($ebayAPI, 'getLastApiError')) {
                 $apiError = $ebayAPI->getLastApiError();
@@ -221,7 +221,7 @@ $productModel = new Product($db);
                 }
             }
 
-            if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToHide)) {
+            if (!$result || (!$hasItemsToSync && !$hasInactiveItemsToRemove)) {
                 // Log if no results on first page
                 if ($page === 1) {
                     // Check if this was due to rate limiting
@@ -288,32 +288,32 @@ $productModel = new Product($db);
         
         SyncLogger::log("Retrieved " . count($result['items']) . " items from page $page");
         
-        // Process inactive items (sold/ended on eBay) - hide them from website
+        // Process inactive items (sold/ended on eBay) - remove them from active inventory
         if (!empty($result['inactive_item_ids'])) {
                 SyncLogger::log("Processing " . count($result['inactive_item_ids']) . " inactive items (sold/ended on eBay)");
                 foreach ($result['inactive_item_ids'] as $inactiveItemId) {
-                    $hiddenProduct = null;
+                    $removedProduct = null;
                     try {
-                        $hiddenProduct = $productModel->getByEbayId($inactiveItemId);
-                        if ($productModel->hideByEbayId($inactiveItemId)) {
-                            $totalHidden++;
-                            $syncHealth->recordHiddenSoldItem($syncLogId, $inactiveItemId, $hiddenProduct ?: null);
-                            SyncLogger::log("Hidden item from website: $inactiveItemId (sold/ended on eBay)");
+                        $removedProduct = $productModel->getByEbayId($inactiveItemId);
+                        if ($productModel->removeByEbayId($inactiveItemId)) {
+                            $totalRemoved++;
+                            $syncHealth->recordRemovedSoldItem($syncLogId, $inactiveItemId, $removedProduct ?: null);
+                            SyncLogger::log("Removed item from active inventory: $inactiveItemId (sold/ended on eBay)");
                         }
                     } catch (Exception $e) {
-                        error_log('Failed to hide item ' . $inactiveItemId . ': ' . $e->getMessage());
-                        SyncLogger::logError('Failed to hide item ' . $inactiveItemId, $e);
-                    $syncHealth->recordFailedItem($syncLogId, $inactiveItemId, $hiddenProduct['name'] ?? null, $e->getMessage(), $hiddenProduct['ebay_url'] ?? null, $hiddenProduct['id'] ?? null, [
-                        'action' => 'hide_inactive_item',
+                        error_log('Failed to remove item ' . $inactiveItemId . ': ' . $e->getMessage());
+                        SyncLogger::logError('Failed to remove item ' . $inactiveItemId, $e);
+                    $syncHealth->recordFailedItem($syncLogId, $inactiveItemId, $removedProduct['name'] ?? null, $e->getMessage(), $removedProduct['ebay_url'] ?? null, $removedProduct['id'] ?? null, [
+                        'action' => 'remove_inactive_item',
                         'source' => 'manual_api_sync',
                     ]);
                     $errorMonitor->recordThrowable(ErrorMonitor::AREA_EBAY_SYNC, $e, [
                         'source' => 'api/ebay-sync.php',
                         'severity' => 'error',
-                        'product_id' => $hiddenProduct['id'] ?? null,
+                        'product_id' => $removedProduct['id'] ?? null,
                         'ebay_item_id' => $inactiveItemId,
                         'metadata' => [
-                            'action' => 'hide_inactive_item',
+                            'action' => 'remove_inactive_item',
                         ],
                     ]);
                 }
@@ -380,9 +380,9 @@ $productModel = new Product($db);
             SET items_processed = ?, items_added = ?, items_updated = ?, items_failed = ?, items_hidden = ?
             WHERE id = ?
         ");
-        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $totalHidden, $syncLogId]);
+        $stmt->execute([$totalProcessed, $totalAdded, $totalUpdated, $totalFailed, $totalRemoved, $syncLogId]);
         
-        SyncLogger::log("Progress: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden");
+        SyncLogger::log("Progress: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Removed=$totalRemoved");
         
         // Break after processing all pages
         if ($page > $result['pages']) {
@@ -410,11 +410,11 @@ $stmt = $db->prepare("
     SET status = 'completed', completed_at = datetime('now'), items_hidden = ?
     WHERE id = ?
 ");
-$stmt->execute([$totalHidden, $syncLogId]);
+$stmt->execute([$totalRemoved, $syncLogId]);
 $syncHealth->markApiErrorsResolvedForSync($syncLogId);
     
     SyncLogger::log("Sync completed successfully");
-    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Hidden=$totalHidden, EmptyRanges=$emptyRanges");
+    SyncLogger::log("Final stats: Processed=$totalProcessed, Added=$totalAdded, Updated=$totalUpdated, Failed=$totalFailed, Removed=$totalRemoved, EmptyRanges=$emptyRanges");
     
     $response = [
         'success' => true,
@@ -422,7 +422,8 @@ $syncHealth->markApiErrorsResolvedForSync($syncLogId);
         'added' => $totalAdded,
         'updated' => $totalUpdated,
         'failed' => $totalFailed,
-        'hidden' => $totalHidden
+        'hidden' => $totalRemoved,
+        'removed' => $totalRemoved
     ];
     
     if (count($dateRanges) > 1) {

@@ -1,12 +1,14 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/utils/CSRF.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Utils\CSRF;
 use FAS\Utils\ErrorMonitor;
+use FAS\Utils\Timezone;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -76,7 +78,7 @@ function emDate($value): string
     }
 
     $timestamp = strtotime((string)$value);
-    return $timestamp ? date('M j, Y g:i A', $timestamp) : (string)$value;
+    return $timestamp ? Timezone::timestampElement($value) : (string)$value;
 }
 
 function emAreaLabel(string $area): string
@@ -217,9 +219,6 @@ function emFilterUrl(array $updates): string
             <p class="mb-0 text-muted">One place for checkout, PayPal, shipping, eBay sync, and analytics failures.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="/database/migrate-add-error-monitor.php" class="btn btn-outline-light">
-                <i class="fas fa-database me-2"></i>Run Migration
-            </a>
             <a href="ebay-sync-health.php" class="btn btn-light text-danger fw-semibold">
                 <i class="fab fa-ebay me-2"></i>eBay Sync Health
             </a>
@@ -317,7 +316,7 @@ function emFilterUrl(array $updates): string
     </div>
 </div>
 
-<div class="row g-4 mb-4">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
     <?php foreach (array_filter($allowedAreas) as $areaKey): ?>
     <?php
     $areaRow = null;
@@ -328,7 +327,7 @@ function emFilterUrl(array $updates): string
         }
     }
     ?>
-    <div class="col-xl-2 col-md-4 col-sm-6">
+    <div class="col">
         <a href="<?php echo emSafe(emFilterUrl(['area' => $areaKey])); ?>" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 error-monitor-card">
                 <div class="card-body">
@@ -413,8 +412,10 @@ function emFilterUrl(array $updates): string
 </div>
 </div>
 
+<script src="../public/js/runtime-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="../public/js/timezone.js"></script>
 <script src="../public/js/theme-toggle.js"></script>
 <script src="js/pwa-installer.js"></script>
 <script>AOS.init({ duration: 700, once: true });</script>

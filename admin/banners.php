@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Banner.php';
 
 use FAS\Config\Database;
 use FAS\Models\Banner;
+use FAS\Utils\Timezone;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -68,6 +70,12 @@ try {
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
     $action = $_POST['action'] ?? '';
+
+    foreach (['starts_at', 'ends_at', 'countdown_end'] as $field) {
+        if (isset($_POST[$field])) {
+            $_POST[$field] = Timezone::fromUserInput($_POST[$field]);
+        }
+    }
 
     switch ($action) {
         case 'create':
@@ -190,7 +198,7 @@ $textColorOptions = [
                                     <td>
                                         <?php if ($banner['show_countdown'] && $banner['countdown_end']): ?>
                                             <span class="badge bg-info text-dark">
-                                                <i class="fas fa-clock me-1"></i><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($banner['countdown_end']))); ?>
+                                                <i class="fas fa-clock me-1"></i><?php echo Timezone::timestampElement($banner['countdown_end']); ?>
                                             </span>
                                         <?php else: ?>
                                             <span class="text-muted">—</span>
@@ -211,9 +219,9 @@ $textColorOptions = [
                                     <td>
                                         <?php if ($banner['starts_at'] || $banner['ends_at']): ?>
                                             <small>
-                                                <?php echo $banner['starts_at'] ? htmlspecialchars(date('Y-m-d', strtotime($banner['starts_at']))) : '∞'; ?>
+                                                <?php echo $banner['starts_at'] ? Timezone::timestampElement($banner['starts_at'], 'date') : '?'; ?>
                                                 →
-                                                <?php echo $banner['ends_at'] ? htmlspecialchars(date('Y-m-d', strtotime($banner['ends_at']))) : '∞'; ?>
+                                                <?php echo $banner['ends_at'] ? Timezone::timestampElement($banner['ends_at'], 'date') : '?'; ?>
                                             </small>
                                         <?php else: ?>
                                             <span class="text-muted">Always</span>
@@ -241,9 +249,9 @@ $textColorOptions = [
                                                 data-is_active="<?php echo (int) $banner['is_active']; ?>"
                                                 data-sort_order="<?php echo (int) $banner['sort_order']; ?>"
                                                 data-show_countdown="<?php echo (int) $banner['show_countdown']; ?>"
-                                                data-countdown_end="<?php echo htmlspecialchars($banner['countdown_end'] ?? '', ENT_QUOTES); ?>"
-                                                data-starts_at="<?php echo htmlspecialchars($banner['starts_at'] ?? '', ENT_QUOTES); ?>"
-                                                data-ends_at="<?php echo htmlspecialchars($banner['ends_at'] ?? '', ENT_QUOTES); ?>">
+                                                data-countdown_end="<?php echo htmlspecialchars(Timezone::toUserInput($banner['countdown_end'] ?? null), ENT_QUOTES); ?>"
+                                                data-starts_at="<?php echo htmlspecialchars(Timezone::toUserInput($banner['starts_at'] ?? null), ENT_QUOTES); ?>"
+                                                data-ends_at="<?php echo htmlspecialchars(Timezone::toUserInput($banner['ends_at'] ?? null), ENT_QUOTES); ?>">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Delete this banner?');">

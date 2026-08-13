@@ -792,15 +792,47 @@ class Product
     }
 
     /**
-     * Hide product from website by eBay item ID
-     * Used when item is sold/ended on eBay
+     * Remove product from active inventory by eBay item ID.
+     * Used when an item is sold/ended on eBay.
      */
-    public function hideByEbayId($ebayItemId)
+    public function removeByEbayId($ebayItemId)
     {
-        $sql = "UPDATE products SET show_on_website = 0 WHERE ebay_item_id = ? AND is_active = 1";
+        $sql = "UPDATE products SET is_active = 0, show_on_website = 0 WHERE ebay_item_id = ? AND is_active = 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$ebayItemId]);
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Hide product from website by eBay item ID.
+     *
+     * @deprecated Sold/ended eBay items should use removeByEbayId().
+     */
+    public function hideByEbayId($ebayItemId)
+    {
+        return $this->removeByEbayId($ebayItemId);
+    }
+
+    /**
+     * Remove active hidden products from inventory.
+     *
+     * This is intentionally a soft delete to keep order history, analytics,
+     * and admin audit data intact.
+     */
+    public function purgeHiddenProducts(?string $sourceFilter = null): int
+    {
+        $sql = "UPDATE products SET is_active = 0 WHERE is_active = 1 AND show_on_website = 0";
+        $params = [];
+
+        if ($sourceFilter !== null && trim($sourceFilter) !== '') {
+            $sql .= " AND source = ?";
+            $params[] = trim($sourceFilter);
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
     }
 
     /**

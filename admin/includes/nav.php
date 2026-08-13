@@ -45,7 +45,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <i class="fas fa-box me-2"></i>Products
 </a>
 <a href="ebay-sync-health.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'ebay-sync-health.php' ? 'active' : ''; ?>">
-<i class="fab fa-ebay me-2"></i>eBay Sync Health
+            <i class="fas fa-rotate me-2"></i>eBay Sync Health
 </a>
 <a href="product-quality.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'product-quality.php' ? 'active' : ''; ?>">
 <i class="fas fa-clipboard-check me-2"></i>Product Quality

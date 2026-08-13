@@ -233,11 +233,11 @@ role="alert"
 id="banner-<?php echo (int) $banner['id']; ?>"
 data-analytics-banner="<?php echo (int) $banner['id']; ?>"
 data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
-<?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(date('c', strtotime($banner['ends_at']))); ?>"<?php endif; ?>>
+<?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(\FAS\Utils\Timezone::toUserIso($banner['ends_at']) ?? '', ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
         <?php echo htmlspecialchars($banner['message']); ?>
         <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
             &nbsp;<span class="banner-countdown fw-bold"
-                        data-end="<?php echo htmlspecialchars(date('c', strtotime($banner['countdown_end']))); ?>"></span>
+                        data-end="<?php echo htmlspecialchars(\FAS\Utils\Timezone::toUserIso($banner['countdown_end']) ?? '', ENT_QUOTES, 'UTF-8'); ?>"></span>
         <?php endif; ?>
 <?php if (!empty($banner['link_url'])): ?>
 &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"

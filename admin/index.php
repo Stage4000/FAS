@@ -2,12 +2,14 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
 
 use FAS\Config\Database;
 use FAS\Models\Product;
+use FAS\Utils\Timezone;
 
 // Load config to get the sync API key
 $configFile = __DIR__ . '/../src/config/config.php';
@@ -26,17 +28,10 @@ $hiddenProducts = max(0, $activeProducts - $visibleProducts);
 // Get last sync timestamp
 $lastSyncStmt = $pdo->query("SELECT last_sync_timestamp FROM ebay_sync_log WHERE status = 'completed' AND last_sync_timestamp IS NOT NULL ORDER BY last_sync_timestamp DESC LIMIT 1");
 $lastSyncRow = $lastSyncStmt->fetch(PDO::FETCH_ASSOC);
-// Convert timestamp to ISO 8601 format for JavaScript compatibility
-$lastSyncTimestamp = null;
-if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
-    try {
-        $dt = new DateTime($lastSyncRow['last_sync_timestamp']);
-        $lastSyncTimestamp = $dt->format('c'); // ISO 8601 format (e.g., 2026-02-11T18:30:00+00:00)
-    } catch (Exception $e) {
-        error_log('Failed to parse last_sync_timestamp: ' . $e->getMessage());
-        $lastSyncTimestamp = null;
-    }
-}
+// Convert timestamp to an absolute ISO value for browser timezone display.
+$lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
+    ? Timezone::toUserIso($lastSyncRow['last_sync_timestamp'])
+    : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,21 +70,6 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                                     </div>
                                     <div class="text-primary">
                                         <i class="fas fa-box display-4"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h6 class="text-muted">Hidden Products</h6>
-                                        <h3 class="mb-0"><?php echo number_format($hiddenProducts); ?></h3>
-                                    </div>
-                                    <div class="text-danger">
-                                        <i class="fas fa-eye-slash display-4"></i>
                                     </div>
                                 </div>
                             </div>
@@ -150,15 +130,15 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <label for="start-date" class="form-label">Start Date</label>
                                 <input type="date" class="form-control" id="start-date" 
-                                       value="<?php echo date('Y-m-d', strtotime('-120 days')); ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
+                                       value="<?php echo Timezone::toUserDateTime('-120 days', 'Y-m-d'); ?>"
+                                       max="<?php echo Timezone::toUserDateTime('now', 'Y-m-d'); ?>">
                                 <small class="text-muted">Fetch listings from this date</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="end-date" class="form-label">End Date</label>
                                 <input type="date" class="form-control" id="end-date" 
-                                       value="<?php echo date('Y-m-d'); ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
+                                       value="<?php echo Timezone::toUserDateTime('now', 'Y-m-d'); ?>"
+                                       max="<?php echo Timezone::toUserDateTime('now', 'Y-m-d'); ?>">
                                 <small class="text-muted">Fetch listings until this date</small>
                             </div>
                         </div>
@@ -206,7 +186,7 @@ if ($lastSyncRow && $lastSyncRow['last_sync_timestamp']) {
                             minute: '2-digit',
                             hour12: true 
                         };
-                        lastSyncElement.textContent = date.toLocaleString('en-US', options);
+                        lastSyncElement.textContent = window.FASTimezone ? window.FASTimezone.format(timestamp) : date.toLocaleString('en-US', options);
                     }
                 } catch (error) {
                     console.error('Error parsing date:', error);

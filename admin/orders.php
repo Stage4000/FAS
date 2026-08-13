@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Order.php';
 
 $auth = new AdminAuth();
@@ -8,6 +9,7 @@ $auth->requireLogin();
 
 use FAS\Config\Database;
 use FAS\Models\Order;
+use FAS\Utils\Timezone;
 
 $db = Database::getInstance()->getConnection();
 $orderModel = new Order($db);
@@ -202,11 +204,11 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
                                     </td>
                                     <td>
                                         <?php 
-                                        $date = new DateTime($order['created_at']);
-                                        echo $date->format('M d, Y');
+                                        $date = null;
+                                        echo Timezone::timestampElement($order['created_at'], 'date');
                                         ?>
                                         <br>
-                                        <small class="text-muted"><?php echo $date->format('g:i A'); ?></small>
+                                        <small class="text-muted"><?php echo Timezone::timestampElement($order['created_at'], 'time'); ?></small>
                                     </td>
                                     <td><strong>$<?php echo number_format($order['total_amount'], 2); ?></strong></td>
                                     <td>

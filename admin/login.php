@@ -112,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     
+    <script src="../public/js/runtime-guard.js"></script>
+    <script src="../public/js/timezone.js"></script>
     <script src="../public/js/theme-toggle.js"></script>
     <!-- PWA Installer Script -->
     <script src="/admin/js/pwa-installer.js"></script>

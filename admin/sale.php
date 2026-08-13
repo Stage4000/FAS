@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/utils/CSRF.php';
+require_once __DIR__ . '/../src/utils/Timezone.php';
 
 use FAS\Utils\CSRF;
+use FAS\Utils\Timezone;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -35,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $value = min(99, $value);
         }
 
-        $startsAt = !empty($_POST['starts_at']) ? $_POST['starts_at'] : null;
-        $endsAt   = !empty($_POST['ends_at'])   ? $_POST['ends_at']   : null;
+        $startsAt = !empty($_POST['starts_at']) ? Timezone::fromUserInput($_POST['starts_at']) : null;
+        $endsAt   = !empty($_POST['ends_at'])   ? Timezone::fromUserInput($_POST['ends_at'])   : null;
 
         // Validate datetime values
         if ($startsAt !== null && strtotime($startsAt) === false) {
@@ -180,12 +182,12 @@ if (!empty($sale['enabled'])) {
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Starts At <small class="text-muted">(optional)</small></label>
                                 <input type="datetime-local" name="starts_at" class="form-control"
-                                       value="<?php echo htmlspecialchars($sale['starts_at'] ?? ''); ?>">
+                                       value="<?php echo htmlspecialchars(Timezone::toUserInput($sale['starts_at'] ?? null)); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Ends At <small class="text-muted">(optional)</small></label>
                                 <input type="datetime-local" name="ends_at" class="form-control"
-                                       value="<?php echo htmlspecialchars($sale['ends_at'] ?? ''); ?>">
+                                       value="<?php echo htmlspecialchars(Timezone::toUserInput($sale['ends_at'] ?? null)); ?>">
                             </div>
                         </div>
                         <div class="form-text mb-3">Leave both dates blank to run indefinitely while the toggle is on.</div>
