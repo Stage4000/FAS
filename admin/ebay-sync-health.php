@@ -238,17 +238,48 @@ $csrfToken = CSRF::generateToken();
     background: #f8fafc;
 }
 [data-theme="dark"] .sync-health-stat,
-[data-theme="dark"] .card {
-    background: var(--admin-card-bg);
+[data-theme="dark"] .sync-health-card {
+    background: linear-gradient(180deg, #333 0%, #2d2d2d 100%);
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: var(--admin-text);
+    box-shadow: 0 0.75rem 1.8rem rgba(0, 0, 0, 0.24) !important;
+}
+[data-theme="dark"] .sync-health-stat .text-muted,
+[data-theme="dark"] .sync-health-card .text-muted,
+[data-theme="dark"] .sync-health-message {
+    color: #c5cbd3 !important;
+}
+[data-theme="dark"] .sync-health-card .card-header {
+    background: #333 !important;
+    border-bottom-color: rgba(255, 255, 255, 0.14);
+    color: var(--admin-text);
+}
+[data-theme="dark"] .sync-health-card .list-group-item {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.12);
     color: var(--admin-text);
 }
 [data-theme="dark"] .sync-health-subrow {
     background: rgba(255, 255, 255, 0.05);
 }
 [data-theme="dark"] .table {
-    --bs-table-bg: transparent;
+    --bs-table-bg: #2d2d2d;
     --bs-table-color: var(--admin-text);
     --bs-table-border-color: var(--admin-border);
+    --bs-table-hover-bg: rgba(219, 3, 53, 0.14);
+    --bs-table-hover-color: var(--admin-text);
+}
+[data-theme="dark"] .table thead th {
+    background: #242629;
+    color: #c5cbd3;
+}
+[data-theme="dark"] .btn-outline-secondary {
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #d0d5dd;
+}
+[data-theme="dark"] .btn-outline-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
 }
 </style>
 </head>
@@ -283,7 +314,7 @@ $csrfToken = CSRF::generateToken();
 
 <div class="row g-3 mb-4">
     <div class="col-xl-3 col-md-6">
-        <div class="card sync-health-stat">
+        <div class="card sync-health-stat sync-health-card">
             <div class="card-body d-flex justify-content-between gap-3">
                 <div>
                     <div class="text-muted small fw-semibold">Last Sync</div>
@@ -295,7 +326,7 @@ $csrfToken = CSRF::generateToken();
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card sync-health-stat">
+        <div class="card sync-health-stat sync-health-card">
             <div class="card-body d-flex justify-content-between gap-3">
                 <div>
                     <div class="text-muted small fw-semibold">Open Failed Items</div>
@@ -306,7 +337,7 @@ $csrfToken = CSRF::generateToken();
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card sync-health-stat">
+        <div class="card sync-health-stat sync-health-card">
             <div class="card-body d-flex justify-content-between gap-3">
                 <div>
                     <div class="text-muted small fw-semibold">Hidden eBay Products</div>
@@ -318,7 +349,7 @@ $csrfToken = CSRF::generateToken();
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card sync-health-stat">
+        <div class="card sync-health-stat sync-health-card">
             <div class="card-body d-flex justify-content-between gap-3">
                 <div>
                     <div class="text-muted small fw-semibold">Open API Errors</div>
@@ -332,7 +363,7 @@ $csrfToken = CSRF::generateToken();
 
 <div class="row g-4 mb-4">
     <div class="col-lg-7">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm h-100 sync-health-card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-list-check text-danger me-2"></i>Recent Sync Runs</h5>
                 <span class="badge bg-secondary"><?php echo eshNumber($stats['syncs_30d']); ?> in 30 days</span>
@@ -378,7 +409,7 @@ $csrfToken = CSRF::generateToken();
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm h-100 sync-health-card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-plug-circle-exclamation text-danger me-2"></i>API Errors</h5>
                 <?php if (!empty($apiErrors)): ?>
@@ -418,7 +449,7 @@ $csrfToken = CSRF::generateToken();
 
 <div class="row g-4">
     <div class="col-xl-7">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm sync-health-card">
             <div class="card-header bg-white">
                 <h5 class="mb-0"><i class="fas fa-screwdriver-wrench text-danger me-2"></i>Failed Items</h5>
             </div>
@@ -471,7 +502,7 @@ $csrfToken = CSRF::generateToken();
         </div>
     </div>
     <div class="col-xl-5">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm sync-health-card">
             <div class="card-header bg-white">
                 <h5 class="mb-0"><i class="fas fa-eye-slash text-danger me-2"></i>Hidden / Sold Items</h5>
             </div>
@@ -530,7 +561,7 @@ $csrfToken = CSRF::generateToken();
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script src="js/theme.js"></script>
+<script src="../public/js/theme-toggle.js"></script>
 <script src="js/pwa-installer.js"></script>
 <script>
 AOS.init({ duration: 700, once: true });
