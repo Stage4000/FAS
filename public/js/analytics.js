@@ -52,6 +52,30 @@
         return status >= 400 || status === 0;
     }
 
+    function safeFetch(url, options) {
+        try {
+            if (typeof window.fetch !== 'function') {
+                return Promise.reject(new Error('Fetch unavailable'));
+            }
+
+            return window.fetch.call(window, url, options);
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    function safeSendBeacon(url, body) {
+        try {
+            return !!(
+                navigator
+                && typeof navigator.sendBeacon === 'function'
+                && navigator.sendBeacon.call(navigator, url, body)
+            );
+        } catch (error) {
+            return false;
+        }
+    }
+
     function reportClientError(area, message, context, error) {
         try {
             if (shouldIgnoreRuntimeError(message) || shouldIgnoreRuntimeError(error)) {
@@ -70,7 +94,7 @@
                 stack: error && error.stack ? error.stack : ''
             };
 
-            fetch(errorEndpoint, {
+            safeFetch(errorEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -585,7 +609,7 @@
 
         storageSet(window.localStorage, checkedKey, String(now));
 
-        fetch(adminMarkerEndpoint, {
+        safeFetch(adminMarkerEndpoint, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -617,14 +641,14 @@
         const events = queue.splice(0, batchSize);
         const body = buildPayload(events);
 
-        if (useBeacon && navigator.sendBeacon) {
+        if (useBeacon) {
             const blob = new Blob([body], { type: 'application/json' });
-            if (navigator.sendBeacon(endpoint, blob)) {
+            if (safeSendBeacon(endpoint, blob)) {
                 return Promise.resolve(true);
             }
         }
 
-        flushInFlight = fetch(endpoint, {
+        flushInFlight = safeFetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

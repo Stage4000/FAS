@@ -25,13 +25,25 @@ AOS.init({
         }
     }
 
-    function readStorage(storage, key) {
-        try {
-            return storage.getItem(key) || '';
-        } catch (error) {
-            return '';
-        }
+function readStorage(storage, key) {
+    try {
+        return storage.getItem(key) || '';
+    } catch (error) {
+        return '';
     }
+}
+
+function safeFetch(url, options) {
+    try {
+        if (typeof window.fetch !== 'function') {
+            return Promise.reject(new Error('Fetch unavailable'));
+        }
+
+        return window.fetch.call(window, url, options);
+    } catch (error) {
+        return Promise.reject(error);
+    }
+}
 
     function writeAdminHint() {
         try {
@@ -53,7 +65,7 @@ AOS.init({
         return;
     }
 
-    fetch('/admin/mark-analytics-session.php', {
+safeFetch('/admin/mark-analytics-session.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {

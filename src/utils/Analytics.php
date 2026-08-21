@@ -856,13 +856,25 @@ class Analytics
         return (int)($row['total'] ?? 0);
     }
 
-    public function getRecentSessions(int $days, int $limit = 50, int $offset = 0): array
+    public function getRecentSessions(int $days, int $limit = 50, int $offset = 0, string $sort = 'last_seen', string $direction = 'desc'): array
     {
         $this->ensureTables();
 
         $since = $this->since($days);
         $limit = max(1, min(200, $limit));
         $offset = max(0, $offset);
+        $direction = strtolower($direction) === 'asc' ? 'ASC' : 'DESC';
+        $sortColumns = [
+            'session' => 'LOWER(s.session_id)',
+            'location' => "LOWER(COALESCE(NULLIF(s.cf_city, ''), NULLIF(s.cf_region, ''), NULLIF(s.cf_country, ''), ''))",
+            'bot_signal' => '(COALESCE(s.is_admin_session, 0) * 2 + COALESCE(s.is_potential_bot, 0))',
+            'active' => 'COALESCE(e.active_duration_seconds, s.duration_seconds, 0)',
+            'events' => 'COALESCE(e.events, 0)',
+            'cart' => 'COALESCE(e.cart_value, 0)',
+            'revenue' => 'COALESCE(e.revenue, 0)',
+            'last_seen' => 'COALESCE(s.last_seen_at, s.started_at)',
+        ];
+        $orderBy = $sortColumns[$sort] ?? $sortColumns['last_seen'];
 
         return $this->fetchAll(
             "SELECT s.*,
@@ -904,7 +916,7 @@ class Analytics
             WHERE s.started_at >= ?
                 OR s.last_seen_at >= ?
                 OR e.events IS NOT NULL
-            ORDER BY s.last_seen_at DESC
+            ORDER BY {$orderBy} {$direction}, COALESCE(s.last_seen_at, s.started_at) DESC
             LIMIT " . $limit . " OFFSET " . $offset,
             [$since, $since, $since]
         );

@@ -21,6 +21,17 @@ if (!in_array($days, $allowedDays, true)) {
     $days = 30;
 }
 
+$allowedSessionSorts = ['session', 'location', 'bot_signal', 'active', 'events', 'cart', 'revenue', 'last_seen'];
+$sessionSort = isset($_GET['session_sort']) ? (string) $_GET['session_sort'] : 'last_seen';
+if (!in_array($sessionSort, $allowedSessionSorts, true)) {
+    $sessionSort = 'last_seen';
+}
+
+$sessionSortDir = strtolower((string) ($_GET['session_dir'] ?? 'desc'));
+if (!in_array($sessionSortDir, ['asc', 'desc'], true)) {
+    $sessionSortDir = 'desc';
+}
+
 $sessionsPerPage = 25;
 $sessionPage = isset($_GET['session_page']) ? max(1, (int) $_GET['session_page']) : 1;
 $totalSessions = $analytics->getRecentSessionCount($days);
@@ -45,7 +56,7 @@ $topPages = $analytics->getTopPages($days, 10);
 $trafficSources = $analytics->getTrafficSources($days, 10);
 $searchTerms = $analytics->getSearchTerms($days, 10);
 $recentEvents = $analytics->getRecentEvents(30);
-$recentSessions = $analytics->getRecentSessions($days, $sessionsPerPage, $sessionOffset);
+$recentSessions = $analytics->getRecentSessions($days, $sessionsPerPage, $sessionOffset, $sessionSort, $sessionSortDir);
 $selectedSessionId = isset($_GET['session']) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string) $_GET['session']) : '';
 $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($selectedSessionId) : null;
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
@@ -195,11 +206,13 @@ function sessionGeoSourceLabel(array $session): string
     return $labels[$source] ?? ($source !== '' ? str_replace('_', ' ', $source) : 'Unknown');
 }
 
-function sessionPageUrl(int $page, int $days, string $selectedSessionId = ''): string
+function sessionPageUrl(int $page, int $days, string $selectedSessionId = '', string $sessionSort = 'last_seen', string $sessionSortDir = 'desc'): string
 {
     $params = [
         'days' => $days,
         'session_page' => max(1, $page),
+        'session_sort' => $sessionSort,
+        'session_dir' => $sessionSortDir,
     ];
 
     if ($selectedSessionId !== '') {
@@ -207,6 +220,38 @@ function sessionPageUrl(int $page, int $days, string $selectedSessionId = ''): s
     }
 
     return 'analytics.php?' . http_build_query($params) . '#session-explorer';
+}
+
+function sessionSortUrl(string $sort, string $currentSort, string $currentDir, int $days, string $selectedSessionId = ''): string
+{
+    $defaultDesc = in_array($sort, ['bot_signal', 'active', 'events', 'cart', 'revenue', 'last_seen'], true);
+    $nextDir = $sort === $currentSort
+        ? ($currentDir === 'asc' ? 'desc' : 'asc')
+        : ($defaultDesc ? 'desc' : 'asc');
+    $params = [
+        'days' => $days,
+        'session_page' => 1,
+        'session_sort' => $sort,
+        'session_dir' => $nextDir,
+    ];
+
+    if ($selectedSessionId !== '') {
+        $params['session'] = $selectedSessionId;
+    }
+
+    return 'analytics.php?' . http_build_query($params) . '#session-explorer';
+}
+
+function renderSessionSortHeader(string $label, string $sort, string $currentSort, string $currentDir, int $days, string $selectedSessionId = ''): string
+{
+    $active = $sort === $currentSort;
+    $icon = $active ? ($currentDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort';
+    $class = 'analytics-session-sort' . ($active ? ' is-active' : '');
+
+    return '<a class="' . $class . '" href="' . safe(sessionSortUrl($sort, $currentSort, $currentDir, $days, $selectedSessionId)) . '">'
+        . '<span>' . safe($label) . '</span>'
+        . '<i class="fas ' . $icon . '" aria-hidden="true"></i>'
+        . '</a>';
 }
 
 function sessionPaginationPages(int $currentPage, int $totalPages): array
@@ -236,7 +281,7 @@ function sessionPaginationPages(int $currentPage, int $totalPages): array
     return $pages;
 }
 
-function renderSessionPagination(int $currentPage, int $totalPages, int $days, string $selectedSessionId = ''): string
+function renderSessionPagination(int $currentPage, int $totalPages, int $days, string $selectedSessionId = '', string $sessionSort = 'last_seen', string $sessionSortDir = 'desc'): string
 {
     if ($totalPages <= 1) {
         return '';
@@ -248,7 +293,7 @@ function renderSessionPagination(int $currentPage, int $totalPages, int $days, s
         bool $disabled = false,
         bool $active = false,
         string $ariaLabel = ''
-    ) use ($days, $selectedSessionId): string {
+    ) use ($days, $selectedSessionId, $sessionSort, $sessionSortDir): string {
         $classes = 'page-item' . ($disabled ? ' disabled' : '') . ($active ? ' active' : '');
         $aria = $ariaLabel !== '' ? ' aria-label="' . safe($ariaLabel) . '"' : '';
 
@@ -257,7 +302,7 @@ function renderSessionPagination(int $currentPage, int $totalPages, int $days, s
             return '<li class="' . $classes . '"><span class="page-link"' . $aria . $current . '>' . safe($label) . '</span></li>';
         }
 
-        return '<li class="' . $classes . '"><a class="page-link" href="' . safe(sessionPageUrl($page, $days, $selectedSessionId)) . '"' . $aria . '>' . safe($label) . '</a></li>';
+        return '<li class="' . $classes . '"><a class="page-link" href="' . safe(sessionPageUrl($page, $days, $selectedSessionId, $sessionSort, $sessionSortDir)) . '"' . $aria . '>' . safe($label) . '</a></li>';
     };
 
     $html = '<nav class="analytics-session-pagination" aria-label="Analytics session list pages"><ul class="pagination pagination-sm mb-0 flex-wrap">';
@@ -365,6 +410,21 @@ function metricCard(string $label, string $value, string $note, string $icon): s
 }
 .analytics-session-pagination .page-item.disabled .page-link {
     color: #98a2b3;
+}
+.analytics-session-sort {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    text-decoration: none;
+}
+.analytics-session-sort:hover,
+.analytics-session-sort.is-active {
+    color: #db0335;
+}
+.text-end .analytics-session-sort {
+    justify-content: flex-end;
+    width: 100%;
 }
 .analytics-session-table {
     min-width: 1180px;
@@ -536,6 +596,10 @@ function metricCard(string $label, string $value, string $note, string $icon): s
 [data-theme="dark"] .analytics-session-table th {
     color: #c5cbd3;
 }
+[data-theme="dark"] .analytics-session-sort:hover,
+[data-theme="dark"] .analytics-session-sort.is-active {
+    color: #ff7f9c;
+}
 [data-theme="dark"] .analytics-session-muted {
     color: #c5cbd3;
 }
@@ -685,6 +749,8 @@ function metricCard(string $label, string $value, string $note, string $icon): s
                         <form method="get" class="analytics-session-search">
                             <input type="hidden" name="days" value="<?php echo $days; ?>">
                             <input type="hidden" name="session_page" value="<?php echo $sessionPage; ?>">
+                            <input type="hidden" name="session_sort" value="<?php echo safe($sessionSort); ?>">
+                            <input type="hidden" name="session_dir" value="<?php echo safe($sessionSortDir); ?>">
                             <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="session" class="form-control" placeholder="Paste a session ID" value="<?php echo safe($selectedSessionId); ?>" aria-label="Session ID">
@@ -763,21 +829,21 @@ No sessions recorded in the last <?php echo $days; ?> days.
 </div>
 <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-end gap-2">
 <span class="badge text-bg-light border">Page <?php echo fmtNumber($sessionPage); ?> of <?php echo fmtNumber($totalSessionPages); ?></span>
-<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days); ?>
+<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days, $selectedSessionId, $sessionSort, $sessionSortDir); ?>
 </div>
 </div>
 <div class="table-responsive mb-3 border rounded">
                     <table class="table table-sm align-middle analytics-session-table mb-0">
                         <thead>
                             <tr>
-                                <th>Session</th>
-                                <th>Location</th>
-                                <th>Bot Signal</th>
-                                <th class="text-end">Active</th>
-                                <th class="text-end">Events</th>
-                                <th class="text-end">Cart</th>
-                                <th class="text-end">Revenue</th>
-                                <th>Last Seen</th>
+                                <th><?php echo renderSessionSortHeader('Session', 'session', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th><?php echo renderSessionSortHeader('Location', 'location', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th><?php echo renderSessionSortHeader('Bot Signal', 'bot_signal', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th class="text-end"><?php echo renderSessionSortHeader('Active', 'active', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th class="text-end"><?php echo renderSessionSortHeader('Events', 'events', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th class="text-end"><?php echo renderSessionSortHeader('Cart', 'cart', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th class="text-end"><?php echo renderSessionSortHeader('Revenue', 'revenue', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
+                                <th><?php echo renderSessionSortHeader('Last Seen', 'last_seen', $sessionSort, $sessionSortDir, $days, $selectedSessionId); ?></th>
                             <th class="text-end analytics-action-cell">Actions</th>
                             </tr>
                         </thead>
@@ -835,7 +901,7 @@ No sessions recorded in the last <?php echo $days; ?> days.
 <div class="small text-muted">
 Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($sessionPageEnd); ?> of <?php echo fmtNumber($totalSessions); ?> sessions
 </div>
-<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days); ?>
+<?php echo renderSessionPagination($sessionPage, $totalSessionPages, $days, $selectedSessionId, $sessionSort, $sessionSortDir); ?>
 </div>
 <?php endif; ?>
 
