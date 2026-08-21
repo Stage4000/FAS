@@ -415,7 +415,7 @@ function emFilterUrl(array $updates): string
 <script src="../public/js/runtime-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script src="../public/js/timezone.js"></script>
+<script src="../public/js/timezone.js?v=<?php echo filemtime(__DIR__ . '/../public/js/timezone.js'); ?>"></script>
 <script src="../public/js/theme-toggle.js"></script>
 <script src="js/pwa-installer.js"></script>
 <script>AOS.init({ duration: 700, once: true });</script>

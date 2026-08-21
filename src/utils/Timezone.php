@@ -75,7 +75,7 @@ class Timezone
             return $fallback ?? (string)$value;
         }
 
-        $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
+        $dateTime = $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
 
         return $dateTime->format($format);
     }
@@ -93,7 +93,7 @@ class Timezone
             return null;
         }
 
-        $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
+        $dateTime = $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
 
         return $dateTime->format(\DateTimeInterface::ATOM);
     }
@@ -113,7 +113,7 @@ class Timezone
             return '';
         }
 
-        $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
+        $dateTime = $dateTime->setTimezone(new \DateTimeZone(self::userTimezone()));
 
         return $dateTime->format('Y-m-d\TH:i');
     }

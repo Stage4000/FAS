@@ -97,7 +97,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
         });
     </script>
 <!-- Custom JS -->
-<script src="/public/js/timezone.js"></script>
+<script src="/public/js/timezone.js?v=<?php echo filemtime(__DIR__ . '/../public/js/timezone.js'); ?>"></script>
 <script src="/public/js/analytics.js?v=<?php echo filemtime(__DIR__ . '/../public/js/analytics.js'); ?>"></script>
 <script src="/public/js/main.js"></script>
     <!-- Animation & UX Enhancement JS -->
