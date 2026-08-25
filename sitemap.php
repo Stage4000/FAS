@@ -29,11 +29,13 @@ function fasSitemapWriteUrl(XMLWriter $xml, string $loc, string $lastmod, string
 
 $today = gmdate('Y-m-d');
 $products = [];
+$fitmentPages = [];
 
 try {
     $db = Database::getInstance()->getConnection();
-    $productModel = new Product($db);
-    $products = $productModel->getAllVisibleForFeed();
+$productModel = new Product($db);
+$products = $productModel->getAllVisibleForFeed();
+$fitmentPages = $productModel->getVisibleFitmentLandingPages(40, 2);
 } catch (Exception $e) {
     error_log('Sitemap product load failed: ' . $e->getMessage());
 }
@@ -59,7 +61,30 @@ foreach ($coreUrls as $url) {
 }
 
 foreach (['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'] as $categorySlug) {
-    fasSitemapWriteUrl($xml, Seo::canonicalUrl('/products/' . $categorySlug), $today, 'daily', '0.8');
+fasSitemapWriteUrl($xml, Seo::canonicalUrl('/products/' . $categorySlug), $today, 'daily', '0.8');
+}
+
+foreach (['trending', 'recent-arrivals', 'best-sellers', 'free-shipping', 'sale'] as $collectionSlug) {
+fasSitemapWriteUrl($xml, Seo::canonicalUrl('/products/' . $collectionSlug), $today, 'daily', '0.8');
+}
+
+$allowedCategorySlugs = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
+$writtenFitmentPaths = [];
+foreach ($fitmentPages as $fitmentPage) {
+$manufacturer = Seo::slug($fitmentPage['manufacturer'] ?? '');
+$model = Seo::slug($fitmentPage['model'] ?? '');
+if ($manufacturer === '') {
+continue;
+}
+$categorySlug = strtolower(trim((string)($fitmentPage['category'] ?? '')));
+$categoryPath = in_array($categorySlug, $allowedCategorySlugs, true) ? '/' . $categorySlug : '';
+$fitmentPath = '/products' . $categoryPath . '/make/' . $manufacturer . ($model !== '' ? '/' . $model : '');
+if (isset($writtenFitmentPaths[$fitmentPath])) {
+continue;
+}
+$writtenFitmentPaths[$fitmentPath] = true;
+$lastmod = $fitmentPage['last_updated_at'] ?? null;
+fasSitemapWriteUrl($xml, Seo::canonicalUrl($fitmentPath), fasSitemapLastmod($lastmod), 'weekly', '0.6');
 }
 
 foreach ($products as $product) {

@@ -113,6 +113,22 @@ function normalizeImagePath($path) {
     return $path;
 }
 
+function fasResolveSlugOption(array $options, ?string $slug): ?string
+{
+    $slug = trim((string)$slug);
+    if ($slug === '') {
+        return null;
+    }
+
+    foreach ($options as $option) {
+        if (Seo::slug((string)$option) === $slug) {
+            return (string)$option;
+        }
+    }
+
+    return null;
+}
+
 function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds): array
 {
     $filtered = [];
@@ -140,12 +156,35 @@ $ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
 $ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
 $manufacturer = $_GET['manufacturer'] ?? null;
 $fitmentModel = $_GET['model'] ?? null;
+$manufacturerSlug = $_GET['manufacturer_slug'] ?? null;
+$modelSlug = $_GET['model_slug'] ?? null;
 $discoveryCollections = [
     'trending' => 'Trending Parts',
     'best' => 'Best Sellers',
     'recent' => 'Recent Arrivals',
+    'free_shipping' => 'Free Shipping Eligible',
+    'sale' => 'On Sale',
 ];
-$discoveryCollection = $_GET['collection'] ?? '';
+$discoveryCollectionAliases = [
+    'trending' => 'trending',
+    'best' => 'best',
+    'best-sellers' => 'best',
+    'recent' => 'recent',
+    'recent-arrivals' => 'recent',
+    'free_shipping' => 'free_shipping',
+    'free-shipping' => 'free_shipping',
+    'sale' => 'sale',
+    'on-sale' => 'sale',
+];
+$discoveryCollectionSlugs = [
+    'trending' => 'trending',
+    'best' => 'best-sellers',
+    'recent' => 'recent-arrivals',
+    'free_shipping' => 'free-shipping',
+    'sale' => 'sale',
+];
+$requestedCollection = $_GET['collection'] ?? '';
+$discoveryCollection = $discoveryCollectionAliases[$requestedCollection] ?? $requestedCollection;
 if (!isset($discoveryCollections[$discoveryCollection])) {
     $discoveryCollection = '';
 }
@@ -160,6 +199,8 @@ if ($discoveryCollection !== '') {
     $homepageCategory = null;
     $manufacturer = null;
     $fitmentModel = null;
+    $manufacturerSlug = null;
+    $modelSlug = null;
     $search = null;
     $page = 1;
 }
@@ -168,6 +209,14 @@ if ($discoveryCollection !== '') {
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $visibleCategoryIds = $productModel->getVisibleEbayCategoryIds($includeHiddenProducts);
+
+if (!$manufacturer && $manufacturerSlug) {
+    $manufacturer = fasResolveSlugOption($productModel->getManufacturers($includeHiddenProducts), $manufacturerSlug);
+}
+
+if (!$fitmentModel && $modelSlug) {
+    $fitmentModel = fasResolveSlugOption($productModel->getModels($includeHiddenProducts, $manufacturer), $modelSlug);
+}
 
 // Get eBay categories for sidebar
 $flatCategories = [];
@@ -222,6 +271,25 @@ if ($discoveryCollection === 'trending') {
     $totalProducts = count($products);
 } elseif ($discoveryCollection === 'recent') {
     $products = $productModel->getRecentVisible($perPage);
+    $totalProducts = count($products);
+} elseif ($discoveryCollection === 'free_shipping') {
+    $freeShippingConfig = file_exists(__DIR__ . '/src/config/config.php')
+        ? require __DIR__ . '/src/config/config.php'
+        : [];
+    $freeShippingSettings = ShippingRules::getFreeShippingSettings(is_array($freeShippingConfig) ? $freeShippingConfig : []);
+    $products = array_values(array_filter($productModel->getAllVisibleForFeed(), function ($product) use ($freeShippingSettings) {
+        return ShippingRules::productQualifiesForFreeShipping($product, $freeShippingSettings);
+    }));
+    $totalProducts = count($products);
+    $products = array_slice($products, 0, $perPage);
+} elseif ($discoveryCollection === 'sale') {
+    $products = $productModel->getOnSaleVisible($perPage);
+    if (getSaleConfig() !== null && count($products) < $perPage) {
+        $products = array_merge(
+            $products,
+            $productModel->getRecentVisible($perPage - count($products), array_column($products, 'id'))
+        );
+    }
     $totalProducts = count($products);
 } else {
     $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
@@ -281,18 +349,56 @@ $searchTerm = Seo::cleanText($search ?? '');
 $manufacturerName = Seo::cleanText($manufacturer ?? '');
 $fitmentModelName = Seo::cleanText($fitmentModel ?? '');
 $categoryLabel = ($homepageCategory && isset($categoryMeta[$homepageCategory]))
-    ? $categoryMeta[$homepageCategory]['label']
-    : Seo::cleanText($currentCategoryName);
+? $categoryMeta[$homepageCategory]['label']
+: Seo::cleanText($currentCategoryName);
 $pageSuffix = $page > 1 ? ' Page ' . $page : '';
+$isCuratedFitmentLanding = (($manufacturerSlug || $modelSlug) && $manufacturerName !== '' && $searchTerm === '');
+$collectionMeta = [
+    'trending' => [
+        'title' => 'Trending Used Parts | Flip and Strip',
+        'description' => 'Shop used powersports, marine, and automotive parts with recent shopper activity.',
+        'copy' => 'These parts are getting the most recent attention from shoppers. Use this page to compare in-demand inventory before it sells.',
+    ],
+    'best' => [
+        'title' => 'Best-Selling Used Parts | Flip and Strip',
+        'description' => 'Browse best-selling used motorcycle, ATV, boat, and automotive parts from Flip and Strip.',
+        'copy' => 'Best sellers are ranked from completed orders first, then recent shopper engagement when sales history is limited.',
+    ],
+    'recent' => [
+        'title' => 'Recent Arrivals | Flip and Strip',
+        'description' => 'See recently added used parts with actual item photos, fitment details, and secure checkout.',
+        'copy' => 'Recent arrivals help buyers find fresh used-parts inventory before it is picked over on high-demand makes and models.',
+    ],
+    'free_shipping' => [
+        'title' => 'Free Shipping Eligible Parts | Flip and Strip',
+        'description' => 'Shop used parts that qualify for free shipping to continental US addresses.',
+        'copy' => 'These listings qualify for free-shipping treatment by product flag or size and weight rules. Final eligibility is confirmed at checkout for continental US destinations.',
+    ],
+    'sale' => [
+        'title' => 'Used Parts On Sale | Flip and Strip',
+        'description' => 'Shop discounted used motorcycle, ATV, boat, automotive, and powersports parts from Flip and Strip.',
+        'copy' => 'Sale inventory highlights current markdowns and active promotions so buyers can find discounted parts faster.',
+    ],
+];
 
 $canonicalPath = '/products';
-if ($homepageCategory && isset($categoryMeta[$homepageCategory]) && $ebayCat1) {
-    $canonicalPath .= '/' . $homepageCategory;
+if ($discoveryCollection !== '') {
+    $canonicalPath .= '/' . ($discoveryCollectionSlugs[$discoveryCollection] ?? $discoveryCollection);
+} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
+$canonicalPath .= '/' . $homepageCategory;
+} elseif ($isCuratedFitmentLanding) {
+    if ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
+        $canonicalPath .= '/' . $homepageCategory;
+    }
+    $canonicalPath .= '/make/' . Seo::slug($manufacturerName);
+    if ($fitmentModelName !== '') {
+        $canonicalPath .= '/' . Seo::slug($fitmentModelName);
+    }
 }
 
 $canonicalParams = [];
-if ($discoveryCollection !== '') {
-    $canonicalParams['collection'] = $discoveryCollection;
+if ($discoveryCollection !== '' || $isCuratedFitmentLanding) {
+    // Clean curated landing URLs should not canonicalize back to query strings.
 } elseif (!$homepageCategory) {
     if ($ebayCat1) {
         $canonicalParams['cat1'] = $ebayCat1;
@@ -304,11 +410,11 @@ if ($discoveryCollection !== '') {
         $canonicalParams['cat3'] = $ebayCat3;
     }
 }
-if ($manufacturerName !== '') {
-    $canonicalParams['manufacturer'] = $manufacturerName;
+if (!$isCuratedFitmentLanding && $manufacturerName !== '') {
+$canonicalParams['manufacturer'] = $manufacturerName;
 }
-if ($fitmentModelName !== '') {
-    $canonicalParams['model'] = $fitmentModelName;
+if (!$isCuratedFitmentLanding && $fitmentModelName !== '') {
+$canonicalParams['model'] = $fitmentModelName;
 }
 if ($searchTerm !== '') {
     $canonicalParams['search'] = $searchTerm;
@@ -322,15 +428,20 @@ $canonicalUrl = Seo::canonicalUrl($canonicalPath . $canonicalQuery);
 $robotsMeta = 'index, follow';
 
 if ($discoveryCollection !== '') {
-    $metaTitle = Seo::metaTitle($currentCategoryName . ' | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Browse ' . strtolower($currentCategoryName) . ' from Flip and Strip.');
+    $activeCollectionMeta = $collectionMeta[$discoveryCollection] ?? null;
+    $metaTitle = Seo::metaTitle($activeCollectionMeta['title'] ?? ($currentCategoryName . ' | Flip and Strip'));
+    $metaDescription = Seo::metaDescription($activeCollectionMeta['description'] ?? ('Browse ' . strtolower($currentCategoryName) . ' from Flip and Strip.'));
 } elseif ($searchTerm !== '') {
-    $metaTitle = Seo::metaTitle('Search results for ' . $searchTerm . ' | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Browse matching Flip and Strip parts for ' . $searchTerm . '. Product search pages are provided for shopping navigation.');
-    $robotsMeta = 'noindex, follow';
-} elseif ($manufacturerName !== '' || $fitmentModelName !== '') {
+$metaTitle = Seo::metaTitle('Search results for ' . $searchTerm . ' | Flip and Strip');
+$metaDescription = Seo::metaDescription('Browse matching Flip and Strip parts for ' . $searchTerm . '. Product search pages are provided for shopping navigation.');
+$robotsMeta = 'noindex, follow';
+} elseif ($isCuratedFitmentLanding) {
     $fitmentLabel = trim($manufacturerName . ' ' . $fitmentModelName);
-    $metaTitle = Seo::metaTitle($fitmentLabel . ' Parts | Flip and Strip');
+    $metaTitle = Seo::metaTitle($fitmentLabel . ' Used Parts | Flip and Strip');
+    $metaDescription = Seo::metaDescription('Shop available ' . $fitmentLabel . ' used parts with actual photos, fitment details, and secure checkout.');
+} elseif ($manufacturerName !== '' || $fitmentModelName !== '') {
+$fitmentLabel = trim($manufacturerName . ' ' . $fitmentModelName);
+$metaTitle = Seo::metaTitle($fitmentLabel . ' Parts | Flip and Strip');
     $metaDescription = Seo::metaDescription('Browse available ' . $fitmentLabel . ' parts from Flip and Strip.');
     $robotsMeta = 'noindex, follow';
 } elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
@@ -346,8 +457,24 @@ if ($discoveryCollection !== '') {
 }
 
 if ($includeHiddenProducts) {
-    $robotsMeta = 'noindex, nofollow';
+$robotsMeta = 'noindex, nofollow';
 }
+
+$landingIntroCopy = '';
+if ($discoveryCollection !== '' && isset($collectionMeta[$discoveryCollection])) {
+    $landingIntroCopy = $collectionMeta[$discoveryCollection]['copy'];
+} elseif ($isCuratedFitmentLanding) {
+    $landingIntroCopy = 'Use this focused inventory page to review matching used parts, confirm fitment from photos and SKU details, and estimate shipping before checkout.';
+} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
+    $landingIntroCopy = $categoryMeta[$homepageCategory]['description'] . ' Check manufacturer, model, SKU, photos, and notes before purchase because used-part fitment can vary by year and trim.';
+}
+
+$landingIntroLinks = [
+    '/products/recent-arrivals' => 'Recent Arrivals',
+    '/products/best-sellers' => 'Best Sellers',
+    '/products/free-shipping' => 'Free Shipping Eligible',
+    '/products/sale' => 'On Sale',
+];
 
 $pageTitle = $categoryLabel;
 $ogTitle = $metaTitle;
@@ -413,15 +540,21 @@ require_once __DIR__ . '/includes/header.php';
                                 <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
                             <?php endif; ?>
                         </a>
-                        <a href="#" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
-                            <i class="fas fa-chart-line"></i> Trending Parts
-                        </a>
-                        <a href="#" data-collection="best" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'best' ? 'active' : ''; ?>">
-                            <i class="fas fa-star"></i> Best Sellers
-                        </a>
-                        <a href="#" data-collection="recent" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'recent' ? 'active' : ''; ?>">
-                            <i class="fas fa-clock"></i> Recent Arrivals
-                        </a>
+<a href="/products/trending" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
+<i class="fas fa-chart-line"></i> Trending Parts
+</a>
+<a href="/products/best-sellers" data-collection="best" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'best' ? 'active' : ''; ?>">
+<i class="fas fa-star"></i> Best Sellers
+</a>
+<a href="/products/recent-arrivals" data-collection="recent" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'recent' ? 'active' : ''; ?>">
+<i class="fas fa-clock"></i> Recent Arrivals
+</a>
+<a href="/products/free-shipping" data-collection="free_shipping" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'free_shipping' ? 'active' : ''; ?>">
+<i class="fas fa-truck-fast"></i> Free Shipping Eligible
+</a>
+<a href="/products/sale" data-collection="sale" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'sale' ? 'active' : ''; ?>">
+<i class="fas fa-percent"></i> On Sale
+</a>
 
                         <?php if (!empty($ebayCategories)): ?>
                             <?php foreach ($ebayCategories as $cat1): ?>
@@ -579,6 +712,25 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 </div>
 </div>
 
+<?php if ($landingIntroCopy !== ''): ?>
+<div class="card border-0 shadow-sm mb-4 products-landing-intro" data-theme-card>
+<div class="card-body p-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+<div>
+<div class="small text-danger fw-semibold text-uppercase mb-1">Used parts buying guide</div>
+<h2 class="h5 fw-bold mb-2"><?php echo htmlspecialchars($currentCategoryName); ?></h2>
+<p class="text-muted mb-0"><?php echo htmlspecialchars($landingIntroCopy); ?></p>
+</div>
+<div class="products-landing-links d-flex flex-wrap gap-2 align-content-start">
+<?php foreach ($landingIntroLinks as $linkUrl => $linkLabel): ?>
+<a href="<?php echo htmlspecialchars($linkUrl); ?>" class="btn btn-outline-danger btn-sm"><?php echo htmlspecialchars($linkLabel); ?></a>
+<?php endforeach; ?>
+</div>
+</div>
+</div>
+</div>
+<?php endif; ?>
+
 <!-- Products Grid -->
 <?php if (empty($products)): ?>
             <div class="card border-0 shadow-sm mb-4">
@@ -607,9 +759,25 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                        <?php endif; ?>
-                        <div class="d-flex flex-wrap gap-2">
-                                <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
+<?php endif; ?>
+<form class="saved-search-notify-form border rounded-3 p-3 mb-3" data-saved-search-notify>
+<div class="small fw-semibold mb-2"><i class="fas fa-bell text-danger me-1"></i>Notify me when similar parts arrive</div>
+<div class="row g-2 align-items-start">
+<div class="col-lg">
+<input type="email" class="form-control form-control-sm" name="email" placeholder="Email address" autocomplete="email" required>
+</div>
+<div class="col-lg-auto">
+<button class="btn btn-danger btn-sm w-100" type="submit">Notify Me</button>
+</div>
+</div>
+<label class="form-check small text-muted mt-2 mb-0">
+<input class="form-check-input" type="checkbox" name="consent" value="1" required>
+I agree to be contacted only about matching Flip and Strip inventory.
+</label>
+<div class="saved-search-notify-status small mt-2" aria-live="polite"></div>
+</form>
+<div class="d-flex flex-wrap gap-2">
+<a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
                                 <a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
                                 <a href="/products/boat" class="btn btn-outline-danger btn-sm">Boat Parts</a>
                                 <a href="/products/automotive" class="btn btn-outline-danger btn-sm">Automotive Parts</a>
@@ -663,10 +831,12 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                                     );
                                     ?>
                                     <?php if ($hasImage): ?>
-                                        <img src="<?php echo htmlspecialchars($imageUrl); ?>"
-                                             class="card-img-top product-image"
-                                             alt="<?php echo htmlspecialchars($imageAltText); ?>"
-                                             style="cursor: pointer;">
+<img src="<?php echo htmlspecialchars($imageUrl); ?>"
+class="card-img-top product-image"
+alt="<?php echo htmlspecialchars($imageAltText); ?>"
+loading="lazy"
+decoding="async"
+style="cursor: pointer;">
                                     <?php else: ?>
                                         <div class="product-image bg-light d-flex align-items-center justify-content-center" style="cursor: pointer;">
                                             <i class="fas fa-image text-muted display-4"></i>
@@ -823,6 +993,28 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 </div>
 
 <script>
+window.FAS_PRODUCTS_PAGE_DATA = <?php echo json_encode([
+    'page_type' => $discoveryCollection !== '' ? 'collection' : ($isCuratedFitmentLanding ? 'fitment_landing' : ($homepageCategory ? 'category' : 'products')),
+    'collection' => $discoveryCollection,
+    'category' => $homepageCategory,
+    'manufacturer' => $manufacturerName,
+    'model' => $fitmentModelName,
+    'product_count' => $totalProducts,
+    'canonical_url' => $canonicalUrl,
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+
+function trackProductsLandingPage() {
+    if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function' && window.FAS_PRODUCTS_PAGE_DATA.page_type !== 'products') {
+        window.fasAnalytics.track('landing_page_view', window.FAS_PRODUCTS_PAGE_DATA, { immediate: true });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', trackProductsLandingPage);
+} else {
+    setTimeout(trackProductsLandingPage, 0);
+}
+
 // Mobile category menu toggle
 document.getElementById('categoryToggle').addEventListener('click', function() {
     const menu = document.getElementById('categoryMenu');
@@ -908,6 +1100,13 @@ document.addEventListener('click', event => {
         searches.unshift(savedSearch);
         setSavedSearches(searches);
         renderSavedSearches();
+        if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+            window.fasAnalytics.track('saved_search_saved', {
+                label: savedSearch.label,
+                search_url: savedSearch.url,
+                source: 'products_page'
+            });
+        }
         saveButton.innerHTML = '<i class="fas fa-check"></i> Saved';
         setTimeout(() => {
             saveButton.innerHTML = '<i class="fas fa-bookmark"></i> Save';
@@ -923,6 +1122,79 @@ document.addEventListener('click', event => {
             searches.splice(index, 1);
             setSavedSearches(searches);
             renderSavedSearches();
+        }
+    }
+});
+
+document.addEventListener('submit', async event => {
+    const form = event.target.closest('[data-saved-search-notify]');
+    if (!form) {
+        return;
+    }
+
+    event.preventDefault();
+    const status = form.querySelector('.saved-search-notify-status');
+    const submitButton = form.querySelector('[type="submit"]');
+    const params = new URLSearchParams(window.location.search);
+    const savedSearch = currentSavedSearch() || {
+        label: document.querySelector('#productsContent h1')?.textContent.trim() || 'Parts request',
+        url: window.location.pathname + window.location.search
+    };
+    const payload = {
+        email: form.email.value.trim(),
+        consent: form.consent.checked,
+        label: savedSearch.label,
+        url: savedSearch.url,
+        search: params.get('search') || '',
+        manufacturer: params.get('manufacturer') || '',
+        model: params.get('model') || '',
+        category: params.get('category') || window.FAS_PRODUCTS_PAGE_DATA?.category || '',
+        collection: params.get('collection') || window.FAS_PRODUCTS_PAGE_DATA?.collection || '',
+        no_results: true,
+        page_url: window.location.href,
+        source_page: window.location.pathname
+    };
+
+    if (status) {
+        status.className = 'saved-search-notify-status small mt-2 text-muted';
+        status.textContent = 'Saving request...';
+    }
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+
+    try {
+        const response = await fetch('/api/saved-search.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Unable to save request.');
+        }
+
+        if (status) {
+            status.className = 'saved-search-notify-status small mt-2 text-success';
+            status.textContent = data.message || 'Saved. We will use this request when similar parts arrive.';
+        }
+        form.reset();
+        if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+            window.fasAnalytics.track('saved_search_submitted', {
+                label: payload.label,
+                search_url: payload.url,
+                search_query: payload.search,
+                source: 'no_results'
+            }, { immediate: true });
+        }
+    } catch (error) {
+        if (status) {
+            status.className = 'saved-search-notify-status small mt-2 text-danger';
+            status.textContent = error.message || 'Unable to save request right now.';
+        }
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
         }
     }
 });
@@ -949,15 +1221,21 @@ function attachCategoryHandlers() {
             const cat3 = this.dataset.cat3;
             const collection = this.dataset.collection;
 
-            if (cat1) params.set('cat1', cat1);
-            if (cat2) params.set('cat2', cat2);
-            if (cat3) params.set('cat3', cat3);
-            if (collection) {
-                params.set('collection', collection);
-                params.delete('search');
-                params.delete('manufacturer');
-                params.delete('model');
-            }
+        if (collection) {
+        const cleanHref = this.getAttribute('href');
+        if (cleanHref && cleanHref !== '#') {
+        window.location.href = cleanHref;
+        return;
+        }
+        params.set('collection', collection);
+        params.delete('search');
+        params.delete('manufacturer');
+        params.delete('model');
+        } else {
+        if (cat1) params.set('cat1', cat1);
+        if (cat2) params.set('cat2', cat2);
+        if (cat3) params.set('cat3', cat3);
+        }
 
             // Update browser URL without refresh
             const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');

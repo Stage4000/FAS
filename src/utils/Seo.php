@@ -5,9 +5,12 @@
 
 namespace FAS\Utils;
 
+require_once __DIR__ . '/ShippingRules.php';
+
 class Seo
 {
     private const BASE_URL = 'https://flipandstrip.com';
+    private const RETURN_POLICY_DAYS = 30;
 
     public static function baseUrl(): string
     {
@@ -151,18 +154,24 @@ class Seo
 
     public static function productSlug(array $product): string
     {
-        $source = self::cleanText($product['name'] ?? '');
-        $source = strtolower($source);
-        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $source);
-        if ($ascii !== false) {
+    $source = self::slug(self::cleanText($product['name'] ?? ''), 80);
+    return $source !== '' ? $source : 'part';
+    }
+
+    public static function slug($value, int $maxLength = 80): string
+    {
+    $source = self::cleanText($value);
+    $source = strtolower($source);
+    $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $source);
+    if ($ascii !== false) {
             $source = $ascii;
         }
 
-        $source = preg_replace('/[^a-z0-9]+/', '-', $source);
-        $source = trim((string) $source, '-');
-        $source = self::limitSlug($source, 80);
+    $source = preg_replace('/[^a-z0-9]+/', '-', $source);
+    $source = trim((string) $source, '-');
+    $source = self::limitSlug($source, $maxLength);
 
-        return $source !== '' ? $source : 'part';
+    return $source;
     }
 
     public static function productUrl(array $product): string
@@ -262,14 +271,31 @@ class Seo
                 'price' => number_format((float) ($priceInfo['effective_price'] ?? $product['price'] ?? 0), 2, '.', ''),
                 'availability' => ((int) ($product['quantity'] ?? 0) > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
                 'itemCondition' => self::itemConditionUrl($product['condition_name'] ?? ''),
-                'seller' => [
-                    '@type' => 'Organization',
-                    'name' => 'Flip and Strip',
-                ],
+            'seller' => [
+                '@type' => 'Organization',
+                'name' => 'Flip and Strip',
             ],
-        ];
+            'hasMerchantReturnPolicy' => self::merchantReturnPolicySchema(),
+        ],
+    ];
 
-        $brand = self::cleanText($product['manufacturer'] ?? '');
+    if (ShippingRules::productQualifiesForFreeShipping($product)) {
+    $schema['offers']['shippingDetails'] = [
+    '@type' => 'OfferShippingDetails',
+    'shippingDestination' => [
+    '@type' => 'DefinedRegion',
+    'addressCountry' => 'US',
+    'addressRegion' => self::continentalUsRegions(),
+    ],
+    'shippingRate' => [
+    '@type' => 'MonetaryAmount',
+    'value' => '0.00',
+    'currency' => 'USD',
+    ],
+    ];
+    }
+
+    $brand = self::cleanText($product['manufacturer'] ?? '');
         if ($brand !== '') {
             $schema['brand'] = [
                 '@type' => 'Brand',
@@ -319,10 +345,32 @@ class Seo
             ];
         }
 
+    return [
+    '@context' => 'https://schema.org',
+    '@type' => 'ItemList',
+    'itemListElement' => $elements,
+    ];
+    }
+
+    private static function continentalUsRegions(): array
+    {
         return [
-            '@context' => 'https://schema.org',
-            '@type' => 'ItemList',
-            'itemListElement' => $elements,
+            'AL', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA',
+    'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA',
+    'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM',
+    'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD',
+    'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        ];
+    }
+
+    private static function merchantReturnPolicySchema(): array
+    {
+        return [
+            '@type' => 'MerchantReturnPolicy',
+            'applicableCountry' => 'US',
+            'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
+            'merchantReturnDays' => self::RETURN_POLICY_DAYS,
+            'returnMethod' => 'https://schema.org/ReturnByMail',
         ];
     }
 

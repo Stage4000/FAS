@@ -36,6 +36,7 @@ require_once __DIR__ . '/includes/header.php';
 <li>Enter your shipping address to calculate accurate delivery options.</li>
 <li>Apply any coupon before payment; discounts update the final total.</li>
 <li>Review the complete total before approving secure PayPal payment.</li>
+<li>Eligible orders are covered by a 30-day return policy.</li>
 </ul>
 </div>
 </div>
@@ -211,6 +212,7 @@ const buyNowStorageKey = 'flipandstrip_buy_now';
 const buyNowMaxAgeMs = 2 * 60 * 60 * 1000;
 const checkoutUrlParams = new URLSearchParams(window.location.search);
 let buyNowCheckoutItem = null;
+let buyNowShippingEstimate = null;
 
 function escapeHtml(value) {
     const div = document.createElement('div');
@@ -261,10 +263,11 @@ function normalizeCheckoutItem(item) {
 }
 
 function clearBuyNowCheckout() {
-    buyNowCheckoutItem = null;
-    try {
-        localStorage.removeItem(buyNowStorageKey);
-    } catch (error) {}
+buyNowCheckoutItem = null;
+buyNowShippingEstimate = null;
+try {
+localStorage.removeItem(buyNowStorageKey);
+} catch (error) {}
 }
 
 function loadBuyNowCheckoutItem() {
@@ -290,6 +293,7 @@ function loadBuyNowCheckoutItem() {
         return null;
     }
 
+    buyNowShippingEstimate = payload.shipping_estimate || null;
     return normalizeCheckoutItem(payload.item);
 }
 
@@ -329,10 +333,54 @@ function getCheckoutSummary(extra = {}) {
         cart_value: 0
     });
 
-    return Object.assign(summary, {
-        checkout_mode: getCheckoutMode(),
-        is_buy_now: !!buyNowCheckoutItem
-    }, extra);
+return Object.assign(summary, {
+checkout_mode: getCheckoutMode(),
+is_buy_now: !!buyNowCheckoutItem
+}, extra);
+}
+
+function applyBuyNowShippingEstimate() {
+if (!buyNowShippingEstimate || !buyNowShippingEstimate.address) {
+return;
+}
+
+const form = document.getElementById('checkout-form');
+if (!form) {
+return;
+}
+
+const address = buyNowShippingEstimate.address;
+const fieldMap = {
+address1: address.address1 && address.address1 !== 'Shipping estimate' ? address.address1 : '',
+city: address.city || '',
+state: address.state || '',
+zip: address.zip || ''
+};
+
+Object.keys(fieldMap).forEach(name => {
+const field = form.elements[name];
+if (field && !field.value && fieldMap[name]) {
+field.value = fieldMap[name];
+field.dispatchEvent(new Event('input', { bubbles: true }));
+field.dispatchEvent(new Event('change', { bubbles: true }));
+}
+});
+
+const shippingButton = document.getElementById('calculate-shipping-btn');
+if (shippingButton && !document.getElementById('buy-now-estimate-prefill-note')) {
+const note = document.createElement('div');
+note.id = 'buy-now-estimate-prefill-note';
+note.className = 'alert alert-light border small mt-3 mb-0 checkout-estimate-prefill-note';
+note.innerHTML = '<i class="fas fa-location-dot text-danger me-2"></i>Destination copied from the product-page estimate. Recalculate shipping here to confirm the final checkout rate before PayPal.';
+shippingButton.insertAdjacentElement('afterend', note);
+}
+
+trackCheckoutEvent('shipping_estimate_prefilled', {
+source: 'product_page',
+destination_state: address.state || '',
+destination_zip_prefix: address.zip ? String(address.zip).slice(0, 3) : '',
+estimate_age_seconds: buyNowShippingEstimate.created_at ? Math.round((Date.now() - Number(buyNowShippingEstimate.created_at)) / 1000) : null
+});
 }
 
 function clearCheckoutSourceAfterOrder() {
@@ -475,6 +523,7 @@ async function validateCartItems() {
 
 document.addEventListener('DOMContentLoaded', async function() {
     buyNowCheckoutItem = loadBuyNowCheckoutItem();
+    applyBuyNowShippingEstimate();
 
     // Validate cart items before proceeding
     const checkoutItemsAreValid = await validateCartItems();

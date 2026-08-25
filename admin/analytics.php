@@ -681,9 +681,9 @@ function metricCard(string $label, string $value, string $note, string $icon): s
 <div class="row g-3 mb-4">
     <?php
     echo metricCard('Sessions', fmtNumber($overview['sessions']), fmtNumber($overview['visitors']) . ' visitors', 'fa-users');
-    echo metricCard('Product Views', fmtNumber($overview['product_views']), fmtNumber($overview['product_impressions']) . ' impressions', 'fa-eye');
-    echo metricCard('Add To Cart', fmtNumber($overview['cart_adds']), fmtPercent($overview['product_view_to_cart_rate']) . ' view-to-cart', 'fa-cart-plus');
-    echo metricCard('Checkout Starts', fmtNumber($overview['checkout_starts']), fmtPercent($overview['cart_to_checkout_rate']) . ' cart-to-checkout', 'fa-credit-card');
+    echo metricCard('Product Views', fmtNumber($overview['product_views']), fmtNumber($overview['product_impressions']) . ' impressions · ' . fmtNumber($overview['landing_page_views'] ?? 0) . ' landing views', 'fa-eye');
+    echo metricCard('Add To Cart', fmtNumber($overview['cart_adds']), fmtPercent($overview['product_view_to_cart_rate']) . ' view-to-cart · ' . fmtNumber($overview['buy_now_clicks'] ?? 0) . ' buy now', 'fa-cart-plus');
+    echo metricCard('Checkout Starts', fmtNumber($overview['checkout_starts']), fmtNumber($overview['product_shipping_estimates'] ?? 0) . ' product estimates · ' . fmtPercent($overview['cart_to_checkout_rate']) . ' cart-to-checkout', 'fa-credit-card');
     echo metricCard('Orders', fmtNumber($overview['orders']), fmtPercent($overview['checkout_to_order_rate']) . ' checkout-to-order', 'fa-receipt');
     echo metricCard('Revenue', fmtMoney($overview['revenue']), 'Completed orders', 'fa-dollar-sign');
     echo metricCard('Abandoned Carts', fmtNumber($overview['abandoned_carts']), fmtMoney($overview['abandoned_cart_value']) . ' at risk', 'fa-cart-arrow-down');
@@ -1538,10 +1538,10 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     function eventBadgeClass(type) {
         const eventType = text(type, '').toLowerCase();
         if (['purchase_completed', 'checkout_completed'].includes(eventType)) return 'text-bg-success';
-        if (['checkout_start', 'shipping_rate_requested', 'shipping_rate_selected'].includes(eventType)) return 'text-bg-primary';
+    if (['checkout_start', 'shipping_rate_requested', 'shipping_rate_selected', 'shipping_estimate_returned', 'shipping_estimate_prefilled', 'buy_now_clicked'].includes(eventType)) return 'text-bg-primary';
         if (['add_to_cart', 'cart_view', 'cart_quantity_changed', 'cart_abandonment_signal'].includes(eventType)) return 'text-bg-warning';
         if (['ebay_link_click', 'external_link_click'].includes(eventType)) return 'text-bg-info';
-        if (['coupon_attempted', 'coupon_applied', 'coupon_rejected', 'banner_click'].includes(eventType)) return 'text-bg-secondary';
+    if (['coupon_attempted', 'coupon_applied', 'coupon_rejected', 'banner_click', 'saved_search_saved', 'saved_search_submitted', 'landing_page_view'].includes(eventType)) return 'text-bg-secondary';
         return 'text-bg-light';
     }
 

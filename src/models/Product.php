@@ -45,10 +45,22 @@ class Product
         'headlight' => ['head light', 'lamp'],
         'taillight' => ['tail light', 'tail lamp'],
         'exhaust' => ['muffler', 'pipe'],
-        'wheel' => ['rim', 'tire', 'tyre'],
-        'seat' => ['saddle'],
-        'fuel tank' => ['gas tank', 'petrol tank', 'tank'],
-        'gauge' => ['speedometer', 'tachometer', 'cluster'],
+    'wheel' => ['rim', 'tire', 'tyre'],
+    'fairing' => ['faring', 'cowling', 'cowl', 'bodywork'],
+    'windshield' => ['windscreen', 'screen'],
+    'mirror' => ['mirrors'],
+    'turn signal' => ['signal', 'blinker', 'indicator'],
+    'clutch' => ['clutch lever', 'lever'],
+    'starter' => ['starter motor'],
+    'stator' => ['alternator', 'charging coil'],
+    'regulator' => ['rectifier', 'voltage regulator', 'regulator rectifier'],
+    'fork' => ['forks', 'front suspension'],
+    'shock' => ['shocks', 'rear shock', 'suspension'],
+    'foot peg' => ['footpeg', 'foot rest', 'footrest', 'peg'],
+    'saddlebag' => ['bag', 'side bag', 'pannier'],
+    'seat' => ['saddle'],
+    'fuel tank' => ['gas tank', 'petrol tank', 'tank'],
+    'gauge' => ['speedometer', 'tachometer', 'cluster'],
         'engine' => ['motor'],
         'transmission' => ['gearbox'],
         'fender' => ['mudguard'],
@@ -67,9 +79,16 @@ class Product
         'braks' => 'brake',
         'carburator' => 'carburetor',
         'carbuerator' => 'carburetor',
-        'carberator' => 'carburetor',
-        'faring' => 'fairing',
-        'handlebars' => 'handlebar',
+    'carberator' => 'carburetor',
+    'faring' => 'fairing',
+    'fairng' => 'fairing',
+    'windshild' => 'windshield',
+    'miror' => 'mirror',
+    'blinkr' => 'blinker',
+    'rectifer' => 'rectifier',
+    'stater' => 'stator',
+    'footpeg' => 'foot peg',
+    'handlebars' => 'handlebar',
         'hedlight' => 'headlight',
         'tailight' => 'taillight',
         'taillite' => 'taillight',
@@ -148,13 +167,18 @@ class Product
             $params[] = $manufacturer;
         }
 
-        if ($search) {
-            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
-            $searchTerm = "%{$search}%";
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-        }
+    if ($search) {
+    $searchTerms = $this->buildSqlSearchTerms($search);
+    $searchClauses = [];
+    foreach ($searchTerms as $searchTerm) {
+    $searchClauses[] = "(name LIKE ? OR description LIKE ? OR sku LIKE ? OR manufacturer LIKE ? OR model LIKE ? OR category LIKE ? OR ebay_store_cat1_name LIKE ? OR ebay_store_cat2_name LIKE ? OR ebay_store_cat3_name LIKE ?)";
+    $likeTerm = "%{$searchTerm}%";
+    $params = array_merge($params, array_fill(0, 9, $likeTerm));
+    }
+    if (!empty($searchClauses)) {
+    $sql .= " AND (" . implode(' OR ', $searchClauses) . ")";
+    }
+    }
 
         $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
         $params[] = $perPage;
@@ -176,13 +200,18 @@ class Product
         $sql = "SELECT * FROM products WHERE is_active = 1";
         $params = [];
 
-        if ($search) {
-            $sql .= " AND (name LIKE ? OR description LIKE ? OR sku LIKE ?)";
-            $searchTerm = "%{$search}%";
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-        }
+    if ($search) {
+    $searchTerms = $this->buildSqlSearchTerms($search);
+    $searchClauses = [];
+    foreach ($searchTerms as $searchTerm) {
+    $searchClauses[] = "(name LIKE ? OR description LIKE ? OR sku LIKE ? OR manufacturer LIKE ? OR model LIKE ? OR category LIKE ? OR ebay_store_cat1_name LIKE ? OR ebay_store_cat2_name LIKE ? OR ebay_store_cat3_name LIKE ?)";
+    $likeTerm = "%{$searchTerm}%";
+    $params = array_merge($params, array_fill(0, 9, $likeTerm));
+    }
+    if (!empty($searchClauses)) {
+    $sql .= " AND (" . implode(' OR ', $searchClauses) . ")";
+    }
+    }
 
         if ($sourceFilter) {
             $sql .= " AND source = ?";
@@ -1708,7 +1737,7 @@ class Product
 
     private function expandProductSearchToken(string $token): array
     {
-        $token = $this->normalizeProductSearchText($token);
+    $token = $this->normalizeProductSearchText($token);
         if ($token === '') {
             return [];
         }
@@ -1726,9 +1755,37 @@ class Product
             }
         }
 
-        return array_values(array_unique(array_filter(array_map(function ($variant) {
-            return $this->normalizeProductSearchText($variant);
-        }, $variants))));
+    return array_values(array_unique(array_filter(array_map(function ($variant) {
+    return $this->normalizeProductSearchText($variant);
+    }, $variants))));
+    }
+
+    private function buildSqlSearchTerms($search, int $limit = 12): array
+    {
+    $rawSearch = trim((string)$search);
+    $normalizedSearch = $this->normalizeProductSearchText($rawSearch);
+    $terms = [];
+
+    if ($rawSearch !== '') {
+    $terms[] = $rawSearch;
+    }
+    if ($normalizedSearch !== '' && $normalizedSearch !== $rawSearch) {
+    $terms[] = $normalizedSearch;
+    }
+
+    foreach ($this->tokenizeProductSearch($search) as $token) {
+    foreach ($this->expandProductSearchToken($token) as $variant) {
+    if (strlen($variant) >= 2) {
+    $terms[] = $variant;
+    }
+    }
+    if (count($terms) >= $limit) {
+    break;
+    }
+    }
+
+    $terms = array_values(array_unique(array_filter(array_map('trim', $terms))));
+    return array_slice($terms, 0, max(1, $limit));
     }
 
     private function productSearchCorpusTokens(array $fields): array
@@ -1984,6 +2041,90 @@ class Product
             $related = array_merge($related, $more);
         }
 
-        return array_slice($related, 0, $limit);
+    return array_slice($related, 0, $limit);
+    }
+
+    public function getFreeShippingVisible(int $limit = 24, array $excludeIds = []): array
+    {
+    $excludeIds = array_values(array_unique(array_filter(array_map('intval', $excludeIds), function ($id) {
+    return $id > 0;
+    })));
+
+    $sql = "SELECT *
+    FROM products
+    WHERE is_active = 1
+    AND show_on_website = 1
+    AND free_shipping = 1";
+    $params = [];
+
+    if (!empty($excludeIds)) {
+    $sql .= " AND id NOT IN (" . implode(',', array_fill(0, count($excludeIds), '?')) . ")";
+    $params = array_merge($params, $excludeIds);
+    }
+
+    $sql .= " ORDER BY created_at DESC LIMIT ?";
+    $params[] = max(1, $limit);
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function getOnSaleVisible(int $limit = 24, array $excludeIds = []): array
+    {
+    $excludeIds = array_values(array_unique(array_filter(array_map('intval', $excludeIds), function ($id) {
+    return $id > 0;
+    })));
+
+    $sql = "SELECT *
+    FROM products
+    WHERE is_active = 1
+    AND show_on_website = 1
+    AND sale_price IS NOT NULL
+    AND sale_price != ''
+    AND (sale_price + 0) > 0
+    AND (sale_price + 0) < (price + 0)";
+    $params = [];
+
+    if (!empty($excludeIds)) {
+    $sql .= " AND id NOT IN (" . implode(',', array_fill(0, count($excludeIds), '?')) . ")";
+    $params = array_merge($params, $excludeIds);
+    }
+
+    $sql .= " ORDER BY updated_at DESC, created_at DESC LIMIT ?";
+    $params[] = max(1, $limit);
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function getVisibleFitmentLandingPages(int $limit = 40, int $minProductCount = 2): array
+    {
+    $sql = "SELECT
+    manufacturer,
+    model,
+    category,
+    ebay_store_cat1_name,
+    ebay_store_cat2_name,
+    ebay_store_cat3_name,
+    COUNT(*) AS product_count,
+    MAX(updated_at) AS last_updated_at
+    FROM products
+    WHERE is_active = 1
+    AND show_on_website = 1
+    AND manufacturer IS NOT NULL
+    AND TRIM(manufacturer) != ''
+    GROUP BY manufacturer, model, category, ebay_store_cat1_name, ebay_store_cat2_name, ebay_store_cat3_name
+    HAVING COUNT(*) >= ?
+    ORDER BY product_count DESC, last_updated_at DESC
+    LIMIT ?";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([max(1, $minProductCount), max(1, $limit)]);
+
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

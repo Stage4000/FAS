@@ -31,6 +31,15 @@
     RewriteRule ^product/([0-9]+)/[a-z0-9-]+/?$ product.php?id=$1 [L,QSA]
     RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
     
+    # Curated product discovery pages
+    RewriteRule ^products/(trending|recent-arrivals|best-sellers|free-shipping|sale)/?$ products.php?collection=$1 [L,QSA]
+
+    # Curated make/model landing pages
+    RewriteRule ^products/(motorcycle|atv|boat|automotive|gifts|other)/make/([a-z0-9-]+)/([a-z0-9-]+)/?$ products.php?category=$1&manufacturer_slug=$2&model_slug=$3 [L,QSA]
+    RewriteRule ^products/(motorcycle|atv|boat|automotive|gifts|other)/make/([a-z0-9-]+)/?$ products.php?category=$1&manufacturer_slug=$2 [L,QSA]
+    RewriteRule ^products/make/([a-z0-9-]+)/([a-z0-9-]+)/?$ products.php?manufacturer_slug=$1&model_slug=$2 [L,QSA]
+    RewriteRule ^products/make/([a-z0-9-]+)/?$ products.php?manufacturer_slug=$1 [L,QSA]
+
     # Products listing by category: /products/motorcycle (must come before general products)
     RewriteRule ^products/([a-zA-Z0-9_-]+)/?$ products.php?category=$1 [L,QSA]
     

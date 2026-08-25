@@ -54,11 +54,17 @@ class Analytics
         'cart_abandonment_signal',
         'checkout_start',
         'shipping_rate_requested',
-        'shipping_rates_returned',
-        'shipping_rate_selected',
-        'shipping_calculation_invalid',
-        'shipping_calculation_failed',
-        'coupon_attempted',
+'shipping_rates_returned',
+'shipping_rate_selected',
+'shipping_estimate_returned',
+'shipping_estimate_prefilled',
+'shipping_calculation_invalid',
+'shipping_calculation_failed',
+'buy_now_clicked',
+'saved_search_saved',
+'saved_search_submitted',
+'landing_page_view',
+'coupon_attempted',
         'coupon_applied',
         'coupon_rejected',
         'coupon_removed',
@@ -305,10 +311,14 @@ class Analytics
                 SUM(CASE WHEN event_type = 'cart_view' THEN 1 ELSE 0 END) AS cart_views,
                 SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS cart_adds,
                 SUM(CASE WHEN event_type = 'cart_quantity_changed' THEN 1 ELSE 0 END) AS cart_changes,
-                SUM(CASE WHEN event_type = 'checkout_start' THEN 1 ELSE 0 END) AS checkout_starts,
-                SUM(CASE WHEN event_type = 'shipping_rate_requested' THEN 1 ELSE 0 END) AS shipping_rate_requests,
-                SUM(CASE WHEN event_type = 'shipping_rate_selected' THEN 1 ELSE 0 END) AS shipping_rate_selections,
-                SUM(CASE WHEN event_type = 'coupon_attempted' THEN 1 ELSE 0 END) AS coupon_attempts,
+SUM(CASE WHEN event_type = 'checkout_start' THEN 1 ELSE 0 END) AS checkout_starts,
+SUM(CASE WHEN event_type = 'shipping_rate_requested' THEN 1 ELSE 0 END) AS shipping_rate_requests,
+SUM(CASE WHEN event_type = 'shipping_estimate_returned' THEN 1 ELSE 0 END) AS product_shipping_estimates,
+SUM(CASE WHEN event_type = 'shipping_rate_selected' THEN 1 ELSE 0 END) AS shipping_rate_selections,
+SUM(CASE WHEN event_type = 'buy_now_clicked' THEN 1 ELSE 0 END) AS buy_now_clicks,
+SUM(CASE WHEN event_type = 'landing_page_view' THEN 1 ELSE 0 END) AS landing_page_views,
+SUM(CASE WHEN event_type = 'saved_search_submitted' THEN 1 ELSE 0 END) AS saved_search_submissions,
+SUM(CASE WHEN event_type = 'coupon_attempted' THEN 1 ELSE 0 END) AS coupon_attempts,
                 SUM(CASE WHEN event_type = 'coupon_applied' THEN 1 ELSE 0 END) AS coupons_applied,
                 SUM(CASE WHEN event_type = 'coupon_rejected' THEN 1 ELSE 0 END) AS coupons_rejected,
                 SUM(CASE WHEN event_type = 'ebay_link_click' THEN 1 ELSE 0 END) AS ebay_link_clicks,
@@ -344,10 +354,14 @@ class Analytics
             'cart_views' => (int) ($eventStats['cart_views'] ?? 0),
             'cart_adds' => $cartAdds,
             'cart_changes' => (int) ($eventStats['cart_changes'] ?? 0),
-            'checkout_starts' => $checkoutStarts,
-            'shipping_rate_requests' => (int) ($eventStats['shipping_rate_requests'] ?? 0),
-            'shipping_rate_selections' => (int) ($eventStats['shipping_rate_selections'] ?? 0),
-            'coupon_attempts' => (int) ($eventStats['coupon_attempts'] ?? 0),
+'checkout_starts' => $checkoutStarts,
+'shipping_rate_requests' => (int) ($eventStats['shipping_rate_requests'] ?? 0),
+'product_shipping_estimates' => (int) ($eventStats['product_shipping_estimates'] ?? 0),
+'shipping_rate_selections' => (int) ($eventStats['shipping_rate_selections'] ?? 0),
+'buy_now_clicks' => (int) ($eventStats['buy_now_clicks'] ?? 0),
+'landing_page_views' => (int) ($eventStats['landing_page_views'] ?? 0),
+'saved_search_submissions' => (int) ($eventStats['saved_search_submissions'] ?? 0),
+'coupon_attempts' => (int) ($eventStats['coupon_attempts'] ?? 0),
             'coupons_applied' => (int) ($eventStats['coupons_applied'] ?? 0),
             'coupons_rejected' => (int) ($eventStats['coupons_rejected'] ?? 0),
             'abandoned_carts' => (int) ($abandonedStats['abandoned_carts'] ?? 0),
@@ -580,12 +594,15 @@ class Analytics
 
         $since = $this->since($days);
         $overview = $this->getOverview($days);
-        $stages = [
-            ['stage' => 'Sessions', 'count' => (int) $overview['sessions']],
-            ['stage' => 'Product views', 'count' => $this->countDistinctSessionsByEvent($since, 'product_view')],
-            ['stage' => 'Add to cart', 'count' => $this->countDistinctSessionsByEvent($since, 'add_to_cart')],
-            ['stage' => 'Cart views', 'count' => $this->countDistinctSessionsByEvent($since, 'cart_view')],
-            ['stage' => 'Checkout starts', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
+$stages = [
+['stage' => 'Sessions', 'count' => (int) $overview['sessions']],
+['stage' => 'Landing pages', 'count' => $this->countDistinctSessionsByEvent($since, 'landing_page_view')],
+['stage' => 'Product views', 'count' => $this->countDistinctSessionsByEvent($since, 'product_view')],
+['stage' => 'Shipping estimates', 'count' => $this->countDistinctSessionsByEvents($since, ['shipping_estimate_returned', 'shipping_rate_requested'])],
+['stage' => 'Buy Now clicks', 'count' => $this->countDistinctSessionsByEvent($since, 'buy_now_clicked')],
+['stage' => 'Add to cart', 'count' => $this->countDistinctSessionsByEvent($since, 'add_to_cart')],
+['stage' => 'Cart views', 'count' => $this->countDistinctSessionsByEvent($since, 'cart_view')],
+['stage' => 'Checkout starts', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
             ['stage' => 'Shipping selected', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_selected')],
             ['stage' => 'Completed orders', 'count' => max($this->countDistinctSessionsByEvent($since, 'purchase_completed'), (int) $overview['orders'])],
         ];
@@ -1856,9 +1873,9 @@ class Analytics
         )";
     }
 
-    private function countDistinctSessionsByEvent(string $since, string $eventType): int
-    {
-        $nonAdminEventCondition = $this->nonAdminEventCondition();
+private function countDistinctSessionsByEvent(string $since, string $eventType): int
+{
+$nonAdminEventCondition = $this->nonAdminEventCondition();
         $row = $this->fetchOne(
             "SELECT COUNT(DISTINCT session_id) AS sessions
             FROM analytics_events
@@ -1868,11 +1885,33 @@ class Analytics
             [$since, $eventType]
         );
 
-        return (int) ($row['sessions'] ?? 0);
-    }
+return (int) ($row['sessions'] ?? 0);
+}
 
-    private function getAbandonedCartSummary(string $since): array
-    {
+private function countDistinctSessionsByEvents(string $since, array $eventTypes): int
+{
+$eventTypes = array_values(array_filter(array_unique(array_map('strval', $eventTypes))));
+if (empty($eventTypes)) {
+return 0;
+}
+
+$nonAdminEventCondition = $this->nonAdminEventCondition();
+$placeholders = implode(',', array_fill(0, count($eventTypes), '?'));
+$params = array_merge([$since], $eventTypes);
+$row = $this->fetchOne(
+"SELECT COUNT(DISTINCT session_id) sessions
+FROM analytics_events
+WHERE created_at >= ?
+AND event_type IN ({$placeholders})
+AND {$nonAdminEventCondition}",
+$params
+);
+
+return (int) ($row['sessions'] ?? 0);
+}
+
+private function getAbandonedCartSummary(string $since): array
+{
         $nonAdminEventCondition = $this->nonAdminEventCondition('e');
         $row = $this->fetchOne(
             "SELECT COUNT(*) AS abandoned_carts,

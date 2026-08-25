@@ -204,6 +204,10 @@ require_once __DIR__ . '/includes/header.php';
                                  class="img-fluid product-detail-img w-100"
                                  id="main-product-image"
                                  alt="<?php echo htmlspecialchars($productImageAltText); ?>"
+                                 loading="eager"
+                                 fetchpriority="high"
+                                 decoding="async"
+                                 sizes="(min-width: 992px) 50vw, 100vw"
                                  style="max-width: 100%; height: auto;">
                     <?php else: ?>
                         <div class="bg-light p-5 text-center">
@@ -230,6 +234,8 @@ require_once __DIR__ . '/includes/header.php';
                                  class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>"
                                  data-full="<?php echo htmlspecialchars($image); ?>"
                                  alt="<?php echo htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
+                                 loading="lazy"
+                                 decoding="async"
                                  style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; flex-shrink: 0;">
                         <?php endif; ?>
                     <?php endforeach; ?>
@@ -299,7 +305,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Product Information -->
-        <div class="col-lg-6" data-aos="fade-left">
+        <div class="col-lg-6 product-purchase-column" data-aos="fade-left">
             <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
 
             <div class="mb-2">
@@ -351,11 +357,15 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="fw-semibold">Secure Payment</div>
                                 <div class="text-muted">Checkout runs through PayPal for buyer protection.</div>
                             </div>
-                            <div class="col-sm-6">
-                                <div class="fw-semibold">Shipping Support</div>
-                                <div class="text-muted">Rates are calculated at checkout before payment.</div>
-                            </div>
+                        <div class="col-sm-6">
+                            <div class="fw-semibold">Shipping Support</div>
+                            <div class="text-muted">Rates are calculated at checkout before payment.</div>
                         </div>
+                        <div class="col-sm-6">
+                            <div class="fw-semibold">30-Day Return Policy</div>
+                            <div class="text-muted">Eligible orders may be returned within 30 days.</div>
+                        </div>
+                    </div>
                         <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($ebayCategory)): ?>
                             <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
                                 <i class="fas fa-wrench me-1"></i>
@@ -410,8 +420,8 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
-            <div class="d-grid gap-2 mb-4">
-                <button class="btn btn-danger btn-lg add-to-cart product-detail-add-to-cart"
+                        <div class="d-grid gap-2 mb-4 product-action-stack">
+                            <button class="btn btn-outline-danger btn-lg add-to-cart product-detail-add-to-cart"
                         data-id="<?php echo $product['id']; ?>"
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
                         data-price="<?php echo $priceInfo['effective_price']; ?>"
@@ -430,10 +440,10 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart">
+                            <button type="button" class="btn btn-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart">
                     <i class="fas fa-bolt"></i> Buy Now
                 </button>
-                <small class="text-muted text-center">Buy Now takes this item directly to checkout. Your cart stays unchanged.</small>
+                            <small class="text-muted text-center">Buy Now skips the cart and keeps any existing cart items unchanged. Shipping is confirmed before PayPal opens.</small>
                 <a href="/cart" class="btn btn-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
@@ -604,10 +614,19 @@ if (buyNowButton) {
         const productData = getProductDataFromButton(sourceButton);
         const quantity = getSelectedQuantity(productData.stock);
         const buyNowItem = Object.assign({}, productData, { quantity });
+        let shippingEstimate = null;
+        if (window.fasShippingEstimator && typeof window.fasShippingEstimator.getLatestEstimate === 'function') {
+            const latestEstimate = window.fasShippingEstimator.getLatestEstimate();
+            const latestItem = latestEstimate && Array.isArray(latestEstimate.items) ? latestEstimate.items[0] : null;
+            if (latestEstimate && latestEstimate.mode === 'product' && latestItem && String(latestItem.product_id || latestItem.id) === String(productData.id)) {
+                shippingEstimate = latestEstimate;
+            }
+        }
         const payload = {
-            item: buyNowItem,
-            created_at: Date.now(),
-            expires_at: Date.now() + (2 * 60 * 60 * 1000)
+        item: buyNowItem,
+        shipping_estimate: shippingEstimate,
+        created_at: Date.now(),
+        expires_at: Date.now() + (2 * 60 * 60 * 1000)
         };
 
         try {
@@ -618,14 +637,15 @@ if (buyNowButton) {
         }
 
         if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
-            window.fasAnalytics.track('custom_event', Object.assign({}, window.FAS_PRODUCT_DATA || {}, {
-                custom_event_name: 'buy_now_clicked',
+        window.fasAnalytics.track('buy_now_clicked', Object.assign({}, window.FAS_PRODUCT_DATA || {}, {
                 checkout_mode: 'buy_now',
                 quantity,
                 cart_items_count: quantity,
                 cart_unique_items: 1,
                 cart_value: Number(productData.price || 0) * quantity,
-                event_value: Number(productData.price || 0) * quantity
+                event_value: Number(productData.price || 0) * quantity,
+                has_shipping_estimate: !!shippingEstimate,
+                shipping_estimate_state: shippingEstimate?.address?.state || null
             }), { immediate: true });
         }
 
@@ -706,5 +726,5 @@ if (shareButton) {
 }
 </script>
 
-<script src="/public/js/shipping-estimator.js"></script>
+<script src="/public/js/shipping-estimator.js?v=<?php echo filemtime(__DIR__ . '/public/js/shipping-estimator.js'); ?>"></script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

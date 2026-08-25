@@ -50,9 +50,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <a href="product-quality.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'product-quality.php' ? 'active' : ''; ?>">
 <i class="fas fa-clipboard-check me-2"></i>Product Quality
 </a>
-        <a href="stale-inventory.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'stale-inventory.php' ? 'active' : ''; ?>">
-            <i class="fas fa-fire me-2"></i>Stale Inventory
-        </a>
+<a href="merchant-feed-health.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'merchant-feed-health.php' ? 'active' : ''; ?>">
+<i class="fas fa-store me-2"></i>Merchant Feed Health
+</a>
+<a href="stale-inventory.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'stale-inventory.php' ? 'active' : ''; ?>">
+<i class="fas fa-fire me-2"></i>Stale Inventory
+</a>
         <a href="orders.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'orders.php' ? 'active' : ''; ?>">
             <i class="fas fa-shopping-cart me-2"></i>Orders
         </a>

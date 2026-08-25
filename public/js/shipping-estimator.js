@@ -1,5 +1,7 @@
 (function () {
-    const endpoint = '/api/shipping-estimate.php';
+const endpoint = '/api/shipping-estimate.php';
+const estimateStorageKey = 'flipandstrip_shipping_estimate';
+const estimateMaxAgeMs = 4 * 60 * 60 * 1000;
 
     function formatMoney(value) {
         const amount = Number(value || 0);
@@ -12,16 +14,62 @@
         return element.innerHTML;
     }
 
-    function getAddressFromForm(form) {
-        const formData = new FormData(form);
-        return {
-            address1: 'Shipping estimate',
-            city: String(formData.get('city') || '').trim(),
-            state: String(formData.get('state') || '').trim(),
-            zip: String(formData.get('zip') || '').trim(),
-            country: 'US'
-        };
-    }
+function getAddressFromForm(form) {
+const formData = new FormData(form);
+return {
+address1: 'Shipping estimate',
+city: String(formData.get('city') || '').trim(),
+state: String(formData.get('state') || '').trim(),
+zip: String(formData.get('zip') || '').trim(),
+country: 'US'
+};
+}
+
+function summarizeEstimateItems(items) {
+return items.map(item => ({
+id: String(item.id || item.product_id || ''),
+product_id: String(item.product_id || item.id || ''),
+sku: String(item.sku || ''),
+name: String(item.name || ''),
+quantity: Number(item.quantity || 1),
+price: Number(item.price || 0)
+}));
+}
+
+function saveEstimateForCheckout(mode, address, items, data) {
+const payload = {
+mode,
+address,
+items: summarizeEstimateItems(items),
+result: {
+lowest_rate: data.lowest_rate || null,
+free_shipping: data.free_shipping || null,
+rates_count: Array.isArray(data.rates) ? data.rates.length : 0
+},
+created_at: Date.now(),
+expires_at: Date.now() + estimateMaxAgeMs
+};
+
+try {
+localStorage.setItem(estimateStorageKey, JSON.stringify(payload));
+payload.saved = true;
+} catch (error) {}
+
+return payload.saved ? payload : null;
+}
+
+function getLatestEstimate() {
+try {
+const payload = JSON.parse(localStorage.getItem(estimateStorageKey) || 'null');
+if (!payload || !payload.expires_at || Date.now() > Number(payload.expires_at)) {
+localStorage.removeItem(estimateStorageKey);
+return null;
+}
+return payload;
+} catch (error) {
+return null;
+}
+}
 
     function getProductEstimateItems(form) {
         const source = document.querySelector(form.dataset.productSource || '.add-to-cart');
@@ -187,19 +235,21 @@
                 throw new Error(data.error || 'Unable to estimate shipping.');
             }
 
-            setResult(resultContainer, 'success', buildEstimateSummary(data));
-            updateSummaryTargets(form, data);
+        setResult(resultContainer, 'success', buildEstimateSummary(data));
+        updateSummaryTargets(form, data);
+        const savedEstimate = saveEstimateForCheckout(mode, address, items, data);
 
-            if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
-                window.fasAnalytics.track('shipping_estimate_returned', {
-                    source: mode,
-                    destination_state: address.state,
-                    destination_zip_prefix: address.zip.slice(0, 3),
-                    free_items_count: Number(data.free_shipping?.free_items_count || 0),
-                    rated_items_count: Number(data.free_shipping?.rated_items_count || 0),
-                    lowest_rate: Number(data.lowest_rate?.total_charge || 0)
-                });
-            }
+        if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+        window.fasAnalytics.track('shipping_estimate_returned', {
+        source: mode,
+        destination_state: address.state,
+        destination_zip_prefix: address.zip.slice(0, 3),
+        free_items_count: Number(data.free_shipping?.free_items_count || 0),
+        rated_items_count: Number(data.free_shipping?.rated_items_count || 0),
+        lowest_rate: Number(data.lowest_rate?.total_charge || 0),
+        estimate_saved_for_checkout: !!savedEstimate
+        });
+        }
         } catch (error) {
             setResult(resultContainer, 'error', escapeHtml(error.message || 'Shipping estimate is unavailable. Final shipping is calculated at checkout.'));
         } finally {
@@ -210,15 +260,20 @@
         }
     }
 
-    function initShippingEstimators() {
-        document.querySelectorAll('[data-shipping-estimator]').forEach(form => {
-            form.addEventListener('submit', handleEstimatorSubmit);
-        });
-    }
+function initShippingEstimators() {
+document.querySelectorAll('[data-shipping-estimator]').forEach(form => {
+form.addEventListener('submit', handleEstimatorSubmit);
+});
+}
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initShippingEstimators);
-    } else {
+window.fasShippingEstimator = Object.assign({}, window.fasShippingEstimator || {}, {
+getLatestEstimate,
+estimateStorageKey
+});
+
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', initShippingEstimators);
+} else {
         initShippingEstimators();
     }
 })();

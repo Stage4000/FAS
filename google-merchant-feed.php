@@ -71,11 +71,23 @@ try {
         $xml->writeElement('g:identifier_exists', $item['identifier_exists']);
         $xml->writeElement('g:product_type', $item['product_type']);
 
-        if ($item['shipping_weight'] !== null) {
-            $xml->writeElement('g:shipping_weight', $item['shipping_weight']);
-        }
-        $xml->endElement();
-    }
+if ($item['shipping_weight'] !== null) {
+$xml->writeElement('g:shipping_weight', $item['shipping_weight']);
+}
+if (!empty($item['sale_price'])) {
+$xml->writeElement('g:sale_price', $item['sale_price']);
+}
+if (!empty($item['shipping_label'])) {
+$xml->writeElement('g:shipping_label', $item['shipping_label']);
+}
+foreach (($item['custom_labels'] ?? []) as $index => $label) {
+if ($index >= 5 || trim((string)$label) === '') {
+continue;
+}
+$xml->writeElement('g:custom_label_' . $index, (string)$label);
+}
+$xml->endElement();
+}
 
     $xml->endElement();
     $xml->endElement();

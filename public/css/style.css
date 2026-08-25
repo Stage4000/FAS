@@ -1623,3 +1623,57 @@ footer a:hover {
 [data-theme="dark"] .checkout-guidance-card h2 {
     color: #f3f4f6;
 }
+
+/* Conversion and discovery landing polish */
+.product-purchase-column {
+    align-self: flex-start;
+}
+
+.product-action-stack .product-buy-now {
+    order: -1;
+}
+
+.product-action-stack .btn {
+    border-radius: 0.75rem;
+    font-weight: 700;
+}
+
+.products-landing-intro {
+    background: linear-gradient(135deg, #ffffff 0%, #fff5f6 100%);
+    border: 1px solid rgba(219, 3, 53, 0.12) !important;
+}
+
+.products-landing-intro .products-landing-links {
+    min-width: min(100%, 290px);
+}
+
+.checkout-estimate-prefill-note {
+    background: #fff7f8;
+    color: #35383d;
+}
+
+.saved-search-notify-form {
+    background: #fff;
+    border-color: rgba(219, 3, 53, 0.14) !important;
+}
+
+[data-theme="dark"] .products-landing-intro {
+    background: linear-gradient(135deg, #1f2227 0%, #2a171d 100%);
+    border-color: rgba(255, 107, 129, 0.22) !important;
+}
+
+[data-theme="dark"] .products-landing-intro .text-muted,
+[data-theme="dark"] .checkout-estimate-prefill-note {
+    color: #d7dce3 !important;
+}
+
+[data-theme="dark"] .checkout-estimate-prefill-note {
+    background: #241f22;
+    border-color: rgba(255, 107, 129, 0.28) !important;
+}
+
+[data-theme="dark"] .saved-search-notify-form {
+    background: #1f2937;
+    border-color: #374151 !important;
+    color: #e5e7eb;
+}

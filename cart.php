@@ -278,6 +278,6 @@ function updateCartSummary() {
     }
 }
 </script>
-<script src="/public/js/shipping-estimator.js"></script>
+<script src="/public/js/shipping-estimator.js?v=<?php echo filemtime(__DIR__ . '/public/js/shipping-estimator.js'); ?>"></script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

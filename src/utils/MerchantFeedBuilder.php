@@ -8,6 +8,7 @@ namespace FAS\Utils;
 use FAS\Models\Product;
 
 require_once __DIR__ . '/Seo.php';
+require_once __DIR__ . '/ShippingRules.php';
 
 class MerchantFeedBuilder
 {
@@ -75,26 +76,33 @@ class MerchantFeedBuilder
         $mpn = $this->normalizeText($product['model'] ?? '');
         $description = $this->buildDescription($product);
         $productType = $this->resolveProductType($product);
-        $price = $this->resolveEffectivePrice($product);
-        $quantity = (int) ($product['quantity'] ?? 0);
-        $shippingWeight = $this->resolveShippingWeight($product);
+    $priceInfo = $this->resolvePriceInfo($product);
+    $regularPrice = (float)($priceInfo['original_price'] ?? $product['price'] ?? 0);
+    $effectivePrice = (float)($priceInfo['effective_price'] ?? $regularPrice);
+    $quantity = (int) ($product['quantity'] ?? 0);
+    $shippingWeight = $this->resolveShippingWeight($product);
+    $freeShippingEligible = ShippingRules::productQualifiesForFreeShipping($product);
+    $customLabels = $this->buildCustomLabels($product, $priceInfo, $freeShippingEligible);
 
-        return [
-            'id' => $id,
+    return [
+    'id' => $id,
             'title' => $title,
             'description' => $description,
             'link' => $link,
             'image_link' => $mainImage,
             'additional_image_links' => $additionalImages,
             'availability' => $quantity > 0 ? 'in_stock' : 'out_of_stock',
-            'price' => number_format($price, 2, '.', '') . ' USD',
-            'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
-            'brand' => $brand,
-            'mpn' => $mpn,
-            'identifier_exists' => ($brand !== '' || $mpn !== '') ? 'yes' : 'no',
-            'product_type' => $productType,
-            'shipping_weight' => $shippingWeight,
-        ];
+    'price' => number_format($regularPrice, 2, '.', '') . ' USD',
+    'sale_price' => $effectivePrice < $regularPrice ? number_format($effectivePrice, 2, '.', '') . ' USD' : null,
+    'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
+    'brand' => $brand,
+    'mpn' => $mpn,
+    'identifier_exists' => ($brand !== '' || $mpn !== '') ? 'yes' : 'no',
+    'product_type' => $productType,
+    'shipping_weight' => $shippingWeight,
+    'shipping_label' => $freeShippingEligible ? 'continental_us_free_shipping' : null,
+    'custom_labels' => $customLabels,
+    ];
     }
 
     /**
@@ -228,17 +236,48 @@ class MerchantFeedBuilder
     /**
      * @param array<string, mixed> $product
      */
-    private function resolveEffectivePrice(array $product)
+    private function resolvePriceInfo(array $product): array
     {
-        $basePrice = (float) ($product['price'] ?? 0);
-        $salePrice = null;
+    $basePrice = (float) ($product['price'] ?? 0);
+    $salePrice = null;
 
         if (array_key_exists('sale_price', $product) && $product['sale_price'] !== null && $product['sale_price'] !== '') {
             $salePrice = (float) $product['sale_price'];
         }
 
-        $priceInfo = getEffectivePrice($basePrice, $salePrice);
-        return (float) $priceInfo['effective_price'];
+    $priceInfo = getEffectivePrice($basePrice, $salePrice);
+    return is_array($priceInfo) ? $priceInfo : [
+    'original_price' => $basePrice,
+    'effective_price' => $basePrice,
+    'on_sale' => false,
+    'sale_label' => '',
+    ];
+    }
+
+    /**
+     * @param array<string, mixed> $product
+     * @param array<string, mixed> $priceInfo
+     * @return array<int, string>
+     */
+    private function buildCustomLabels(array $product, array $priceInfo, bool $freeShippingEligible): array
+    {
+    $labels = [];
+    $labels[] = $freeShippingEligible ? 'free_shipping' : 'standard_shipping';
+    $labels[] = !empty($priceInfo['on_sale']) ? 'on_sale' : 'regular_price';
+
+    $createdAt = strtotime((string)($product['created_at'] ?? ''));
+    if ($createdAt !== false && $createdAt < strtotime('-180 days')) {
+    $labels[] = 'stale_inventory';
+    } elseif ($createdAt !== false && $createdAt > strtotime('-30 days')) {
+    $labels[] = 'recent_arrival';
+    }
+
+    $category = strtolower($this->resolveProductType($product));
+    if ($category !== '') {
+    $labels[] = preg_replace('/[^a-z0-9_]+/', '_', $category) ?: 'uncategorized';
+    }
+
+    return array_slice(array_values(array_unique(array_filter($labels))), 0, 5);
     }
 
     /**

@@ -66,9 +66,11 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
         <div class="card product-card h-100">
             <a href="<?php echo htmlspecialchars($productUrl); ?>" class="text-decoration-none">
                 <div class="position-relative">
-                    <img src="<?php echo htmlspecialchars($imageUrl); ?>"
-                         class="card-img-top product-image"
-                         alt="<?php echo htmlspecialchars($imageAltText); ?>">
+<img src="<?php echo htmlspecialchars($imageUrl); ?>"
+class="card-img-top product-image"
+alt="<?php echo htmlspecialchars($imageAltText); ?>"
+loading="lazy"
+decoding="async">
                     <?php if (!empty($product['condition_name'])): ?>
                         <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                     <?php endif; ?>
@@ -177,29 +179,59 @@ function fasRelatedMerchandisingProducts(\PDO $db, Product $productModel, array 
     $category = fasProductCategoryLabel($product);
     $manufacturer = trim((string)($product['manufacturer'] ?? ''));
     $model = trim((string)($product['model'] ?? ''));
-    $ranked = fasAnalyticsRankedProducts($db, $productModel, $limit * 3, [$currentId]);
-    $exactFitmentMatches = [];
-    $broadMatches = [];
+    $searchText = strtolower(Seo::cleanText(implode(' ', [
+        $product['name'] ?? '',
+        $product['sku'] ?? '',
+        $product['description'] ?? '',
+        $category,
+        $manufacturer,
+        $model,
+    ])));
+    $ranked = fasAnalyticsRankedProducts($db, $productModel, $limit * 5, [$currentId]);
+    $scored = [];
 
     foreach ($ranked as $candidate) {
-        $candidateCategory = fasProductCategoryLabel($candidate);
-        $candidateManufacturer = trim((string)($candidate['manufacturer'] ?? ''));
-        $candidateModel = trim((string)($candidate['model'] ?? ''));
+    $candidateCategory = fasProductCategoryLabel($candidate);
+    $candidateManufacturer = trim((string)($candidate['manufacturer'] ?? ''));
+    $candidateModel = trim((string)($candidate['model'] ?? ''));
+    $candidateText = strtolower(Seo::cleanText(implode(' ', [
+        $candidate['name'] ?? '',
+        $candidate['sku'] ?? '',
+        $candidate['description'] ?? '',
+        $candidateCategory,
+        $candidateManufacturer,
+        $candidateModel,
+    ])));
+    $score = 0;
 
-        if ($manufacturer !== '' && $model !== '' && $candidateManufacturer === $manufacturer && $candidateModel === $model) {
-            $exactFitmentMatches[] = $candidate;
-            continue;
-        }
-
-        if (($category !== '' && $candidateCategory === $category) || ($manufacturer !== '' && $candidateManufacturer === $manufacturer)) {
-            $broadMatches[] = $candidate;
-        }
+    if ($manufacturer !== '' && strcasecmp($candidateManufacturer, $manufacturer) === 0) {
+    $score += 35;
+    }
+    if ($model !== '' && strcasecmp($candidateModel, $model) === 0) {
+    $score += 40;
+    }
+    if ($category !== '' && strcasecmp($candidateCategory, $category) === 0) {
+    $score += 25;
+    }
+    foreach (preg_split('/\s+/', $searchText, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+    if (strlen($token) >= 4 && strpos($candidateText, $token) !== false) {
+    $score += 3;
+    }
     }
 
-    $related = array_slice(array_merge($exactFitmentMatches, $broadMatches), 0, $limit);
+    if ($score > 0) {
+    $candidate['_related_score'] = $score;
+    $scored[] = $candidate;
+    }
+    }
+
+    usort($scored, function ($a, $b) {
+    return ($b['_related_score'] ?? 0) <=> ($a['_related_score'] ?? 0);
+    });
+    $related = array_slice($scored, 0, $limit);
 
     if (count($related) < $limit) {
-        $fallbackExclude = array_merge([$currentId], array_column($related, 'id'));
+    $fallbackExclude = array_merge([$currentId], array_column($related, 'id'));
         $related = array_merge($related, $productModel->getRelatedVisible($product, $limit - count($related), $fallbackExclude));
     }
 
