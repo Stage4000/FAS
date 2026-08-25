@@ -157,8 +157,12 @@ if ($productCategoryPath) {
 }
 
 $pageTitle = $productName;
+$seoProductDescription = Seo::cleanProductSeoDescription($productDescription);
+if ($seoProductDescription === '') {
+    $seoProductDescription = $productName;
+}
 $metaTitle = Seo::metaTitle($productName . ' | Flip and Strip');
-$metaDescription = Seo::metaDescription($productDescription . ' Price: $' . number_format($priceInfo['effective_price'], 2) . '. ' . implode(' ', $metaDetails));
+$metaDescription = Seo::productMetaDescription($productName, $productDescription, (float) $priceInfo['effective_price'], $metaDetails);
 $ogTitle = $metaTitle;
 $ogDescription = $metaDescription;
 $ogImage = Seo::absoluteUrl($mainImage);
@@ -168,7 +172,7 @@ $structuredData = [
         ['name' => 'Products', 'url' => '/products'],
         ['name' => $productName, 'url' => $canonicalUrl],
     ]),
-    Seo::productSchema($product, $schemaImages, $priceInfo, $canonicalUrl, $productDescription, $productCategoryPath),
+    Seo::productSchema($product, $schemaImages, $priceInfo, $canonicalUrl, $seoProductDescription, $productCategoryPath),
 ];
 
 require_once __DIR__ . '/includes/header.php';
@@ -187,11 +191,11 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-lg-6 mb-4" data-aos="fade-right">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
-                    <?php 
+                    <?php
                     // Check if image is external or local
                     $isExternal = strpos($mainImage, 'http://') === 0 || strpos($mainImage, 'https://') === 0;
                     $hasMainImage = !empty($mainImage) && (
-                        $isExternal || 
+                        $isExternal ||
                         file_exists(__DIR__ . $mainImage)
                     );
                     ?>
@@ -208,21 +212,21 @@ require_once __DIR__ . '/includes/header.php';
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <!-- Thumbnail Gallery -->
             <?php if (!empty($images) && count($images) > 1): ?>
-                <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap" style="overflow-x: auto;">
+                <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap">
                     <?php foreach ($images as $index => $image): ?>
-                        <?php 
+                        <?php
                         // Check if image is external or local
                         $isExternal = strpos($image, 'http://') === 0 || strpos($image, 'https://') === 0;
                         $hasImage = !empty($image) && (
-                            $isExternal || 
+                            $isExternal ||
                             file_exists(__DIR__ . $image)
                         );
                         ?>
                         <?php if ($hasImage): ?>
-                            <img src="<?php echo htmlspecialchars($image); ?>" 
+                            <img src="<?php echo htmlspecialchars($image); ?>"
                                  class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>"
                                  data-full="<?php echo htmlspecialchars($image); ?>"
                                  alt="<?php echo htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
@@ -231,53 +235,15 @@ require_once __DIR__ . '/includes/header.php';
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
-        </div>
-
-        <!-- Product Information -->
-        <div class="col-lg-6" data-aos="fade-left">
-            <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
-            
-            <div class="mb-2">
-                <?php if ($priceInfo['on_sale']): ?>
-                    <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
-                <?php endif; ?>
-                        <span class="badge bg-success me-2">In Stock</span>
-                        <?php if (!empty($product['condition_name'])): ?>
-                            <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
-                        <?php endif; ?>
-                        <?php if ($productFreeShipping): ?>
-                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
-                        <?php endif; ?>
-                    </div>
-
-            <div class="mb-4">
-                <?php if ($priceInfo['on_sale']): ?>
-                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
-                    <small class="text-muted text-decoration-line-through ms-2 fs-5">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
-                <?php else: ?>
-                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
-                <?php endif; ?>
-            </div>
-            
-                    <div class="mb-4">
-                        <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
-                    </div>
-
-                    <?php if ($productFreeShipping): ?>
-                        <div class="alert alert-success border-0 shadow-sm small mb-4">
-                            <i class="fas fa-truck-fast me-2"></i>
-                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
-                        </div>
-                    <?php endif; ?>
 
                     <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Part Facts</h6>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
-                        <?php 
+                        <?php
                         // Display eBay store category hierarchy if available
                         $ebayCategory = $productModel->getEbayStoreCategoryPath($product);
-                        if (!empty($ebayCategory)): 
+                        if (!empty($ebayCategory)):
                         ?>
                         <tr>
                             <td class="text-muted" style="white-space: nowrap;">Category:</td>
@@ -312,6 +278,63 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
+
+            <!-- Product Details / Listing Notes -->
+            <div class="card border-0 shadow-sm mb-4" data-theme-card>
+                <div class="card-body p-4">
+                    <h3 class="mb-2">Product Details &amp; Notes</h3>
+                    <p class="text-muted small mb-4">Use the part facts above for quick reference. These notes may include fitment, condition, or other seller details from the original listing.</p>
+                    <?php
+                    // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
+                    // Display as plain text with proper escaping and preserve line breaks
+                    $description = $product['description'] ?? '';
+                    if (!empty($description)) {
+                        echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
+                    } else {
+                        echo '<p class="text-muted">No description available.</p>';
+                    }
+                    ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Information -->
+        <div class="col-lg-6" data-aos="fade-left">
+            <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
+
+            <div class="mb-2">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+                <?php endif; ?>
+                        <span class="badge bg-success me-2">In Stock</span>
+                        <?php if (!empty($product['condition_name'])): ?>
+                            <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($productFreeShipping): ?>
+                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
+                        <?php endif; ?>
+                    </div>
+
+            <div class="mb-4">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                    <small class="text-muted text-decoration-line-through ms-2 fs-5">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
+                <?php else: ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                <?php endif; ?>
+            </div>
+
+                    <div class="mb-4">
+                        <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
+                    </div>
+
+                    <?php if ($productFreeShipping): ?>
+                        <div class="alert alert-success border-0 shadow-sm small mb-4">
+                            <i class="fas fa-truck-fast me-2"></i>
+                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
+                        </div>
+                    <?php endif; ?>
+
                 <div class="card border-0 shadow-sm mb-4" data-theme-card>
                     <div class="card-body">
                         <h6 class="mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h6>
@@ -343,7 +366,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
-            
+
             <div class="mb-4">
                 <label class="form-label fw-bold">Quantity:</label>
                 <div class="input-group quantity-selector">
@@ -364,7 +387,7 @@ require_once __DIR__ . '/includes/header.php';
                             <p class="small text-muted mb-0">Enter city, state, and ZIP to check estimated shipping or continental US free-shipping eligibility.</p>
                         </div>
                     </div>
-                    <form class="row g-2" data-shipping-estimator data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">
+                        <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">
                         <div class="col-12">
                             <label class="form-label small fw-semibold" for="product-estimate-city">City</label>
                             <input type="text" class="form-control form-control-sm" id="product-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">
@@ -386,7 +409,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div id="product-shipping-estimate-result" class="mt-3"></div>
                 </div>
             </div>
-            
+
             <div class="d-grid gap-2 mb-4">
                 <button class="btn btn-danger btn-lg add-to-cart product-detail-add-to-cart"
                         data-id="<?php echo $product['id']; ?>"
@@ -407,6 +430,10 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
+                <button type="button" class="btn btn-outline-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart">
+                    <i class="fas fa-bolt"></i> Buy Now
+                </button>
+                <small class="text-muted text-center">Buy Now takes this item directly to checkout. Your cart stays unchanged.</small>
                 <a href="/cart" class="btn btn-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
@@ -414,7 +441,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                     <i class="fas fa-share-alt"></i> Share
                 </button>
             </div>
-            
+
                 <div class="alert alert-info">
                     <i class="bi bi-truck me-2"></i>
                     <strong>Shipping calculated before payment</strong><br>
@@ -422,28 +449,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                 </div>
         </div>
     </div>
-    
-    <!-- Product Description -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <h3 class="mb-2">Listing Notes</h3>
-                    <p class="text-muted small mb-4">Structured part facts above should be treated as the quick-reference source. These notes may include imported marketplace details and longer seller context.</p>
-                    <?php 
-                    // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
-                    // Display as plain text with proper escaping and preserve line breaks
-                    $description = $product['description'] ?? '';
-                    if (!empty($description)) {
-                        echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
-                    } else {
-                        echo '<p class="text-muted">No description available.</p>';
-                    }
-                    ?>
-                </div>
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <?php if (!empty($relatedProducts)): ?>
@@ -482,11 +488,11 @@ document.querySelectorAll('.thumbnail-image').forEach(thumbnail => {
     thumbnail.addEventListener('click', function() {
         const fullImageUrl = this.dataset.full;
         const mainImage = document.getElementById('main-product-image');
-        
+
         if (mainImage && fullImageUrl) {
             mainImage.src = fullImageUrl;
         }
-        
+
         // Update active state
         document.querySelectorAll('.thumbnail-image').forEach(t => t.classList.remove('active'));
         this.classList.add('active');
@@ -521,7 +527,7 @@ document.getElementById('increase-qty').addEventListener('click', function() {
             this.setAttribute('title', 'Maximum available quantity reached');
             const tooltip = new bootstrap.Tooltip(this);
             tooltip.show();
-            
+
             // Hide and remove tooltip after 3 seconds
             setTimeout(() => {
                 tooltip.hide();
@@ -536,39 +542,96 @@ document.getElementById('increase-qty').addEventListener('click', function() {
     }
 });
 
-// Update add to cart to use quantity
-document.querySelector('.add-to-cart').addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent global handler from also firing
-    
-    const quantity = parseInt(document.getElementById('quantity-input').value);
-    const productData = {
-        id: this.dataset.id,
-        name: this.dataset.name,
-                price: parseFloat(this.dataset.price),
-                image: this.dataset.image,
-        image_alt: this.dataset.imageAlt || this.dataset.name,
-        sku: this.dataset.sku,
-        category: this.dataset.category || '',
-        manufacturer: this.dataset.manufacturer || '',
-        source: this.dataset.source || '',
-        weight: parseFloat(this.dataset.weight) || 1.0,
-        length: parseFloat(this.dataset.length) || 10.0,
-        width: parseFloat(this.dataset.width) || 10.0,
-        height: parseFloat(this.dataset.height) || 10.0,
-        free_shipping: this.dataset.freeShipping === '1',
-        stock: parseInt(this.dataset.stock) || 999
+// Product purchase actions
+function getProductDataFromButton(button) {
+    return {
+        id: button.dataset.id,
+        name: button.dataset.name,
+        price: parseFloat(button.dataset.price),
+        image: button.dataset.image,
+        image_alt: button.dataset.imageAlt || button.dataset.name,
+        sku: button.dataset.sku,
+        category: button.dataset.category || '',
+        manufacturer: button.dataset.manufacturer || '',
+        source: button.dataset.source || '',
+        weight: parseFloat(button.dataset.weight) || 1.0,
+        length: parseFloat(button.dataset.length) || 10.0,
+        width: parseFloat(button.dataset.width) || 10.0,
+        height: parseFloat(button.dataset.height) || 10.0,
+        free_shipping: button.dataset.freeShipping === '1',
+        stock: parseInt(button.dataset.stock, 10) || 999
     };
-    
-    for (let i = 0; i < quantity; i++) {
-        window.cart.addItem(productData);
-    }
-    
-    // Trigger animation manually since we stopped propagation
-    if (window.animateAddToCart) {
-        window.animateAddToCart(this);
-    }
-});
+}
+
+function getSelectedQuantity(stockLimit) {
+    const quantityInput = document.getElementById('quantity-input');
+    const requestedQuantity = Math.max(1, parseInt(quantityInput ? quantityInput.value : 1, 10) || 1);
+    return Math.min(requestedQuantity, stockLimit || 999);
+}
+
+const addToCartButton = document.querySelector('.product-detail-add-to-cart');
+if (addToCartButton) {
+    addToCartButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const productData = getProductDataFromButton(this);
+        const quantity = getSelectedQuantity(productData.stock);
+
+        for (let i = 0; i < quantity; i++) {
+            window.cart.addItem(productData);
+        }
+
+        if (window.animateAddToCart) {
+            window.animateAddToCart(this);
+        }
+    });
+}
+
+const buyNowButton = document.querySelector('.product-buy-now');
+if (buyNowButton) {
+    buyNowButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const sourceSelector = this.dataset.buyNowSource || '.product-detail-add-to-cart';
+        const sourceButton = document.querySelector(sourceSelector);
+        if (!sourceButton) {
+            showNotification('Unable to start checkout. Please try adding the item to your cart.', 'danger');
+            return;
+        }
+
+        const productData = getProductDataFromButton(sourceButton);
+        const quantity = getSelectedQuantity(productData.stock);
+        const buyNowItem = Object.assign({}, productData, { quantity });
+        const payload = {
+            item: buyNowItem,
+            created_at: Date.now(),
+            expires_at: Date.now() + (2 * 60 * 60 * 1000)
+        };
+
+        try {
+            localStorage.setItem('flipandstrip_buy_now', JSON.stringify(payload));
+        } catch (error) {
+            showNotification('Unable to start Buy Now checkout in this browser. Please use Add to Cart instead.', 'warning');
+            return;
+        }
+
+        if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+            window.fasAnalytics.track('custom_event', Object.assign({}, window.FAS_PRODUCT_DATA || {}, {
+                custom_event_name: 'buy_now_clicked',
+                checkout_mode: 'buy_now',
+                quantity,
+                cart_items_count: quantity,
+                cart_unique_items: 1,
+                cart_value: Number(productData.price || 0) * quantity,
+                event_value: Number(productData.price || 0) * quantity
+            }), { immediate: true });
+        }
+
+        window.location.href = '/checkout.php?buy_now=1';
+    });
+}
 
 /**
  * Display a notification message to the user
@@ -579,11 +642,11 @@ document.querySelector('.add-to-cart').addEventListener('click', function(e) {
 function showNotification(message, type) {
     // Ensure message is a string
     const safeMessage = String(message || '');
-    
+
     // Validate type parameter against allowlist
     const validTypes = ['success', 'danger', 'warning', 'info'];
     const safeType = validTypes.includes(type) ? type : 'info';
-    
+
     if (window.showToast) {
         window.showToast(safeMessage, safeType);
     } else {
@@ -593,7 +656,7 @@ function showNotification(message, type) {
         notification.style.zIndex = '9999';
         notification.textContent = safeMessage;
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 3000);
@@ -605,7 +668,7 @@ const shareButton = document.getElementById('share-button');
 if (shareButton) {
     shareButton.addEventListener('click', function handleShareClick() {
         const currentUrl = window.location.href;
-        
+
         // Use modern Clipboard API if available
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(currentUrl).then(function() {
@@ -626,7 +689,7 @@ if (shareButton) {
             textarea.select();
             // Mobile browser compatibility: some mobile browsers don't fully support select()
             textarea.setSelectionRange(0, textarea.value.length);
-            
+
             try {
                 // Note: document.execCommand is deprecated but required for older browsers without Clipboard API
                 document.execCommand('copy');

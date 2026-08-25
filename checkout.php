@@ -27,15 +27,15 @@ require_once __DIR__ . '/includes/header.php';
 <div class="container my-5">
 <h1 class="mb-4 fw-bold">Checkout</h1>
 
-<div class="alert alert-light border shadow-sm mb-4">
+<div class="checkout-guidance-card alert border shadow-sm mb-4">
 <div class="d-flex gap-3">
 <i class="fas fa-shield-alt text-danger fs-3 mt-1"></i>
 <div>
-<h2 class="h5 fw-bold mb-2">Checkout Expectations</h2>
+<h2 class="h5 fw-bold mb-2">Before You Pay</h2>
 <ul class="mb-0 ps-3">
-<li>Enter your shipping address first so available rates can be calculated accurately.</li>
-<li>Apply any coupon code before payment; discounts will appear in the final total.</li>
-<li>No payment is completed until you review the final total and approve PayPal payment.</li>
+<li>Enter your shipping address to calculate accurate delivery options.</li>
+<li>Apply any coupon before payment; discounts update the final total.</li>
+<li>Review the complete total before approving secure PayPal payment.</li>
 </ul>
 </div>
 </div>
@@ -44,7 +44,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="row">
         <!-- Checkout Form -->
         <div class="col-lg-8">
-            <form id="checkout-form">
+            <form id="checkout-form" data-address-autofill>
                 <!-- Customer Information -->
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body p-4">
@@ -174,7 +174,7 @@ require_once __DIR__ . '/includes/header.php';
                             <strong id="checkout-total" class="text-danger fs-4">$0.00</strong>
                         </div>
 
-                        <div class="alert alert-light border small mb-3">
+                        <div class="checkout-summary-note alert border small mb-3">
                             Shipping, discounts, and item totals update here before PayPal opens. Review this total before approving payment.
                         </div>
 
@@ -207,11 +207,143 @@ require_once __DIR__ . '/includes/header.php';
 let selectedShippingRate = null;
 let appliedCoupon = null; // Store applied coupon data
 let pendingOrderResult = null; // Store DB order result for PayPal completion
+const buyNowStorageKey = 'flipandstrip_buy_now';
+const buyNowMaxAgeMs = 2 * 60 * 60 * 1000;
+const checkoutUrlParams = new URLSearchParams(window.location.search);
+let buyNowCheckoutItem = null;
 
 function escapeHtml(value) {
     const div = document.createElement('div');
     div.textContent = value || '';
     return div.innerHTML;
+}
+
+function safeJsonParse(value) {
+    try {
+        return value ? JSON.parse(value) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function normalizeCheckoutItem(item) {
+    if (!item || typeof item !== 'object') {
+        return null;
+    }
+
+    const productId = String(item.id || item.product_id || '').trim();
+    const name = String(item.name || item.product_name || '').trim();
+    const price = Number(item.price || item.product_price || 0);
+    const quantity = Math.max(1, parseInt(item.quantity || 1, 10) || 1);
+
+    if (!productId || !name || !Number.isFinite(price) || price < 0) {
+        return null;
+    }
+
+    return {
+        id: productId,
+        name,
+        price,
+        quantity,
+        image: item.image || '',
+        image_alt: item.image_alt || name,
+        sku: item.sku || item.product_sku || '',
+        category: item.category || '',
+        manufacturer: item.manufacturer || '',
+        source: item.source || '',
+        weight: Number(item.weight || 1.0),
+        length: Number(item.length || 10.0),
+        width: Number(item.width || 10.0),
+        height: Number(item.height || 10.0),
+        free_shipping: item.free_shipping === true || item.free_shipping === '1',
+        stock: parseInt(item.stock || 999, 10) || 999
+    };
+}
+
+function clearBuyNowCheckout() {
+    buyNowCheckoutItem = null;
+    try {
+        localStorage.removeItem(buyNowStorageKey);
+    } catch (error) {}
+}
+
+function loadBuyNowCheckoutItem() {
+    if (!checkoutUrlParams.has('buy_now')) {
+        return null;
+    }
+
+    let payload = null;
+    try {
+        payload = safeJsonParse(localStorage.getItem(buyNowStorageKey));
+    } catch (error) {
+        return null;
+    }
+
+    if (!payload || !payload.item) {
+        return null;
+    }
+
+    const createdAt = Number(payload.created_at || 0);
+    const expiresAt = Number(payload.expires_at || 0);
+    if ((expiresAt && Date.now() > expiresAt) || (!expiresAt && createdAt && Date.now() - createdAt > buyNowMaxAgeMs)) {
+        clearBuyNowCheckout();
+        return null;
+    }
+
+    return normalizeCheckoutItem(payload.item);
+}
+
+function getCheckoutItems() {
+    if (buyNowCheckoutItem) {
+        return [buyNowCheckoutItem];
+    }
+
+    return window.cart && Array.isArray(window.cart.cart) ? window.cart.cart : [];
+}
+
+function getCheckoutSubtotal() {
+    return getCheckoutItems().reduce((total, item) => {
+        return total + (Number(item.price || 0) * Math.max(1, Number(item.quantity || 1)));
+    }, 0);
+}
+
+function getCheckoutMode() {
+    return buyNowCheckoutItem ? 'buy_now' : 'cart';
+}
+
+function getEmptyCheckoutRedirect() {
+    return checkoutUrlParams.has('buy_now') ? 'products.php' : 'cart.php';
+}
+
+function getCheckoutSummary(extra = {}) {
+    const items = getCheckoutItems();
+    const summary = items.reduce((totals, item) => {
+        const quantity = Math.max(1, Number(item.quantity || 1));
+        totals.cart_unique_items += 1;
+        totals.cart_items_count += quantity;
+        totals.cart_value += Number(item.price || 0) * quantity;
+        return totals;
+    }, {
+        cart_unique_items: 0,
+        cart_items_count: 0,
+        cart_value: 0
+    });
+
+    return Object.assign(summary, {
+        checkout_mode: getCheckoutMode(),
+        is_buy_now: !!buyNowCheckoutItem
+    }, extra);
+}
+
+function clearCheckoutSourceAfterOrder() {
+    if (buyNowCheckoutItem) {
+        clearBuyNowCheckout();
+        return;
+    }
+
+    if (window.cart && typeof window.cart.clearCart === 'function') {
+        window.cart.clearCart();
+    }
 }
 
 function trackCheckoutEvent(eventType, data = {}) {
@@ -291,57 +423,67 @@ function updatePaymentButtonState() {
  * Validate cart items to ensure all products still exist
  */
 async function validateCartItems() {
-    const cart = window.cart.cart;
-    if (cart.length === 0) return true;
-    
+    const items = getCheckoutItems();
+    if (items.length === 0) return true;
+
     const invalidItems = [];
-    
-    // Check each item in the cart
-    for (const item of cart) {
+
+    // Check each checkout item still exists and is active.
+    for (const item of items) {
         try {
-            // Call the API to check if product exists
-            const response = await fetch(`/api/product-check.php?id=${item.id}`);
+            const response = await fetch(`/api/product-check.php?id=${encodeURIComponent(item.id)}`);
             const data = await response.json();
-            
+
             if (!data.exists || !data.active) {
                 invalidItems.push(item);
             }
         } catch (error) {
             console.error('Error validating product:', item.id, error);
-            // On error, assume item is invalid to be safe
             invalidItems.push(item);
         }
     }
-    
-    // Remove invalid items from cart
+
     if (invalidItems.length > 0) {
-        let message = 'The following items are no longer available and have been removed from your cart:\n';
+        const wasBuyNowCheckout = !!buyNowCheckoutItem;
+        let message = wasBuyNowCheckout
+            ? 'This item is no longer available and cannot be purchased right now:\n'
+            : 'Some items are no longer available and have been removed from your cart:\n';
+
         invalidItems.forEach(item => {
             message += `- ${item.name}\n`;
-            window.cart.removeItem(item.id);
+            if (!wasBuyNowCheckout && window.cart && typeof window.cart.removeItem === 'function') {
+                window.cart.removeItem(item.id);
+            }
         });
-        
+
+        if (wasBuyNowCheckout) {
+            clearBuyNowCheckout();
+        }
+
         alert(message);
-        
-        // Redirect to cart page if cart is now empty
-        if (window.cart.cart.length === 0) {
-            window.location.href = 'cart.php';
+
+        if (getCheckoutItems().length === 0) {
+            window.location.href = wasBuyNowCheckout ? 'products.php' : getEmptyCheckoutRedirect();
             return false;
         }
-        
-        // Refresh the checkout display
+
         displayCheckoutItems();
     }
-    
+
     return true;
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    buyNowCheckoutItem = loadBuyNowCheckoutItem();
+
     // Validate cart items before proceeding
-    await validateCartItems();
+    const checkoutItemsAreValid = await validateCartItems();
+    if (!checkoutItemsAreValid) {
+        return;
+    }
 
     displayCheckoutItems();
-    trackCheckoutEvent('checkout_started', window.fasAnalytics ? window.fasAnalytics.cartSummary() : {});
+    trackCheckoutEvent('checkout_started', getCheckoutSummary());
 
     // Calculate shipping button
     document.getElementById('calculate-shipping-btn').addEventListener('click', calculateShipping);
@@ -410,8 +552,8 @@ function setupPayPalButton() {
             pendingOrderResult = orderResult;
             
             // Calculate amounts
-            const cart = window.cart.cart;
-            const subtotal = window.cart.getTotal();
+            const cart = getCheckoutItems();
+            const subtotal = getCheckoutSubtotal();
             const tax = 0; // Tax removed - will be implemented based on customer location in future
             const shipping = selectedShippingRate.cost;
             const discount = appliedCoupon ? appliedCoupon.discount_amount : 0;
@@ -490,11 +632,8 @@ function setupPayPalButton() {
                 // Complete order in our system
                 await completeOrder(data.orderID, orderData.purchase_units[0].payments.captures[0].id, pendingOrderResult.order_id);
                 
-                // Clear cart
-                window.cart.clearCart();
-                
-                // Show success message and redirect
-                alert('Payment successful! Order #' + orderData.id + ' completed.');
+                    // Show success message and redirect
+                    alert('Payment successful! Order #' + orderData.id + ' completed.');
                 window.location.href = 'index.php?order_success=1';
                 
             } catch (error) {
@@ -564,11 +703,8 @@ async function handleDemoCheckout() {
     if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
         await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now(), orderResult.order_id);
         
-        // Clear cart
-        window.cart.clearCart();
-        
-        // Redirect
-        alert('Demo order completed successfully! Order #' + orderResult.order_number);
+            // Redirect
+            alert('Demo order completed successfully! Order #' + orderResult.order_number);
         window.location.href = 'index.php';
     }
 }
@@ -624,7 +760,7 @@ async function calculateShipping() {
         return;
     }
     
-    const cart = window.cart.cart;
+    const cart = getCheckoutItems();
         const items = cart.map(item => ({
             id: item.id,
             product_id: item.id,
@@ -696,7 +832,7 @@ function displayShippingOptions(rates, freeShippingSummary = null) {
     const card = document.getElementById('shipping-options-card');
 
     let html = '';
-    if (freeShippingSummary && freeShippingSummary.destination_eligible === false && window.cart.cart.some(item => item.free_shipping)) {
+    if (freeShippingSummary && freeShippingSummary.destination_eligible === false && getCheckoutItems().some(item => item.free_shipping)) {
         html += `
             <div class="alert alert-warning border-0 py-2 px-3 small mb-3">
                 <i class="fas fa-circle-info me-2"></i>Free shipping is limited to continental US addresses. Rates below include all items for this destination.
@@ -764,14 +900,19 @@ function selectShippingMethod(index, cost) {
 
 function displayCheckoutItems() {
     const container = document.getElementById('checkout-items');
-    const cart = window.cart.cart;
+    const cart = getCheckoutItems();
     
     if (cart.length === 0) {
-        window.location.href = 'cart.php';
+        window.location.href = getEmptyCheckoutRedirect();
         return;
     }
     
-    let html = '';
+    let html = buyNowCheckoutItem ? `
+        <div class="checkout-summary-note alert border small mb-3">
+            <i class="fas fa-bolt text-danger me-1"></i>
+            Buy Now checkout: only this item will be purchased. Items already in your cart are not changed.
+        </div>
+    ` : '';
     cart.forEach(item => {
         const imageSrc = escapeHtml(item.image || '');
         const imageAlt = escapeHtml(item.image_alt || item.name || 'Product image');
@@ -796,7 +937,7 @@ function displayCheckoutItems() {
 }
 
 function updateCheckoutSummary() {
-    const subtotal = window.cart.getTotal();
+    const subtotal = getCheckoutSubtotal();
     const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     
@@ -834,7 +975,7 @@ function updateCheckoutSummary() {
  */
 async function createOrder() {
     const form = document.getElementById('checkout-form');
-    const cart = window.cart.cart;
+    const cart = getCheckoutItems();
     
     // Validate form
     if (!form.checkValidity()) {
@@ -843,7 +984,7 @@ async function createOrder() {
     }
     
     // Prepare order data
-    const subtotal = window.cart.getTotal();
+    const subtotal = getCheckoutSubtotal();
     const tax = 0; // Tax removed - will be implemented based on customer location in future
     const shipping = selectedShippingRate ? selectedShippingRate.cost : 0;
     const discount = appliedCoupon ? appliedCoupon.discount_amount : 0;
@@ -876,6 +1017,7 @@ async function createOrder() {
         discount_amount: discount,
         total_amount: total,
         notes: form.notes.value,
+        checkout_mode: getCheckoutMode(),
         paypal_order_id: 'PENDING-' + Date.now() // Will be updated with actual PayPal order ID
     };
     
@@ -930,7 +1072,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
             throw new Error(data.error || 'Failed to complete order');
         }
 
-        const subtotal = window.cart.getTotal();
+        const subtotal = getCheckoutSubtotal();
         const shipping = selectedShippingRate ? Number(selectedShippingRate.cost || 0) : 0;
         const discount = appliedCoupon ? Number(appliedCoupon.discount_amount || 0) : 0;
         const total = subtotal - discount + shipping;
@@ -946,7 +1088,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         });
 
         // Clear cart
-        window.cart.clearCart();
+        clearCheckoutSourceAfterOrder();
         
         // Redirect to success page
         alert('Order completed successfully! Order #' + data.order_number);
@@ -987,7 +1129,7 @@ async function applyCoupon() {
         return;
     }
 
-    const subtotal = window.cart.getTotal();
+    const subtotal = getCheckoutSubtotal();
     trackCheckoutEvent('coupon_apply_attempted', {
         coupon_code: code,
         cart_value: subtotal

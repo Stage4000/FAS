@@ -85,7 +85,7 @@ require_once __DIR__ . '/includes/header.php';
 <h5 class="h6 fw-bold mb-2">
 <i class="fas fa-truck-fast text-danger me-1"></i>Shipping Estimate
 </h5>
-<form class="row g-2" data-shipping-estimator data-estimate-mode="cart" data-result-target="#cart-shipping-estimate-result" data-shipping-target="#cart-shipping-estimate" data-total-target="#cart-estimated-total">
+                    <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="cart" data-result-target="#cart-shipping-estimate-result" data-shipping-target="#cart-shipping-estimate" data-total-target="#cart-estimated-total">
 <div class="col-12">
 <label class="form-label small fw-semibold" for="cart-estimate-city">City</label>
 <input type="text" class="form-control form-control-sm" id="cart-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">

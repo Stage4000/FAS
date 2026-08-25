@@ -65,32 +65,88 @@ class Seo
         return trim((string) $text);
     }
 
-    public static function limitText($value, int $maxLength): string
+    public static function limitText($value, int $maxLength, string $suffix = '...'): string
     {
         $text = self::cleanText($value);
         if (self::length($text) <= $maxLength) {
             return $text;
         }
 
-        $suffix = '...';
-        $cutLength = max(0, $maxLength - strlen($suffix));
+        $cutLength = max(0, $maxLength - self::length($suffix));
         $truncated = self::substring($text, 0, $cutLength);
         $lastSpace = strrpos($truncated, ' ');
         if ($lastSpace !== false && $lastSpace > 40) {
-            $truncated = substr($truncated, 0, $lastSpace);
+            $truncated = self::substring($truncated, 0, $lastSpace);
         }
 
-        return rtrim($truncated, " \t\n\r\0\x0B-|,.;:") . $suffix;
+        $trimmed = rtrim($truncated, " \t\n\r\0\x0B-|,.;:");
+        return $suffix === '' ? $trimmed : $trimmed . $suffix;
     }
 
     public static function metaTitle($value): string
     {
-        return self::limitText($value, 70);
+        return self::limitText($value, 110, '');
     }
 
     public static function metaDescription($value): string
     {
-        return self::limitText($value, 155);
+        return self::limitText($value, 160, '');
+    }
+
+    public static function cleanProductSeoDescription($value): string
+    {
+        $text = self::cleanText($value);
+        if ($text === '') {
+            return '';
+        }
+
+        $boilerplatePatterns = [
+            '/\bPlease visit our eBay Store for more parts!?+\b.*$/i',
+            '/\bFor other .*? parts click here\b.*$/i',
+            '/\bVideo will open in new window\b.*$/i',
+            '/\bUsing mobile app\? Copy this link into your browser\b.*$/i',
+        ];
+
+        $cleaned = preg_replace($boilerplatePatterns, '', $text);
+        $cleaned = preg_replace('/\s+/u', ' ', (string) $cleaned);
+
+        return trim((string) $cleaned, " \t\n\r\0\x0B-|,.;:");
+    }
+
+    public static function productMetaDescription(string $productName, string $description, float $price, array $metaDetails = []): string
+    {
+        $parts = [];
+
+        $name = self::cleanText($productName);
+        if ($name !== '') {
+            $parts[] = $name . '.';
+        }
+
+        $detailParts = [];
+        foreach ($metaDetails as $detail) {
+            $cleanDetail = self::cleanText($detail);
+            if ($cleanDetail === '' || in_array($cleanDetail, $detailParts, true)) {
+                continue;
+            }
+
+            $detailParts[] = $cleanDetail;
+            if (count($detailParts) >= 2) {
+                break;
+            }
+        }
+
+        if ($detailParts !== []) {
+            $parts[] = implode(' ', $detailParts) . '.';
+        }
+
+        $parts[] = 'Price: $' . number_format($price, 2) . '.';
+
+        $cleanDescription = self::cleanProductSeoDescription($description);
+        if ($cleanDescription !== '') {
+            $parts[] = $cleanDescription;
+        }
+
+        return self::metaDescription(implode(' ', $parts));
     }
 
     public static function productSlug(array $product): string
