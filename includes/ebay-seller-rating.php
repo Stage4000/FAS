@@ -78,17 +78,15 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
 
         $sellerName = htmlspecialchars((string) ($sellerRating['seller_name'] ?? ''));
         $positiveFeedbackPercent = number_format((float) $sellerRating['positive_feedback_percent'], 1);
-        $storeUrl = htmlspecialchars((string) ($sellerRating['store_url'] ?? '#'));
-
-        ob_start();
+    ob_start();
 
         if ($variant === 'footer') {
             ?>
             <div class="mt-3">
                 <p class="mb-2">
-                    <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">
-                        <i class="fas fa-store me-2"></i>ebay
-                    </a>
+                <span class="text-white-50">
+                    <i class="fas fa-store me-2"></i>eBay seller profile
+                </span>
                 </p>
                 <p class="mb-1 text-white-50 fs-5">
                     <i class="fas fa-thumbs-up text-danger me-2"></i>
@@ -119,9 +117,9 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                                             </div>
                                         </div>
                                         <div class="col-12">
-                                            <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger w-100">
-                                                <i class="fas fa-store me-2"></i>Visit Our eBay Store
-                                            </a>
+                    <div class="seller-rating-trust-note text-center">
+                        <i class="fas fa-shield-alt me-2"></i>Trusted marketplace reputation, now shopping directly on this site.
+                    </div>
                                         </div>
                                     </div>
                                 </div>
@@ -135,14 +133,27 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                     color: #212529;
                 }
 
-                .seller-rating-homepage-card {
-                    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
-                }
+            .seller-rating-homepage-card {
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
+            }
 
-                [data-theme="dark"] .seller-rating-positive {
-                    color: #f8f9fa;
-                }
-            </style>
+            .seller-rating-trust-note {
+                border: 1px solid rgba(219, 3, 53, 0.24);
+                border-radius: 999px;
+                color: #842029;
+                font-weight: 600;
+                padding: 0.75rem 1rem;
+            }
+
+            [data-theme="dark"] .seller-rating-positive {
+                color: #f8f9fa;
+            }
+
+            [data-theme="dark"] .seller-rating-trust-note {
+                border-color: rgba(255, 255, 255, 0.3);
+                color: #ffffff;
+            }
+        </style>
             <?php
         } else {
             ?>
@@ -152,9 +163,9 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                         <div>
                             <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
                             <h6 class="mb-1"><?php echo $sellerName; ?></h6>
-                            <a href="<?php echo $storeUrl; ?>" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
-                                <i class="fas fa-store me-1"></i>View eBay Store
-                            </a>
+                    <div class="text-muted small">
+                        <i class="fas fa-store me-1"></i>Marketplace reputation verified
+                    </div>
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-danger"><?php echo $positiveFeedbackPercent; ?>%</div>

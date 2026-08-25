@@ -31,9 +31,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
                     <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
                     <?php if ($sellerRating): ?>
                         <?php echo fasRenderSellerRatingBlock($sellerRating, 'footer'); ?>
-                    <?php elseif (!empty($sellerRatingConfig['store_url'])): ?>
-                        <p><a href="<?php echo htmlspecialchars($sellerRatingConfig['store_url']); ?>" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none text-uppercase small fw-semibold"><i class="fas fa-store me-2"></i>ebay</a></p>
-                    <?php endif; ?>
+                <?php endif; ?>
                 </div>
             </div>
             <hr class="bg-white">

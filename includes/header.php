@@ -41,6 +41,19 @@ $ogImage = isset($ogImage)
     : \FAS\Utils\Seo::absoluteUrl('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg');
 $structuredData = isset($structuredData) && is_array($structuredData) ? $structuredData : [];
 array_unshift($structuredData, \FAS\Utils\Seo::organizationSchema($seoConfig));
+
+if (!function_exists('fasIsEbayOutboundUrl')) {
+    function fasIsEbayOutboundUrl($url): bool
+    {
+        $host = parse_url((string)$url, PHP_URL_HOST);
+        if (!$host) {
+            return false;
+        }
+
+        $host = strtolower($host);
+        return $host === 'ebay.com' || str_ends_with($host, '.ebay.com');
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -239,7 +252,7 @@ data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
             &nbsp;<span class="banner-countdown fw-bold"
                         data-end="<?php echo htmlspecialchars(\FAS\Utils\Timezone::toUserIso($banner['countdown_end']) ?? '', ENT_QUOTES, 'UTF-8'); ?>"></span>
         <?php endif; ?>
-<?php if (!empty($banner['link_url'])): ?>
+<?php if (!empty($banner['link_url']) && !fasIsEbayOutboundUrl($banner['link_url'])): ?>
 &nbsp;<a href="<?php echo htmlspecialchars($banner['link_url']); ?>"
 class="fw-bold text-<?php echo htmlspecialchars($banner['text_color']); ?>"
 data-analytics-banner-link
@@ -297,11 +310,6 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
                     <li class="nav-item navbar-inline-mobile">
                         <a class="nav-link" href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
                             <i class="fab fa-tiktok"></i>
-                        </a>
-                    </li>
-                    <li class="nav-item navbar-inline-mobile">
-<a class="nav-link" href="https://www.ebay.com/str/moto800" target="_blank" rel="noopener noreferrer" aria-label="eBay Store" data-analytics-source="header_ebay_store">
-                            <i class="fas fa-store"></i>
                         </a>
                     </li>
                     <li class="nav-item navbar-inline-mobile">
