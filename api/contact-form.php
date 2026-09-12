@@ -95,9 +95,14 @@ $siteName = str_replace(["\r", "\n"], '', $config['site']['name'] ?? 'Flip and S
 $siteHost = parse_url($siteUrl, PHP_URL_HOST) ?: 'flipandstrip.com';
 $siteHost = preg_replace('/^www\./', '', strtolower($siteHost));
 $mailFrom = str_replace(["\r", "\n"], '', $config['site']['from_email'] ?? ('no-reply@' . $siteHost));
+$replyTo = str_replace(["\r", "\n"], '', $config['site']['reply_to_email'] ?? $siteEmail);
 
 if (!filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) {
     $mailFrom = 'no-reply@flipandstrip.com';
+}
+
+if (!filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+    $replyTo = $siteEmail;
 }
 
 // Simple email sending (if mail() is configured on server)
@@ -109,9 +114,9 @@ $emailBody = "Name: $name\n";
 $emailBody .= "Email: $email\n";
 $emailBody .= "Subject: $subject\n\n";
 $emailBody .= "Message:\n$message\n";
-// Use a domain-aligned sender for SPF/DMARC; visitor email belongs only in Reply-To.
+// Use a domain-aligned sender and configured Reply-To for deliverability.
 $headers = "From: $siteName <$mailFrom>\r\n";
-$headers .= "Reply-To: $email\r\n";
+$headers .= "Reply-To: $replyTo\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
 // Send email and capture result
