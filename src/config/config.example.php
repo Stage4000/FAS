@@ -94,7 +94,9 @@ return [
     'site' => [
         'name' => 'Flip and Strip',
         'url' => 'https://flipandstrip.com',
-        'email' => 'info@flipandstrip.com',
+        'email' => 'info@flipandstrip.com', // Notification recipient
+        'from_email' => 'no-reply@flipandstrip.com', // Authenticated/aligned sender for generated email
+        'reply_to_email' => 'info@flipandstrip.com', // Reply-To for customer-facing generated email
         'phone' => '',
         'timezone' => 'America/Chicago', // PHP timezone identifier (e.g. America/New_York, America/Los_Angeles)
     ],

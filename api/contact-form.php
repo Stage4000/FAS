@@ -90,7 +90,15 @@ if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secr
 // Current implementation: Send email notification to site admin
 
 $siteEmail = $config['site']['email'] ?? 'info@flipandstrip.com';
-$siteName = $config['site']['name'] ?? 'Flip and Strip';
+$siteUrl = $config['site']['url'] ?? 'https://flipandstrip.com';
+$siteName = str_replace(["\r", "\n"], '', $config['site']['name'] ?? 'Flip and Strip');
+$siteHost = parse_url($siteUrl, PHP_URL_HOST) ?: 'flipandstrip.com';
+$siteHost = preg_replace('/^www\./', '', strtolower($siteHost));
+$mailFrom = str_replace(["\r", "\n"], '', $config['site']['from_email'] ?? ('no-reply@' . $siteHost));
+
+if (!filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) {
+    $mailFrom = 'no-reply@flipandstrip.com';
+}
 
 // Simple email sending (if mail() is configured on server)
 $to = $siteEmail;
@@ -101,13 +109,13 @@ $emailBody = "Name: $name\n";
 $emailBody .= "Email: $email\n";
 $emailBody .= "Subject: $subject\n\n";
 $emailBody .= "Message:\n$message\n";
-// Use site email as From to prevent header injection, user email in Reply-To (already sanitized)
-$headers = "From: $siteEmail\r\n";
+// Use a domain-aligned sender for SPF/DMARC; visitor email belongs only in Reply-To.
+$headers = "From: $siteName <$mailFrom>\r\n";
 $headers .= "Reply-To: $email\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
 // Send email and capture result
-$mailSent = mail($to, $emailSubject, $emailBody, $headers);
+$mailSent = mail($to, $emailSubject, $emailBody, $headers, "-f$mailFrom");
 
 // Log email failures to help diagnose delivery issues
 if (!$mailSent) {

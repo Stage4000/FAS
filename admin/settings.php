@@ -81,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => $_POST['site_name'] ?? 'Flip and Strip',
             'url' => $_POST['site_url'] ?? 'https://flipandstrip.com',
             'email' => $_POST['site_email'] ?? 'info@flipandstrip.com',
+            'from_email' => $_POST['site_from_email'] ?? ($config['site']['from_email'] ?? 'no-reply@flipandstrip.com'),
+            'reply_to_email' => $_POST['site_reply_to_email'] ?? ($config['site']['reply_to_email'] ?? 'info@flipandstrip.com'),
             'phone' => $_POST['site_phone'] ?? '',
             'timezone' => $_POST['site_timezone'] ?? 'America/Chicago',
         ],
@@ -385,8 +387,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="url" class="form-control" name="site_url" value="<?php echo htmlspecialchars($config['site']['url'] ?? 'https://flipandstrip.com'); ?>">
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Email</label>
+                                    <label class="form-label">Notification Email</label>
                                     <input type="email" class="form-control" name="site_email" value="<?php echo htmlspecialchars($config['site']['email'] ?? 'info@flipandstrip.com'); ?>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">From Email</label>
+                                    <input type="email" class="form-control" name="site_from_email" value="<?php echo htmlspecialchars($config['site']['from_email'] ?? 'no-reply@flipandstrip.com'); ?>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Customer Reply-To Email</label>
+                                    <input type="email" class="form-control" name="site_reply_to_email" value="<?php echo htmlspecialchars($config['site']['reply_to_email'] ?? 'info@flipandstrip.com'); ?>">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Phone</label>
