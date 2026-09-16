@@ -78,7 +78,7 @@ function emDate($value): string
     }
 
     $timestamp = strtotime((string)$value);
-    return $timestamp ? Timezone::timestampElement($value) : (string)$value;
+    return $timestamp ? Timezone::timestampElement($value) : emSafe($value);
 }
 
 function emAreaLabel(string $area): string
@@ -337,7 +337,7 @@ function emFilterUrl(array $updates): string
                     </div>
                     <div class="fw-bold"><?php echo emSafe(emAreaLabel($areaKey)); ?></div>
                     <div class="text-muted small"><?php echo emNumber($areaRow['total'] ?? 0); ?> total</div>
-                    <div class="text-muted small">Last: <?php echo emSafe(emDate($areaRow['last_seen'] ?? null)); ?></div>
+                    <div class="text-muted small">Last: <?php echo emDate($areaRow['last_seen'] ?? null); ?></div>
                 </div>
             </div>
         </a>
@@ -370,7 +370,7 @@ function emFilterUrl(array $updates): string
                 <?php $metadata = json_decode((string)($event['metadata'] ?? ''), true) ?: []; ?>
                 <tr>
                     <td>
-                        <div class="fw-semibold"><?php echo emSafe(emDate($event['created_at'] ?? null)); ?></div>
+                        <div class="fw-semibold"><?php echo emDate($event['created_at'] ?? null); ?></div>
                         <small class="text-muted"><?php echo emSafe($event['source'] ?? 'unknown'); ?></small>
                     </td>
                     <td><span class="badge bg-secondary"><i class="<?php echo emSafe(emAreaIcon($event['area'] ?? '')); ?> me-1"></i><?php echo emSafe(emAreaLabel($event['area'] ?? '')); ?></span></td>

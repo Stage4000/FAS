@@ -29,8 +29,8 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
             <p><a href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-facebook"></i> Facebook</a></p>
             <p><a href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-instagram"></i> Instagram</a></p>
             <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
-            <p><a href="mailto:FLIPANDSTRIPCYCLES@GMAIL.COM" class="text-white-50 text-decoration-none"><i class="fas fa-envelope"></i> Email Support: FLIPANDSTRIPCYCLES@GMAIL.COM</a></p>
-            <p><a href="sms:+14073085294" class="text-white-50 text-decoration-none"><i class="fas fa-mobile-alt"></i> Text Support: 407 308 5294</a></p>
+            <p><a href="mailto:FLIPANDSTRIPCYCLES@GMAIL.COM" class="text-white-50 text-decoration-none"><i class="fas fa-envelope"></i> FLIPANDSTRIPCYCLES@GMAIL.COM</a></p>
+            <p><a href="sms:+14073085294" class="text-white-50 text-decoration-none"><i class="fas fa-mobile-alt"></i> 407 308 5294</a></p>
             <?php if ($sellerRating): ?>
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'footer'); ?>
             <?php endif; ?>
