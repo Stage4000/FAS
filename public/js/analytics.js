@@ -85,11 +85,14 @@
             const payload = {
                 area: area || 'analytics',
                 severity: context && context.severity ? context.severity : 'error',
-                source: 'public/js/analytics.js',
+                source: context && context.filename ? context.filename : 'public/js/analytics.js',
                 message: message || (error && error.message) || 'Client error',
                 url: location.href,
                 page: currentPagePath,
                 session_id: sessionId,
+                filename: context && context.filename ? context.filename : '',
+                line: context && context.line ? context.line : 0,
+                column: context && context.column ? context.column : 0,
                 context: context || {},
                 stack: error && error.stack ? error.stack : ''
             };

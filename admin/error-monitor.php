@@ -81,6 +81,84 @@ function emDate($value): string
     return $timestamp ? Timezone::timestampElement($value) : emSafe($value);
 }
 
+function emMetadata(array $event): array
+{
+    $metadata = json_decode((string)($event['metadata'] ?? ''), true);
+    return is_array($metadata) ? $metadata : [];
+}
+
+function emMetaValue(array $metadata, string $key)
+{
+    if (array_key_exists($key, $metadata) && $metadata[$key] !== null && $metadata[$key] !== '') {
+        return $metadata[$key];
+    }
+
+    $context = $metadata['context'] ?? null;
+    if (is_array($context) && array_key_exists($key, $context) && $context[$key] !== null && $context[$key] !== '') {
+        return $context[$key];
+    }
+
+    return null;
+}
+
+function emCompactUrl($value, int $limit = 80): string
+{
+    $text = trim((string)$value);
+    if ($text === '') {
+        return '';
+    }
+
+    $parts = parse_url($text);
+    if (is_array($parts) && !empty($parts['path'])) {
+        $text = $parts['path'] . (!empty($parts['query']) ? '?' . $parts['query'] : '');
+    }
+
+    return strlen($text) > $limit ? substr($text, 0, $limit - 3) . '...' : $text;
+}
+
+function emSourceLocation(array $event, array $metadata): string
+{
+    $file = emMetaValue($metadata, 'filename') ?? emMetaValue($metadata, 'file') ?? ($event['source'] ?? '');
+    $file = emCompactUrl($file, 100);
+    if ($file === '') {
+        return '';
+    }
+
+    $line = emMetaValue($metadata, 'line') ?? emMetaValue($metadata, 'lineno');
+    $column = emMetaValue($metadata, 'column') ?? emMetaValue($metadata, 'colno');
+    if ($line) {
+        $file .= ':' . (int)$line;
+        if ($column) {
+            $file .= ':' . (int)$column;
+        }
+    }
+
+    return $file;
+}
+
+function emStackPreview(array $metadata): string
+{
+    $stack = trim((string)(emMetaValue($metadata, 'stack') ?? ''));
+    if ($stack === '') {
+        return '';
+    }
+
+    foreach (preg_split('/\R/', $stack) as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            return $line;
+        }
+    }
+
+    return '';
+}
+
+function emPrettyJson($value): string
+{
+    $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    return $json === false ? '' : $json;
+}
+
 function emAreaLabel(string $area): string
 {
     return match ($area) {
@@ -162,6 +240,19 @@ function emFilterUrl(array $updates): string
 .error-meta {
     font-size: 0.78rem;
 }
+.error-detail summary {
+    cursor: pointer;
+}
+.error-detail pre {
+    background: rgba(15, 23, 42, 0.06);
+    border-radius: 0.4rem;
+    margin: 0.35rem 0 0;
+    max-height: 220px;
+    overflow: auto;
+    padding: 0.55rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 [data-theme="dark"] .error-monitor-stat,
 [data-theme="dark"] .error-monitor-card {
     background: linear-gradient(180deg, #333 0%, #2d2d2d 100%);
@@ -185,6 +276,10 @@ function emFilterUrl(array $updates): string
 [data-theme="dark"] .error-monitor-card .form-select {
     background-color: #242629;
     border-color: rgba(255, 255, 255, 0.2);
+    color: var(--admin-text);
+}
+[data-theme="dark"] .error-detail pre {
+    background: rgba(255, 255, 255, 0.08);
     color: var(--admin-text);
 }
 [data-theme="dark"] .table {
@@ -367,11 +462,20 @@ function emFilterUrl(array $updates): string
                 <tr><td colspan="6" class="text-center text-muted py-4">No matching errors recorded.</td></tr>
             <?php else: ?>
                 <?php foreach ($events as $event): ?>
-                <?php $metadata = json_decode((string)($event['metadata'] ?? ''), true) ?: []; ?>
+                <?php
+                $metadata = emMetadata($event);
+                $sourceLocation = emSourceLocation($event, $metadata);
+                $stack = trim((string)(emMetaValue($metadata, 'stack') ?? ''));
+                $stackPreview = emStackPreview($metadata);
+                $detailJson = emPrettyJson($metadata);
+                $eventUrl = (string)($event['url'] ?? '');
+                $hasBrowserSource = (bool)(emMetaValue($metadata, 'filename') ?? emMetaValue($metadata, 'file'));
+                $isOpaqueScriptError = trim((string)($event['message'] ?? '')) === 'Script error.' && !$hasBrowserSource && $stack === '';
+                ?>
                 <tr>
                     <td>
                         <div class="fw-semibold"><?php echo emDate($event['created_at'] ?? null); ?></div>
-                        <small class="text-muted"><?php echo emSafe($event['source'] ?? 'unknown'); ?></small>
+                        <small class="text-muted" title="<?php echo emSafe($sourceLocation ?: ($event['source'] ?? 'unknown')); ?>"><?php echo emSafe($sourceLocation ?: ($event['source'] ?? 'unknown')); ?></small>
                     </td>
                     <td><span class="badge bg-secondary"><i class="<?php echo emSafe(emAreaIcon($event['area'] ?? '')); ?> me-1"></i><?php echo emSafe(emAreaLabel($event['area'] ?? '')); ?></span></td>
                     <td><span class="badge bg-<?php echo emSafe(emBadgeClass($event['severity'] ?? 'error')); ?>"><?php echo emSafe($event['severity'] ?? 'error'); ?></span></td>
@@ -380,13 +484,45 @@ function emFilterUrl(array $updates): string
                         <?php if (!empty($event['exception_class'])): ?>
                         <div class="text-muted small"><?php echo emSafe($event['exception_class']); ?></div>
                         <?php endif; ?>
+                        <?php if ($sourceLocation !== ''): ?>
+                        <div class="text-muted small"><i class="fas fa-code me-1"></i><?php echo emSafe($sourceLocation); ?></div>
+                        <?php endif; ?>
+                        <?php if ($stackPreview !== ''): ?>
+                        <div class="text-muted small text-truncate" title="<?php echo emSafe($stackPreview); ?>"><i class="fas fa-layer-group me-1"></i><?php echo emSafe($stackPreview); ?></div>
+                        <?php endif; ?>
+                        <?php if ($isOpaqueScriptError): ?>
+                        <div class="text-warning small"><i class="fas fa-triangle-exclamation me-1"></i>Browser hid script details. Check the page URL and third-party scripts loaded there.</div>
+                        <?php endif; ?>
                     </td>
                     <td class="error-meta">
                         <?php if (!empty($event['order_id'])): ?><div>Order: <?php echo emSafe($event['order_id']); ?></div><?php endif; ?>
                         <?php if (!empty($event['paypal_order_id'])): ?><div>PayPal: <?php echo emSafe($event['paypal_order_id']); ?></div><?php endif; ?>
+                        <?php if (!empty($event['product_id'])): ?><div>Product: <?php echo (int)$event['product_id']; ?></div><?php endif; ?>
                         <?php if (!empty($event['ebay_item_id'])): ?><div>eBay: <?php echo emSafe($event['ebay_item_id']); ?></div><?php endif; ?>
-                        <?php if (!empty($event['url'])): ?><div class="text-truncate" style="max-width: 260px;" title="<?php echo emSafe($event['url']); ?>"><?php echo emSafe($event['url']); ?></div><?php endif; ?>
-                        <?php if (!empty($metadata['file'])): ?><div><?php echo emSafe(basename((string)$metadata['file'])); ?>:<?php echo emSafe($metadata['line'] ?? ''); ?></div><?php endif; ?>
+                        <?php if ($eventUrl !== ''): ?>
+                        <div class="text-truncate" style="max-width: 260px;" title="<?php echo emSafe($eventUrl); ?>">
+                            <?php if (preg_match('/^https?:\/\//i', $eventUrl)): ?>
+                            <a href="<?php echo emSafe($eventUrl); ?>" target="_blank" rel="noopener noreferrer"><?php echo emSafe(emCompactUrl($eventUrl, 90)); ?></a>
+                            <?php else: ?>
+                            <?php echo emSafe(emCompactUrl($eventUrl, 90)); ?>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                        <details class="error-detail mt-1">
+                            <summary>Details</summary>
+                            <div class="mt-2">
+                                <div><span class="text-muted">Event:</span> #<?php echo (int)$event['id']; ?></div>
+                                <?php if (!empty($event['source'])): ?><div><span class="text-muted">Logger:</span> <?php echo emSafe($event['source']); ?></div><?php endif; ?>
+                                <?php if ($sourceLocation !== ''): ?><div><span class="text-muted">Source:</span> <?php echo emSafe($sourceLocation); ?></div><?php endif; ?>
+                                <?php if (!empty($metadata['page'])): ?><div><span class="text-muted">Page:</span> <?php echo emSafe($metadata['page']); ?></div><?php endif; ?>
+                                <?php if (!empty($event['session_id'])): ?><div><span class="text-muted">Session:</span> <?php echo emSafe($event['session_id']); ?></div><?php endif; ?>
+                                <?php if (!empty($event['request_method'])): ?><div><span class="text-muted">Method:</span> <?php echo emSafe($event['request_method']); ?></div><?php endif; ?>
+                                <?php if (!empty($event['ip_address'])): ?><div><span class="text-muted">IP:</span> <?php echo emSafe($event['ip_address']); ?></div><?php endif; ?>
+                                <?php if (!empty($event['user_agent'])): ?><div><span class="text-muted">User agent:</span> <?php echo emSafe($event['user_agent']); ?></div><?php endif; ?>
+                                <?php if ($stack !== ''): ?><div class="mt-2"><span class="text-muted">Stack:</span><pre><?php echo emSafe($stack); ?></pre></div><?php endif; ?>
+                                <?php if ($detailJson !== '' && $detailJson !== '[]'): ?><div class="mt-2"><span class="text-muted">Metadata:</span><pre><?php echo emSafe($detailJson); ?></pre></div><?php endif; ?>
+                            </div>
+                        </details>
                     </td>
                     <td class="text-end">
                         <?php if (($event['status'] ?? 'open') === 'open'): ?>

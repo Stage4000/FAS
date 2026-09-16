@@ -56,6 +56,7 @@ try {
     if ($message === '') {
         $message = 'Client-side error';
     }
+    $context = is_array($input['context'] ?? null) ? $input['context'] : null;
 
     $db = Database::getInstance()->getConnection();
     $monitor = new ErrorMonitor($db);
@@ -70,8 +71,11 @@ try {
         'ebay_item_id' => $input['ebay_item_id'] ?? null,
         'metadata' => [
             'page' => $input['page'] ?? null,
+            'filename' => $input['filename'] ?? ($context['filename'] ?? null),
+            'line' => $input['line'] ?? ($context['line'] ?? null),
+            'column' => $input['column'] ?? ($context['column'] ?? null),
             'stack' => isset($input['stack']) ? substr((string)$input['stack'], 0, 2000) : null,
-            'context' => $input['context'] ?? null,
+            'context' => $context,
         ],
     ]);
 
