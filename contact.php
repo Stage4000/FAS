@@ -56,13 +56,25 @@ if (!file_exists($configFile)) {
                     <button type="submit" class="btn btn-danger btn-lg w-100" id="submit-btn">
                         <i class="fas fa-paper-plane"></i> Send Message
                     </button>
-                </form>
-            </div>
-            
-            <div class="alert alert-secondary mt-5">
-                <h5><i class="fas fa-clock me-2"></i>Response Time</h5>
-                <p class="mb-0">We typically respond to all inquiries within 24 hours during business days.</p>
-            </div>
+        </form>
+        </div>
+
+        <div class="alert alert-light border mt-5">
+            <h5><i class="fas fa-headset me-2"></i>Direct Support</h5>
+            <p class="mb-2">
+                <strong>Email support:</strong>
+                <a href="mailto:FLIPANDSTRIPCYCLES@GMAIL.COM">FLIPANDSTRIPCYCLES@GMAIL.COM</a>
+            </p>
+            <p class="mb-0">
+                <strong>Text support:</strong>
+                <a href="sms:+14073085294">407 308 5294</a>
+            </p>
+        </div>
+
+        <div class="alert alert-secondary mt-5">
+            <h5><i class="fas fa-clock me-2"></i>Response Time</h5>
+            <p class="mb-0">We typically respond to all inquiries within 24 hours during business days.</p>
+        </div>
         </div>
     </div>
 </div>
