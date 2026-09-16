@@ -25,9 +25,9 @@
     let flushInFlight = null;
     let exitSent = false;
 
-    function shouldIgnoreRuntimeError(value) {
+    function shouldIgnoreRuntimeError(value, source) {
         return typeof window.FASShouldIgnoreRuntimeError === 'function'
-            && window.FASShouldIgnoreRuntimeError(value);
+            && window.FASShouldIgnoreRuntimeError(value, source);
     }
 
     function isTransientAnalyticsUploadError(error) {
@@ -78,7 +78,8 @@
 
     function reportClientError(area, message, context, error) {
         try {
-            if (shouldIgnoreRuntimeError(message) || shouldIgnoreRuntimeError(error)) {
+            const source = context && context.filename ? context.filename : '';
+            if (shouldIgnoreRuntimeError(message, source) || shouldIgnoreRuntimeError(error, source)) {
                 return;
             }
 
@@ -1091,7 +1092,7 @@
     window.addEventListener('pagehide', sendExit);
     window.addEventListener('online', () => flush(false));
     window.addEventListener('error', event => {
-        if (shouldIgnoreRuntimeError(event.message) || shouldIgnoreRuntimeError(event.error)) {
+        if (shouldIgnoreRuntimeError(event.message, event.filename) || shouldIgnoreRuntimeError(event.error, event.filename)) {
             event.preventDefault();
             return;
         }

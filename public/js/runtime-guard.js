@@ -4,6 +4,12 @@
     const ignoredMessages = [
         'Error invoking postMessage: Java object is gone'
     ];
+    const ignoredSourcePatterns = [
+        '/dist/inject_content.js',
+        'chrome-extension://',
+        'moz-extension://',
+        'safari-web-extension://'
+    ];
 
     function messageFrom(value) {
         if (!value) {
@@ -14,8 +20,8 @@
             return value;
         }
 
-        if (value.message) {
-            return String(value.message);
+        if (value.message || value.stack) {
+            return [value.message, value.stack].filter(Boolean).join('\n');
         }
 
         try {
@@ -25,16 +31,25 @@
         }
     }
 
-    function shouldIgnore(value) {
+    function shouldIgnore(value, source) {
         const message = messageFrom(value);
+        const sourceText = messageFrom(source);
+        const haystack = `${message}\n${sourceText}`.toLowerCase();
 
-        return ignoredMessages.some(ignoredMessage => message.includes(ignoredMessage));
+        if (ignoredMessages.some(ignoredMessage => message.includes(ignoredMessage))) {
+            return true;
+        }
+
+        const normalizedMessage = message.toLowerCase();
+        const isInjectedSource = ignoredSourcePatterns.some(pattern => haystack.includes(pattern));
+        return isInjectedSource
+            && (normalizedMessage.includes('illegal invocation') || normalizedMessage === 'script error.');
     }
 
     window.FASShouldIgnoreRuntimeError = shouldIgnore;
 
     window.addEventListener('error', event => {
-        if (shouldIgnore(event.message) || shouldIgnore(event.error)) {
+        if (shouldIgnore(event.message, event.filename) || shouldIgnore(event.error, event.filename)) {
             event.preventDefault();
             event.stopImmediatePropagation();
         }
