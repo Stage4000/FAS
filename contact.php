@@ -68,6 +68,7 @@ if (!file_exists($configFile)) {
             <p class="mb-0">
                 <strong>Text support:</strong>
                 <a href="sms:+14073085294">407 308 5294</a>
+                <span class="text-muted ms-2">Text us for a quick response.</span>
             </p>
         </div>
 
