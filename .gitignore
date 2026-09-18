@@ -144,3 +144,9 @@ admin/exports/
 # User data exports
 exports/
 backups/
+
+# Deployment-local Apple Pay rollout switches
+/src/config/applepay.php
+
+# Track the additive Apple Pay schema used by the maintenance command
+!/database/applepay.sql

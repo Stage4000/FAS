@@ -10,6 +10,7 @@ require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
+require_once __DIR__ . '/../src/payments/ApplePayContext.php';
 
 use FAS\Config\Database;
 use FAS\Integrations\EasyShipAPI;
@@ -143,6 +144,7 @@ try {
         echo json_encode([
             'success' => true,
             'free_shipping' => $freeShippingSummary,
+            'applepay_shipping_quote' => \FAS\Payments\ApplePayContext::rememberShipping($input, [ShippingRules::freeShippingRate($freeShippingSummary)]),
             'rates' => [
                 ShippingRules::freeShippingRate($freeShippingSummary),
             ],
@@ -177,6 +179,7 @@ try {
     echo json_encode([
         'success' => true,
         'free_shipping' => $freeShippingSummary,
+        'applepay_shipping_quote' => \FAS\Payments\ApplePayContext::rememberShipping($input, $rates),
         'rates' => $rates,
     ]);
 } catch (Throwable $e) {

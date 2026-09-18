@@ -16,6 +16,19 @@ $config = require $configFile;
 $paypalClientId = $config['paypal']['client_id'] ?? '';
 $paypalMode = $config['paypal']['mode'] ?? 'sandbox';
 
+require_once __DIR__ . '/src/payments/ApplePayContext.php';
+$applePaySettings = \FAS\Payments\ApplePayContext::settings();
+$applePayAvailable = \FAS\Payments\ApplePayContext::allowed($applePaySettings);
+// Keep recovery controls available to existing sessions after the rollout switch is disabled.
+$applePayUiAvailable = $applePayAvailable || isset($_COOKIE[session_name()]);
+$applePayCsrf = $applePayUiAvailable ? \FAS\Payments\ApplePayContext::csrf() : '';
+if (($applePaySettings['enabled'] ?? false) === true || $applePayUiAvailable) {
+    header('Cache-Control: private, no-store');
+}
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
 $pageTitle = 'Checkout';
 $metaTitle = 'Checkout | Flip and Strip';
 $metaDescription = 'Secure checkout for selected Flip and Strip parts.';
@@ -186,6 +199,15 @@ require_once __DIR__ . '/includes/header.php';
                             <strong>Complete the required fields and choose a shipping method to unlock secure PayPal payment.</strong>
                         </div>
                     <div id="paypal-button-container" class="mb-3"></div>
+                    <?php if ($applePayUiAvailable): ?>
+                    <div id="applepay-payment" class="mb-3" hidden>
+                        <div data-applepay-button style="width:100%;max-width:350px;margin:0 auto"></div>
+                        <p data-applepay-message class="small mt-2 mb-2" role="status" aria-live="polite"></p>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-check hidden>Check payment status</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-stop hidden>Cancel this payment attempt</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-finish hidden>Finish this same payment</button>
+                    </div>
+                    <?php endif; ?>
                     
                     <div class="text-center mt-3">
                         <small class="text-muted">
@@ -199,13 +221,18 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<!-- Load PayPal SDK -->
+<!-- Load PayPal SDK once; Apple Pay remains off until explicitly enabled. -->
 <?php if (!empty($paypalClientId) && strpos($paypalClientId, 'YOUR_') !== 0): ?>
-<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&currency=USD"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars(rawurlencode($paypalClientId), ENT_QUOTES, 'UTF-8'); ?>&amp;currency=USD&amp;components=<?php echo $applePayAvailable ? 'buttons,applepay' : 'buttons'; ?>"></script>
+<?php if ($applePayAvailable): ?>
+<script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
+<?php endif; ?>
 <?php endif; ?>
 
 <script type="text/javascript">
 let selectedShippingRate = null;
+let applePayShippingQuoteId = null;
+let applePayShippingQuoteSnapshot = null;
 let appliedCoupon = null; // Store applied coupon data
 let pendingOrderResult = null; // Store DB order result for PayPal completion
 const buyNowStorageKey = 'flipandstrip_buy_now';
@@ -465,6 +492,7 @@ function updatePaymentButtonState() {
     if (instructions) {
         instructions.style.display = isReady ? 'none' : 'block';
     }
+    window.FASApplePay?.refresh();
 }
 
 /**
@@ -549,6 +577,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Initial state
     updatePaymentButtonState();
+    document.dispatchEvent(new Event('fas:checkout-ready'));
 });
 
 /**
@@ -830,6 +859,9 @@ async function calculateShipping() {
         cart_items_count: items.reduce((total, item) => total + Number(item.quantity || 0), 0)
     });
 
+    applePayShippingQuoteId = null;
+    applePayShippingQuoteSnapshot = null;
+    window.FASApplePay?.refresh();
     const btn = document.getElementById('calculate-shipping-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculating...';
@@ -846,6 +878,8 @@ async function calculateShipping() {
         const data = await response.json();
         
     if (data.success && data.rates) {
+                applePayShippingQuoteId = data.applepay_shipping_quote || null;
+                applePayShippingQuoteSnapshot = { address, items };
                 displayShippingOptions(data.rates, data.free_shipping || null);
                 trackCheckoutEvent('shipping_rates_returned', {
                     rates_count: data.rates.length,
@@ -1017,6 +1051,7 @@ function updateCheckoutSummary() {
     }
     
     document.getElementById('checkout-total').textContent = `$${total.toFixed(2)}`;
+    window.FASApplePay?.refresh();
 }
 
 /**
@@ -1272,5 +1307,50 @@ function removeCoupon() {
 }
 
 </script>
+
+<?php if ($applePayUiAvailable): ?>
+<script>
+window.FASApplePayOptions = {
+    csrf: <?php echo json_encode($applePayCsrf, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+    sessionFingerprint: <?php echo json_encode(hash('sha256', $applePayCsrf)); ?>,
+    displayName: <?php echo json_encode((string)$applePaySettings['display_name'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+    preview: <?php echo $applePayAvailable && ($applePaySettings['admin_only'] ?? true) !== false ? 'true' : 'false'; ?>,
+    getState: function () {
+        const form = document.getElementById('checkout-form');
+        const field = name => form.elements[name].value;
+        const subtotal = Number(getCheckoutSubtotal());
+        const shipping = Number(selectedShippingRate ? selectedShippingRate.cost : 0);
+        const discount = Number(appliedCoupon ? appliedCoupon.discount_amount : 0);
+        return {
+            ready: isFormReadyForPayment(),
+            checkout_mode: getCheckoutMode(),
+            items: getCheckoutItems().map(item => ({ product_id: String(item.id), quantity: item.quantity })),
+            first_name: field('first_name'), last_name: field('last_name'), email: field('email'),
+            phone: field('phone'), notes: field('notes'),
+            address: { address1: field('address1'), address2: field('address2'), city: field('city'),
+                state: field('state'), zip: field('zip'), country: 'US' },
+            shipping_quote: applePayShippingQuoteId || '',
+            shipping_snapshot: applePayShippingQuoteSnapshot,
+            shipping_index: selectedShippingRate ? selectedShippingRate.index : null,
+            coupon_code: appliedCoupon ? appliedCoupon.code : '',
+            expected_total: (subtotal + shipping - discount).toFixed(2)
+        };
+    },
+    onUnlock: function () { updatePaymentButtonState(); },
+    onPaid: function (result, sameCheckoutSource) {
+        try {
+            trackCheckoutEvent('order_completed', { provider: 'paypal_applepay', order_id: result.order_id,
+                order_number: result.order_number, paypal_order_id: result.paypal_order_id,
+                total_amount: Number(result.amount), event_value: Number(result.amount) });
+        } catch (_) {}
+        if (sameCheckoutSource) {
+            try { clearCheckoutSourceAfterOrder(); } catch (_) {}
+        }
+        window.location.assign('/index.php?order_success=1');
+    }
+};
+</script>
+<script src="/public/js/applepay-checkout.js?v=20260918-1" defer></script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

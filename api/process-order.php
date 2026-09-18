@@ -238,6 +238,13 @@ function completeOrder($input, $orderModel, $productModel)
         exit;
     }
     
+    // Wallet orders must only be completed by the server-verified Apple Pay path.
+    if (($order['payment_method'] ?? '') === 'applepay') {
+        http_response_code(409);
+        echo json_encode(['error' => 'Apple Pay orders use the dedicated payment endpoint.']);
+        exit;
+    }
+
     // Check if already completed to prevent duplicate inventory deduction
     if ($order['payment_status'] === 'completed') {
         echo json_encode([
