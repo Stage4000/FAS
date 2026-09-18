@@ -48,7 +48,7 @@ require_once __DIR__ . '/includes/header.php';
 <ul class="mb-0 ps-3">
 <li>Enter your shipping address to calculate accurate delivery options.</li>
 <li>Apply any coupon before payment; discounts update the final total.</li>
-<li>Review the complete total before approving secure PayPal payment.</li>
+<li>Review the complete total before approving your chosen payment method.</li>
 <li>Eligible orders are covered by a 30-day return policy.</li>
 </ul>
 </div>
@@ -189,32 +189,32 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
 
                         <div class="checkout-summary-note alert border small mb-3">
-                            Shipping, discounts, and item totals update here before PayPal opens. Review this total before approving payment.
+                            Shipping, discounts, and item totals update here before the payment window opens. Review this total before approving payment.
                         </div>
 
-                        <!-- PayPal Button Container -->
-                        <!-- Instructional message for incomplete form -->
+                    <!-- One payment section; keep provider-rendered controls intact. -->
+                    <section aria-labelledby="checkout-payment-title" style="width:100%;max-width:750px;margin:0 auto">
+                        <h5 id="checkout-payment-title" class="h6 fw-bold mb-3">Choose how to pay</h5>
                         <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Complete the required fields and choose a shipping method to unlock secure PayPal payment.</strong>
+                            <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+                            <strong>Complete the required fields and choose a shipping method to unlock payment options.</strong>
                         </div>
-                    <div id="paypal-button-container" class="mb-3"></div>
-                    <?php if ($applePayUiAvailable): ?>
-                    <div id="applepay-payment" class="mb-3" hidden>
-                        <div data-applepay-button style="width:100%;max-width:350px;margin:0 auto"></div>
-                        <p data-applepay-message class="small mt-2 mb-2" role="status" aria-live="polite"></p>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-check hidden>Check payment status</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-stop hidden>Cancel this payment attempt</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-finish hidden>Finish this same payment</button>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            <i class="bi bi-shield-check me-1"></i>
-                            Secure payment via PayPal
-                        </small>
-                    </div>
+                        <?php if ($applePayUiAvailable): ?>
+                        <div id="applepay-payment" style="margin-bottom:14px" hidden>
+                            <!-- Notices stay above the buttons, not between payment choices. -->
+                            <p data-applepay-message class="small mt-0 mb-3" role="status" aria-live="polite" hidden></p>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-check hidden>Check payment status</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-stop hidden>Cancel this payment attempt</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-finish hidden>Finish this same payment</button>
+                            <div data-applepay-button style="width:100%"></div>
+                        </div>
+                        <?php endif; ?>
+                        <div id="paypal-button-container"></div>
+                        <p class="text-center small text-muted mt-3 mb-0">
+                            <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
+                            Payments processed by PayPal
+                        </p>
+                    </section>
                 </div>
             </div>
         </div>
@@ -604,7 +604,9 @@ function setupPayPalButton() {
             layout: 'vertical',
             color: 'blue',
             shape: 'rect',
-            label: 'pay'
+            label: 'pay',
+            height: 44,
+            borderRadius: 4
         },
         
         // Create order on PayPal
@@ -1350,7 +1352,7 @@ window.FASApplePayOptions = {
     }
 };
 </script>
-<script src="/public/js/applepay-checkout.js?v=20260918-1" defer></script>
+<script src="/public/js/applepay-checkout.js?v=20260918-ui1" defer></script>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

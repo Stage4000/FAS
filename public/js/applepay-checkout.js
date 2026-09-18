@@ -22,6 +22,7 @@
 
     function say(text) {
         message.textContent = text;
+        message.hidden = text === '';
     }
     function readState() {
         return options.getState();
@@ -63,7 +64,7 @@
         if (!busy && !isReady && eligible) {
             say('Complete your details and calculate shipping for this address. Use a two-letter state and ZIP code.');
         } else if (!busy && isReady) {
-            say(options.preview ? 'Admin-only preview. This uses your configured PayPal environment; live mode charges real money.' : 'Pay securely with Apple Pay, processed by PayPal.');
+            say(options.preview ? 'Admin-only preview. This uses your configured PayPal environment; live mode charges real money.' : ''); // The shared payment footer covers this in the ready state.
         }
     }
     function lock(value) {
@@ -322,6 +323,9 @@
             appleButton.setAttribute('locale', 'en-US');
             appleButton.style.setProperty('--apple-pay-button-width', '100%');
             appleButton.style.setProperty('--apple-pay-button-height', '44px');
+            appleButton.style.setProperty('--apple-pay-button-border-radius', '4px');
+            appleButton.style.setProperty('--apple-pay-button-box-sizing', 'border-box');
+            appleButton.style.display = 'block';
             appleButton.addEventListener('click', begin);
             buttonHost.replaceChildren(appleButton);
             refresh();
