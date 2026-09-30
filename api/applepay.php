@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 header('X-Content-Type-Options: nosniff');
 require_once __DIR__ . '/../src/payments/ApplePayContext.php';
+require_once __DIR__ . '/../includes/security.php';
 use FAS\Payments\ApplePayContext;
 use FAS\Payments\ApplePayFactory;
 use FAS\Payments\CheckoutProblem;
@@ -14,6 +15,12 @@ try {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         header('Allow: POST');
         throw new CheckoutProblem('method', 'POST is required.', 405);
+    }
+    // Coarse flood protection includes malformed references; recovery survives storage outages.
+    $limit = fas_security_check(['payment_recovery'=>fas_security_ip()['ip']], true);
+    if (!$limit['allowed']) {
+        fas_security_headers($limit);
+        throw new CheckoutProblem('rate_limited', fas_security_message($limit), 429);
     }
     if (!str_starts_with(strtolower($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json')) {
         throw new CheckoutProblem('content_type', 'JSON is required.', 415);
@@ -45,6 +52,14 @@ try {
     $owner = ApplePayContext::owner();
     require_once __DIR__ . '/../src/payments/ApplePayFactory.php';
     $service = ApplePayFactory::make();
+    $service->setSecurityGate(static function (string $kind, string $attempt): void {
+        $recovery = $kind === 'recovery';
+        $limit = fas_security_check($recovery ? ['payment_attempt'=>$attempt] : ['payment_create'=>fas_security_ip()['ip']], $recovery);
+        if (!$limit['allowed']) {
+            fas_security_headers($limit);
+            throw new CheckoutProblem($limit['status']===429?'rate_limited':'temporarily_unavailable', fas_security_message($limit), $limit['status']);
+        }
+    });
     if ($action === 'create') {
         $quoteKey = is_string($input['shipping_quote'] ?? null) ? $input['shipping_quote'] : '';
         $quote = $_SESSION['fas_applepay_quotes'][$quoteKey] ?? null;

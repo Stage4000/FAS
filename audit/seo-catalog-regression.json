@@ -1,0 +1,520 @@
+{
+  "at": "2026-09-30T19:37:51.186878+00:00",
+  "environment": "isolated 302-record SQLite fixture: 300 visible, 1 hidden, 1 inactive; eBay sidebar API unavailable; account integrations disabled",
+  "route_pairs": 64,
+  "http_requests": 128,
+  "checks": [
+    {
+      "path": "/products/motorcycle?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/motorcycle",
+      "h1": "Motorcycle Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/motorcycle?page=2",
+      "h1": "Motorcycle Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/motorcycle?page=3",
+      "h1": "Motorcycle Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/atv?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/atv",
+      "h1": "ATV/UTV Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/atv?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/atv?page=2",
+      "h1": "ATV/UTV Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/atv?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/atv?page=3",
+      "h1": "ATV/UTV Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/boat?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/boat",
+      "h1": "Boat Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/boat?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/boat?page=2",
+      "h1": "Boat Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/boat?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/boat?page=3",
+      "h1": "Boat Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/automotive?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/automotive",
+      "h1": "Automotive Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/automotive?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/automotive?page=2",
+      "h1": "Automotive Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/automotive?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/automotive?page=3",
+      "h1": "Automotive Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/gifts?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/gifts",
+      "h1": "Gifts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/gifts?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/gifts?page=2",
+      "h1": "Gifts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/gifts?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/gifts?page=3",
+      "h1": "Gifts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/other?page=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/other",
+      "h1": "Other",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/other?page=2",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/other?page=2",
+      "h1": "Other",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/other?page=3",
+      "count": 50,
+      "shown": 2,
+      "canonical": "https://flipandstrip.com/products/other?page=3",
+      "h1": "Other",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=1",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=2",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=2",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=3",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=3",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=4",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=4",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=5",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=5",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=6",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=6",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=7",
+      "count": 190,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=7",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/free-shipping?page=8",
+      "count": 190,
+      "shown": 22,
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=8",
+      "h1": "Free Shipping Eligible",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=1",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=2",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=2",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=3",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=3",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=4",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=4",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=5",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=5",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=6",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=6",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=7",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=7",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=8",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=8",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=9",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=9",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=10",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=10",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=11",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=11",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=12",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=12",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/recent-arrivals?page=13",
+      "count": 300,
+      "shown": 12,
+      "canonical": "https://flipandstrip.com/products/recent-arrivals?page=13",
+      "h1": "Recent Arrivals",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/sale?page=1",
+      "count": 100,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/sale",
+      "h1": "On Sale",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/sale?page=2",
+      "count": 100,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/sale?page=2",
+      "h1": "On Sale",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/sale?page=3",
+      "count": 100,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/sale?page=3",
+      "h1": "On Sale",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/sale?page=4",
+      "count": 100,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/sale?page=4",
+      "h1": "On Sale",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/sale?page=5",
+      "count": 100,
+      "shown": 4,
+      "canonical": "https://flipandstrip.com/products/sale?page=5",
+      "h1": "On Sale",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/trending",
+      "count": 24,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/trending",
+      "h1": "Trending Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/best-sellers",
+      "count": 24,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/best-sellers",
+      "h1": "Best Sellers",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle/make/honda?page=2",
+      "count": 25,
+      "shown": 1,
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda?page=2",
+      "h1": "Honda Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle/make/honda/xr",
+      "count": 25,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda/xr",
+      "h1": "Honda XR Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle?search=rotor&manufacturer=Honda",
+      "count": 25,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/motorcycle?manufacturer=Honda&search=rotor",
+      "h1": "Search Results for \"rotor\"",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?cat1=2&model=XR",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?cat1=2&model=XR",
+      "h1": "XR Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products/motorcycle?show_hidden=1",
+      "count": 50,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products/motorcycle",
+      "h1": "Motorcycle Parts",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=1",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=2",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=2",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=3",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=3",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=4",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=4",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=5",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=5",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=6",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=6",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=7",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=7",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=8",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=8",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=9",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=9",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=10",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=10",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=11",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=11",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=12",
+      "count": 300,
+      "shown": 24,
+      "canonical": "https://flipandstrip.com/products?page=12",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    },
+    {
+      "path": "/products?page=13",
+      "count": 300,
+      "shown": 12,
+      "canonical": "https://flipandstrip.com/products?page=13",
+      "h1": "All Products",
+      "ssr_api_equal": true
+    }
+  ]
+}

@@ -3,7 +3,8 @@
  * Admin Authentication System
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../includes/security.php';
 
 // Apply the site-configured timezone as early as possible
 require_once __DIR__ . '/../src/utils/Timezone.php';
@@ -15,6 +16,7 @@ class AdminAuth
     private const ANALYTICS_ADMIN_COOKIE_TTL = 2592000;
 
     private $db;
+    public string $lastError = '';
     
     public function __construct($db = null)
     {
@@ -39,11 +41,22 @@ class AdminAuth
      */
     public function login($username, $password)
     {
+        $this->lastError = '';
+        $username = is_string($username) ? substr($username, 0, 255) : '';
+        $password = is_string($password) ? $password : '';
+        $ip = fas_security_ip()['ip'];
+        $limit = fas_security_check(['login_ip'=>$ip,'login_pair'=>$ip.'|'.$username,'login_account'=>$username]);
+        if (!$limit['allowed']) {
+            fas_security_headers($limit);
+            $this->lastError = fas_security_message($limit);
+            return false;
+        }
         $stmt = $this->db->prepare("SELECT * FROM admin_users WHERE username = ? AND is_active = 1");
         $stmt->execute([$username]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($admin && password_verify($password, $admin['password_hash'])) {
+        $valid = strlen($password) <= 4096 && password_verify($password, $admin['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
+        if ($admin && $valid) {
             // Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
             
@@ -56,13 +69,16 @@ class AdminAuth
             // Update last login
             $stmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now') WHERE id = ?");
             $stmt->execute([$admin['id']]);
+            unset($_SESSION['security_reauth_at']);
+            fas_security_event('login', 'login_success', (int)$admin['id']);
             
             return true;
         }
         
+        fas_security_event('login', 'login_failed');
         return false;
     }
-    
+
     /**
      * Logout admin
      */
@@ -78,19 +94,44 @@ class AdminAuth
      */
     public function changePassword($adminId, $currentPassword, $newPassword)
     {
-        $stmt = $this->db->prepare("SELECT password_hash FROM admin_users WHERE id = ?");
-        $stmt->execute([$adminId]);
-        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($admin && password_verify($currentPassword, $admin['password_hash'])) {
+        if ($this->verifyCurrentPassword((int)$adminId, $currentPassword)) {
             $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
             $stmt = $this->db->prepare("UPDATE admin_users SET password_hash = ? WHERE id = ?");
-            return $stmt->execute([$newHash, $adminId]);
+            $result = $stmt->execute([$newHash, $adminId]);
+            unset($_SESSION['security_reauth_at']);
+            fas_security_event('password', 'password_changed', (int)$adminId);
+            return $result;
         }
         
         return false;
     }
     
+    public function requireActiveAdmin(): array
+    {
+        $this->requireLogin();
+        $stmt = $this->db->prepare("SELECT id,username,role FROM admin_users WHERE id=? AND is_active=1 AND role='admin'");
+        $stmt->execute([(int)($_SESSION['admin_id'] ?? 0)]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$admin) { http_response_code(403); exit('An active administrator account is required.'); }
+        return $admin;
+    }
+
+    public function verifyCurrentPassword(int $adminId, $password): bool
+    {
+        $this->lastError = '';
+        $ip = fas_security_ip()['ip'];
+        $limit = fas_security_check(['reauth_ip'=>$ip,'reauth_account'=>(string)$adminId]);
+        if (!$limit['allowed']) {
+            fas_security_headers($limit); $this->lastError = fas_security_message($limit); return false;
+        }
+        $stmt = $this->db->prepare("SELECT password_hash FROM admin_users WHERE id=? AND is_active=1 AND role='admin'");
+        $stmt->execute([$adminId]);
+        $hash = $stmt->fetchColumn();
+        $ok = $hash && is_string($password) && strlen($password)<=4096 && password_verify($password,$hash);
+        fas_security_event('reauth',$ok?'reauth_success':'reauth_failed',$adminId);
+        return (bool)$ok;
+    }
+
     /**
      * Create initial admin user
      */

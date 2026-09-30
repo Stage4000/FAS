@@ -7,6 +7,8 @@ require_once __DIR__ . '/src/utils/ShippingRules.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/includes/product-merchandising.php';
+require_once __DIR__ . '/includes/storefront-access.php';
+require_once __DIR__ . '/includes/storefront-not-found.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -15,11 +17,10 @@ use FAS\Utils\Seo;
 use FAS\Utils\ShippingRules;
 
 // Get product ID
-$productId = $_GET['id'] ?? null;
+$productId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
 if (!$productId) {
-    header('Location: /products');
-    exit;
+    fasStorefrontNotFound();
 }
 
 // Initialize database and product model
@@ -31,9 +32,18 @@ $sellerRating = fasGetCachedSellerRating();
 $product = $productModel->getById($productId);
 
 if (!$product) {
-    header('Location: /products');
-    exit;
+    fasStorefrontNotFound();
 }
+
+if ((int)($product['show_on_website'] ?? 0) !== 1) {
+    if (!fasCanViewHiddenProducts()) {
+        fasStorefrontNotFound();
+    }
+    $robotsMeta = 'noindex, nofollow';
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Cache-Control: private, no-store');
+}
+$productInStock = (int)($product['quantity'] ?? 0) > 0;
 
 $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
 $relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 3);
@@ -140,7 +150,7 @@ if ($mainImage && !in_array($mainImage, $schemaImages, true)) {
 $canonicalUrl = Seo::productUrl($product);
 $canonicalPath = parse_url($canonicalUrl, PHP_URL_PATH) ?: '';
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-if (($requestPath === '/product.php' || $requestPath !== $canonicalPath) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !headers_sent()) {
+if ($requestPath !== $canonicalPath && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true) && !headers_sent()) {
     header('Location: ' . $canonicalUrl, true, 301);
     exit;
 }
@@ -378,11 +388,14 @@ require_once __DIR__ . '/includes/header.php';
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
 
             <div class="mb-4">
+                <?php if (!$productInStock): ?>
+                    <p class="alert alert-secondary" role="status"><strong>Out of stock.</strong> This listing is available for reference. <a href="/products" class="alert-link">Browse current inventory</a> for another part.</p>
+                <?php endif; ?>
                 <label class="form-label fw-bold">Quantity:</label>
                 <div class="input-group quantity-selector">
-                    <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty">-</button>
-                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo (isset($product['quantity']) && intval($product['quantity']) > 0) ? intval($product['quantity']) : 999; ?>" id="quantity-input">
-                    <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty">+</button>
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty" <?php echo $productInStock ? '' : 'disabled'; ?>>-</button>
+                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo max(1, (int)($product['quantity'] ?? 0)); ?>" id="quantity-input" <?php echo $productInStock ? '' : 'disabled'; ?>>
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty" <?php echo $productInStock ? '' : 'disabled'; ?>>+</button>
                 </div>
             </div>
 
@@ -422,6 +435,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <div class="d-grid gap-2 mb-4 product-action-stack">
                             <button class="btn btn-outline-danger btn-lg add-to-cart product-detail-add-to-cart"
+                        <?php echo $productInStock ? '' : 'disabled'; ?>
                         data-id="<?php echo $product['id']; ?>"
                         data-name="<?php echo htmlspecialchars($product['name']); ?>"
                         data-price="<?php echo $priceInfo['effective_price']; ?>"
@@ -437,13 +451,15 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
                         data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
                         data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
-                        data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
+                        data-stock="<?php echo max(0, (int)($product['quantity'] ?? 0)); ?>">
                     <i class="bi bi-cart-plus"></i> Add to Cart
                 </button>
-                            <button type="button" class="btn btn-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart">
+                            <button type="button" class="btn btn-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart" <?php echo $productInStock ? '' : 'disabled'; ?>>
                     <i class="fas fa-bolt"></i> Buy Now
                 </button>
-                            <small class="text-muted text-center">Buy Now skips the cart and keeps any existing cart items unchanged. Shipping is confirmed before PayPal opens.</small>
+                            <?php if ($productInStock): ?>
+                                <small class="text-muted text-center">Buy Now skips the cart and keeps any existing cart items unchanged. Shipping is confirmed before PayPal opens.</small>
+                            <?php endif; ?>
                 <a href="/cart" class="btn btn-dark btn-lg">
                     <i class="bi bi-cart3"></i> View Cart
                 </a>
@@ -569,14 +585,14 @@ function getProductDataFromButton(button) {
         width: parseFloat(button.dataset.width) || 10.0,
         height: parseFloat(button.dataset.height) || 10.0,
         free_shipping: button.dataset.freeShipping === '1',
-        stock: parseInt(button.dataset.stock, 10) || 999
+        stock: Math.max(0, parseInt(button.dataset.stock, 10) || 0)
     };
 }
 
 function getSelectedQuantity(stockLimit) {
     const quantityInput = document.getElementById('quantity-input');
     const requestedQuantity = Math.max(1, parseInt(quantityInput ? quantityInput.value : 1, 10) || 1);
-    return Math.min(requestedQuantity, stockLimit || 999);
+    return Math.min(requestedQuantity, stockLimit);
 }
 
 const addToCartButton = document.querySelector('.product-detail-add-to-cart');
@@ -586,6 +602,7 @@ if (addToCartButton) {
         e.stopPropagation();
 
         const productData = getProductDataFromButton(this);
+        if (productData.stock <= 0) return;
         const quantity = getSelectedQuantity(productData.stock);
 
         for (let i = 0; i < quantity; i++) {
@@ -612,6 +629,7 @@ if (buyNowButton) {
         }
 
         const productData = getProductDataFromButton(sourceButton);
+        if (productData.stock <= 0) return;
         const quantity = getSelectedQuantity(productData.stock);
         const buyNowItem = Object.assign({}, productData, { quantity });
         let shippingEstimate = null;
@@ -649,7 +667,7 @@ if (buyNowButton) {
             }), { immediate: true });
         }
 
-        window.location.href = '/checkout.php?buy_now=1';
+        window.location.href = '/checkout?buy_now=1';
     });
 }
 

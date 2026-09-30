@@ -18,6 +18,17 @@ use FAS\Utils\SyncLogger;
 use FAS\Utils\EbaySyncHealth;
 use FAS\Utils\ErrorMonitor;
 
+require_once __DIR__ . '/../includes/security.php';
+header('Content-Type: application/json');
+$config = require __DIR__ . '/../src/config/config.php';
+$expectedKey = (string)($config['security']['sync_api_key'] ?? 'fas_sync_key_2026');
+$authKey = $_GET['key'] ?? '';
+if (!is_string($authKey) || !hash_equals($expectedKey, $authKey)) {
+    fas_security_guard('sync_auth');
+    http_response_code(401);
+    echo json_encode(['error'=>'Unauthorized','message'=>'Invalid sync API key provided.']);
+    exit;
+}
 // Initialize comprehensive logging to log.txt
 SyncLogger::init(__DIR__ . '/../log.txt');
 
@@ -32,35 +43,6 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 set_exception_handler(function($exception) {
     SyncLogger::logError('Uncaught exception', $exception);
 });
-
-// Log script start
-SyncLogger::log("eBay Sync API endpoint called");
-
-header('Content-Type: application/json');
-
-// Simple authentication check
-$authKey = $_GET['key'] ?? '';
-
-// Load API key from config
-$config = require __DIR__ . '/../src/config/config.php';
-$expectedKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
-
-// Warn if using default key in production
-if ($expectedKey === 'fas_sync_key_2026') {
-    error_log("WARNING: Default sync API key is being used. Change this in admin settings for better security.");
-}
-
-if ($authKey !== $expectedKey) {
-    SyncLogger::log("Authentication failed - invalid key provided");
-    http_response_code(401);
-    echo json_encode([
-        'error' => 'Unauthorized',
-        'message' => 'Invalid sync API key provided.',
-        'help' => 'The sync key is configured in Settings > Security Settings > Sync API Key. Use that key in the URL: /api/ebay-sync.php?key=YOUR_KEY'
-    ]);
-    SyncLogger::finalize();
-    exit;
-}
 
 SyncLogger::log("Authentication successful");
 

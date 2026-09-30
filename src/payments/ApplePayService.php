@@ -10,6 +10,13 @@ final class ApplePayService
     private $priceResolver;
     private $couponResolver;
     private string $environment;
+    private $securityGate = null;
+
+    public function setSecurityGate(callable $gate): void { $this->securityGate = $gate; }
+    private function securityGate(string $kind, string $id): void
+    {
+        if ($this->securityGate !== null) ($this->securityGate)($kind, $id);
+    }
 
     public function __construct(\PDO $db, WalletPayPalGateway $paypal, callable $priceResolver,
         callable $couponResolver, string $environment)
@@ -99,8 +106,10 @@ final class ApplePayService
             if (!hash_equals($a['request_hash'], $hash)) {
                 throw new CheckoutProblem('changed_checkout', 'This payment attempt belongs to different checkout details.');
             }
+            $this->securityGate('recovery', $id);
             return $this->ensurePayPalOrder($a);
         }
+        $this->securityGate('create', $id);
         if (!$quote || ($quote['expires'] ?? 0) < time()
             || ($quote['cart'] ?? []) !== $request['cart']
             || ($quote['address'] ?? []) !== $request['address']) {
@@ -248,6 +257,7 @@ final class ApplePayService
         if (empty($a['paypal_order_id'])) {
             throw new CheckoutProblem('not_ready', 'The payment order is not ready. Check payment status.');
         }
+        $this->securityGate('recovery', $id);
         $data = $this->paypal->get($a['paypal_order_id']);
         $this->verifyOrder($a, $data, ($data['status'] ?? '') === 'APPROVED' || !empty($data['purchase_units'][0]['payments']['captures']));
         if (!empty($data['purchase_units'][0]['payments']['captures']) || ($data['status'] ?? '') !== 'APPROVED') {
@@ -296,6 +306,7 @@ final class ApplePayService
         if (empty($a['paypal_order_id'])) {
             return $this->result($a, 'unpaid');
         }
+        $this->securityGate('recovery', $id);
         $data = $this->paypal->get($a['paypal_order_id']);
         $this->verifyOrder($a, $data, !empty($data['purchase_units'][0]['payments']['captures']));
         return $this->settle($a, $data);
@@ -304,6 +315,8 @@ final class ApplePayService
     /** Stop this attempt only when our server has never requested a capture. */
     public function abandon(string $id, string $owner): array
     {
+        $this->attempt($id, $owner);
+        $this->securityGate('recovery', $id);
         return $this->transaction(function () use ($id, $owner) {
             $a = $this->attempt($id, $owner);
             if ($a['capture_requested_at'] !== null || in_array($a['status'], ['paid', 'review'], true)) {

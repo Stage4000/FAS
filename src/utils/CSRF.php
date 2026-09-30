@@ -50,7 +50,7 @@ class CSRF
         }
         
         // Use hash_equals for timing-attack safe comparison
-        return hash_equals($_SESSION['csrf_token'], $token);
+        return is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
     }
     
     /**

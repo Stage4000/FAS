@@ -343,7 +343,7 @@ function getCheckoutMode() {
 }
 
 function getEmptyCheckoutRedirect() {
-    return checkoutUrlParams.has('buy_now') ? 'products.php' : 'cart.php';
+    return checkoutUrlParams.has('buy_now') ? '/products' : '/cart';
 }
 
 function getCheckoutSummary(extra = {}) {
@@ -539,7 +539,7 @@ async function validateCartItems() {
         alert(message);
 
         if (getCheckoutItems().length === 0) {
-            window.location.href = wasBuyNowCheckout ? 'products.php' : getEmptyCheckoutRedirect();
+            window.location.href = wasBuyNowCheckout ? '/products' : getEmptyCheckoutRedirect();
             return false;
         }
 
@@ -714,7 +714,7 @@ function setupPayPalButton() {
                 
                     // Show success message and redirect
                     alert('Payment successful! Order #' + orderData.id + ' completed.');
-                window.location.href = 'index.php?order_success=1';
+                window.location.href = '/?order_success=1';
                 
             } catch (error) {
                 console.error('Payment capture error:', error);
@@ -785,7 +785,7 @@ async function handleDemoCheckout() {
         
             // Redirect
             alert('Demo order completed successfully! Order #' + orderResult.order_number);
-        window.location.href = 'index.php';
+        window.location.href = '/';
     }
 }
 
@@ -1178,7 +1178,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         
         // Redirect to success page
         alert('Order completed successfully! Order #' + data.order_number);
-        window.location.href = 'index.php';
+        window.location.href = '/';
         
     } catch (error) {
         console.error('Order completion error:', error);
@@ -1348,7 +1348,7 @@ window.FASApplePayOptions = {
         if (sameCheckoutSource) {
             try { clearCheckoutSourceAfterOrder(); } catch (_) {}
         }
-        window.location.assign('/index.php?order_success=1');
+        window.location.assign('/?order_success=1');
     }
 };
 </script>

@@ -4,6 +4,12 @@
  * Validates coupon codes and calculates discounts
  */
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('coupon', false, false);
+    fas_security_body(65536);
+}
+
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../src/utils/Timezone.php';
@@ -23,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Get request data
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(fas_security_body(65536), true);
 
 if (!$input) {
     http_response_code(400);

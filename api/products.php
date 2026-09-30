@@ -18,19 +18,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
     exit;
 });
 
-function canViewHiddenProducts(): bool
-{
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        $sessionName = session_name();
-        if (empty($_COOKIE[$sessionName])) {
-            return false;
-        }
-
-        @session_start();
-    }
-
-    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-}
+require_once __DIR__ . '/../includes/storefront-access.php';
 
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
@@ -84,9 +72,16 @@ function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds):
     return $filtered;
 }
 
-$canViewHiddenProducts = canViewHiddenProducts();
+$canViewHiddenProducts = fasCanViewHiddenProducts();
 $includeHiddenProducts = $canViewHiddenProducts && (($_GET['show_hidden'] ?? '') === '1');
 require __DIR__ . '/../includes/catalog-load.php';
+if ($catalogNotFound) {
+    http_response_code(404);
+    header('X-Robots-Tag: noindex, follow');
+    header('Cache-Control: no-store');
+    echo json_encode(['error' => 'not_found', 'message' => 'That catalog page is unavailable.']);
+    exit;
+}
 require __DIR__ . '/../includes/catalog-meta.php';
 
 // Build HTML output

@@ -19,6 +19,19 @@
     RedirectMatch 403 ^/database/.*\.db$
     RedirectMatch 403 ^/composer\.(json|lock)$
 
+    # Consolidate only known public GET/HEAD aliases. THE_REQUEST prevents loops
+    # when a clean URL is internally rewritten to its PHP controller.
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
+    RewriteRule ^index\.php$ / [R=301,L]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/+(products|about|contact|cart|checkout)\.php[?\s] [NC]
+    RewriteRule ^(products|about|contact|cart|checkout)\.php$ /$1 [R=301,L]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteRule ^(products(?:/[A-Za-z0-9_-]+)*|about|contact|cart|checkout)/+$ /$1 [R=301,L]
+
     # Don't rewrite existing files and directories (includes images, CSS, JS, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
@@ -63,11 +76,6 @@
     # Admin area - keep as-is (don't rewrite admin URLs)
     RewriteRule ^admin - [L]
 
-    # Redirect .php URLs to extensionless versions (for external requests only)
-    # But skip this for files in gallery, uploads, public directories
-    RewriteCond %{THE_REQUEST} ^GET\ /(.*)\.php(\?.*)?\ HTTP
-    RewriteCond %{REQUEST_URI} !^/(gallery|uploads|public|images|assets)/
-    RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 </IfModule>
 
 # Security Headers

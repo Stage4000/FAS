@@ -20,6 +20,12 @@ use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
 use FAS\Utils\ErrorMonitor;
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('shipping', false, false);
+    fas_security_body(65536);
+}
+
 header('Content-Type: application/json');
 
 function fasShippingEstimateError(int $statusCode, string $message): void
@@ -95,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     fasShippingEstimateError(405, 'Method not allowed');
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(fas_security_body(65536), true);
 if (!is_array($input)) {
     fasShippingEstimateError(400, 'Invalid JSON data');
 }

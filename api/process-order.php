@@ -4,6 +4,7 @@
  * Creates order and deducts inventory when payment is completed
  */
 
+require_once __DIR__ . '/../includes/security.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../src/utils/Timezone.php';
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Get request data
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(fas_security_body(), true);
 
 if (!$input) {
     http_response_code(400);
@@ -38,6 +39,8 @@ if (!$input) {
 }
 
 $action = $input['action'] ?? '';
+if ($action === 'create_order') fas_security_guard('payment_create');
+elseif ($action === 'complete_order') fas_security_guard('payment_recovery', true);
 
 try {
     $db = Database::getInstance()->getConnection();

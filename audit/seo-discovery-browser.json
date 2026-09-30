@@ -1,0 +1,197 @@
+{
+  "at": "2026-09-30T19:42:40.995Z",
+  "environment": "isolated PHP/SQLite fixture in in-app browser",
+  "notFoundSearch": {
+    "action": "Search rotor from 404 page",
+    "result": "/products?search=rotor",
+    "h1": "Search Results for \"rotor\"",
+    "robots": "noindex, follow"
+  },
+  "catalogTitleChecks": [
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=2",
+      "title": "Free Shipping Eligible Parts Page 2 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=2"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=3",
+      "title": "Free Shipping Eligible Parts Page 3 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=3"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=3",
+      "title": "Free Shipping Eligible Parts Page 3 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=3"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=2",
+      "title": "Free Shipping Eligible Parts Page 2 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=2"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=3",
+      "title": "Free Shipping Eligible Parts Page 3 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=3"
+    }
+  ],
+  "titleInterference": "Fixture button applied both a chat notification title and a delayed stale title; correct current-page title restored",
+  "history": "Back and forward restore page 2 and 3 titles/canonicals",
+  "notFoundResponsive": [
+    {
+      "controls": [
+        {
+          "disabled": false,
+          "left": 12,
+          "right": 266,
+          "tag": "INPUT"
+        },
+        {
+          "disabled": false,
+          "left": 265,
+          "right": 368,
+          "tag": "BUTTON"
+        },
+        {
+          "left": 36,
+          "right": 204,
+          "tag": "A"
+        },
+        {
+          "left": 216,
+          "right": 344,
+          "tag": "A"
+        }
+      ],
+      "documentWidth": 380,
+      "h1": "We couldn't find that page",
+      "outOfStock": false,
+      "productButtons": [],
+      "viewport": 380
+    },
+    {
+      "controls": [
+        {
+          "disabled": false,
+          "left": 12,
+          "right": 196,
+          "tag": "INPUT"
+        },
+        {
+          "disabled": false,
+          "left": 195,
+          "right": 298,
+          "tag": "BUTTON"
+        },
+        {
+          "left": 67,
+          "right": 235,
+          "tag": "A"
+        },
+        {
+          "left": 91,
+          "right": 219,
+          "tag": "A"
+        }
+      ],
+      "documentWidth": 310,
+      "h1": "We couldn't find that page",
+      "outOfStock": false,
+      "productButtons": [],
+      "viewport": 310
+    },
+    {
+      "controls": [
+        {
+          "disabled": false,
+          "left": 121,
+          "right": 535,
+          "tag": "INPUT"
+        },
+        {
+          "disabled": false,
+          "left": 534,
+          "right": 637,
+          "tag": "BUTTON"
+        },
+        {
+          "left": 225,
+          "right": 393,
+          "tag": "A"
+        },
+        {
+          "left": 405,
+          "right": 533,
+          "tag": "A"
+        }
+      ],
+      "documentWidth": 777,
+      "h1": "We couldn't find that page",
+      "outOfStock": false,
+      "productButtons": [],
+      "viewport": 758
+    },
+    {
+      "controls": [
+        {
+          "disabled": false,
+          "left": 342,
+          "right": 986,
+          "tag": "INPUT"
+        },
+        {
+          "disabled": false,
+          "left": 985,
+          "right": 1088,
+          "tag": "BUTTON"
+        },
+        {
+          "left": 561,
+          "right": 729,
+          "tag": "A"
+        },
+        {
+          "left": 741,
+          "right": 869,
+          "tag": "A"
+        }
+      ],
+      "documentWidth": 1430,
+      "h1": "We couldn't find that page",
+      "outOfStock": false,
+      "productButtons": [],
+      "viewport": 1430
+    }
+  ],
+  "outOfStockMobile": {
+    "controls": [],
+    "documentWidth": 480,
+    "h1": "Fixture other rotor 300",
+    "outOfStock": true,
+    "productButtons": [
+      {
+        "className": "form-control text-center quantity-input",
+        "disabled": true
+      },
+      {
+        "className": "btn btn-outline-danger btn-lg add-to-cart product-detail-add-to-cart",
+        "disabled": true
+      },
+      {
+        "className": "btn btn-danger btn-lg product-buy-now",
+        "disabled": true
+      }
+    ],
+    "viewport": 380
+  },
+  "limits": [
+    "Shared header still has the previously observed 19 px tablet overflow",
+    "Product AOS offscreen animation still gives 480 px document width in a 380 px viewport before scrolling, tracked in SEO-12",
+    "Fixture chat/history controls are not production files"
+  ],
+  "final_error_page_visual_check": {
+    "at": "2026-09-30T19:48:40.597706+00:00",
+    "theme": "dark",
+    "iframe_width": 390,
+    "contact_button": "readable filled secondary button; HTTP 404 rechecked"
+  }
+}

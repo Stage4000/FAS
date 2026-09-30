@@ -117,7 +117,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h2 class="fw-bold mb-0">Trending Parts</h2>
                 <p class="text-muted mb-0">Products ranked from views, carts, and completed-order activity.</p>
             </div>
-            <a href="/products?collection=trending" class="btn btn-outline-danger">Shop Trending Parts</a>
+            <a href="/products/trending" class="btn btn-outline-danger">Shop Trending Parts</a>
         </div>
         <div class="row g-4">
             <?php foreach ($trendingProducts as $index => $trendingProduct): ?>
@@ -137,7 +137,7 @@ require_once __DIR__ . '/includes/header.php';
 <h2 class="fw-bold mb-0">Best Sellers</h2>
 <p class="text-muted mb-0">Parts with recent completed-order activity, with demand-based fallback when sales data is limited.</p>
 </div>
-<a href="/products?collection=best" class="btn btn-outline-danger">Shop Best Sellers</a>
+<a href="/products/best-sellers" class="btn btn-outline-danger">Shop Best Sellers</a>
 </div>
 <div class="row g-4">
 <?php foreach ($bestSellingProducts as $index => $bestSellingProduct): ?>
@@ -157,7 +157,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h2 class="fw-bold mb-0">Recent Arrivals</h2>
                 <p class="text-muted mb-0">New listings give returning shoppers a reason to keep checking the catalog.</p>
             </div>
-            <a href="/products?collection=recent" class="btn btn-outline-danger">View Recent Inventory</a>
+            <a href="/products/recent-arrivals" class="btn btn-outline-danger">View Recent Inventory</a>
         </div>
         <div class="row g-4">
             <?php foreach ($recentProducts as $index => $recentProduct): ?>

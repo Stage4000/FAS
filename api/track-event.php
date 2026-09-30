@@ -7,6 +7,12 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('analytics', false, true);
+    fas_security_body(262144);
+}
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex, nofollow');
@@ -141,7 +147,7 @@ if ($contentLength > 262144) {
     exit;
 }
 
-$rawBody = file_get_contents('php://input');
+$rawBody = fas_security_body(262144);
 if ($rawBody === false || trim($rawBody) === '') {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Missing payload']);

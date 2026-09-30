@@ -4,7 +4,18 @@
  * Handles contact form submissions with Cloudflare Turnstile verification
  */
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('contact', false, false);
+    fas_security_body(65536);
+}
+
 header('Content-Type: application/json');
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST'); http_response_code(405);
+    echo json_encode(['success'=>false,'message'=>'POST is required.']); exit;
+}
 
 // Load configuration
 $configFile = __DIR__ . '/../src/config/config.php';

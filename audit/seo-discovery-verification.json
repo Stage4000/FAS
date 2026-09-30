@@ -1,0 +1,2130 @@
+{
+  "at": "2026-09-30T19:35:16.940949+00:00",
+  "environment": "isolated synthetic SQLite inventory, PHP development server (not Apache)",
+  "checks": [
+    {
+      "path": "/product.php",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product.php?id[]=1",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product.php?id=abc",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product/999999999",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product/301/fixture-other-rotor-301",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product/302/fixture-other-rotor-302",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products/missing-category",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products/make/no-such-brand",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products/motorcycle/make/honda/no-such-model",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?category[]=motorcycle",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?collection=missing",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?page=0",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?page=-1",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?page=no",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?page=1.2",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products?page=999999999999999999999999",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products/free-shipping?page=99999",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product/999999999",
+      "method": "HEAD",
+      "status": 404,
+      "robots": null
+    },
+    {
+      "path": "/products?page=99999",
+      "method": "HEAD",
+      "status": 404,
+      "robots": null
+    },
+    {
+      "path": "/api/products.php?category=missing",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?manufacturer_slug=no-such-brand",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?manufacturer_slug=honda&model_slug=no-model",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?model_slug=xr",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?page=0",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?page=99999",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?collection=missing",
+      "status": 404
+    },
+    {
+      "path": "/api/products.php?category[]=motorcycle",
+      "status": 404
+    },
+    {
+      "path": "/products?search=zzzz-no-result",
+      "method": "GET",
+      "status": 200,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products/motorcycle/make/honda?search=zzzz-no-result",
+      "method": "GET",
+      "status": 200,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/product/1",
+      "method": "GET",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product/1",
+      "method": "HEAD",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product.php?id=1",
+      "method": "GET",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product.php?id=1",
+      "method": "HEAD",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product/1/wrong-slug",
+      "method": "GET",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product/1/wrong-slug",
+      "method": "HEAD",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/1/fixture-motorcycle-rotor-1"
+    },
+    {
+      "path": "/product/300/fixture-other-rotor-300",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/1/fixture-motorcycle-rotor-1",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "case": "authenticated hidden product preview",
+      "status": 200,
+      "robots": "noindex, nofollow"
+    },
+    {
+      "path": "/product/301/fixture-other-rotor-301",
+      "method": "GET",
+      "status": 404,
+      "robots": "noindex, follow"
+    },
+    {
+      "path": "/products",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/motorcycle",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/atv",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/boat",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/automotive",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/gifts",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/other",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/trending",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/best-sellers",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/recent-arrivals",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/free-shipping",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/products/sale",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/1/fixture-motorcycle-rotor-1",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/2/fixture-motorcycle-rotor-2",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/3/fixture-motorcycle-rotor-3",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/4/fixture-motorcycle-rotor-4",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/5/fixture-motorcycle-rotor-5",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/6/fixture-motorcycle-rotor-6",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/7/fixture-motorcycle-rotor-7",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/8/fixture-motorcycle-rotor-8",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/9/fixture-motorcycle-rotor-9",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/10/fixture-motorcycle-rotor-10",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/11/fixture-motorcycle-rotor-11",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/12/fixture-motorcycle-rotor-12",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/13/fixture-motorcycle-rotor-13",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/14/fixture-motorcycle-rotor-14",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/15/fixture-motorcycle-rotor-15",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/16/fixture-motorcycle-rotor-16",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/17/fixture-motorcycle-rotor-17",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/18/fixture-motorcycle-rotor-18",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/19/fixture-motorcycle-rotor-19",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/20/fixture-motorcycle-rotor-20",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/21/fixture-motorcycle-rotor-21",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/22/fixture-motorcycle-rotor-22",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/23/fixture-motorcycle-rotor-23",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/24/fixture-motorcycle-rotor-24",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/25/fixture-motorcycle-rotor-25",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/26/fixture-motorcycle-rotor-26",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/27/fixture-motorcycle-rotor-27",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/28/fixture-motorcycle-rotor-28",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/29/fixture-motorcycle-rotor-29",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/30/fixture-motorcycle-rotor-30",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/31/fixture-motorcycle-rotor-31",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/32/fixture-motorcycle-rotor-32",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/33/fixture-motorcycle-rotor-33",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/34/fixture-motorcycle-rotor-34",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/35/fixture-motorcycle-rotor-35",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/36/fixture-motorcycle-rotor-36",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/37/fixture-motorcycle-rotor-37",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/38/fixture-motorcycle-rotor-38",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/39/fixture-motorcycle-rotor-39",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/40/fixture-motorcycle-rotor-40",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/41/fixture-motorcycle-rotor-41",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/42/fixture-motorcycle-rotor-42",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/43/fixture-motorcycle-rotor-43",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/44/fixture-motorcycle-rotor-44",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/45/fixture-motorcycle-rotor-45",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/46/fixture-motorcycle-rotor-46",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/47/fixture-motorcycle-rotor-47",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/48/fixture-motorcycle-rotor-48",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/49/fixture-motorcycle-rotor-49",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/50/fixture-motorcycle-rotor-50",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/51/fixture-atv-rotor-51",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/52/fixture-atv-rotor-52",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/53/fixture-atv-rotor-53",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/54/fixture-atv-rotor-54",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/55/fixture-atv-rotor-55",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/56/fixture-atv-rotor-56",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/57/fixture-atv-rotor-57",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/58/fixture-atv-rotor-58",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/59/fixture-atv-rotor-59",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/60/fixture-atv-rotor-60",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/61/fixture-atv-rotor-61",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/62/fixture-atv-rotor-62",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/63/fixture-atv-rotor-63",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/64/fixture-atv-rotor-64",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/65/fixture-atv-rotor-65",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/66/fixture-atv-rotor-66",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/67/fixture-atv-rotor-67",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/68/fixture-atv-rotor-68",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/69/fixture-atv-rotor-69",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/70/fixture-atv-rotor-70",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/71/fixture-atv-rotor-71",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/72/fixture-atv-rotor-72",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/73/fixture-atv-rotor-73",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/74/fixture-atv-rotor-74",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/75/fixture-atv-rotor-75",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/76/fixture-atv-rotor-76",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/77/fixture-atv-rotor-77",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/78/fixture-atv-rotor-78",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/79/fixture-atv-rotor-79",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/80/fixture-atv-rotor-80",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/81/fixture-atv-rotor-81",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/82/fixture-atv-rotor-82",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/83/fixture-atv-rotor-83",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/84/fixture-atv-rotor-84",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/85/fixture-atv-rotor-85",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/86/fixture-atv-rotor-86",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/87/fixture-atv-rotor-87",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/88/fixture-atv-rotor-88",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/89/fixture-atv-rotor-89",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/90/fixture-atv-rotor-90",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/91/fixture-atv-rotor-91",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/92/fixture-atv-rotor-92",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/93/fixture-atv-rotor-93",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/94/fixture-atv-rotor-94",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/95/fixture-atv-rotor-95",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/96/fixture-atv-rotor-96",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/97/fixture-atv-rotor-97",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/98/fixture-atv-rotor-98",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/99/fixture-atv-rotor-99",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/100/fixture-atv-rotor-100",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/101/fixture-boat-rotor-101",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/102/fixture-boat-rotor-102",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/103/fixture-boat-rotor-103",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/104/fixture-boat-rotor-104",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/105/fixture-boat-rotor-105",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/106/fixture-boat-rotor-106",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/107/fixture-boat-rotor-107",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/108/fixture-boat-rotor-108",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/109/fixture-boat-rotor-109",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/110/fixture-boat-rotor-110",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/111/fixture-boat-rotor-111",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/112/fixture-boat-rotor-112",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/113/fixture-boat-rotor-113",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/114/fixture-boat-rotor-114",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/115/fixture-boat-rotor-115",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/116/fixture-boat-rotor-116",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/117/fixture-boat-rotor-117",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/118/fixture-boat-rotor-118",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/119/fixture-boat-rotor-119",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/120/fixture-boat-rotor-120",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/121/fixture-boat-rotor-121",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/122/fixture-boat-rotor-122",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/123/fixture-boat-rotor-123",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/124/fixture-boat-rotor-124",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/125/fixture-boat-rotor-125",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/126/fixture-boat-rotor-126",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/127/fixture-boat-rotor-127",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/128/fixture-boat-rotor-128",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/129/fixture-boat-rotor-129",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/130/fixture-boat-rotor-130",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/131/fixture-boat-rotor-131",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/132/fixture-boat-rotor-132",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/133/fixture-boat-rotor-133",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/134/fixture-boat-rotor-134",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/135/fixture-boat-rotor-135",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/136/fixture-boat-rotor-136",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/137/fixture-boat-rotor-137",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/138/fixture-boat-rotor-138",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/139/fixture-boat-rotor-139",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/140/fixture-boat-rotor-140",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/141/fixture-boat-rotor-141",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/142/fixture-boat-rotor-142",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/143/fixture-boat-rotor-143",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/144/fixture-boat-rotor-144",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/145/fixture-boat-rotor-145",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/146/fixture-boat-rotor-146",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/147/fixture-boat-rotor-147",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/148/fixture-boat-rotor-148",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/149/fixture-boat-rotor-149",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/150/fixture-boat-rotor-150",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/151/fixture-automotive-rotor-151",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/152/fixture-automotive-rotor-152",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/153/fixture-automotive-rotor-153",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/154/fixture-automotive-rotor-154",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/155/fixture-automotive-rotor-155",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/156/fixture-automotive-rotor-156",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/157/fixture-automotive-rotor-157",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/158/fixture-automotive-rotor-158",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/159/fixture-automotive-rotor-159",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/160/fixture-automotive-rotor-160",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/161/fixture-automotive-rotor-161",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/162/fixture-automotive-rotor-162",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/163/fixture-automotive-rotor-163",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/164/fixture-automotive-rotor-164",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/165/fixture-automotive-rotor-165",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/166/fixture-automotive-rotor-166",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/167/fixture-automotive-rotor-167",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/168/fixture-automotive-rotor-168",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/169/fixture-automotive-rotor-169",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/170/fixture-automotive-rotor-170",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/171/fixture-automotive-rotor-171",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/172/fixture-automotive-rotor-172",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/173/fixture-automotive-rotor-173",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/174/fixture-automotive-rotor-174",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/175/fixture-automotive-rotor-175",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/176/fixture-automotive-rotor-176",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/177/fixture-automotive-rotor-177",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/178/fixture-automotive-rotor-178",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/179/fixture-automotive-rotor-179",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/180/fixture-automotive-rotor-180",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/181/fixture-automotive-rotor-181",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/182/fixture-automotive-rotor-182",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/183/fixture-automotive-rotor-183",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/184/fixture-automotive-rotor-184",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/185/fixture-automotive-rotor-185",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/186/fixture-automotive-rotor-186",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/187/fixture-automotive-rotor-187",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/188/fixture-automotive-rotor-188",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/189/fixture-automotive-rotor-189",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/190/fixture-automotive-rotor-190",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/191/fixture-automotive-rotor-191",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/192/fixture-automotive-rotor-192",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/193/fixture-automotive-rotor-193",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/194/fixture-automotive-rotor-194",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/195/fixture-automotive-rotor-195",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/196/fixture-automotive-rotor-196",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/197/fixture-automotive-rotor-197",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/198/fixture-automotive-rotor-198",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/199/fixture-automotive-rotor-199",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/200/fixture-automotive-rotor-200",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/201/fixture-gifts-rotor-201",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/202/fixture-gifts-rotor-202",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/203/fixture-gifts-rotor-203",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/204/fixture-gifts-rotor-204",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/205/fixture-gifts-rotor-205",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/206/fixture-gifts-rotor-206",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/207/fixture-gifts-rotor-207",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/208/fixture-gifts-rotor-208",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/209/fixture-gifts-rotor-209",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/210/fixture-gifts-rotor-210",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/211/fixture-gifts-rotor-211",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/212/fixture-gifts-rotor-212",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/213/fixture-gifts-rotor-213",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/214/fixture-gifts-rotor-214",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/215/fixture-gifts-rotor-215",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/216/fixture-gifts-rotor-216",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/217/fixture-gifts-rotor-217",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/218/fixture-gifts-rotor-218",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/219/fixture-gifts-rotor-219",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/220/fixture-gifts-rotor-220",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/221/fixture-gifts-rotor-221",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/222/fixture-gifts-rotor-222",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/223/fixture-gifts-rotor-223",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/224/fixture-gifts-rotor-224",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/225/fixture-gifts-rotor-225",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/226/fixture-gifts-rotor-226",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/227/fixture-gifts-rotor-227",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/228/fixture-gifts-rotor-228",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/229/fixture-gifts-rotor-229",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/230/fixture-gifts-rotor-230",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/231/fixture-gifts-rotor-231",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/232/fixture-gifts-rotor-232",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/233/fixture-gifts-rotor-233",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/234/fixture-gifts-rotor-234",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/235/fixture-gifts-rotor-235",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/236/fixture-gifts-rotor-236",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/237/fixture-gifts-rotor-237",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/238/fixture-gifts-rotor-238",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/239/fixture-gifts-rotor-239",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/240/fixture-gifts-rotor-240",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/241/fixture-gifts-rotor-241",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/242/fixture-gifts-rotor-242",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/243/fixture-gifts-rotor-243",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/244/fixture-gifts-rotor-244",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/245/fixture-gifts-rotor-245",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/246/fixture-gifts-rotor-246",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/247/fixture-gifts-rotor-247",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/248/fixture-gifts-rotor-248",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/249/fixture-gifts-rotor-249",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/250/fixture-gifts-rotor-250",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/251/fixture-other-rotor-251",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/252/fixture-other-rotor-252",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/253/fixture-other-rotor-253",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/254/fixture-other-rotor-254",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/255/fixture-other-rotor-255",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/256/fixture-other-rotor-256",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/257/fixture-other-rotor-257",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/258/fixture-other-rotor-258",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/259/fixture-other-rotor-259",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/260/fixture-other-rotor-260",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/261/fixture-other-rotor-261",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/262/fixture-other-rotor-262",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/263/fixture-other-rotor-263",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/264/fixture-other-rotor-264",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/265/fixture-other-rotor-265",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/266/fixture-other-rotor-266",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/267/fixture-other-rotor-267",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/268/fixture-other-rotor-268",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/269/fixture-other-rotor-269",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/270/fixture-other-rotor-270",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/271/fixture-other-rotor-271",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/272/fixture-other-rotor-272",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/273/fixture-other-rotor-273",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/274/fixture-other-rotor-274",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/275/fixture-other-rotor-275",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/276/fixture-other-rotor-276",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/277/fixture-other-rotor-277",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/278/fixture-other-rotor-278",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/279/fixture-other-rotor-279",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/280/fixture-other-rotor-280",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/281/fixture-other-rotor-281",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/282/fixture-other-rotor-282",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/283/fixture-other-rotor-283",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/284/fixture-other-rotor-284",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/285/fixture-other-rotor-285",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/286/fixture-other-rotor-286",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/287/fixture-other-rotor-287",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/288/fixture-other-rotor-288",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/289/fixture-other-rotor-289",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/290/fixture-other-rotor-290",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/291/fixture-other-rotor-291",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/292/fixture-other-rotor-292",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/293/fixture-other-rotor-293",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/294/fixture-other-rotor-294",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/295/fixture-other-rotor-295",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/296/fixture-other-rotor-296",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/297/fixture-other-rotor-297",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/298/fixture-other-rotor-298",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/299/fixture-other-rotor-299",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "path": "/product/300/fixture-other-rotor-300",
+      "method": "GET",
+      "status": 200,
+      "robots": "index, follow"
+    },
+    {
+      "case": "sitemap crawl",
+      "url_count": 315,
+      "products": 300,
+      "lastmod_omitted": true
+    },
+    {
+      "path": "/products/sale",
+      "method": "GET",
+      "status": 200,
+      "robots": "noindex, follow"
+    },
+    {
+      "case": "empty sale collection",
+      "ssr_api_noindex": true,
+      "sitemap_omitted": true
+    },
+    {
+      "case": "inventory query failure",
+      "status": 503,
+      "retry_after": "900",
+      "partial_sitemap": false
+    }
+  ],
+  "limits": [
+    "Apache redirect rules still require live deployment verification",
+    "No production inventory or account settings were changed"
+  ],
+  "additional_check": {
+    "missing_quantity": {
+      "status": 200,
+      "stock_data": 0,
+      "schema": "OutOfStock",
+      "visible_message": true
+    }
+  }
+}

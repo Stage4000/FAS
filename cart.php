@@ -113,10 +113,10 @@ require_once __DIR__ . '/includes/header.php';
                         <strong id="cart-total" class="text-danger fs-4">$0.00</strong>
                     </div>
                     
-                    <a href="checkout.php" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2 btn-ripple" style="display: none;">
+                    <a href="/checkout" id="checkout-btn" class="btn btn-danger btn-lg w-100 mb-2 btn-ripple" style="display: none;">
                         <i class="fas fa-credit-card"></i> Proceed to Checkout
                     </a>
-                    <a href="products.php" class="btn btn-outline-danger w-100">Continue Shopping</a>
+                    <a href="/products" class="btn btn-outline-danger w-100">Continue Shopping</a>
                     
                     <div class="mt-4 pt-3 border-top">
                         <h6 class="mb-3">We Accept</h6>
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             alert('Your cart is empty');
     }
-    // Allow navigation to checkout.php
+    // Allow navigation to checkout
 });
 
 document.addEventListener('click', function(e) {

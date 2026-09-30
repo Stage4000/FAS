@@ -1,98 +1,35 @@
 <?php
 require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
-require_once __DIR__ . '/src/utils/Seo.php';
-
-use FAS\Config\Database;
-use FAS\Models\Product;
-use FAS\Utils\Seo;
-
-function fasSitemapLastmod($value): string
-{
-    $timestamp = strtotime((string) $value);
-    if ($timestamp === false) {
-        $timestamp = time();
-    }
-
-    return gmdate('Y-m-d', $timestamp);
-}
-
-function fasSitemapWriteUrl(XMLWriter $xml, string $loc, string $lastmod, string $changefreq, string $priority): void
-{
-    $xml->startElement('url');
-    $xml->writeElement('loc', $loc);
-    $xml->writeElement('lastmod', $lastmod);
-    $xml->writeElement('changefreq', $changefreq);
-    $xml->writeElement('priority', $priority);
-    $xml->endElement();
-}
-
-$today = gmdate('Y-m-d');
-$products = [];
-$fitmentPages = [];
+require_once __DIR__ . '/includes/sitemap-data.php';
 
 try {
-    $db = Database::getInstance()->getConnection();
-$productModel = new Product($db);
-$products = $productModel->getAllVisibleForFeed();
-$fitmentPages = $productModel->getVisibleFitmentLandingPages(40, 2);
-} catch (Exception $e) {
-    error_log('Sitemap product load failed: ' . $e->getMessage());
+    $db = \FAS\Config\Database::getInstance()->getConnection();
+    $urls = fasSitemapUrls($db, new \FAS\Models\Product($db));
+    $xml = new XMLWriter();
+    $xml->openMemory();
+    $xml->startDocument('1.0', 'UTF-8');
+    $xml->setIndent(true);
+    $xml->startElement('urlset');
+    $xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+    foreach ($urls as $url) {
+        $xml->startElement('url');
+        $xml->writeElement('loc', $url);
+        // Sync timestamps are not verified content-change dates. Omit lastmod.
+        $xml->endElement();
+    }
+    $xml->endElement();
+    $xml->endDocument();
+    $output = $xml->outputMemory();
+} catch (\Throwable $e) {
+    error_log('Sitemap generation failed: ' . $e->getMessage());
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=UTF-8');
+    header('Retry-After: 900');
+    header('Cache-Control: no-store');
+    echo 'Sitemap temporarily unavailable. Please try again later.';
+    exit;
 }
 
 header('Content-Type: application/xml; charset=UTF-8');
-
-$xml = new XMLWriter();
-$xml->openMemory();
-$xml->startDocument('1.0', 'UTF-8');
-$xml->setIndent(true);
-$xml->startElement('urlset');
-$xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
-
-$coreUrls = [
-    ['loc' => Seo::canonicalUrl('/'), 'changefreq' => 'weekly', 'priority' => '1.0'],
-    ['loc' => Seo::canonicalUrl('/products'), 'changefreq' => 'daily', 'priority' => '0.9'],
-    ['loc' => Seo::canonicalUrl('/about'), 'changefreq' => 'monthly', 'priority' => '0.4'],
-    ['loc' => Seo::canonicalUrl('/contact'), 'changefreq' => 'monthly', 'priority' => '0.4'],
-];
-
-foreach ($coreUrls as $url) {
-    fasSitemapWriteUrl($xml, $url['loc'], $today, $url['changefreq'], $url['priority']);
-}
-
-foreach (['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'] as $categorySlug) {
-fasSitemapWriteUrl($xml, Seo::canonicalUrl('/products/' . $categorySlug), $today, 'daily', '0.8');
-}
-
-foreach (['trending', 'recent-arrivals', 'best-sellers', 'free-shipping', 'sale'] as $collectionSlug) {
-fasSitemapWriteUrl($xml, Seo::canonicalUrl('/products/' . $collectionSlug), $today, 'daily', '0.8');
-}
-
-$allowedCategorySlugs = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
-$writtenFitmentPaths = [];
-foreach ($fitmentPages as $fitmentPage) {
-$manufacturer = Seo::slug($fitmentPage['manufacturer'] ?? '');
-$model = Seo::slug($fitmentPage['model'] ?? '');
-if ($manufacturer === '') {
-continue;
-}
-$categorySlug = strtolower(trim((string)($fitmentPage['category'] ?? '')));
-$categoryPath = in_array($categorySlug, $allowedCategorySlugs, true) ? '/' . $categorySlug : '';
-$fitmentPath = '/products' . $categoryPath . '/make/' . $manufacturer . ($model !== '' ? '/' . $model : '');
-if (isset($writtenFitmentPaths[$fitmentPath])) {
-continue;
-}
-$writtenFitmentPaths[$fitmentPath] = true;
-$lastmod = $fitmentPage['last_updated_at'] ?? null;
-fasSitemapWriteUrl($xml, Seo::canonicalUrl($fitmentPath), fasSitemapLastmod($lastmod), 'weekly', '0.6');
-}
-
-foreach ($products as $product) {
-    $lastmod = $product['updated_at'] ?? ($product['created_at'] ?? $today);
-    fasSitemapWriteUrl($xml, Seo::productUrl($product), fasSitemapLastmod($lastmod), 'weekly', '0.7');
-}
-
-$xml->endElement();
-$xml->endDocument();
-
-echo $xml->outputMemory();
+echo $output;

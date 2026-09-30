@@ -1,0 +1,56 @@
+{
+  "at": "2026-09-30T19:39:27.223735+00:00",
+  "robots": [
+    {
+      "path": "/cart",
+      "crawl_allowed": true
+    },
+    {
+      "path": "/checkout",
+      "crawl_allowed": true
+    },
+    {
+      "path": "/products?search=rotor",
+      "crawl_allowed": true
+    },
+    {
+      "path": "/products/motorcycle?page=2&search=honda",
+      "crawl_allowed": true
+    },
+    {
+      "path": "/admin/products.php",
+      "crawl_allowed": false
+    },
+    {
+      "path": "/api/products.php",
+      "crawl_allowed": false
+    },
+    {
+      "path": "/database/x.db",
+      "crawl_allowed": false
+    },
+    {
+      "path": "/src/config/config.php",
+      "crawl_allowed": false
+    },
+    {
+      "path": "/install.php",
+      "crawl_allowed": false
+    }
+  ],
+  "apache_rules_before_existing_file_bypass": true,
+  "limits": "PHP dev server does not execute Apache rewrite rules. Live GET/HEAD/POST route verification remains required.",
+  "redirect_pcre_guard_assertions": 29,
+  "utility_get_noindex": [
+    "/cart",
+    "/checkout",
+    "/checkout?buy_now=1"
+  ],
+  "rendered_inline_js_syntax": [
+    "catalog",
+    "product",
+    "cart",
+    "checkout"
+  ],
+  "payment_or_order_actions_tested": false
+}

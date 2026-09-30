@@ -5,6 +5,11 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+    fas_security_guard('address', false, false);
+}
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex, nofollow');

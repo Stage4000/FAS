@@ -1,19 +1,25 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
+header('Cache-Control: private, no-store');
 
 $auth = new AdminAuth();
 
 // Handle login
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    fas_security_body();
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if ($auth->login($username, $password)) {
+    if (!\FAS\Utils\CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        $error = 'Your session expired. Refresh this page and try again.';
+    } elseif ($auth->login($username, $password)) {
         header('Location: index.php');
         exit;
     } else {
-        $error = 'Invalid username or password';
+        $error = $auth->lastError ?: 'Invalid username or password';
     }
 }
 ?>
@@ -83,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
                     
                     <form method="POST">
+                        <?= \FAS\Utils\CSRF::tokenField() ?>
                         <div class="mb-3">
                             <label class="form-label">Username</label>
                             <div class="input-group">

@@ -47,8 +47,14 @@ foreach(['recent','free_shipping','sale'] as $collection) {
     checkCatalog(fasCatalogCollection($db,$model,$collection,999,24)['products']===[],"$collection out-of-range empty");
 }
 checkCatalog(fasCatalogRequest(['collection'=>'free-shipping','page'=>2])['page']===2,'Collection page preserved');
-checkCatalog(fasCatalogRequest(['page'=>-2])['page']===1,'Negative page clamped');
-checkCatalog(fasCatalogRequest(['category'=>['motorcycle']])['homepageCategory']===null,'Array query ignored');
+checkCatalog(fasCatalogRequest(['page'=>-2])['catalogNotFound'],'Negative page rejected');
+checkCatalog(fasCatalogRequest(['category'=>['motorcycle']])['catalogNotFound'],'Array route query rejected');
+foreach (['0', 'abc', '1.5', '1e2', '999999999999999999999999999'] as $page) {
+    checkCatalog(fasCatalogRequest(['page'=>$page])['catalogNotFound'], 'Invalid page rejected: ' . $page);
+}
+checkCatalog(fasCatalogRequest(['category'=>'not-a-category'])['catalogNotFound'],'Unknown category rejected');
+checkCatalog(fasCatalogRequest(['collection'=>'not-a-collection'])['catalogNotFound'],'Unknown collection rejected');
+checkCatalog(!fasCatalogRequest(['category'=>'motorcycle','page'=>2])['catalogNotFound'],'Valid category and page accepted');
 checkCatalog(fasCatalogPageUrl('/products/motorcycle/make/honda',['page'=>2],3)==='/products/motorcycle/make/honda?page=3','Scoped clean pagination');
 checkCatalog(fasCatalogPageUrl('/products/free-shipping',['page'=>2],1)==='/products/free-shipping','Page one clean URL');
 $db->exec('DROP TABLE homepage_category_mappings');

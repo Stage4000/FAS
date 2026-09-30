@@ -143,7 +143,7 @@ $metaTitle = Seo::metaTitle($fitmentLabel . ' Parts | Flip and Strip');
 
 if ($includeHiddenProducts) {
 $robotsMeta = 'noindex, nofollow';
-} elseif ($ebayCat1 || $ebayCat2 || $ebayCat3 || $page > max(1, $totalPages)) {
+} elseif ($ebayCat1 || $ebayCat2 || $ebayCat3 || $totalProducts === 0) {
     $robotsMeta = 'noindex, follow';
 }
 

@@ -1,20 +1,6 @@
 <?php
-// Handle redirect BEFORE any output
-function canViewHiddenProducts(): bool
-{
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        $sessionName = session_name();
-        if (empty($_COOKIE[$sessionName])) {
-            return false;
-        }
-
-        @session_start();
-    }
-
-    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-}
-
-$canViewHiddenProducts = canViewHiddenProducts();
+require_once __DIR__ . '/includes/storefront-access.php';
+$canViewHiddenProducts = fasCanViewHiddenProducts();
 $includeHiddenProducts = $canViewHiddenProducts && (($_GET['show_hidden'] ?? '') === '1');
 
 // Now load dependencies and continue normal page rendering
@@ -75,6 +61,10 @@ function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds):
 }
 
 require __DIR__ . '/includes/catalog-load.php';
+if ($catalogNotFound) {
+    require_once __DIR__ . '/includes/storefront-not-found.php';
+    fasStorefrontNotFound();
+}
 require __DIR__ . '/includes/catalog-meta.php';
 
 require_once __DIR__ . '/includes/header.php';

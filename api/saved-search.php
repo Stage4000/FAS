@@ -1,5 +1,11 @@
 <?php
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('saved_search', false, false);
+    fas_security_body(65536);
+}
+
 header('Content-Type: application/json; charset=UTF-8');
 
 require_once __DIR__ . '/../src/config/Database.php';
@@ -14,7 +20,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     exit;
 }
 
-$rawBody = file_get_contents('php://input') ?: '';
+$rawBody = fas_security_body(65536) ?: '';
 $input = json_decode($rawBody, true);
 if (!is_array($input)) {
     $input = $_POST;

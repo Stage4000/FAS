@@ -7,6 +7,12 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    fas_security_guard('client_error', false, true);
+    fas_security_body(65536);
+}
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex, nofollow');
@@ -44,7 +50,7 @@ use FAS\Config\Database;
 use FAS\Utils\ErrorMonitor;
 
 try {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode(fas_security_body(65536), true);
     if (!is_array($input)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid JSON']);

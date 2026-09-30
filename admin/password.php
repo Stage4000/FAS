@@ -1,19 +1,28 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
+header('Cache-Control: private, no-store');
 
 $auth = new AdminAuth();
-$auth->requireLogin();
+$auth->requireActiveAdmin();
 
 $success = '';
 $error = '';
 
 // Handle password change
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    fas_security_body();
     $currentPassword = $_POST['current_password'] ?? '';
     $newPassword = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
     
-    if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+    if (!\FAS\Utils\CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        $error = 'Your session expired. Refresh this page and try again.';
+    } elseif (!is_string($currentPassword) || !is_string($newPassword) || !is_string($confirmPassword)
+        || strlen($newPassword)>4096 || strlen($currentPassword)>4096) {
+        $error = 'Invalid password input';
+    } elseif (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
         $error = 'All fields are required';
     } elseif ($newPassword !== $confirmPassword) {
         $error = 'New passwords do not match';
@@ -23,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($auth->changePassword($_SESSION['admin_id'], $currentPassword, $newPassword)) {
             $success = 'Password changed successfully';
         } else {
-            $error = 'Current password is incorrect';
+            $error = $auth->lastError ?: 'Current password is incorrect';
         }
     }
 }
@@ -64,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <form method="POST">
+                            <?= \FAS\Utils\CSRF::tokenField() ?>
                             <div class="mb-3">
                                 <label class="form-label">Current Password *</label>
                                 <input type="password" class="form-control" name="current_password" required>

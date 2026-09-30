@@ -38,9 +38,26 @@ function fasCatalogNavigationUrl(input) {
     return path + (params.toString() ? '?' + params.toString() : '');
 }
 
+let fasCatalogPageTitle = '';
+let fasCatalogTitleObserver = null;
+function fasSetCatalogTitle(title) {
+    fasCatalogPageTitle = title;
+    document.title = title;
+    const titleElement = document.querySelector('title');
+    if (!fasCatalogTitleObserver && titleElement && typeof MutationObserver !== 'undefined') {
+        // Chat tab notifications can restore a title cached before AJAX navigation.
+        // Keep this catalog's title aligned with its current results and metadata.
+        fasCatalogTitleObserver = new MutationObserver(() => {
+            if (document.title !== fasCatalogPageTitle) document.title = fasCatalogPageTitle;
+        });
+        fasCatalogTitleObserver.observe(titleElement, {childList: true, characterData: true, subtree: true});
+    }
+}
+if (typeof document !== 'undefined') fasSetCatalogTitle(document.title);
+
 function fasApplyCatalogMetadata(metadata) {
     if (!metadata) return;
-    document.title = metadata.title;
+    fasSetCatalogTitle(metadata.title);
     const values = [
         ['meta[name="description"]', 'content', metadata.description],
         ['meta[name="robots"]', 'content', metadata.robots],
@@ -49,6 +66,7 @@ function fasApplyCatalogMetadata(metadata) {
         ['meta[property="og:description"]', 'content', metadata.description],
         ['meta[property="og:url"]', 'content', metadata.canonical],
         ['meta[name="twitter:title"]', 'content', metadata.title],
+        ['meta[name="twitter:url"]', 'content', metadata.canonical],
         ['meta[name="twitter:description"]', 'content', metadata.description],
     ];
     values.forEach(([selector, attribute, value]) => {

@@ -1,16 +1,27 @@
 <?php
 require_once __DIR__ . '/catalog-query.php';
 extract(fasCatalogRequest($_GET), EXTR_OVERWRITE);
+if ($catalogNotFound) {
+    return;
+}
 $discoveryCollections = ['trending'=>'Trending Parts', 'best'=>'Best Sellers', 'recent'=>'Recent Arrivals', 'free_shipping'=>'Free Shipping Eligible', 'sale'=>'On Sale'];
 $discoveryCollectionSlugs = ['trending'=>'trending', 'best'=>'best-sellers', 'recent'=>'recent-arrivals', 'free_shipping'=>'free-shipping', 'sale'=>'sale'];
 $db = \FAS\Config\Database::getInstance()->getConnection();
 $productModel = new \FAS\Models\Product($db);
 $visibleCategoryIds = $productModel->getVisibleEbayCategoryIds($includeHiddenProducts);
-if (!$manufacturer && $manufacturerSlug) {
+if ($manufacturerSlug) {
     $manufacturer = fasResolveSlugOption($productModel->getManufacturers($includeHiddenProducts), $manufacturerSlug);
+    if ($manufacturer === null) {
+        $catalogNotFound = true;
+        return;
+    }
 }
-if (!$fitmentModel && $modelSlug) {
+if ($modelSlug) {
     $fitmentModel = fasResolveSlugOption($productModel->getModels($includeHiddenProducts, $manufacturer), $modelSlug);
+    if (!$manufacturerSlug || $fitmentModel === null) {
+        $catalogNotFound = true;
+        return;
+    }
 }
 
 $ebayAPI = null;
@@ -38,6 +49,11 @@ if ($discoveryCollection !== '') {
 $allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
 $allModels = $productModel->getModels($includeHiddenProducts, $manufacturer);
 $totalPages = (int)ceil($totalProducts / $perPage);
+if ($page > max(1, $totalPages)
+    || ($manufacturerSlug && $totalProducts === 0 && !$search && !$ebayCat1 && !$ebayCat2 && !$ebayCat3)) {
+    $catalogNotFound = true;
+    return;
+}
 $currentCategoryName = 'All Products';
 if ($discoveryCollection !== '') {
     $currentCategoryName = $discoveryCollections[$discoveryCollection];

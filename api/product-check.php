@@ -4,6 +4,11 @@
  * Checks if a product exists and is active
  */
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+    fas_security_guard('product_check', false, false);
+}
+
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../src/config/Database.php';

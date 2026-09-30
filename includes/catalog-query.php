@@ -14,14 +14,28 @@ function fasCatalogRequest(array $query): array
         'recent'=>'recent', 'recent-arrivals'=>'recent', 'free_shipping'=>'free_shipping',
         'free-shipping'=>'free_shipping', 'sale'=>'sale', 'on-sale'=>'sale'];
     $category = fasCatalogString($query, 'category');
+    $collection = fasCatalogString($query, 'collection');
+    $pageValue = fasCatalogString($query, 'page');
+    $validPage = $pageValue === null ? 1 : filter_var($pageValue, FILTER_VALIDATE_INT, [
+        'options' => ['min_range' => 1, 'max_range' => intdiv(PHP_INT_MAX, 24)],
+    ]);
+    $invalid = $validPage === false
+        || ($category !== null && $category !== '' && !isset(\FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$category]))
+        || ($collection !== null && $collection !== '' && !isset($aliases[$collection]));
+    foreach (['category', 'collection', 'page', 'manufacturer_slug', 'model_slug'] as $key) {
+        if (isset($query[$key]) && !is_scalar($query[$key])) {
+            $invalid = true;
+        }
+    }
     $request = [
+        'catalogNotFound' => $invalid,
         'homepageCategory' => isset(\FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$category ?? '']) ? $category : null,
         'ebayCat1'=>fasCatalogString($query, 'cat1'), 'ebayCat2'=>fasCatalogString($query, 'cat2'),
         'ebayCat3'=>fasCatalogString($query, 'cat3'), 'manufacturer'=>fasCatalogString($query, 'manufacturer'),
         'fitmentModel'=>fasCatalogString($query, 'model'), 'manufacturerSlug'=>fasCatalogString($query, 'manufacturer_slug'),
         'modelSlug'=>fasCatalogString($query, 'model_slug'), 'search'=>fasCatalogString($query, 'search'),
         'discoveryCollection'=>$aliases[fasCatalogString($query, 'collection') ?? ''] ?? '',
-        'page'=>max(1, (int)(fasCatalogString($query, 'page') ?? 1)), 'perPage'=>24,
+        'page'=>$validPage === false ? 1 : $validPage, 'perPage'=>24,
     ];
     if ($request['discoveryCollection'] !== '') {
         foreach (['homepageCategory','ebayCat1','ebayCat2','ebayCat3','manufacturer','fitmentModel','manufacturerSlug','modelSlug','search'] as $key) {
