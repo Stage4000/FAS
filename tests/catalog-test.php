@@ -23,6 +23,10 @@ $ids=[];
 for($p=1;$p<=3;$p++) $ids=array_merge($ids,array_column($scope($p),'id'));
 checkCatalog(count($ids)===58 && count(array_unique($ids))===58,'No duplicate or missing products over tied-date pages');
 checkCatalog($ids===range(60,3),'Stable descending id tie-break');
+$db->exec("UPDATE products SET ebay_store_cat1_name='  bikes  ' WHERE id=3; INSERT INTO homepage_category_mappings VALUES ('motorcycle','BIKES',1)");
+checkCatalog(count($scope(1,100))===58,'Case/whitespace normalized; duplicate mappings do not duplicate products');
+$db->exec('UPDATE products SET ebay_store_cat1_id=2 WHERE id BETWEEN 31 AND 60');
+checkCatalog(count($model->getAllByEbayCategory(1,100,2,null,null,null,null,false,null,'motorcycle'))===30,'Store category narrows homepage scope');
 checkCatalog(count($scope(1,100,null,null,true))===59,'Admin can include hidden but not inactive');
 checkCatalog(count($scope(1,100,'rotor','Honda'))===29,'Search and manufacturer remain category-scoped');
 checkCatalog($model->getCountByEbayCategory(null,null,null,'rotor','Honda',false,null,'motorcycle')===29,'Search count and rows agree');
@@ -50,4 +54,5 @@ checkCatalog(fasCatalogPageUrl('/products/free-shipping',['page'=>2],1)==='/prod
 $db->exec('DROP TABLE homepage_category_mappings');
 try { $scope(); throw new RuntimeException('Missing mapping table widened catalog'); }
 catch (PDOException $e) { checkCatalog(true,'Unavailable mappings fail instead of exposing all products'); }
+checkCatalog($model->getCountByEbayCategory()===128,'Unscoped catalog remains available without the mapping table');
 echo "PASS $checks catalog assertions\n";

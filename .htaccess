@@ -12,6 +12,8 @@
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     # Prevent access to sensitive files
+    # Internal audit evidence and test/preview tools are not public site content.
+    RedirectMatch 404 (?i)^/(audit|tmp|tests)(/|$)
     RedirectMatch 403 ^/\.git
     RedirectMatch 403 ^/src/config/config\.php$
     RedirectMatch 403 ^/database/.*\.db$

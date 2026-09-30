@@ -1,0 +1,145 @@
+{
+  "date": "2026-09-30",
+  "environment": "In-app browser, isolated SQLite fixture. History back/forward invoked via fixture-only buttons. No live inventory or configuration changed.",
+  "observations": [
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=3",
+      "count": "190 products found",
+      "h1": "Free Shipping Eligible",
+      "links": [
+        "/product/142/fixture-boat-rotor-142",
+        "/product/141/fixture-boat-rotor-141",
+        "/product/140/fixture-boat-rotor-140",
+        "/product/139/fixture-boat-rotor-139",
+        "/product/138/fixture-boat-rotor-138",
+        "/product/137/fixture-boat-rotor-137",
+        "/product/136/fixture-boat-rotor-136",
+        "/product/135/fixture-boat-rotor-135",
+        "/product/134/fixture-boat-rotor-134",
+        "/product/133/fixture-boat-rotor-133",
+        "/product/132/fixture-boat-rotor-132",
+        "/product/131/fixture-boat-rotor-131",
+        "/product/130/fixture-boat-rotor-130",
+        "/product/129/fixture-boat-rotor-129",
+        "/product/128/fixture-boat-rotor-128",
+        "/product/127/fixture-boat-rotor-127",
+        "/product/126/fixture-boat-rotor-126",
+        "/product/125/fixture-boat-rotor-125",
+        "/product/124/fixture-boat-rotor-124",
+        "/product/123/fixture-boat-rotor-123",
+        "/product/122/fixture-boat-rotor-122",
+        "/product/121/fixture-boat-rotor-121",
+        "/product/120/fixture-boat-rotor-120",
+        "/product/119/fixture-boat-rotor-119"
+      ],
+      "title": "Free Shipping Eligible Parts Page 3 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=3"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=4",
+      "count": "190 products found",
+      "h1": "Free Shipping Eligible",
+      "links": [
+        "/product/118/fixture-boat-rotor-118",
+        "/product/117/fixture-boat-rotor-117",
+        "/product/116/fixture-boat-rotor-116",
+        "/product/115/fixture-boat-rotor-115",
+        "/product/114/fixture-boat-rotor-114",
+        "/product/113/fixture-boat-rotor-113",
+        "/product/112/fixture-boat-rotor-112",
+        "/product/111/fixture-boat-rotor-111",
+        "/product/110/fixture-boat-rotor-110",
+        "/product/109/fixture-boat-rotor-109",
+        "/product/108/fixture-boat-rotor-108",
+        "/product/107/fixture-boat-rotor-107",
+        "/product/106/fixture-boat-rotor-106",
+        "/product/105/fixture-boat-rotor-105",
+        "/product/104/fixture-boat-rotor-104",
+        "/product/103/fixture-boat-rotor-103",
+        "/product/102/fixture-boat-rotor-102",
+        "/product/101/fixture-boat-rotor-101",
+        "/product/100/fixture-atv-rotor-100",
+        "/product/99/fixture-atv-rotor-99",
+        "/product/98/fixture-atv-rotor-98",
+        "/product/97/fixture-atv-rotor-97",
+        "/product/96/fixture-atv-rotor-96",
+        "/product/95/fixture-atv-rotor-95"
+      ],
+      "title": "Free Shipping Eligible Parts Page 4 | Flip and Strip",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=4"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=5",
+      "count": "190 products found",
+      "first": "/product/94/fixture-atv-rotor-94",
+      "h1": "Free Shipping Eligible",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=5"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=6",
+      "count": "190 products found",
+      "first": "/product/70/fixture-atv-rotor-70",
+      "h1": "Free Shipping Eligible",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=6"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=7",
+      "count": "190 products found",
+      "first": "/product/46/fixture-motorcycle-rotor-46",
+      "h1": "Free Shipping Eligible",
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=7"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/free-shipping?page=8",
+      "count": "190 products found",
+      "first": "/product/22/fixture-motorcycle-rotor-22",
+      "h1": "Free Shipping Eligible",
+      "shown": 22,
+      "url": "http://127.0.0.1:8767/products/free-shipping?page=8"
+    },
+    {
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda?page=2",
+      "count": "25 products found",
+      "first": "/product/1/fixture-motorcycle-rotor-1",
+      "h1": "Honda Parts",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda?page=2"
+    },
+    {
+      "action": "history-back",
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda",
+      "first": "/product/49/fixture-motorcycle-rotor-49",
+      "h1": "Honda Parts",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda"
+    },
+    {
+      "action": "history-forward",
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda?page=2",
+      "first": "/product/1/fixture-motorcycle-rotor-1",
+      "h1": "Honda Parts",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda?page=2"
+    },
+    {
+      "action": "reload",
+      "canonical": "https://flipandstrip.com/products/motorcycle/make/honda?page=2",
+      "first": "/product/1/fixture-motorcycle-rotor-1",
+      "h1": "Honda Parts",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda?page=2"
+    },
+    {
+      "action": "search",
+      "canonical": "https://flipandstrip.com/products/motorcycle?manufacturer=Honda&search=rotor",
+      "count": "25 products found",
+      "h1": "Search Results for \"rotor\"",
+      "robots": "noindex, follow",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda?search=rotor"
+    },
+    {
+      "action": "repeat-search-after-AJAX",
+      "canonical": "https://flipandstrip.com/products/motorcycle?manufacturer=Honda&search=Fixture",
+      "count": "25 products found",
+      "h1": "Search Results for \"Fixture\"",
+      "robots": "noindex, follow",
+      "url": "http://127.0.0.1:8767/products/motorcycle/make/honda?search=Fixture"
+    }
+  ]
+}

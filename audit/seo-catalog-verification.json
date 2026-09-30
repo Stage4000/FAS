@@ -529,5 +529,16 @@
     "Site-wide 10% sale includes all 300 visible items and permits page 13",
     "Size/weight eligibility includes all 300 visible fixture items",
     "Disabled free-shipping configuration gives zero qualifying items"
-  ]
+  ],
+  "php_assertions": 42,
+  "javascript_url_assertions": 14,
+  "internal_directory_rule": {
+    "live_audit_document_before_fix": {
+      "path": "/audit/SEO.md",
+      "status": 200,
+      "content_type": "text/markdown"
+    },
+    "local_regex_cases": 12,
+    "apache_verification": "pending deployment"
+  }
 }

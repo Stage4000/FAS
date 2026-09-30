@@ -5,7 +5,7 @@
 **Scope:** live public storefront, every current product listing, catalog discovery, Merchant feed, shared templates, and repository SEO implementation.  
 **Baseline deliverable:** audit and implementation plan; no storefront code, inventory, settings, or deployment changed during the audit.
 
-**Implementation follow-up, September 30:** the user-selected small link and copy changes are deployed and verified live. See section 10 for scope, verification, and remaining release checks. The original crawl and listing register remain a dated baseline.
+**Implementation follow-up, September 30:** the first link/copy batch is deployed and verified live (section 10). Category filtering, collection pagination, AJAX metadata, and scoped make canonicals are now repaired and tested locally; their deployment is still pending (section 11). The original crawl and listing register remain a dated baseline.
 
 ## 1. Executive assessment
 
@@ -79,6 +79,8 @@ Priority definitions: **P1** = fix first because relevance, discovery, or shoppe
 
 ### SEO-01 — P1: category pages do not filter inventory (M)
 
+**Progress:** implementation and isolated database/browser verification complete; deployment and live membership verification pending. See section 11.
+
 **Live evidence:** `/products/motorcycle`, `/products/atv`, `/products/boat`, `/products/automotive`, `/products/gifts`, and `/products/other` each return the same first 24 product URLs as `/products`, the H1 “All Products,” and “607 products found.” Only metadata/introductory context changes. The motorcycle page-two ItemList includes ATV seats, a marine wiring adapter, apparel, and a Dodge truck air filter.
 
 **Code:** `products.php:221–262` initializes `$flatCategories` empty and populates it only when the hierarchical category result is empty. Homepage mapping is then conditional on nonempty `$flatCategories`. The eventual listing query at `products.php:295` accepts eBay category filters but not `$homepageCategory`. The fallback resolves only the first matching mapped category.
@@ -88,6 +90,8 @@ Priority definitions: **P1** = fix first because relevance, discovery, or shoppe
 **Acceptance:** all six category pages show their actual category H1 and verified inventory subset; no unrelated products; page-one and page-two results agree with the same mapping; mapping tests cover multiple source categories, no match, and an unavailable eBay category service. Canonical, visible content, and ItemList must describe the same category.
 
 ### SEO-02 — P1: pagination loses filters or repeats results (M)
+
+**Progress:** implementation and isolated database/browser verification complete for ordinary and AJAX navigation; deployment and live inventory traversal pending. See section 11.
 
 **Live server-response evidence:** motorcycle pagination links point to `/products?page=N`, losing the clean category route. The free-shipping page reports **190 products**, but both `/products/free-shipping?page=2` and its actual linked form `/products?page=2&collection=free_shipping` repeat page one's 24 ItemList entries and canonicalize to page one.
 
@@ -124,6 +128,8 @@ The browser path uses `loadProductsAndSidebar()` at `products.php:1261` and `api
 **Acceptance:** verified MPNs remain identifiers, not vehicle model names; placeholder strings are omitted from feed/schema; compatible vehicle models are independently selectable; different brand-casing aliases cannot split inventory unexpectedly. Determine `identifier_exists` from known identifier applicability, not simply the presence of any brand string. Never invent an MPN or GTIN. [Google MPN specification](https://support.google.com/merchants/answer/6324482).
 
 ### SEO-05 — P1: category-scoped make canonicals lose specificity (M)
+
+**Progress:** scoped make/model canonical construction and paginated URLs are repaired and tested locally (section 11). Deployment, live verification, and the proposed curated-page discovery work remain pending.
 
 **Live evidence:** `/products/motorcycle/make/honda` returns a Honda-focused page with canonical `/products/motorcycle`. `/products/make/honda` self-canonicalizes. The former page's canonical is broader than its visible content.
 
@@ -371,6 +377,67 @@ Evidence: [seo-safe-batch-verification.json](seo-safe-batch-verification.json). 
 
 ### Release limits and next check
 
-The local database has no product table. Browser previews therefore used isolated static-page rendering and saved-inventory template fragments; they do **not** establish full database-backed catalog/API pagination or checkout behavior. Temporary preview configuration disabled account integrations and did not alter the workspace configuration or inventory.
+The workspace database has no product table. First-batch browser previews therefore used isolated static-page rendering and saved-inventory template fragments. The subsequent batch in section 11 uses a separate populated SQLite fixture for database-backed navigation tests. Neither environment establishes live production inventory membership or checkout behavior. Temporary preview configuration disabled account integrations and did not alter the workspace configuration or inventory.
 
-Deployment was confirmed by the user. Live HTTP checks verified canonical product-card links on the catalog and the page-two AJAX response, homepage/About titles and descriptions, clean About buttons, and shared footer copy. Product 6393 and 6392 show the new neutral condition label. Evidence: [seo-first-batch-deployed.json](seo-first-batch-deployed.json). These checks cover the first batch, not the subsequent navigation fixes below. Existing category/free-shipping pagination defects remain open under SEO-01/02. Deploy only the seven changed PHP files for this batch; keep `audit/` and `tmp/` out of the public deployment. Broader SEO-08 routing/alias work and all deferred data/indexing changes remain separate work.
+Deployment was confirmed by the user. Live HTTP checks verified canonical product-card links on the catalog and the page-two AJAX response, homepage/About titles and descriptions, clean About buttons, and shared footer copy. Products 6393, 6392, and the used Victory part 5649 show the new neutral condition label. Evidence: [seo-first-batch-deployed.json](seo-first-batch-deployed.json). These checks cover the first batch, not the subsequent navigation fixes below. Broader SEO-08 routing/alias work and all deferred data/indexing changes remain separate work.
+
+## 11. Second implementation batch — September 30, 2026
+
+**Status: implementation and local verification complete; not deployed.** The user's deployment confirmation applies to the first batch. None of the changes in this section are claimed to be live.
+
+### Completion checklist
+
+- [x] First batch: canonical card links — deployed and live-verified.
+- [x] First batch: About-page clean links — deployed and live-verified.
+- [x] First batch: neutral condition label — deployed and live-verified.
+- [x] First batch: homepage/About/shared static copy and metadata — deployed and live-verified.
+- [x] SEO-01: implement and locally verify category membership independent of the eBay sidebar service.
+- [x] SEO-02: implement and locally verify shared collection pagination and URL/metadata synchronization.
+- [x] SEO-05: implement and locally verify category-scoped make/model canonicals.
+- [x] Extend verified-copy cleanup to category, collection, and general-catalog metadata; remove blanket used/tested/fast-shipping claims from this shared copy.
+- [x] Add a narrowly scoped Apache rule to keep internal audit/test/temporary files off the public site; validate its path matching locally.
+- [ ] Deploy the second batch, including every new include and the navigation JavaScript.
+- [ ] Repeat category membership and complete pagination checks against current production inventory.
+- [ ] Confirm the internal-directory rule returns 404 on the actual Apache host and public routes still work.
+
+### Changes and expected behavior
+
+| Area | Completed implementation | Remaining gate |
+| --- | --- | --- |
+| Category membership | `Product.php` applies one category predicate to rows, counts, and search candidates. It matches all active source-category mappings, case-insensitively with surrounding whitespace removed. An unmapped item may use its stored local category; active mappings override stale imported category values. `EXISTS` avoids duplicate inventory rows when several mapping records match. Public visibility rules remain intact. A missing mapping table raises an error instead of publishing all inventory as a successful category result. | Verify actual production mapping contents and all six subsets after deployment |
+| Shared page/API state | Both `products.php` and `api/products.php` use `catalog-load.php`, `catalog-query.php`, and `catalog-meta.php`. Category titles/counts and an active category indicator survive sidebar-service failure. Filtering and metadata no longer have separate implementations that can disagree. | Live page/API parity |
+| Collections | Free shipping evaluates the existing product flags and size/weight rules, counts the complete eligible set, then applies the page offset. Sale uses the existing effective-price helper, including active site-wide promotions. Recent arrivals exposes the complete visible collection. Trending and best sellers remain explicitly described as selections of up to 24 items. Ordering uses a stable ID tie-break where dates match. | Reconcile against current live inventory and shipping/sale configuration |
+| URLs and browser state | Pagination anchors retain the collection/category/make path and active filters; each real page has its own canonical. AJAX extracts scope from clean paths, updates title/description/robots/social metadata and catalog JSON-LD, and preserves back/forward state. Superseded requests are canceled; failed AJAX falls back to ordinary navigation. Search submission still works after its form has been replaced by AJAX. | Deployment, followed by direct-link/click/reload/history checks |
+| Scoped make canonicals | `/products/motorcycle/make/honda` keeps its own scope rather than canonicalizing to `/products/motorcycle`; model and page segments are retained. Filtered category-ID queries remain noindex, and out-of-range pagination is noindex rather than repeating page one. | Production verification; broader invalid-route/status policy under SEO-06 stays open |
+| Internal audit exposure | A live HEAD request to `/audit/SEO.md` returned **200, text/markdown** after the user's deployment. `.htaccess` now contains a case-insensitive 404 rule limited to top-level `audit`, `tmp`, and `tests` paths. Existing public route rules are unchanged. The rule follows [Apache RedirectMatch/status semantics](https://httpd.apache.org/docs/2.4/mod/mod_alias.html#redirectmatch). | Actual Apache verification after deployment; this is not yet a live fix |
+
+The application uses the existing `homepage_category_mappings` table; no migration, inventory edit, imported-description cleanup, identifier migration, checkout change, or account configuration change was performed. Collection evaluation currently reads the visible inventory before filtering/slicing, consistent with the prior free-shipping approach; larger inventories may warrant query-level optimization after measurement.
+
+### Verification completed
+
+- **42 PHP assertions** in `tests/catalog-test.php`: multi-source categories, row/count parity, hidden/inactive exclusion, admin hidden inclusion, search/manufacturer intersections, category-ID intersection, case/whitespace handling, duplicate mappings, unmapped manual inventory, stable pagination, no-match behavior, missing mapping table, and complete collection traversal.
+- **14 JavaScript URL assertions** in `tests/catalog-navigation-test.cjs`: clean collection/category/make/model paths, query filters, aliases, and round-trip preservation. PHP lint passed for seven application PHP files and the new PHP test. The navigation asset and rendered inline catalog JavaScript pass Node syntax checks; `git diff --check` passes.
+- **65 SSR/API route pairs, 130 HTTP requests** against an isolated SQLite fixture with 300 visible records, one hidden record, and one inactive record. All six categories reconcile across three pages each. The free-shipping collection traverses all **190 fixture items across eight pages**, recent/general catalog all 300, and sale all 100 individually discounted items, with no missing or duplicate inventory. Counts, canonical, title, robots, H1, and ItemList agree between initial HTML and API responses. Scoped make/model pages, combined search/manufacturer filters, unauthenticated `show_hidden`, and out-of-range pages are covered.
+- Additional isolated configuration checks pass for an active 10% site-wide sale (300 eligible records), size/weight free shipping (300 eligible records), and disabled free shipping (zero eligible records). The fixture PHP server disabled OPcache for these rapid configuration changes; no production PHP or configuration settings were changed.
+- Browser interaction traversed free-shipping pages 1–8; page eight retains 190 total and displays the final 22 fixture listings. Scoped Honda pagination retains 25 matching items, its own canonical, and a different second-page result. History back/forward and reload restore the correct result and metadata. Repeated search submissions after AJAX retain motorcycle/Honda scope and noindex metadata. History controls were fixture-only buttons calling the browser's history API.
+- The internal-directory regex matches five intended internal paths, including mixed-case `/Audit/SEO.md`, and leaves seven representative public paths unmatched. **The local PHP server does not execute `.htaccess`; Apache behavior is not certified by this check.**
+
+Evidence: [seo-catalog-verification.json](seo-catalog-verification.json), [seo-catalog-browser.json](seo-catalog-browser.json). Fixture products and mappings are synthetic and do not validate the semantic correctness of production mappings. Browser analytics/reporting and external account integrations were disabled only in the ignored local fixture. Existing checkout behavior was not exercised or modified.
+
+### Deployment file list and next priorities
+
+Deploy these **nine application/configuration files together**, including five new runtime files:
+
+1. `.htaccess`
+2. `products.php`
+3. `api/products.php`
+4. `src/models/Product.php`
+5. `includes/catalog-query.php` — new
+6. `includes/catalog-load.php` — new
+7. `includes/catalog-meta.php` — new
+8. `includes/catalog-intro.php` — new
+9. `public/js/catalog-navigation.js` — new
+
+Keep `audit/`, `tests/`, and `tmp/` outside public deployment even with the access rule. On the host, validate Apache configuration and clear/revalidate PHP opcode caches as appropriate before the live checks. If rolling back this batch, restore the previous page/API/model files and `.htaccess` together; no database rollback is required.
+
+After the deployment gate, prioritize the confirmed wrong-item descriptions and identifier/fitment separation (SEO-03/04), with reviewed overrides that survive sync. SEO-06/07/09/10 lifecycle/indexing/feed work, the remaining SEO-11 policies/schema work, SEO-12 performance/mobile work, and SEO-13/14/15 editorial/tooling/measurement work remain open. Product 6392's visible “New with tags” versus saved-feed “used” condition is an additional normalization case for SEO-11; neutral template copy does not repair that underlying feed/schema classification.
