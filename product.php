@@ -350,8 +350,8 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="text-muted">Photos represent the part you are reviewing.</div>
                             </div>
                             <div class="col-sm-6">
-                                <div class="fw-semibold">Inspected Used Part</div>
-                                <div class="text-muted">Inventory is reviewed before being listed for sale.</div>
+                                <div class="fw-semibold">Condition as Listed</div>
+                                <div class="text-muted">Review this item's condition, photos, and description before ordering.</div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="fw-semibold">Secure Payment</div>

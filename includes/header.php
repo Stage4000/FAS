@@ -23,12 +23,12 @@ $metaTitle = isset($metaTitle)
     ? \FAS\Utils\Seo::metaTitle($metaTitle)
     : ($legacyPageTitle !== ''
         ? \FAS\Utils\Seo::metaTitle($legacyPageTitle . ' - Flip and Strip')
-        : 'Flip and Strip - Motorcycle, ATV/UTV & Boat Parts');
+        : 'Flip and Strip | Motorcycle, ATV/UTV, Boat & Automotive Parts');
 $metaDescription = isset($metaDescription)
     ? \FAS\Utils\Seo::metaDescription($metaDescription)
     : (isset($pageDescription)
         ? \FAS\Utils\Seo::metaDescription($pageDescription)
-        : 'Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.');
+        : 'Shop new and used motorcycle, ATV/UTV, boat, and automotive parts at Flip and Strip. Review photos, condition details, and descriptions before ordering.');
 $canonicalUrl = isset($canonicalUrl)
     ? \FAS\Utils\Seo::canonicalUrl($canonicalUrl)
     : \FAS\Utils\Seo::canonicalUrl(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'));

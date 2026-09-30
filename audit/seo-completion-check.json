@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-09-30T18:33:27.883016+00:00",
+  "objective": "Live SEO audit using Chrome and other tools",
+  "public_listing_rows": 607,
+  "per_listing_metadata_reconciled": 607,
+  "report_findings": 15,
+  "chrome_verification": "complete",
+  "chrome_evidence": "seo-chrome-verification.json",
+  "scope": "Dated complete public catalog crawl plus representative Chrome interaction and mobile verification",
+  "implementation_changes": false,
+  "remaining_audit_work": [],
+  "completion_ready": true,
+  "account_level_limits": [
+    "Search Console",
+    "Merchant Center account diagnostics",
+    "GA4 property validation",
+    "CrUX field metrics"
+  ]
+}

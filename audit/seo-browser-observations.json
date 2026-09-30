@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-30",
+  "homepage_390": {
+    "viewport_width": 390,
+    "document_width": 380,
+    "h1": "FLIP AND STRIP",
+    "broken_loaded_images": 0
+  },
+  "product_5649_390": {
+    "viewport_width": 390,
+    "document_width_before_animation": 480,
+    "offscreen_purchase_class": "col-lg-6 product-purchase-column aos-init",
+    "confirmed_wrong_opening": "HARLEY DAVIDSON XL 883 1200 SPORTSTER 04-06 CLUTCH DERBY CHROME COVER # 34742-04",
+    "visible_model_label": "2203143",
+    "content_order": [
+      "gallery",
+      "part facts",
+      "long description",
+      "product H1 and price",
+      "purchase controls"
+    ]
+  },
+  "desktop_observation": {
+    "initial_test_width": 1440,
+    "initial_document_width": 1475,
+    "later_default_width": 1280,
+    "later_document_width": 1270,
+    "later_purchase_class": "col-lg-6 product-purchase-column aos-init aos-animate"
+  },
+  "console_errors_observed": [],
+  "limitations": "Representative browser observations only; no Lighthouse, CrUX, Rich Results Test, or visual inspection of every listing."
+}

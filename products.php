@@ -810,6 +810,7 @@ I agree to be contacted only about matching Flip and Strip inventory.
                     // Staggered animation with max delay cap of 400ms
                     $delay = min(($index % 8) * 50, 400);
                     $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
+                    $productUrl = fasProductCardUrl($product);
 
                     // Normalize image path for display
                             $imageUrl = normalizeImagePath($product['image_url'] ?? null);
@@ -820,7 +821,7 @@ I agree to be contacted only about matching Flip and Strip inventory.
                             ?>
                     <div class="col-lg-4 col-md-6 col-sm-12" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                         <div class="card product-card h-100">
-                            <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none">
+                            <a href="<?php echo htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none">
                                 <div class="position-relative">
                                     <?php
                                     // Check if image is external or local
@@ -860,7 +861,7 @@ style="cursor: pointer;">
                             </a>
                             <div class="card-body d-flex flex-column">
                                 <h6 class="card-title">
-                                    <a href="/product/<?php echo $product['id']; ?>" class="text-decoration-none text-dark">
+                                    <a href="<?php echo htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none text-dark">
                                         <?php echo htmlspecialchars($product['name']); ?>
                                     </a>
                                 </h6>

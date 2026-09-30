@@ -1,0 +1,259 @@
+{
+  "date": "2026-09-30",
+  "scope": "Local safe SEO batch; isolated PHP template fixtures using the saved public feed. Not a database, full pagination, or deployed integration test.",
+  "phpLint": {
+    "files": 7,
+    "passed": true
+  },
+  "catalogRender": {
+    "listings": 607,
+    "serverLinks": 1214,
+    "ajaxLinks": 1214,
+    "allMatchAuditedCanonicalUrls": true,
+    "otherCardMarkupIdenticalToBaseline": true
+  },
+  "responsivePreviews": [
+    {
+      "preview": "about.php 320",
+      "viewport": 310,
+      "width": 310,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "about.php 390",
+      "viewport": 380,
+      "width": 380,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "about.php 768",
+      "viewport": 758,
+      "width": 777,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "about.php 1440",
+      "viewport": 1430,
+      "width": 1430,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "hero.php 320",
+      "viewport": 310,
+      "width": 310,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "hero.php 390",
+      "viewport": 380,
+      "width": 380,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "hero.php 768",
+      "viewport": 758,
+      "width": 777,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "hero.php 1440",
+      "viewport": 1430,
+      "width": 1430,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "server.html 320",
+      "viewport": 310,
+      "width": 310,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "server.html 390",
+      "viewport": 380,
+      "width": 380,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "server.html 768",
+      "viewport": 768,
+      "width": 768,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "server.html 1440",
+      "viewport": 1440,
+      "width": 1440,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "ajax.html 320",
+      "viewport": 310,
+      "width": 310,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "ajax.html 390",
+      "viewport": 380,
+      "width": 380,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "ajax.html 768",
+      "viewport": 768,
+      "width": 768,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "ajax.html 1440",
+      "viewport": 1440,
+      "width": 1440,
+      "ready": "complete",
+      "condition": false,
+      "links": [
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+        "/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl"
+      ]
+    },
+    {
+      "preview": "condition.html 320",
+      "viewport": 320,
+      "width": 320,
+      "ready": "complete",
+      "condition": true,
+      "links": []
+    },
+    {
+      "preview": "condition.html 390",
+      "viewport": 390,
+      "width": 390,
+      "ready": "complete",
+      "condition": true,
+      "links": []
+    },
+    {
+      "preview": "condition.html 768",
+      "viewport": 768,
+      "width": 768,
+      "ready": "complete",
+      "condition": true,
+      "links": []
+    },
+    {
+      "preview": "condition.html 1440",
+      "viewport": 1440,
+      "width": 1440,
+      "ready": "complete",
+      "condition": true,
+      "links": []
+    },
+    {
+      "preview": "about-before.php 768",
+      "viewport": 758,
+      "width": 777,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    },
+    {
+      "preview": "hero-before.php 768",
+      "viewport": 758,
+      "width": 777,
+      "ready": "complete",
+      "condition": false,
+      "links": []
+    }
+  ],
+  "liveDestinationChecks": [
+    {
+      "url": "https://flipandstrip.com/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+      "status": 200,
+      "final_url": "https://flipandstrip.com/product/6393/yfz450r-radiator-hose-kit-blue-yamaha-atv-09-13-cv4-silicone-rubber-high-temp",
+      "redirected": false
+    },
+    {
+      "url": "https://flipandstrip.com/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+      "status": 200,
+      "final_url": "https://flipandstrip.com/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+      "redirected": false
+    },
+    {
+      "url": "https://flipandstrip.com/products",
+      "status": 200,
+      "final_url": "https://flipandstrip.com/products",
+      "redirected": false
+    },
+    {
+      "url": "https://flipandstrip.com/contact",
+      "status": 200,
+      "final_url": "https://flipandstrip.com/contact",
+      "redirected": false
+    }
+  ]
+}

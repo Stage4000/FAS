@@ -1,6 +1,6 @@
 <?php
-$metaTitle = 'Flip and Strip - Motorcycle, ATV/UTV & Boat Parts';
-$metaDescription = 'Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.';
+$metaTitle = 'Flip and Strip | Motorcycle, ATV/UTV, Boat & Automotive Parts';
+$metaDescription = 'Shop new and used motorcycle, ATV/UTV, boat, and automotive parts at Flip and Strip. Review photos, condition details, and descriptions before ordering.';
 $canonicalUrl = 'https://flipandstrip.com/';
 $currentPage = 'home';
 $extraHeadMeta = '<meta name="google-site-verification" content="4klYcjDMem--91hHRoLI38YtVRKyZnpyyPGXT651Lno" />';
@@ -32,7 +32,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
-            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">High quality new & used, tested parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more!</p>
+            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">New & used parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more.</p>
             <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
                 <a href="/products" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
                     <i class="fas fa-search me-2"></i>Shop Now

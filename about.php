@@ -1,7 +1,7 @@
 <?php
 $pageTitle = 'About Us';
-$metaTitle = 'About Flip and Strip | Tested Used Parts';
-$metaDescription = 'Learn about Flip and Strip, a source for inspected motorcycle, ATV/UTV, boat, and automotive parts with detailed photos and descriptions.';
+$metaTitle = 'About Flip and Strip | New & Used Parts';
+$metaDescription = 'Explore new and used motorcycle, ATV/UTV, boat, and automotive parts at Flip and Strip. Review listing photos, condition details, and descriptions.';
 $canonicalUrl = 'https://flipandstrip.com/about';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -15,21 +15,21 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="card-body p-5">
                     <h3 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h3>
                     <p class="lead">
-                        Flip and Strip specializes in providing high-quality, tested motorcycle, ATV/UTV, boat, and automotive parts 
+                        Flip and Strip offers new and used motorcycle, ATV/UTV, boat, and automotive parts
                         from top manufacturers including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.
                     </p>
                     
                     <p>
-                        All our parts are carefully inspected, tested, and photographed to ensure you know exactly 
-                        what you're getting. We take pride in offering low-mileage parts that are in excellent working condition.
+                        Review the photos, condition details, and description on each listing before ordering.
+                        Contact us if you have questions about a part or need help checking fitment.
                     </p>
                     
                     <h4 class="mt-4 mb-3">What We Offer</h4>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Tested and inspected parts</li>
-                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Low-mileage components</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> New and used parts</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Item-specific condition details</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Detailed photos and descriptions</li>
-                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Fast shipping with multiple carrier options</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Shipping rates calculated at checkout</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Secure PayPal checkout</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Direct integration with our eBay store</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Live chat support via Tawk.to</li>
@@ -63,8 +63,8 @@ require_once __DIR__ . '/includes/header.php';
             <div class="text-center" data-aos="fade-up" data-aos-delay="200">
                 <h3 class="mb-4">Ready to Find Your Parts?</h3>
                 <div class="d-flex gap-3 justify-content-center">
-                    <a href="products.php" class="btn btn-danger btn-lg">Browse Products</a>
-                    <a href="contact.php" class="btn btn-danger btn-lg">Contact Us</a>
+                    <a href="/products" class="btn btn-danger btn-lg">Browse Products</a>
+                    <a href="/contact" class="btn btn-danger btn-lg">Contact Us</a>
                 </div>
             </div>
         </div>

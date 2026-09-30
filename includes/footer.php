@@ -9,8 +9,8 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <h5 class="fw-bold">FLIP AND STRIP</h5>
-                    <p>Quality motorcycle, ATV/UTV, and boat parts</p>
-                    <p class="small">Low miles, tested, and inspected parts from top brands including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.</p>
+                    <p>Motorcycle, ATV/UTV, boat, and automotive parts</p>
+                    <p class="small">New and used parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more. Review each listing for condition details.</p>
                 </div>
                 <div class="col-md-4 mb-3">
                     <h6>Quick Links</h6>
