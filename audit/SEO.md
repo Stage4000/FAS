@@ -5,7 +5,7 @@
 **Scope:** live public storefront, every current product listing, catalog discovery, Merchant feed, shared templates, and repository SEO implementation.  
 **Baseline deliverable:** audit and implementation plan; no storefront code, inventory, settings, or deployment changed during the audit.
 
-**Implementation follow-up, September 30:** the user-selected small link and copy changes are implemented locally. See section 10 for scope, verification, and remaining release checks. The original crawl and listing register remain a dated baseline.
+**Implementation follow-up, September 30:** the user-selected small link and copy changes are deployed and verified live. See section 10 for scope, verification, and remaining release checks. The original crawl and listing register remain a dated baseline.
 
 ## 1. Executive assessment
 
@@ -153,6 +153,8 @@ The browser path uses `loadProductsAndSidebar()` at `products.php:1261` and `api
 
 ### SEO-08 — P2: canonical aliases remain crawlable duplicates (S–M)
 
+**Progress:** canonical card links and About-page clean links are complete, deployed, and live-verified (section 10). Alias/redirect work remains open.
+
 **Live evidence:** `/index.php`, `/about.php`, `/products.php`, and `/products/` return 200. Their canonicals point to clean routes, but no permanent redirects consolidate these requests. About-page links still point to `products.php` and `contact.php`. Homepage collection links use query aliases.
 
 Catalog product anchors also point to bare `/product/{id}` URLs, adding a redirect before the canonical slugged product page. This is visible in both saved server HTML and Chrome. Update the card links in `products.php:823,863` and `api/products.php:385,423` to use the shared canonical product URL helper, while keeping legacy-ID redirects for existing links. ItemList schema already uses slugged URLs, so the two discovery surfaces should agree.
@@ -180,6 +182,8 @@ Catalog product anchors also point to bare `/product/{id}` URLs, adding a redire
 **Acceptance:** one documented maintained feed source; valid XML; current product set; no stale export can be mistaken for the active source. Merchant Center processing and item diagnostics must be checked in the account.
 
 ### SEO-11 — P2: schema needs accurate content and complete merchant policies (M)
+
+**Progress:** the shared used-condition label is complete, deployed, and live-verified (section 10). Schema descriptions, identifiers, and policy work remain open.
 
 The Product/Offer structures exist and prices/availability agree with the feed. The remaining work is semantic: descriptions, true identifiers, actual condition, and supported policies.
 
@@ -346,20 +350,20 @@ Chrome confirmed SEO-01/03/04 and added material evidence to SEO-02/08/12. `seo-
 
 ## 10. First implementation batch — September 30, 2026
 
-**Status: implemented locally; not deployed.** The user selected the small canonical-link and verified-copy changes. No inventory records, product URLs/slugs, query logic, pagination, redirects, robots, sitemap, feeds, checkout, or synchronization behavior were changed.
+**Status: complete and deployed; live checks passed September 30, 2026.** The user confirmed deployment. The user selected the small canonical-link and verified-copy changes. No inventory records, product URLs/slugs, query logic, pagination, redirects, robots, sitemap, feeds, checkout, or synchronization behavior were changed.
 
 | Selected item | Implementation | Status |
 | --- | --- | --- |
-| SEO-08: canonical catalog card links | `products.php` and `api/products.php` both reuse the existing `fasProductCardUrl()` helper for image and title anchors. The helper derives the path from `Seo::productUrl()` and is already loaded in both renderers through `includes/product-merchandising.php`. Output is HTML-escaped. | Complete locally; existing aliases and redirect rules retained |
-| SEO-08: clean static internal links | About-page buttons use the established `/products` and `/contact` URLs. | Complete locally |
-| SEO-11: correct blanket used-condition label | The shared product trust panel says “Condition as Listed” and asks shoppers to review the item's condition, photos, and description. Existing item-specific condition badges remain intact. | Complete locally; remaining SEO-11 schema/policy work stays open |
-| Verified static copy/metadata | Homepage and About metadata now acknowledge new and used inventory. Homepage, About, shared footer, and fallback metadata remove blanket tested/low-mileage claims from the edited copy; the footer and default title include automotive inventory. About copy directs shoppers to listing facts and describes shipping calculation without promising speed. | Complete locally; product descriptions and titles remain unchanged |
+| SEO-08: canonical catalog card links | `products.php` and `api/products.php` both reuse the existing `fasProductCardUrl()` helper for image and title anchors. The helper derives the path from `Seo::productUrl()` and is already loaded in both renderers through `includes/product-merchandising.php`. Output is HTML-escaped. | **Complete — deployed and verified live**; existing aliases and redirect rules retained |
+| SEO-08: clean static internal links | About-page buttons use the established `/products` and `/contact` URLs. | **Complete — deployed and verified live** |
+| SEO-11: correct blanket used-condition label | The shared product trust panel says “Condition as Listed” and asks shoppers to review the item's condition, photos, and description. Existing item-specific condition badges remain intact. | **Complete — deployed and verified live**; remaining SEO-11 schema/policy work stays open |
+| Verified static copy/metadata | Homepage and About metadata now acknowledge new and used inventory. Homepage, About, shared footer, and fallback metadata remove blanket tested/low-mileage claims from the edited copy; the footer and default title include automotive inventory. About copy directs shoppers to listing facts and describes shipping calculation without promising speed. | **Complete — deployed and verified live**; product descriptions and titles remain unchanged |
 
 ### Verification performed
 
 - PHP 8.5.5 syntax checks passed for all seven changed PHP files; `git diff --check` passed.
 - Rendered the actual before/after catalog loops in an isolated temporary PHP environment using all **607 saved feed records**, with a fixture category-label provider and no database calls. For **both** initial-page and AJAX templates, all **1,214 image/title links** match the audited canonical paths: **2,428 checked links total**. After normalizing only those link paths, each renderer's entire before/after output is identical. This verifies that card text, prices, condition badges, stock, and cart-button data did not change under the same fixture inputs.
-- Live read-only GETs to the generated URLs for new product **6393** and used product **6392**, plus `/products` and `/contact`, returned **200 without redirects**. These checks verify existing destinations, not deployment of the local changes.
+- Live read-only GETs to the generated URLs for products **6393** and **6392** (the saved feed classified 6392 as used, while the deployed listing says “New with tags”), plus `/products` and `/contact`, returned **200 without redirects**. These checks verify existing destinations, not deployment of the local changes.
 - In-app browser inspection confirmed the rendered About copy, footer, and clean button links. Local iframe previews at **320, 390, 768, and 1440 px** checked the About page, homepage hero/shared shell, both real card fragments, and the actual edited condition-copy fragment beside New and Used badges. Catalog and condition previews had no horizontal overflow at any checked width. The shared shell had a **19 px overflow** in the 768 px iframe (758 px usable viewport, 777 px document); both original About and original hero/header/footer fixtures reproduced exactly the same measurement. Record this existing tablet-layout issue for SEO-12 rather than expanding this batch.
 - Homepage meta description: **152 characters**; About: **147 characters**. Both fit the existing metadata helper without truncation. These are implementation checks, not search-ranking guarantees.
 
@@ -369,4 +373,4 @@ Evidence: [seo-safe-batch-verification.json](seo-safe-batch-verification.json). 
 
 The local database has no product table. Browser previews therefore used isolated static-page rendering and saved-inventory template fragments; they do **not** establish full database-backed catalog/API pagination or checkout behavior. Temporary preview configuration disabled account integrations and did not alter the workspace configuration or inventory.
 
-After deployment to a database-backed staging environment or an authorized production release, check image and title clicks on the initial catalog and after an AJAX page change; verify new/used detail labels, About buttons, homepage/About metadata, and shared footer at mobile and desktop widths. Existing category/free-shipping pagination defects remain open under SEO-01/02. Deploy only the seven changed PHP files for this batch; keep `audit/` and `tmp/` out of the public deployment. Broader SEO-08 routing/alias work and all deferred data/indexing changes remain separate work.
+Deployment was confirmed by the user. Live HTTP checks verified canonical product-card links on the catalog and the page-two AJAX response, homepage/About titles and descriptions, clean About buttons, and shared footer copy. Product 6393 and 6392 show the new neutral condition label. Evidence: [seo-first-batch-deployed.json](seo-first-batch-deployed.json). These checks cover the first batch, not the subsequent navigation fixes below. Existing category/free-shipping pagination defects remain open under SEO-01/02. Deploy only the seven changed PHP files for this batch; keep `audit/` and `tmp/` out of the public deployment. Broader SEO-08 routing/alias work and all deferred data/indexing changes remain separate work.

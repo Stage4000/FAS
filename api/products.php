@@ -84,116 +84,11 @@ function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds):
     return $filtered;
 }
 
-// Get filter parameters
-$ebayCat1 = $_GET['cat1'] ?? null;
-$ebayCat2 = $_GET['cat2'] ?? null;
-$ebayCat3 = $_GET['cat3'] ?? null;
-$manufacturer = $_GET['manufacturer'] ?? null;
-$fitmentModel = $_GET['model'] ?? null;
-$discoveryCollections = [
-    'trending' => 'Trending Parts',
-    'best' => 'Best Sellers',
-    'recent' => 'Recent Arrivals',
-];
-$discoveryCollection = $_GET['collection'] ?? '';
-if (!isset($discoveryCollections[$discoveryCollection])) {
-    $discoveryCollection = '';
-}
-$search = $_GET['search'] ?? null;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$perPage = 24;
-
-if ($discoveryCollection !== '') {
-    $ebayCat1 = null;
-    $ebayCat2 = null;
-    $ebayCat3 = null;
-    $manufacturer = null;
-    $fitmentModel = null;
-    $search = null;
-    $page = 1;
-}
 $canViewHiddenProducts = canViewHiddenProducts();
 $includeHiddenProducts = $canViewHiddenProducts && (($_GET['show_hidden'] ?? '') === '1');
+require __DIR__ . '/../includes/catalog-load.php';
+require __DIR__ . '/../includes/catalog-meta.php';
 
-// Initialize database and product model
-$db = Database::getInstance()->getConnection();
-$productModel = new Product($db);
-$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds($includeHiddenProducts);
-
-// Get eBay API for category names
-try {
-    $config = require __DIR__ . '/../src/config/config.php';
-    $ebayAPI = new EbayAPI($config);
-    $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
-    $ebayCategories = pruneEmptyEbayCategories($ebayCategories, $visibleCategoryIds);
-} catch (Exception $e) {
-    $ebayAPI = null;
-    $ebayCategories = [];
-}
-
-// Get products from database
-if ($discoveryCollection === 'trending') {
-    $products = fasAnalyticsRankedProducts($db, $productModel, $perPage);
-    $totalProducts = count($products);
-} elseif ($discoveryCollection === 'best') {
-    $products = fasBestSellingProducts($db, $productModel, $perPage);
-    $totalProducts = count($products);
-} elseif ($discoveryCollection === 'recent') {
-    $products = $productModel->getRecentVisible($perPage);
-    $totalProducts = count($products);
-} else {
-    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
-    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
-}
-$currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
-$noResultsProducts = [];
-$searchTerm = trim((string)($search ?? ''));
-$searchSuggestions = $searchTerm !== '' ? $productModel->getSearchSuggestionQueries($searchTerm, 6) : [];
-
-if (empty($products)) {
-    $noResultsProducts = $searchTerm !== ''
-        ? $productModel->getSearchFallbackRecommendations($searchTerm, 6, [], $ebayCat1, $ebayCat2, $ebayCat3, $manufacturer, $includeHiddenProducts, $fitmentModel)
-        : [];
-    if (count($noResultsProducts) < 6) {
-        $noResultsProducts = array_merge(
-            $noResultsProducts,
-            fasAnalyticsRankedProducts($db, $productModel, 6 - count($noResultsProducts), array_column($noResultsProducts, 'id'))
-        );
-    }
-    if (count($noResultsProducts) < 6) {
-        $noResultsProducts = array_merge(
-            $noResultsProducts,
-            $productModel->getRecentVisible(6 - count($noResultsProducts), array_column($noResultsProducts, 'id'))
-        );
-    }
-    $noResultsProducts = array_slice($noResultsProducts, 0, 6);
-}
-
-// Get unique manufacturers
-$allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
-$allModels = $productModel->getModels($includeHiddenProducts, $manufacturer);
-
-$totalPages = ceil($totalProducts / $perPage);
-
-// Get current category name for display
-$currentCategoryName = 'All Products';
-if ($discoveryCollection !== '') {
-    $currentCategoryName = $discoveryCollections[$discoveryCollection];
-} elseif (($ebayCat3 || $ebayCat2 || $ebayCat1) && $ebayAPI) {
-    $flatCategories = $ebayAPI->getStoreCategories();
-    if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
-        $cat = $flatCategories[$ebayCat3];
-        $currentCategoryName = ($cat['topLevel'] ?? '') . ' > ' . ($cat['parent'] ?? '') . ' > ' . $cat['name'];
-    } elseif ($ebayCat2 && isset($flatCategories[$ebayCat2])) {
-        $cat = $flatCategories[$ebayCat2];
-        $currentCategoryName = ($cat['topLevel'] ?? '') . ' > ' . $cat['name'];
-    } elseif ($ebayCat1 && isset($flatCategories[$ebayCat1])) {
-        $currentCategoryName = $flatCategories[$ebayCat1]['name'] ?? 'Category';
-    }
-}
-
-$merchandisingCategory = $currentCategoryName !== 'All Products' ? $currentCategoryName : null;
-$merchandisingManufacturer = !empty($manufacturer) ? (string) $manufacturer : null;
 // Build HTML output
 ob_start();
 ?>
@@ -235,6 +130,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
     <div class="col-md-6">
         <!-- Search Box -->
         <form method="get" action="/products" id="search-form">
+<?php if ($homepageCategory): ?><input type="hidden" name="category" value="<?php echo htmlspecialchars($homepageCategory); ?>"><?php endif; ?>
             <?php if ($ebayCat1): ?><input type="hidden" name="cat1" value="<?php echo $ebayCat1; ?>"><?php endif; ?>
 <?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
 <?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
@@ -247,6 +143,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
                     <?php
                         $clearUrl = '/products';
                         $clearParams = [];
+if ($homepageCategory) $clearParams[] = 'category=' . urlencode($homepageCategory);
                         if ($ebayCat1) $clearParams[] = 'cat1=' . urlencode($ebayCat1);
 if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
 if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
@@ -311,6 +208,8 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 </div>
 </div>
 </div>
+
+<?php require __DIR__ . '/../includes/catalog-intro.php'; ?>
 
 <!-- Products Grid -->
 <?php if (empty($products)): ?>
@@ -483,17 +382,6 @@ data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']
     <nav aria-label="Product pagination" class="mt-5">
         <ul class="pagination justify-content-center flex-wrap">
             <?php
-            // Build query parameters
-$queryParams = [];
-if ($discoveryCollection) $queryParams[] = 'collection=' . urlencode($discoveryCollection);
-if ($ebayCat1) $queryParams[] = 'cat1=' . urlencode($ebayCat1);
-if ($ebayCat2) $queryParams[] = 'cat2=' . urlencode($ebayCat2);
-if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
-if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
-if ($fitmentModel) $queryParams[] = 'model=' . urlencode($fitmentModel);
-if ($search) $queryParams[] = 'search=' . urlencode($search);
-if ($includeHiddenProducts) $queryParams[] = 'show_hidden=1';
-$queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
             // Smart pagination
             $paginationRange = 2;
@@ -519,7 +407,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
             <!-- Previous Button -->
             <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/products?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" aria-label="Previous">
+                <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($page - 1), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -534,7 +422,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
                 <?php endif; ?>
 
                 <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                    <a class="page-link" href="/products?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
+                    <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($i), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $i; ?></a>
                 </li>
 
                 <?php $prevPage = $i; ?>
@@ -542,7 +430,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
             <!-- Next Button -->
             <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/products?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" aria-label="Next">
+                <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($page + 1), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
@@ -558,21 +446,27 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
     ob_start();
     ?>
     <!-- All Products Link -->
-<a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === '') ? 'active' : ''; ?>">
+<a href="/products" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && !$homepageCategory && $discoveryCollection === '') ? 'active' : ''; ?>">
 <i class="fas fa-th"></i> All Products
-<?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === ''): ?>
+<?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && !$homepageCategory && $discoveryCollection === ''): ?>
 <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
 <?php endif; ?>
 </a>
-<a href="#" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
+<?php if ($homepageCategory): ?>
+<a href="/products/<?php echo htmlspecialchars($homepageCategory); ?>" class="list-group-item list-group-item-action active"><?php echo htmlspecialchars(\FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$homepageCategory]); ?></a>
+<?php endif; ?>
+<a href="/products/trending" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
 <i class="fas fa-chart-line"></i> Trending Parts
 </a>
-<a href="#" data-collection="best" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'best' ? 'active' : ''; ?>">
+<a href="/products/best-sellers" data-collection="best" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'best' ? 'active' : ''; ?>">
 <i class="fas fa-star"></i> Best Sellers
 </a>
-<a href="#" data-collection="recent" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'recent' ? 'active' : ''; ?>">
+<a href="/products/recent-arrivals" data-collection="recent" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'recent' ? 'active' : ''; ?>">
 <i class="fas fa-clock"></i> Recent Arrivals
 </a>
+
+<a href="/products/free-shipping" data-collection="free_shipping" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'free_shipping' ? 'active' : ''; ?>"><i class="fas fa-truck-fast"></i> Free Shipping Eligible</a>
+<a href="/products/sale" data-collection="sale" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'sale' ? 'active' : ''; ?>"><i class="fas fa-percent"></i> On Sale</a>
 
 <?php if (!empty($ebayCategories)): ?>
         <?php foreach ($ebayCategories as $cat1): ?>
@@ -620,6 +514,8 @@ try {
         'totalProducts' => $totalProducts,
         'currentPage' => $page,
         'totalPages' => $totalPages,
+        'metadata' => ['title'=>$metaTitle, 'description'=>$metaDescription, 'canonical'=>$canonicalUrl, 'robots'=>$robotsMeta, 'schemas'=>$structuredData],
+        'landing' => ['page_type'=>$discoveryCollection !== '' ? 'collection' : ($isCuratedFitmentLanding ? 'fitment_landing' : ($homepageCategory ? 'category' : 'products')), 'collection'=>$discoveryCollection, 'category'=>$homepageCategory, 'manufacturer'=>$manufacturerName, 'model'=>$fitmentModelName, 'product_count'=>$totalProducts, 'canonical_url'=>$canonicalUrl],
         'success' => true
     ];
 

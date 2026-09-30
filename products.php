@@ -17,66 +17,6 @@ function canViewHiddenProducts(): bool
 $canViewHiddenProducts = canViewHiddenProducts();
 $includeHiddenProducts = $canViewHiddenProducts && (($_GET['show_hidden'] ?? '') === '1');
 
-// Get filter parameters
-$homepageCategory = $_GET['category'] ?? null;  // Homepage category slug (motorcycle, atv, boat, etc.)
-
-// Validate homepage category against allowlist
-$allowedCategories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
-if ($homepageCategory !== null && !in_array($homepageCategory, $allowedCategories)) {
-    $homepageCategory = null;  // Invalid category, treat as no filter
-}
-
-// If homepage category is specified, redirect to the appropriate eBay category
-// This ensures the sidebar navigation works consistently
-if (false && $homepageCategory) {
-    require_once __DIR__ . '/src/config/Database.php';
-    require_once __DIR__ . '/src/models/HomepageCategoryMapping.php';
-    require_once __DIR__ . '/src/utils/SyncLogger.php';
-    require_once __DIR__ . '/src/integrations/EbayAPI.php';
-
-    $db = \FAS\Config\Database::getInstance()->getConnection();
-    $mappingModel = new \FAS\Models\HomepageCategoryMapping($db);
-    $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
-
-    if (!empty($ebayCategoryNames)) {
-        try {
-            $config = require __DIR__ . '/src/config/config.php';
-            $ebayAPI = new \FAS\Integrations\EbayAPI($config);
-            $flatCategories = $ebayAPI->getStoreCategories();
-
-            // Find the first eBay category ID that matches
-            $redirectCat1 = null;
-            foreach ($ebayCategoryNames as $ebayCategoryName) {
-                foreach ($flatCategories as $catId => $catInfo) {
-                    if (strcasecmp($catInfo['name'], $ebayCategoryName) === 0) {
-                        $redirectCat1 = $catId;
-                        break 2;
-                    }
-                }
-            }
-
-            // Redirect to eBay category if found
-            if ($redirectCat1) {
-                $search = $_GET['search'] ?? null;
-                $manufacturer = $_GET['manufacturer'] ?? null;
-                $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-
-                $redirectUrl = '/products?cat1=' . urlencode($redirectCat1);
-                if ($search) $redirectUrl .= '&search=' . urlencode($search);
-                if ($manufacturer) $redirectUrl .= '&manufacturer=' . urlencode($manufacturer);
-                if ($page > 1) $redirectUrl .= '&page=' . (int)$page;
-                if ($includeHiddenProducts) $redirectUrl .= '&show_hidden=1';
-
-                header('Location: ' . $redirectUrl);
-                exit;
-            }
-        } catch (Exception $e) {
-            // If redirect fails, continue to normal page load
-            error_log("Redirect failed: " . $e->getMessage());
-        }
-    }
-}
-
 // Now load dependencies and continue normal page rendering
 require_once __DIR__ . '/includes/sale-helper.php';
 require_once __DIR__ . '/src/config/Database.php';
@@ -113,22 +53,6 @@ function normalizeImagePath($path) {
     return $path;
 }
 
-function fasResolveSlugOption(array $options, ?string $slug): ?string
-{
-    $slug = trim((string)$slug);
-    if ($slug === '') {
-        return null;
-    }
-
-    foreach ($options as $option) {
-        if (Seo::slug((string)$option) === $slug) {
-            return (string)$option;
-        }
-    }
-
-    return null;
-}
-
 function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds): array
 {
     $filtered = [];
@@ -150,372 +74,8 @@ function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds):
     return $filtered;
 }
 
-// Get filter parameters (already got homepageCategory above for redirect)
-$ebayCat1 = $_GET['cat1'] ?? null;  // Level 1 eBay category ID
-$ebayCat2 = $_GET['cat2'] ?? null;  // Level 2 eBay category ID
-$ebayCat3 = $_GET['cat3'] ?? null;  // Level 3 eBay category ID
-$manufacturer = $_GET['manufacturer'] ?? null;
-$fitmentModel = $_GET['model'] ?? null;
-$manufacturerSlug = $_GET['manufacturer_slug'] ?? null;
-$modelSlug = $_GET['model_slug'] ?? null;
-$discoveryCollections = [
-    'trending' => 'Trending Parts',
-    'best' => 'Best Sellers',
-    'recent' => 'Recent Arrivals',
-    'free_shipping' => 'Free Shipping Eligible',
-    'sale' => 'On Sale',
-];
-$discoveryCollectionAliases = [
-    'trending' => 'trending',
-    'best' => 'best',
-    'best-sellers' => 'best',
-    'recent' => 'recent',
-    'recent-arrivals' => 'recent',
-    'free_shipping' => 'free_shipping',
-    'free-shipping' => 'free_shipping',
-    'sale' => 'sale',
-    'on-sale' => 'sale',
-];
-$discoveryCollectionSlugs = [
-    'trending' => 'trending',
-    'best' => 'best-sellers',
-    'recent' => 'recent-arrivals',
-    'free_shipping' => 'free-shipping',
-    'sale' => 'sale',
-];
-$requestedCollection = $_GET['collection'] ?? '';
-$discoveryCollection = $discoveryCollectionAliases[$requestedCollection] ?? $requestedCollection;
-if (!isset($discoveryCollections[$discoveryCollection])) {
-    $discoveryCollection = '';
-}
-$search = $_GET['search'] ?? null;
-$page = max(1, isset($_GET['page']) ? (int)$_GET['page'] : 1);
-$perPage = 24;
-
-if ($discoveryCollection !== '') {
-    $ebayCat1 = null;
-    $ebayCat2 = null;
-    $ebayCat3 = null;
-    $homepageCategory = null;
-    $manufacturer = null;
-    $fitmentModel = null;
-    $manufacturerSlug = null;
-    $modelSlug = null;
-    $search = null;
-    $page = 1;
-}
-
-// Initialize database and product model
-$db = Database::getInstance()->getConnection();
-$productModel = new Product($db);
-$visibleCategoryIds = $productModel->getVisibleEbayCategoryIds($includeHiddenProducts);
-
-if (!$manufacturer && $manufacturerSlug) {
-    $manufacturer = fasResolveSlugOption($productModel->getManufacturers($includeHiddenProducts), $manufacturerSlug);
-}
-
-if (!$fitmentModel && $modelSlug) {
-    $fitmentModel = fasResolveSlugOption($productModel->getModels($includeHiddenProducts, $manufacturer), $modelSlug);
-}
-
-// Get eBay categories for sidebar
-$flatCategories = [];
-try {
-    $config = require __DIR__ . '/src/config/config.php';
-    $ebayAPI = new EbayAPI($config);
-    $ebayCategories = $ebayAPI->getStoreCategoriesHierarchical();
-    $ebayCategories = pruneEmptyEbayCategories($ebayCategories, $visibleCategoryIds);
-
-    // Debug logging
-    if (empty($ebayCategories)) {
-        error_log("DEBUG: eBay categories are empty after getStoreCategoriesHierarchical()");
-        $flatCategories = $ebayAPI->getStoreCategories();
-        if ($flatCategories === null) {
-            error_log("DEBUG: getStoreCategories() returned NULL - likely token/API issue");
-        } elseif (empty($flatCategories)) {
-            error_log("DEBUG: getStoreCategories() returned empty array - no categories in eBay store");
-        } else {
-            error_log("DEBUG: getStoreCategories() returned " . count($flatCategories) . " categories but hierarchy is empty");
-        }
-    }
-} catch (Exception $e) {
-    $ebayCategories = [];
-    error_log("Failed to load eBay categories: " . $e->getMessage());
-    error_log("Stack trace: " . $e->getTraceAsString());
-}
-
-if ($homepageCategory && !$ebayCat1 && !empty($flatCategories)) {
-    try {
-        $mappingModel = new HomepageCategoryMapping($db);
-        $ebayCategoryNames = $mappingModel->getEbayCategoriesForHomepageCategory($homepageCategory);
-
-        foreach ($ebayCategoryNames as $ebayCategoryName) {
-            foreach ($flatCategories as $catId => $catInfo) {
-                if (strcasecmp($catInfo['name'] ?? '', $ebayCategoryName) === 0) {
-                    $ebayCat1 = $catId;
-                    break 2;
-                }
-            }
-        }
-    } catch (Exception $e) {
-        error_log("Homepage category resolution failed: " . $e->getMessage());
-    }
-}
-
-// Use virtual discovery collections, eBay category filters, or all products.
-if ($discoveryCollection === 'trending') {
-    $products = fasAnalyticsRankedProducts($db, $productModel, $perPage);
-    $totalProducts = count($products);
-} elseif ($discoveryCollection === 'best') {
-    $products = fasBestSellingProducts($db, $productModel, $perPage);
-    $totalProducts = count($products);
-} elseif ($discoveryCollection === 'recent') {
-    $products = $productModel->getRecentVisible($perPage);
-    $totalProducts = count($products);
-} elseif ($discoveryCollection === 'free_shipping') {
-    $freeShippingConfig = file_exists(__DIR__ . '/src/config/config.php')
-        ? require __DIR__ . '/src/config/config.php'
-        : [];
-    $freeShippingSettings = ShippingRules::getFreeShippingSettings(is_array($freeShippingConfig) ? $freeShippingConfig : []);
-    $products = array_values(array_filter($productModel->getAllVisibleForFeed(), function ($product) use ($freeShippingSettings) {
-        return ShippingRules::productQualifiesForFreeShipping($product, $freeShippingSettings);
-    }));
-    $totalProducts = count($products);
-    $products = array_slice($products, 0, $perPage);
-} elseif ($discoveryCollection === 'sale') {
-    $products = $productModel->getOnSaleVisible($perPage);
-    if (getSaleConfig() !== null && count($products) < $perPage) {
-        $products = array_merge(
-            $products,
-            $productModel->getRecentVisible($perPage - count($products), array_column($products, 'id'))
-        );
-    }
-    $totalProducts = count($products);
-} else {
-    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
-    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel);
-}
-
-// Get unique manufacturers for filter (from all products)
-$allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
-$allModels = $productModel->getModels($includeHiddenProducts, $manufacturer);
-
-$totalPages = ceil($totalProducts / $perPage);
-
-// Get current category name for display
-$currentCategoryName = 'All Products';
-if ($discoveryCollection !== '') {
-    $currentCategoryName = $discoveryCollections[$discoveryCollection];
-} elseif ($ebayCat3 || $ebayCat2 || $ebayCat1) {
-    $flatCategories = $ebayAPI->getStoreCategories();
-    if ($ebayCat3 && isset($flatCategories[$ebayCat3])) {
-        $cat = $flatCategories[$ebayCat3];
-        $currentCategoryName = ($cat['topLevel'] ?? '') . ' > ' . ($cat['parent'] ?? '') . ' > ' . $cat['name'];
-    } elseif ($ebayCat2 && isset($flatCategories[$ebayCat2])) {
-        $cat = $flatCategories[$ebayCat2];
-        $currentCategoryName = ($cat['topLevel'] ?? '') . ' > ' . $cat['name'];
-    } elseif ($ebayCat1 && isset($flatCategories[$ebayCat1])) {
-        $currentCategoryName = $flatCategories[$ebayCat1]['name'] ?? 'Category';
-    }
-}
-$categoryMeta = [
-    'motorcycle' => [
-        'label' => 'Motorcycle Parts',
-        'description' => 'Shop tested used motorcycle parts for Harley Davidson, Honda, Yamaha, Kawasaki, Suzuki, BMW, and more.',
-    ],
-    'atv' => [
-        'label' => 'ATV/UTV Parts',
-        'description' => 'Shop tested used ATV and UTV parts for Polaris, Honda, Yamaha, Can-Am, Kawasaki, and more.',
-    ],
-    'boat' => [
-        'label' => 'Boat & Marine Parts',
-        'description' => 'Shop inspected boat and marine parts from Flip and Strip with clear product photos and fast shipping.',
-    ],
-    'automotive' => [
-        'label' => 'Automotive Parts',
-        'description' => 'Shop used automotive parts and accessories from Flip and Strip with tested inventory and clear photos.',
-    ],
-    'gifts' => [
-        'label' => 'Biker Gifts & Accessories',
-        'description' => 'Shop biker gifts, watches, clothing, collectibles, and accessories from Flip and Strip.',
-    ],
-    'other' => [
-        'label' => 'Other Powersports Parts',
-        'description' => 'Shop other powersports parts and accessories from Flip and Strip.',
-    ],
-];
-
-$searchTerm = Seo::cleanText($search ?? '');
-$manufacturerName = Seo::cleanText($manufacturer ?? '');
-$fitmentModelName = Seo::cleanText($fitmentModel ?? '');
-$categoryLabel = ($homepageCategory && isset($categoryMeta[$homepageCategory]))
-? $categoryMeta[$homepageCategory]['label']
-: Seo::cleanText($currentCategoryName);
-$pageSuffix = $page > 1 ? ' Page ' . $page : '';
-$isCuratedFitmentLanding = (($manufacturerSlug || $modelSlug) && $manufacturerName !== '' && $searchTerm === '');
-$collectionMeta = [
-    'trending' => [
-        'title' => 'Trending Used Parts | Flip and Strip',
-        'description' => 'Shop used powersports, marine, and automotive parts with recent shopper activity.',
-        'copy' => 'These parts are getting the most recent attention from shoppers. Use this page to compare in-demand inventory before it sells.',
-    ],
-    'best' => [
-        'title' => 'Best-Selling Used Parts | Flip and Strip',
-        'description' => 'Browse best-selling used motorcycle, ATV, boat, and automotive parts from Flip and Strip.',
-        'copy' => 'Best sellers are ranked from completed orders first, then recent shopper engagement when sales history is limited.',
-    ],
-    'recent' => [
-        'title' => 'Recent Arrivals | Flip and Strip',
-        'description' => 'See recently added used parts with actual item photos, fitment details, and secure checkout.',
-        'copy' => 'Recent arrivals help buyers find fresh used-parts inventory before it is picked over on high-demand makes and models.',
-    ],
-    'free_shipping' => [
-        'title' => 'Free Shipping Eligible Parts | Flip and Strip',
-        'description' => 'Shop used parts that qualify for free shipping to continental US addresses.',
-        'copy' => 'These listings qualify for free-shipping treatment by product flag or size and weight rules. Final eligibility is confirmed at checkout for continental US destinations.',
-    ],
-    'sale' => [
-        'title' => 'Used Parts On Sale | Flip and Strip',
-        'description' => 'Shop discounted used motorcycle, ATV, boat, automotive, and powersports parts from Flip and Strip.',
-        'copy' => 'Sale inventory highlights current markdowns and active promotions so buyers can find discounted parts faster.',
-    ],
-];
-
-$canonicalPath = '/products';
-if ($discoveryCollection !== '') {
-    $canonicalPath .= '/' . ($discoveryCollectionSlugs[$discoveryCollection] ?? $discoveryCollection);
-} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
-$canonicalPath .= '/' . $homepageCategory;
-} elseif ($isCuratedFitmentLanding) {
-    if ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
-        $canonicalPath .= '/' . $homepageCategory;
-    }
-    $canonicalPath .= '/make/' . Seo::slug($manufacturerName);
-    if ($fitmentModelName !== '') {
-        $canonicalPath .= '/' . Seo::slug($fitmentModelName);
-    }
-}
-
-$canonicalParams = [];
-if ($discoveryCollection !== '' || $isCuratedFitmentLanding) {
-    // Clean curated landing URLs should not canonicalize back to query strings.
-} elseif (!$homepageCategory) {
-    if ($ebayCat1) {
-        $canonicalParams['cat1'] = $ebayCat1;
-    }
-    if ($ebayCat2) {
-        $canonicalParams['cat2'] = $ebayCat2;
-    }
-    if ($ebayCat3) {
-        $canonicalParams['cat3'] = $ebayCat3;
-    }
-}
-if (!$isCuratedFitmentLanding && $manufacturerName !== '') {
-$canonicalParams['manufacturer'] = $manufacturerName;
-}
-if (!$isCuratedFitmentLanding && $fitmentModelName !== '') {
-$canonicalParams['model'] = $fitmentModelName;
-}
-if ($searchTerm !== '') {
-    $canonicalParams['search'] = $searchTerm;
-}
-if ($page > 1) {
-    $canonicalParams['page'] = $page;
-}
-
-$canonicalQuery = $canonicalParams ? '?' . http_build_query($canonicalParams) : '';
-$canonicalUrl = Seo::canonicalUrl($canonicalPath . $canonicalQuery);
-$robotsMeta = 'index, follow';
-
-if ($discoveryCollection !== '') {
-    $activeCollectionMeta = $collectionMeta[$discoveryCollection] ?? null;
-    $metaTitle = Seo::metaTitle($activeCollectionMeta['title'] ?? ($currentCategoryName . ' | Flip and Strip'));
-    $metaDescription = Seo::metaDescription($activeCollectionMeta['description'] ?? ('Browse ' . strtolower($currentCategoryName) . ' from Flip and Strip.'));
-} elseif ($searchTerm !== '') {
-$metaTitle = Seo::metaTitle('Search results for ' . $searchTerm . ' | Flip and Strip');
-$metaDescription = Seo::metaDescription('Browse matching Flip and Strip parts for ' . $searchTerm . '. Product search pages are provided for shopping navigation.');
-$robotsMeta = 'noindex, follow';
-} elseif ($isCuratedFitmentLanding) {
-    $fitmentLabel = trim($manufacturerName . ' ' . $fitmentModelName);
-    $metaTitle = Seo::metaTitle($fitmentLabel . ' Used Parts | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Shop available ' . $fitmentLabel . ' used parts with actual photos, fitment details, and secure checkout.');
-} elseif ($manufacturerName !== '' || $fitmentModelName !== '') {
-$fitmentLabel = trim($manufacturerName . ' ' . $fitmentModelName);
-$metaTitle = Seo::metaTitle($fitmentLabel . ' Parts | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Browse available ' . $fitmentLabel . ' parts from Flip and Strip.');
-    $robotsMeta = 'noindex, follow';
-} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
-    $metaTitle = Seo::metaTitle($categoryLabel . $pageSuffix . ' | Flip and Strip');
-    $metaDescription = Seo::metaDescription($categoryMeta[$homepageCategory]['description']);
-} elseif ($ebayCat1 || $ebayCat2 || $ebayCat3) {
-    $metaTitle = Seo::metaTitle($categoryLabel . $pageSuffix . ' | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Browse available ' . $categoryLabel . ' from Flip and Strip.');
-    $robotsMeta = 'noindex, follow';
-} else {
-    $metaTitle = Seo::metaTitle('Used Motorcycle, ATV, Boat & Automotive Parts' . $pageSuffix . ' | Flip and Strip');
-    $metaDescription = Seo::metaDescription('Shop tested used motorcycle, ATV/UTV, boat, and automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.');
-}
-
-if ($includeHiddenProducts) {
-$robotsMeta = 'noindex, nofollow';
-}
-
-$landingIntroCopy = '';
-if ($discoveryCollection !== '' && isset($collectionMeta[$discoveryCollection])) {
-    $landingIntroCopy = $collectionMeta[$discoveryCollection]['copy'];
-} elseif ($isCuratedFitmentLanding) {
-    $landingIntroCopy = 'Use this focused inventory page to review matching used parts, confirm fitment from photos and SKU details, and estimate shipping before checkout.';
-} elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
-    $landingIntroCopy = $categoryMeta[$homepageCategory]['description'] . ' Check manufacturer, model, SKU, photos, and notes before purchase because used-part fitment can vary by year and trim.';
-}
-
-$landingIntroLinks = [
-    '/products/recent-arrivals' => 'Recent Arrivals',
-    '/products/best-sellers' => 'Best Sellers',
-    '/products/free-shipping' => 'Free Shipping Eligible',
-    '/products/sale' => 'On Sale',
-];
-
-$pageTitle = $categoryLabel;
-$ogTitle = $metaTitle;
-$ogDescription = $metaDescription;
-$currentProductIds = array_values(array_filter(array_map('intval', array_column($products, 'id'))));
-$merchandisingCategory = $categoryLabel !== 'All Products' ? $categoryLabel : null;
-$merchandisingManufacturer = $manufacturerName !== '' ? $manufacturerName : null;
-$noResultsProducts = [];
-$searchSuggestions = $searchTerm !== '' ? $productModel->getSearchSuggestionQueries($searchTerm, 6) : [];
-
-if (empty($products)) {
-    $noResultsProducts = $searchTerm !== ''
-        ? $productModel->getSearchFallbackRecommendations($searchTerm, 6, [], $ebayCat1, $ebayCat2, $ebayCat3, $manufacturer, $includeHiddenProducts, $fitmentModel)
-        : [];
-    if (count($noResultsProducts) < 6) {
-        $noResultsProducts = array_merge(
-            $noResultsProducts,
-            fasAnalyticsRankedProducts($db, $productModel, 6 - count($noResultsProducts), array_column($noResultsProducts, 'id'))
-        );
-    }
-    if (count($noResultsProducts) < 6) {
-        $noResultsProducts = array_merge(
-            $noResultsProducts,
-            $productModel->getRecentVisible(
-                6 - count($noResultsProducts),
-                array_column($noResultsProducts, 'id'),
-                $merchandisingCategory,
-                $merchandisingManufacturer
-            )
-        );
-    }
-    $noResultsProducts = array_slice($noResultsProducts, 0, 6);
-}
-$structuredData = [
-    Seo::breadcrumbSchema([
-        ['name' => 'Home', 'url' => '/'],
-        ['name' => 'Products', 'url' => $canonicalPath],
-    ]),
-    Seo::collectionPageSchema($metaTitle, $metaDescription, $canonicalUrl),
-    Seo::itemListSchema($products),
-];
+require __DIR__ . '/includes/catalog-load.php';
+require __DIR__ . '/includes/catalog-meta.php';
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -534,12 +94,15 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="card-body p-0 collapse show" id="categoryMenu">
                     <div class="list-group list-group-flush">
                         <!-- All Products Link -->
-                        <a href="#" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === '') ? 'active' : ''; ?>">
+                        <a href="/products" data-category="" class="category-link list-group-item list-group-item-action <?php echo (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && !$homepageCategory && $discoveryCollection === '') ? 'active' : ''; ?>">
                             <i class="fas fa-th"></i> All Products
-                            <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && $discoveryCollection === ''): ?>
+                            <?php if (!$ebayCat1 && !$ebayCat2 && !$ebayCat3 && !$homepageCategory && $discoveryCollection === ''): ?>
                                 <span class="badge bg-danger float-end"><?php echo $totalProducts; ?></span>
                             <?php endif; ?>
                         </a>
+<?php if ($homepageCategory): ?>
+<a href="/products/<?php echo htmlspecialchars($homepageCategory); ?>" class="list-group-item list-group-item-action active"><?php echo htmlspecialchars(\FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$homepageCategory]); ?></a>
+<?php endif; ?>
 <a href="/products/trending" data-collection="trending" class="category-link list-group-item list-group-item-action ps-4 <?php echo $discoveryCollection === 'trending' ? 'active' : ''; ?>">
 <i class="fas fa-chart-line"></i> Trending Parts
 </a>
@@ -635,6 +198,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
                 <div class="col-md-6">
                     <!-- Search Box -->
                     <form method="get" action="/products" id="search-form">
+<?php if ($homepageCategory): ?><input type="hidden" name="category" value="<?php echo htmlspecialchars($homepageCategory); ?>"><?php endif; ?>
                         <?php if ($ebayCat1): ?><input type="hidden" name="cat1" value="<?php echo $ebayCat1; ?>"><?php endif; ?>
 <?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
 <?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
@@ -647,6 +211,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
                                 <?php
                                     $clearUrl = '/products';
                                     $clearParams = [];
+if ($homepageCategory) $clearParams[] = 'category=' . urlencode($homepageCategory);
                                     if ($ebayCat1) $clearParams[] = 'cat1=' . urlencode($ebayCat1);
 if ($ebayCat2) $clearParams[] = 'cat2=' . urlencode($ebayCat2);
 if ($ebayCat3) $clearParams[] = 'cat3=' . urlencode($ebayCat3);
@@ -712,24 +277,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 </div>
 </div>
 
-<?php if ($landingIntroCopy !== ''): ?>
-<div class="card border-0 shadow-sm mb-4 products-landing-intro" data-theme-card>
-<div class="card-body p-4">
-<div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-<div>
-<div class="small text-danger fw-semibold text-uppercase mb-1">Used parts buying guide</div>
-<h2 class="h5 fw-bold mb-2"><?php echo htmlspecialchars($currentCategoryName); ?></h2>
-<p class="text-muted mb-0"><?php echo htmlspecialchars($landingIntroCopy); ?></p>
-</div>
-<div class="products-landing-links d-flex flex-wrap gap-2 align-content-start">
-<?php foreach ($landingIntroLinks as $linkUrl => $linkLabel): ?>
-<a href="<?php echo htmlspecialchars($linkUrl); ?>" class="btn btn-outline-danger btn-sm"><?php echo htmlspecialchars($linkLabel); ?></a>
-<?php endforeach; ?>
-</div>
-</div>
-</div>
-</div>
-<?php endif; ?>
+<?php require __DIR__ . '/includes/catalog-intro.php'; ?>
 
 <!-- Products Grid -->
 <?php if (empty($products)): ?>
@@ -923,17 +471,6 @@ data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']
                 <nav aria-label="Product pagination" class="mt-5">
                     <ul class="pagination justify-content-center flex-wrap">
                         <?php
-                        // Build query parameters
-$queryParams = [];
-if ($discoveryCollection) $queryParams[] = 'collection=' . urlencode($discoveryCollection);
-if ($ebayCat1) $queryParams[] = 'cat1=' . urlencode($ebayCat1);
-if ($ebayCat2) $queryParams[] = 'cat2=' . urlencode($ebayCat2);
-if ($ebayCat3) $queryParams[] = 'cat3=' . urlencode($ebayCat3);
-if ($manufacturer) $queryParams[] = 'manufacturer=' . urlencode($manufacturer);
-if ($fitmentModel) $queryParams[] = 'model=' . urlencode($fitmentModel);
-if ($search) $queryParams[] = 'search=' . urlencode($search);
-if ($includeHiddenProducts) $queryParams[] = 'show_hidden=1';
-$queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
                         // Smart pagination: show first, last, current and nearby pages with ellipsis
                         $paginationRange = 2;
@@ -959,7 +496,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
                         <!-- Previous Button -->
                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="/products?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" aria-label="Previous">
+                            <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($page - 1), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
@@ -974,7 +511,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
                             <?php endif; ?>
 
                             <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                                <a class="page-link" href="/products?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
+                                <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($i), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $i; ?></a>
                             </li>
 
                             <?php $prevPage = $i; ?>
@@ -982,7 +519,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
                         <!-- Next Button -->
                         <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="/products?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" aria-label="Next">
+                            <a class="page-link" href="<?php echo htmlspecialchars($paginationUrl($page + 1), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
@@ -993,6 +530,7 @@ $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
     </div>
 </div>
 
+<script src="/public/js/catalog-navigation.js?v=<?php echo filemtime(__DIR__ . '/public/js/catalog-navigation.js'); ?>"></script>
 <script>
 window.FAS_PRODUCTS_PAGE_DATA = <?php echo json_encode([
     'page_type' => $discoveryCollection !== '' ? 'collection' : ($isCuratedFitmentLanding ? 'fitment_landing' : ($homepageCategory ? 'category' : 'products')),
@@ -1047,7 +585,7 @@ function setSavedSearches(searches) {
 }
 
 function currentSavedSearch() {
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     params.delete('page');
     const hasSearch = ['search', 'manufacturer', 'model', 'cat1', 'cat2', 'cat3'].some(key => params.has(key));
     if (!hasSearch) {
@@ -1060,7 +598,7 @@ function currentSavedSearch() {
     const label = keyword ? `Search: ${keyword}` : (fitment || title || 'Saved parts search');
     return {
         label,
-        url: '/products' + (params.toString() ? '?' + params.toString() : ''),
+        url: fasCatalogNavigationUrl(params),
         saved_at: Date.now()
     };
 }
@@ -1136,7 +674,7 @@ document.addEventListener('submit', async event => {
     event.preventDefault();
     const status = form.querySelector('.saved-search-notify-status');
     const submitButton = form.querySelector('[type="submit"]');
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     const savedSearch = currentSavedSearch() || {
         label: document.querySelector('#productsContent h1')?.textContent.trim() || 'Parts request',
         url: window.location.pathname + window.location.search
@@ -1207,9 +745,10 @@ function attachCategoryHandlers() {
             e.preventDefault();
 
             // Build URL parameters
-            const params = new URLSearchParams(window.location.search);
+            const params = fasCatalogParamsFromUrl(window.location.href);
 
             // Reset category parameters
+            params.delete('category');
             params.delete('cat1');
             params.delete('cat2');
             params.delete('cat3');
@@ -1239,7 +778,7 @@ function attachCategoryHandlers() {
         }
 
             // Update browser URL without refresh
-            const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+            const newUrl = fasCatalogNavigationUrl(params);
             window.history.pushState({}, '', newUrl);
 
             // Load products AND sidebar via AJAX
@@ -1259,100 +798,42 @@ function attachCategoryHandlers() {
 attachCategoryHandlers();
 
 // Load products and sidebar via AJAX
-function loadProductsAndSidebar(params) {
-    // Show loading state
+let catalogRequestController;
+async function loadProductsAndSidebar(params) {
+    if (catalogRequestController) catalogRequestController.abort();
+    const controller = new AbortController();
+    catalogRequestController = controller;
     const content = document.getElementById('productsContent');
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-    // Fetch products with sidebar
-    fetch('/api/products.php?' + params.toString() + '&include_sidebar=1')
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.text();
-        })
-        .then(text => {
-            console.log('API Response length:', text.length);
-            console.log('API Response (first 500 chars):', text.substring(0, 500));
-            console.log('API Response (last 100 chars):', text.substring(Math.max(0, text.length - 100)));
-
-            try {
-                const data = JSON.parse(text);
-                console.log('Parsed data keys:', Object.keys(data));
-                console.log('HTML length:', data.html ? data.html.length : 'null');
-                console.log('Sidebar length:', data.sidebar ? data.sidebar.length : 'null');
-                console.log('HTML preview (first 200 chars):', data.html ? data.html.substring(0, 200) : 'null');
-                console.log('HTML preview (last 200 chars):', data.html ? data.html.substring(Math.max(0, data.html.length - 200)) : 'null');
-
-                if (data.error) {
-                    throw new Error(data.message || 'Server error');
-                }
-
-                if (!data.html) {
-                    throw new Error('No HTML content in response');
-                }
-
-                console.log('Setting content.innerHTML...');
-                console.log('Content element:', content);
-                console.log('Content element ID:', content ? content.id : 'null');
-                content.innerHTML = data.html;
-                console.log('Products HTML updated successfully');
-                console.log('Content element childElementCount after update:', content.childElementCount);
-
-                // Remove AOS attributes from dynamically loaded content to prevent visibility issues
-                // AOS keeps elements hidden until they animate in, which doesn't work well with AJAX
-                const aosElements = content.querySelectorAll('[data-aos]');
-                aosElements.forEach(el => {
-                    el.removeAttribute('data-aos');
-                    el.removeAttribute('data-aos-delay');
-                    el.removeAttribute('data-aos-duration');
-                    el.removeAttribute('data-aos-offset');
-                    // Remove AOS classes that hide elements
-                    el.classList.remove('aos-init', 'aos-animate');
-                    // Force visibility by removing any AOS inline styles
-                    el.style.removeProperty('opacity');
-                    el.style.removeProperty('transform');
-                    el.style.removeProperty('transition-property');
-                });
-console.log('Removed AOS attributes from', aosElements.length, 'dynamically loaded elements');
-
-if (window.fasAnalytics && typeof window.fasAnalytics.refreshProductImpressions === 'function') {
-window.fasAnalytics.refreshProductImpressions();
-}
-
-// Update sidebar if provided
-if (data.sidebar) {
-                    const sidebarContainer = document.querySelector('#categoryMenu .list-group');
-                    if (sidebarContainer) {
-                        sidebarContainer.innerHTML = data.sidebar;
-                        console.log('Sidebar updated successfully');
-                        // Reattach category click handlers
-                        attachCategoryHandlers();
-                    } else {
-                        console.warn('Sidebar container not found');
-                    }
-                }
-
-                // Reattach pagination click handlers
-                attachPaginationHandlers();
-
-// Reattach manufacturer filter handler
-attachManufacturerFilterHandler();
-attachModelFilterHandler();
-renderSavedSearches();
-} catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
-                console.error('Response text:', text);
-                content.innerHTML = '<div class="alert alert-danger">Error parsing server response. Check console for details.</div>';
-                throw parseError;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading products:', error);
-            content.innerHTML = '<div class="alert alert-danger">Error loading products: ' + error.message + '. Please refresh the page.</div>';
+    try {
+        const response = await fetch('/api/products.php?' + params.toString() + '&include_sidebar=1', {signal: controller.signal});
+        if (!response.ok) throw new Error('Catalog request failed');
+        const data = await response.json();
+        if (!data.success || !data.html) throw new Error('Catalog response incomplete');
+        if (controller !== catalogRequestController) return;
+        content.innerHTML = data.html;
+        content.querySelectorAll('[data-aos]').forEach(el => {
+            ['data-aos','data-aos-delay','data-aos-duration','data-aos-offset'].forEach(attr => el.removeAttribute(attr));
+            el.classList.remove('aos-init', 'aos-animate');
+            ['opacity','transform','transition-property'].forEach(prop => el.style.removeProperty(prop));
         });
+        if (data.sidebar) {
+            const sidebar = document.querySelector('#categoryMenu .list-group');
+            if (sidebar) sidebar.innerHTML = data.sidebar;
+            attachCategoryHandlers();
+        }
+        fasApplyCatalogMetadata(data.metadata);
+        if (data.landing) window.FAS_PRODUCTS_PAGE_DATA = data.landing;
+        attachPaginationHandlers();
+        attachManufacturerFilterHandler();
+        attachModelFilterHandler();
+        renderSavedSearches();
+        if (window.fasAnalytics?.refreshProductImpressions) window.fasAnalytics.refreshProductImpressions();
+    } catch (error) {
+        if (error.name === 'AbortError' || controller !== catalogRequestController) return;
+        // Ordinary navigation remains the fallback when the optional AJAX request fails.
+        window.location.assign(window.location.href);
+    }
 }
 
 // Attach pagination handlers
@@ -1364,9 +845,10 @@ function attachPaginationHandlers() {
                 return;
             }
 
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
             e.preventDefault();
             const url = new URL(this.href);
-            const params = new URLSearchParams(url.search);
+            const params = fasCatalogParamsFromUrl(url);
 
             // Update browser URL
             window.history.pushState({}, '', url.pathname + url.search);
@@ -1382,13 +864,13 @@ function attachPaginationHandlers() {
 
 // Handle browser back/forward buttons
 window.addEventListener('popstate', function() {
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     loadProductsAndSidebar(params);
 });
 
 // Manufacturer filter change handler function
 function handleManufacturerChange() {
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     const mfg = this.value;
 
     if (mfg) {
@@ -1397,17 +879,19 @@ function handleManufacturerChange() {
         params.delete('manufacturer');
     }
     params.delete('collection');
+    params.delete('manufacturer_slug');
+    params.delete('model_slug');
     params.delete('model');
     params.delete('page'); // Reset to first page
 
     // Update URL and load products
-    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
     loadProductsAndSidebar(params);
 }
 
 function handleModelChange() {
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     const model = this.value;
 
     if (model) {
@@ -1416,9 +900,10 @@ function handleModelChange() {
         params.delete('model');
     }
     params.delete('collection');
+    params.delete('model_slug');
     params.delete('page');
 
-    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
     loadProductsAndSidebar(params);
 }
@@ -1452,10 +937,11 @@ attachModelFilterHandler();
 renderSavedSearches();
 
 // Handle search form submission
-document.getElementById('search-form')?.addEventListener('submit', function(e) {
+document.addEventListener('submit', function(e) {
+    if (e.target.id !== 'search-form') return;
     e.preventDefault();
 
-    const params = new URLSearchParams(window.location.search);
+    const params = fasCatalogParamsFromUrl(window.location.href);
     const searchTerm = document.getElementById('product-search').value;
 
     if (searchTerm) {
@@ -1467,7 +953,7 @@ document.getElementById('search-form')?.addEventListener('submit', function(e) {
     params.delete('page'); // Reset to first page
 
     // Update URL and load products
-    const newUrl = '/products' + (params.toString() ? '?' + params.toString() : '');
+    const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
     loadProductsAndSidebar(params);
 });

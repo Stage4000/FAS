@@ -1360,13 +1360,28 @@ class Product
         return $categories;
     }
 
-    /**
-     * Get all products with pagination, filtered by eBay store category IDs
-     */
-    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null)
+    /** Active mappings override stale imported categories; unmapped inventory keeps its stored category. */
+    private function homepageCategoryPredicate($category, array &$params): string
+    {
+        if ($category === null || $category === '') {
+            return '';
+        }
+        $params[] = $category;
+        $params[] = $category;
+        return " AND (
+            EXISTS (SELECT 1 FROM homepage_category_mappings h
+                WHERE h.is_active = 1 AND h.homepage_category = ?
+                  AND UPPER(TRIM(h.ebay_store_cat1_name)) = UPPER(TRIM(products.ebay_store_cat1_name)))
+            OR (LOWER(TRIM(products.category)) = ? AND NOT EXISTS (
+                SELECT 1 FROM homepage_category_mappings h WHERE h.is_active = 1
+                  AND UPPER(TRIM(h.ebay_store_cat1_name)) = UPPER(TRIM(products.ebay_store_cat1_name))))
+        )";
+    }
+
+    public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null)
     {
         if ($search !== null && trim((string)$search) !== '') {
-            return $this->searchByEbayCategory($page, $perPage, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model);
+            return $this->searchByEbayCategory($page, $perPage, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model, $homepageCategory);
         }
 
         $offset = ($page - 1) * $perPage;
@@ -1407,7 +1422,8 @@ class Product
             $params[] = $searchTerm;
         }
 
-        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $sql .= $this->homepageCategoryPredicate($homepageCategory, $params);
+        $sql .= " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
         $params[] = $perPage;
         $params[] = $offset;
 
@@ -1420,10 +1436,10 @@ class Product
     /**
      * Get count of products filtered by eBay store category IDs
      */
-    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null)
+    public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null)
     {
         if ($search !== null && trim((string)$search) !== '') {
-            return count($this->searchByEbayCategory(1, 0, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model));
+            return count($this->searchByEbayCategory(1, 0, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model, $homepageCategory));
         }
 
         $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1";
@@ -1462,6 +1478,7 @@ class Product
             $params[] = $searchTerm;
         }
 
+        $sql .= $this->homepageCategoryPredicate($homepageCategory, $params);
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
@@ -1539,11 +1556,11 @@ class Product
         return array_column(array_slice($ranked, 0, $limit), 'product');
     }
 
-    private function searchByEbayCategory($page, $perPage, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model): array
+    private function searchByEbayCategory($page, $perPage, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model, $homepageCategory = null): array
     {
         $page = max(1, (int)$page);
         $perPage = (int)$perPage;
-        $candidates = $this->getSearchCandidateProductsByEbayCategory($cat1Id, $cat2Id, $cat3Id, $manufacturer, $includeHidden, $model);
+        $candidates = $this->getSearchCandidateProductsByEbayCategory($cat1Id, $cat2Id, $cat3Id, $manufacturer, $includeHidden, $model, $homepageCategory);
         $ranked = [];
 
         foreach ($candidates as $product) {
@@ -1572,7 +1589,7 @@ class Product
         return array_slice($products, ($page - 1) * $perPage, $perPage);
     }
 
-    private function getSearchCandidateProductsByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $manufacturer = null, $includeHidden = false, $model = null): array
+    private function getSearchCandidateProductsByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null): array
     {
         $sql = "SELECT * FROM products WHERE is_active = 1";
         $params = [];
@@ -1602,7 +1619,8 @@ class Product
             $params[] = $model;
         }
 
-        $sql .= " ORDER BY created_at DESC";
+        $sql .= $this->homepageCategoryPredicate($homepageCategory, $params);
+        $sql .= " ORDER BY created_at DESC, id DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
