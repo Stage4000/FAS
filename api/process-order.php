@@ -17,6 +17,7 @@ require_once __DIR__ . '/../src/integrations/PayPalAPI.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
 require_once __DIR__ . '/../src/payments/CheckoutPricing.php';
+require_once __DIR__ . '/../src/payments/PayPalOrderVerifier.php';
 
 use FAS\Config\Database;
 use FAS\Models\Order;
@@ -26,6 +27,7 @@ use FAS\Utils\ErrorMonitor;
 use FAS\Shipping\ShippingOrder;
 use FAS\Payments\CheckoutProblem;
 use FAS\Payments\CheckoutPricing;
+use FAS\Payments\PayPalOrderVerifier;
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -68,6 +70,7 @@ try {
     
 } catch (CheckoutProblem $e) {
     http_response_code($e->httpStatus);
+    if ($e->reason === 'payment_pending') header('Retry-After: 30');
     echo json_encode(['error' => $e->getMessage()]);
 } catch (Exception $e) {
     error_log('Order API Error: ' . $e->getMessage());
@@ -170,14 +173,16 @@ function createOrder($input, $orderModel, $productModel)
  */
 function completeOrder($input, $orderModel, $productModel)
 {
-    $paypalOrderId = $input['paypal_order_id'] ?? null;
-    $paypalTransactionId = $input['paypal_transaction_id'] ?? null;
+    $paypalOrderId = PayPalOrderVerifier::id($input['paypal_order_id'] ?? null);
+    $paypalTransactionId = $input['paypal_transaction_id'] ?? '';
     $orderId = $input['order_id'] ?? null;
-    
-    if (!$paypalOrderId) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Missing PayPal order ID']);
-        exit;
+    if ($paypalTransactionId !== '' && (!is_string($paypalTransactionId)
+        || !preg_match('/^[A-Z0-9]{6,64}$/D', $paypalTransactionId))) {
+        throw new CheckoutProblem('invalid_reference', 'Invalid payment reference.', 400);
+    }
+    if ($orderId !== null && (!filter_var($orderId, FILTER_VALIDATE_INT)
+        || (int)$orderId < 1)) {
+        throw new CheckoutProblem('invalid_reference', 'Invalid order reference.', 400);
     }
     
     // Find order: prefer lookup by our DB order ID (reliable), fall back to PayPal order ID
@@ -196,7 +201,7 @@ function completeOrder($input, $orderModel, $productModel)
     }
     
     // Wallet orders must only be completed by the server-verified Apple Pay path.
-    if (($order['payment_method'] ?? '') === 'applepay') {
+    if (($order['payment_method'] ?? '') !== 'paypal') {
         http_response_code(409);
         echo json_encode(['error' => 'Apple Pay orders use the dedicated payment endpoint.']);
         exit;
@@ -204,6 +209,13 @@ function completeOrder($input, $orderModel, $productModel)
 
     // Check if already completed to prevent duplicate inventory deduction
     if ($order['payment_status'] === 'completed') {
+        if (!hash_equals((string)($order['paypal_order_id'] ?? ''), $paypalOrderId)
+            || ($paypalTransactionId !== '' && !hash_equals((string)($order['paypal_transaction_id'] ?? ''), $paypalTransactionId))) {
+            throw new CheckoutProblem('reference_mismatch', 'This order has a different payment reference. Contact support.');
+        }
+        if (strpos((string)($order['notes'] ?? ''), '[PAYPAL REVIEW REQUIRED]') !== false) {
+            throw new CheckoutProblem('payment_review', 'Payment was captured, but this order needs inventory review. Do not pay again; contact support.');
+        }
         echo json_encode([
             'success' => true,
             'message' => 'Order already completed',
@@ -211,6 +223,23 @@ function completeOrder($input, $orderModel, $productModel)
         ]);
         exit;
     }
+    if (!empty($order['paypal_order_id']) && !hash_equals((string)$order['paypal_order_id'], $paypalOrderId)) {
+        throw new CheckoutProblem('reference_mismatch', 'This order has a different payment reference. Contact support.');
+    }
+
+    // PayPal may have captured a browser payment even when the browser lost its
+    // response. A read-only provider lookup makes the same operation recoverable.
+    try {
+        $providerResult = (new PayPalAPI())->getOrderDetails($paypalOrderId);
+    } catch (Throwable $e) {
+        error_log('PayPal order verification unavailable: ' . $e->getMessage());
+        throw new CheckoutProblem('payment_unavailable', 'Payment confirmation is temporarily unavailable. Retry this same payment.', 503);
+    }
+    if (($providerResult['success'] ?? false) !== true || !is_array($providerResult['data'] ?? null)) {
+        error_log('PayPal order lookup did not return an order for local order ' . $order['id']);
+        throw new CheckoutProblem('payment_unavailable', 'Payment confirmation is temporarily unavailable. Retry this same payment.', 503);
+    }
+    $verifiedCapture = PayPalOrderVerifier::capture($order, $paypalOrderId, $providerResult['data'], $paypalTransactionId);
     
     // Use transaction to prevent race conditions during inventory check and deduction
     // This ensures atomicity: either all inventory is deducted or none is
@@ -226,11 +255,26 @@ function completeOrder($input, $orderModel, $productModel)
         $currentOrder = $orderModel->getById($order['id']);
         if (!$currentOrder) throw new RuntimeException('Order is no longer available.');
         if ($currentOrder['payment_status'] === 'completed') {
+            if (!hash_equals((string)($currentOrder['paypal_order_id'] ?? ''), $paypalOrderId)
+                || !hash_equals((string)($currentOrder['paypal_transaction_id'] ?? ''), $verifiedCapture)) {
+                throw new CheckoutProblem('reference_mismatch', 'This order has a different payment reference. Contact support.');
+            }
+            if (strpos((string)($currentOrder['notes'] ?? ''), '[PAYPAL REVIEW REQUIRED]') !== false) {
+                throw new CheckoutProblem('payment_review', 'Payment was captured, but this order needs inventory review. Do not pay again; contact support.');
+            }
             $db->commit();
             echo json_encode(['success'=>true,'message'=>'Order already completed','order_number'=>$currentOrder['order_number']]);
             return;
         }
         $order = $currentOrder;
+        if (!empty($order['paypal_order_id']) && !hash_equals((string)$order['paypal_order_id'], $paypalOrderId)) {
+            throw new CheckoutProblem('reference_mismatch', 'This order has a different payment reference. Contact support.');
+        }
+        $duplicate = $db->prepare('SELECT id FROM orders WHERE (paypal_order_id=? OR paypal_transaction_id=?) AND id<>? LIMIT 1');
+        $duplicate->execute([$paypalOrderId, $verifiedCapture, $order['id']]);
+        if ($duplicate->fetchColumn()) {
+            throw new CheckoutProblem('duplicate_payment', 'This payment is already linked to another order. Contact support.');
+        }
         
         // Verify inventory is still available and lock the rows
         $items = $orderModel->getItems($order['id']);
@@ -260,7 +304,13 @@ function completeOrder($input, $orderModel, $productModel)
         }
         
     if (!empty($inventoryIssues)) {
-        $db->rollBack();
+        $notes=(string)($order['notes'] ?? '');
+        $notes .= "\n[PAYPAL REVIEW REQUIRED] Payment captured; inventory changed. Do not fulfill until reconciled. Capture: " . $verifiedCapture;
+        if (!$orderModel->update($order['id'], [
+            'payment_status'=>'completed','order_status'=>'pending',
+            'paypal_order_id'=>$paypalOrderId,'paypal_transaction_id'=>$verifiedCapture,'notes'=>$notes
+        ])) throw new RuntimeException('Unable to record captured payment for review.');
+        $db->commit();
         error_log('Order completion inventory issue for order #' . $order['order_number'] . ': ' . implode('; ', $inventoryIssues));
         try {
             $monitor = new ErrorMonitor($db);
@@ -278,10 +328,7 @@ function completeOrder($input, $orderModel, $productModel)
             error_log('Inventory conflict error monitor write failed: ' . $monitorError->getMessage());
         }
         http_response_code(409);
-            echo json_encode([
-                'error' => 'Inventory no longer available',
-                'details' => $inventoryIssues
-            ]);
+            echo json_encode(['error' => 'Payment was captured, but this order needs inventory review. Do not pay again; contact support.']);
             exit;
         }
         
@@ -290,7 +337,7 @@ function completeOrder($input, $orderModel, $productModel)
             'payment_status' => 'completed',
             'order_status' => 'processing',
             'paypal_order_id' => $paypalOrderId,
-            'paypal_transaction_id' => $paypalTransactionId
+            'paypal_transaction_id' => $verifiedCapture
         ]);
         
         // Deduct product quantities atomically
@@ -316,6 +363,9 @@ function completeOrder($input, $orderModel, $productModel)
             'message' => 'Order completed and inventory updated'
         ]);
         
+    } catch (CheckoutProblem $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        throw $e;
     } catch (Exception $e) {
         // Rollback on any error
         if ($db->inTransaction()) {

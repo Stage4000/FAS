@@ -96,6 +96,7 @@ try:
         with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role=?,is_active=? WHERE id=9001",[role,active])
         check(request("/admin/settings.php")[0]==403,"Site settings reject inactive or non-admin identity: "+role+"/"+str(active))
     with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role='admin',is_active=1 WHERE id=9001")
+    request("/admin/security.php?tab=rules",{"action":"reauth","password":"Local-test-only","csrf_token":csrf})
     status,h,b=request("/admin/security.php?tab=restrictions",{"action":"block","ip":"127.0.0.1","reason":"Self","duration":"900","csrf_token":csrf})
     check(status==200 and "cannot be blocked" in b,"Self-block prevented")
     status,h,b=request("/admin/security.php?tab=restrictions",{"action":"block","ip":"203.0.113.4","reason":"<script>fixture</script>","duration":"900","csrf_token":csrf})

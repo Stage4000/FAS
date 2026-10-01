@@ -47,7 +47,8 @@ final class ApplePayContext
         }
         self::startSession();
         if (($settings['admin_only'] ?? true) !== false) {
-            return ($_SESSION['admin_logged_in'] ?? false) === true;
+            require_once __DIR__.'/../../includes/storefront-access.php';
+            return \fasCanViewHiddenProducts();
         }
         $path = __DIR__ . '/../config/config.php';
         $config = is_file($path) ? require $path : [];

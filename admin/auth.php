@@ -5,6 +5,7 @@
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../includes/admin-accounts.php';
 
 // Apply the site-configured timezone as early as possible
 require_once __DIR__ . '/../src/utils/Timezone.php';
@@ -26,6 +27,7 @@ class AdminAuth
             require_once __DIR__ . '/../src/config/Database.php';
             $this->db = \FAS\Config\Database::getInstance()->getConnection();
         }
+        fas_admin_accounts_init($this->db);
     }
     
     /**
@@ -33,7 +35,17 @@ class AdminAuth
      */
     public function isLoggedIn()
     {
-        return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+        if (($_SESSION['admin_logged_in'] ?? false) !== true) return false;
+        $admin = fas_admin_account($this->db, (int)($_SESSION['admin_id'] ?? 0));
+        $token = $_SESSION['admin_session_token'] ?? '';
+        if (!$admin || !$admin['is_active'] || $admin['role'] !== 'admin' || !is_string($token)
+            || !hash_equals(fas_admin_session_token($admin), $token)) {
+            unset($_SESSION['security_reauth_at']);
+            return false;
+        }
+        $_SESSION['admin_username'] = $admin['username'];
+        $_SESSION['admin_email'] = $admin['email'];
+        return true;
     }
     
     /**
@@ -51,7 +63,8 @@ class AdminAuth
             $this->lastError = fas_security_message($limit);
             return false;
         }
-        $stmt = $this->db->prepare("SELECT * FROM admin_users WHERE username = ? AND is_active = 1");
+        $stmt = $this->db->prepare("SELECT u.*, COALESCE(s.session_version,1) AS session_version FROM admin_users u
+            LEFT JOIN admin_account_security s ON s.admin_id=u.id WHERE username = ? AND is_active = 1 AND role='admin'");
         $stmt->execute([$username]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -64,6 +77,7 @@ class AdminAuth
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_username'] = $admin['username'];
             $_SESSION['admin_email'] = $admin['email'];
+            $_SESSION['admin_session_token'] = fas_admin_session_token($admin);
             $this->issueAnalyticsAdminCookie();
             
             // Update last login
@@ -94,10 +108,31 @@ class AdminAuth
      */
     public function changePassword($adminId, $currentPassword, $newPassword)
     {
+        if ((int)$adminId !== (int)($_SESSION['admin_id'] ?? 0) || !$this->isLoggedIn()) return false;
+        if (!fas_admin_password_valid($newPassword)) {
+            $this->lastError = 'Use a password between 12 and 72 bytes.';
+            return false;
+        }
         if ($this->verifyCurrentPassword((int)$adminId, $currentPassword)) {
             $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $stmt = $this->db->prepare("UPDATE admin_users SET password_hash = ? WHERE id = ?");
-            $result = $stmt->execute([$newHash, $adminId]);
+            $this->db->exec('BEGIN IMMEDIATE');
+            try {
+                // Recheck after acquiring the writer lock: another admin may have revoked access.
+                if (!$this->isLoggedIn()) {
+                    $this->db->exec('ROLLBACK');
+                    $this->lastError = 'Your access changed. Sign in again.';
+                    return false;
+                }
+                $stmt = $this->db->prepare("UPDATE admin_users SET password_hash = ? WHERE id = ?");
+                $result = $stmt->execute([$newHash, $adminId]);
+                $token = fas_admin_session_token(fas_admin_account($this->db, (int)$adminId));
+                $this->db->exec('COMMIT');
+            } catch (Throwable $e) {
+                $this->db->exec('ROLLBACK');
+                throw $e;
+            }
+            $_SESSION['admin_session_token'] = $token;
+            session_regenerate_id(true);
             unset($_SESSION['security_reauth_at']);
             fas_security_event('password', 'password_changed', (int)$adminId);
             return $result;
@@ -175,6 +210,12 @@ class AdminAuth
     public function requireLogin()
     {
         if (!$this->isLoggedIn()) {
+            if (($_SESSION['admin_logged_in'] ?? false) === true) {
+                $this->clearAnalyticsAdminCookie();
+                http_response_code(403);
+                header('Cache-Control: private, no-store');
+                exit('Your administrator access has expired or changed. <a href="/admin/login.php">Sign in again</a>.');
+            }
             header('Location: login.php');
             exit;
         }

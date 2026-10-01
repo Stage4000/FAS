@@ -40,6 +40,7 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
         $error = 'Invalid security token. Reload and try again.';
     } else {
         $action = $_POST['action'] ?? '';

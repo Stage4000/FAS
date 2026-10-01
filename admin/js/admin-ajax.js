@@ -4,6 +4,13 @@
     if (!window.fetch || !window.FormData || !window.DOMParser) return;
     const root = document.getElementById('admin-content');
     if (!root) return;
+    function includeModals(scope, content) {
+        // Several legacy templates render their modal forms after the content column.
+        scope.querySelectorAll('.modal').forEach(modal => {
+            if (!content.contains(modal)) content.append(modal);
+        });
+    }
+    includeModals(document, root);
     const page = root.dataset.adminPage;
     let busy = false;
     let pendingHistory = false;
@@ -17,15 +24,17 @@
     function announce(message, error = false, login = false) {
         notice.replaceChildren();
         const alert = document.createElement('div');
-        alert.className = `alert alert-${error ? 'danger' : 'success'} shadow mb-0`;
+        alert.className = `alert alert-${error ? 'danger' : 'success'} admin-ajax-notice shadow mb-0`;
         alert.style.pointerEvents = 'auto';
         alert.setAttribute('role', error ? 'alert' : 'status');
         alert.append(document.createTextNode(message));
         if (login) {
             const link = document.createElement('a');
             link.href = 'login.php';
+            link.target = '_blank';
+            link.rel = 'noopener';
             link.className = 'alert-link d-block mt-2';
-            link.textContent = 'Sign in';
+            link.textContent = 'Sign in in a new tab';
             alert.append(link);
         }
         const close = document.createElement('button');
@@ -43,7 +52,7 @@
 
     // Keep independently edited forms (for example other security rules) intact.
     function formKey(form) {
-        return form.id || JSON.stringify(Array.from(form.elements)
+        return form.getAttribute('id') || JSON.stringify(Array.from(form.elements)
             .filter(el => el.name && el.type === 'hidden' && el.name !== 'csrf_token')
             .map(el => [el.name, el.value]));
     }
@@ -83,12 +92,15 @@
         root.inert = true;
         buttons.forEach(el => { el.disabled = true; });
         announce(isPost ? 'Saving changes…' : 'Loading…');
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 90000);
         try {
             const response = await fetch(url, {
                 ...options, credentials: 'same-origin', cache: 'no-store',
+                signal: controller.signal,
                 headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
             });
-            const finalUrl = new URL(response.url);
+            let finalUrl = new URL(response.url);
             if (!samePage(finalUrl)) {
                 if (finalUrl.pathname.endsWith('/login.php')) {
                     announce('Your session has expired. Sign in before trying again. Your entries are still here.', true, true);
@@ -102,11 +114,16 @@
             if (!next || next.dataset.adminPage !== page) {
                 throw new Error(response.status === 403 ? 'Access was denied. Sign in again or check your permissions.' : 'The page could not be updated. Check the current state before trying again.');
             }
+            includeModals(parsed, next);
             if (next.dataset.adminError || !response.ok) {
                 // Preserve all entered values on validation, CSRF, and server failures.
                 const token = next.querySelector('input[name="csrf_token"]');
                 if (token) root.querySelectorAll('input[name="csrf_token"]').forEach(el => { el.value = token.value; });
                 throw new Error(next.dataset.adminError || `The request failed (${response.status}). Check the current state before trying again.`);
+            }
+            if (next.dataset.adminUrl) {
+                const canonical = new URL(next.dataset.adminUrl, finalUrl);
+                if (samePage(canonical)) finalUrl = canonical;
             }
             await closeModals();
             // Page scripts are initialized explicitly, never evaluated from fetched HTML.
@@ -149,10 +166,11 @@
             window.scrollTo(...scroll);
             announce(next.dataset.adminNotice || (isPost ? 'Changes saved.' : 'View updated.'));
         } catch (error) {
-            announce(error instanceof TypeError
+            announce(error instanceof TypeError || error.name === 'AbortError'
                 ? 'Connection interrupted. Your entries are still here. Check whether the change was saved before submitting again.'
                 : error.message, true);
         } finally {
+            window.clearTimeout(timeout);
             busy = false;
             root.inert = false;
             root.removeAttribute('aria-busy');
@@ -169,9 +187,11 @@
         const form = event.target;
         if (event.defaultPrevented || !root.contains(form) || form.matches('[data-no-ajax]')) return;
         const submitter = event.submitter;
-        const url = new URL(submitter?.getAttribute('formaction') || form.action || location.href, location.href);
-        const method = (submitter?.getAttribute('formmethod') || form.method || 'get').toUpperCase();
-        if (!samePage(url) || (form.target && form.target !== '_self') || !['GET', 'POST'].includes(method)) return;
+        // Hidden inputs named "action" shadow form.action on HTMLFormElement.
+        const url = new URL(submitter?.getAttribute('formaction') || form.getAttribute('action') || location.href, location.href);
+        const method = (submitter?.getAttribute('formmethod') || form.getAttribute('method') || 'get').toUpperCase();
+        const target = submitter?.getAttribute('formtarget') || form.getAttribute('target');
+        if (!samePage(url) || (target && target !== '_self') || !['GET', 'POST'].includes(method)) return;
         event.preventDefault();
         if (busy) return;
         const data = new FormData(form);

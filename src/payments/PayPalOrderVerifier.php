@@ -48,9 +48,12 @@ final class PayPalOrderVerifier
         }
         $captures=$unit['payments']['captures'] ?? [];
         if (($provider['status'] ?? null)!=='COMPLETED' || !is_array($captures) || count($captures)!==1) {
-            throw new CheckoutProblem('payment_pending','PayPal has not confirmed this payment yet. Retry this order confirmation.');
+            throw new CheckoutProblem('payment_pending','PayPal has not confirmed this payment yet. Retry this order confirmation.',503);
         }
         $capture=$captures[0];
+        if (is_array($capture) && ($capture['status'] ?? null)==='PENDING') {
+            throw new CheckoutProblem('payment_pending','PayPal has not confirmed this payment yet. Retry this order confirmation.',503);
+        }
         if (!is_array($capture) || ($capture['status'] ?? null)!=='COMPLETED'
             || !is_string($capture['id'] ?? null) || !preg_match('/^[A-Z0-9]{6,64}$/D',$capture['id'])
             || ($capture['amount']['currency_code'] ?? null)!=='USD'

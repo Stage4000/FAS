@@ -11,6 +11,17 @@ SITE.mkdir()
 for folder in ["src","includes","api"]:
     shutil.copytree(ROOT/folder,SITE/folder,ignore=shutil.ignore_patterns(
         "config.php","config.local.php","config.production.php","shipping.php","applepay.php","*.db","*.sqlite","*.log"))
+# No provider network or charges: replace the payment lookup only inside this disposable site.
+(SITE/"src/integrations/PayPalAPI.php").write_text("""<?php
+namespace FAS\\Integrations;
+class PayPalAPI {
+    public function getOrderDetails($id) {
+        $path=__DIR__.'/../../../paypal-response.json';
+        if (!is_file($path)) return ['error'=>'fixture unavailable'];
+        return json_decode(file_get_contents($path),true);
+    }
+}
+""")
 (SITE/"scripts").mkdir()
 shutil.copy2(ROOT/"scripts/shipping-maintenance.php",SITE/"scripts/shipping-maintenance.php")
 (SITE/"database").mkdir()
@@ -200,6 +211,82 @@ try:
         pending=db.execute("SELECT COUNT(*) FROM orders WHERE payment_status='pending'").fetchone()[0]
         captured=db.execute("SELECT COUNT(*) FROM orders WHERE payment_status='completed'").fetchone()[0]
     check(pending==2 and captured==0,"Quote and order tests do not capture payments or buy labels")
+    with sqlite3.connect(dbfile) as db:
+        local=db.execute("SELECT order_number,total_amount FROM orders WHERE id=?",(created[2]["order_id"],)).fetchone()
+        originalStock=db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]
+    provider={"id":"PAYPAL123456","status":"COMPLETED","intent":"CAPTURE","purchase_units":[{
+        "invoice_id":local[0],"custom_id":"FAS-CHECKOUT-"+str(created[2]["order_id"]),
+        "payee":{"merchant_id":"FIXTUREMERCHANT"},
+        "amount":{"currency_code":"USD","value":f"{local[1]:.2f}"},
+        "shipping":{"address":{"address_line_1":address["address1"],"address_line_2":"",
+            "admin_area_2":address["city"],"admin_area_1":address["state"],
+            "postal_code":address["zip"],"country_code":"US"}},
+        "payments":{"captures":[{"id":"CAPTURE123456","status":"COMPLETED",
+            "amount":{"currency_code":"USD","value":f"{local[1]:.2f}"},"final_capture":True}]}
+    }]}
+    responseFile=BASE/"paypal-response.json"
+    complete={"action":"complete_order","order_id":created[2]["order_id"],
+              "paypal_order_id":"PAYPAL123456","paypal_transaction_id":"CAPTURE123456"}
+    check(request("/api/process-order.php",complete)[0]==503,
+          "Provider lookup outage leaves payment pending and inventory untouched")
+    tampered=json.loads(json.dumps(provider));tampered["purchase_units"][0]["amount"]["value"]="1.00"
+    responseFile.write_text(json.dumps({"success":True,"data":tampered}))
+    check(request("/api/process-order.php",complete)[0]==409,
+          "Captured provider amount must match the saved local order")
+    waiting=json.loads(json.dumps(provider));waiting["status"]="APPROVED"
+    responseFile.write_text(json.dumps({"success":True,"data":waiting}))
+    waitingResult=request("/api/process-order.php",complete)
+    check(waitingResult[0]==503 and waitingResult[1].get("Retry-After")=="30",
+          "Uncaptured payment can be retried without starting another charge")
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]==originalStock,
+              "Rejected and unavailable provider responses never deduct inventory")
+    responseFile.write_text(json.dumps({"success":True,"data":provider}))
+    paid=request("/api/process-order.php",complete)
+    check(paid[0]==200 and paid[2]["success"],"Verified capture completes the selected carrier order")
+    with sqlite3.connect(dbfile) as db:
+        payment=db.execute("SELECT payment_status,paypal_order_id,paypal_transaction_id FROM orders WHERE id=?",
+                           (created[2]["order_id"],)).fetchone()
+        stock=db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]
+    check(payment==("completed","PAYPAL123456","CAPTURE123456") and stock==originalStock-1,
+          "Provider capture reference is saved and inventory deducted exactly once")
+    check(request("/api/process-order.php",complete)[0]==200,
+          "Repeating the same completed order is idempotent")
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]==stock,
+              "Repeat completion does not deduct stock again")
+    wrong={**complete,"paypal_order_id":"OTHERPAYPAL123"}
+    check(request("/api/process-order.php",wrong)[0]==409,
+          "Completed orders reject a different payment reference")
+    with sqlite3.connect(dbfile) as db:
+        legacy=db.execute("SELECT order_number,total_amount FROM orders WHERE id=?",
+                          (legacyCreated[2]["order_id"],)).fetchone()
+    reused=json.loads(json.dumps(provider));reused["id"]="ANOTHERPAYPAL123"
+    reused["purchase_units"][0]["invoice_id"]=legacy[0]
+    reused["purchase_units"][0]["custom_id"]="FAS-CHECKOUT-"+str(legacyCreated[2]["order_id"])
+    reused["purchase_units"][0]["amount"]["value"]=f"{legacy[1]:.2f}"
+    reused["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]=f"{legacy[1]:.2f}"
+    responseFile.write_text(json.dumps({"success":True,"data":reused}))
+    duplicate={"action":"complete_order","order_id":legacyCreated[2]["order_id"],
+               "paypal_order_id":"ANOTHERPAYPAL123","paypal_transaction_id":"CAPTURE123456"}
+    check(request("/api/process-order.php",duplicate)[0]==409,
+          "A captured transaction cannot fulfill a second order")
+    review=json.loads(json.dumps(reused))
+    review["purchase_units"][0]["payments"]["captures"][0]["id"]="NEWCAPTURE123456"
+    responseFile.write_text(json.dumps({"success":True,"data":review}))
+    reviewRequest={**duplicate,"paypal_transaction_id":"NEWCAPTURE123456"}
+    reviewResult=request("/api/process-order.php",reviewRequest)
+    check(reviewResult[0]==409 and "needs inventory review" in reviewResult[2]["error"],
+          "Captured payment with lost stock requires review instead of fulfillment")
+    with sqlite3.connect(dbfile) as db:
+        reviewOrder=db.execute("SELECT payment_status,order_status,paypal_transaction_id,notes FROM orders WHERE id=?",
+                               (legacyCreated[2]["order_id"],)).fetchone()
+        stockAfterReview=db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]
+    check(reviewOrder[0:3]==("completed","pending","NEWCAPTURE123456")
+          and "[PAYPAL REVIEW REQUIRED]" in reviewOrder[3] and stockAfterReview==stock,
+          "Captured funds are recorded for administrator review without a second stock deduction")
+    check(request("/api/process-order.php",reviewRequest)[0]==409,
+          "Review orders cannot be converted to checkout success by retrying")
     # Existing shared shipping rate-limit contract remains enforced.
     code="require $argv[1]; $s=\\FAS\\Security\\SecurityStore::open(); $s->saveRule('shipping',1,3600,'enforce','127.0.0.1',1);"
     subprocess.check_call(["php","-r",code,str(ROOT/"src/security/SecurityStore.php")],env=env)

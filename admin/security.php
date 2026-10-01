@@ -72,7 +72,8 @@ $filterIp = ClientIp::normalize($_GET['ip'] ?? '');
 $filterRule = secText($_GET['rule'] ?? '');
 $filterOutcome = secText($_GET['outcome'] ?? '');
 $outcomes = ['login_success','login_failed','throttled','blocked','observed','reauth_success','reauth_failed',
-    'password_changed','settings_changed','rule_changed','rules_reset','block_added','unblocked','counter_cleared','activated','deactivated'];
+    'password_changed','settings_changed','rule_changed','rules_reset','block_added','unblocked','counter_cleared','activated','deactivated',
+    'admin_create','admin_update','admin_reset_password','admin_deactivate','admin_activate'];
 $page = max(1,min(2000,(int)secText($_GET['page'] ?? '1')));
 if ($store && $healthy) {
     try {

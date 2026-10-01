@@ -271,6 +271,18 @@ CREATE TABLE IF NOT EXISTS admin_users (
 CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username);
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 
+CREATE TABLE IF NOT EXISTS admin_account_security (
+    admin_id INTEGER PRIMARY KEY REFERENCES admin_users(id),
+    session_version INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS admin_account_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id INTEGER NOT NULL,
+    target_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    occurred_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Warehouses table
 CREATE TABLE IF NOT EXISTS warehouses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

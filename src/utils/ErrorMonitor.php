@@ -206,7 +206,7 @@ class ErrorMonitor
         $stmt = $this->db->prepare("
             UPDATE error_monitor_events
             SET status = 'resolved', resolved_at = ?
-            WHERE id = ?
+            WHERE id = ? AND status = 'open'
         ");
         $stmt->execute([date('Y-m-d H:i:s'), $id]);
         return $stmt->rowCount() > 0;

@@ -36,8 +36,11 @@ for script in ['security-maintenance.php','product-content-maintenance.php']:
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
 ORIGIN = 'http://127.0.0.1:'+str(port)
+(BASE / 'sessions').mkdir()
+router = BASE / 'router.php'
+router.write_text("<?php file_put_contents(__DIR__.'/requests.jsonl',json_encode(['method'=>$_SERVER['REQUEST_METHOD'],'uri'=>$_SERVER['REQUEST_URI'],'ajax'=>$_SERVER['HTTP_X_REQUESTED_WITH']??'']) . PHP_EOL, FILE_APPEND); return false;")
 log = open(BASE / 'server.log','w')
-server = subprocess.Popen(['php','-d','disable_functions=mail','-S','127.0.0.1:'+str(port),'-t',str(SITE)],env=env,stdout=log,stderr=log)
+server = subprocess.Popen(['php','-d','disable_functions=mail','-d','session.save_path='+str(BASE / 'sessions'),'-S','127.0.0.1:'+str(port),'-t',str(SITE),str(router)],env=env,stdout=log,stderr=log)
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args): return None
 client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),NoRedirect)

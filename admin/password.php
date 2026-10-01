@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'All fields are required';
     } elseif ($newPassword !== $confirmPassword) {
         $error = 'New passwords do not match';
-    } elseif (strlen($newPassword) < 6) {
-        $error = 'Password must be at least 6 characters long';
+    } elseif (!fas_admin_password_valid($newPassword)) {
+        $error = 'Use a password between 12 and 72 bytes.';
     } else {
         if ($auth->changePassword($_SESSION['admin_id'], $currentPassword, $newPassword)) {
             $success = 'Password changed successfully';
@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">New Password *</label>
-                                <input type="password" class="form-control" name="new_password" required minlength="6">
-                                <small class="text-muted">Minimum 6 characters</small>
+                                <input type="password" class="form-control" name="new_password" autocomplete="new-password" required minlength="12" maxlength="72">
+                                <small class="text-muted">12–72 characters; non-ASCII characters may use more than one byte.</small>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label">Confirm New Password *</label>

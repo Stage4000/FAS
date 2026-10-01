@@ -11,6 +11,13 @@ $ajaxEnabled = in_array($ajaxPage, [
     'growth.php', 'product-content.php', 'product-quality.php', 'stale-inventory.php',
     'ebay-sync-health.php',
 ], true);
+$ajaxUrl = '';
+if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($action)) {
+    $ajaxParams = $_GET;
+    $ajaxParams['action'] = $action;
+    if ($action === 'list') unset($ajaxParams['id']);
+    $ajaxUrl = $ajaxPage . '?' . http_build_query($ajaxParams);
+}
 ?>
 <?php if ($ajaxEnabled): ?>
 <script defer src="js/admin-ajax.js?v=<?php echo filemtime(__DIR__ . '/../js/admin-ajax.js'); ?>"></script>
@@ -105,6 +112,9 @@ $ajaxEnabled = in_array($ajaxPage, [
 <a href="settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
 <i class="fas fa-cog me-2"></i>Settings
 </a>
+<a href="administrators.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'administrators.php' ? 'active' : ''; ?>">
+    <i class="fas fa-user-shield me-2"></i>Administrators
+</a>
     <a href="homepage-categories.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'homepage-categories.php' ? 'active' : ''; ?>">
         <i class="fas fa-sitemap me-2"></i>Homepage Categories
     </a>
@@ -115,4 +125,4 @@ $ajaxEnabled = in_array($ajaxPage, [
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10" <?php if ($ajaxEnabled): ?>id="admin-content" data-admin-page="<?php echo htmlspecialchars($ajaxPage, ENT_QUOTES, 'UTF-8'); ?>" data-admin-error="<?php echo htmlspecialchars((string)($error ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-admin-notice="<?php echo htmlspecialchars((string)(($success ?? '') ?: ($notice ?? ($notices[$saved ?? ''] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+        <div class="col-md-9 col-lg-10" <?php if ($ajaxEnabled): ?>id="admin-content" data-admin-url="<?php echo htmlspecialchars($ajaxUrl, ENT_QUOTES, 'UTF-8'); ?>" data-admin-page="<?php echo htmlspecialchars($ajaxPage, ENT_QUOTES, 'UTF-8'); ?>" data-admin-error="<?php echo htmlspecialchars((string)($error ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-admin-notice="<?php echo htmlspecialchars((string)(($success ?? '') ?: ($notice ?? ($notices[$saved ?? ''] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>

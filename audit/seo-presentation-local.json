@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-01T19:40:18.571348+00:00",
+  "date": "2026-10-01T20:39:13.311613+00:00",
   "scope": "local synthetic fixture only",
-  "origin": "http://127.0.0.1:64116",
+  "origin": "http://127.0.0.1:58325",
   "checks": 24,
   "passed": [
     "Product detail renders",
@@ -61,7 +61,7 @@
       }
     }
   ],
-  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-r5e40b7o",
-  "server_pid": 16116,
+  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-nds0nvy9",
+  "server_pid": 22476,
   "production_verified": false
 }

@@ -792,3 +792,20 @@ body {
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
 }
+/* Opaque AJAX notices stay readable above tables and cards in either theme. */
+.alert.admin-ajax-notice {
+    background: #fff;
+    color: #182230;
+    border: 1px solid #21864e;
+    padding-right: 3rem;
+}
+.alert-danger.admin-ajax-notice { border-color: #b42318; }
+.admin-ajax-notice .btn-close { position: absolute; top: 1rem; right: 1rem; }
+.admin-ajax-notice .alert-link { color: inherit !important; }
+[data-theme="dark"] .alert.admin-ajax-notice {
+    background: #20252b;
+    color: #f2f4f7;
+    border-color: #6ce9a6;
+}
+[data-theme="dark"] .alert-danger.admin-ajax-notice { border-color: #fda29b; }
+[data-theme="dark"] .admin-ajax-notice .btn-close { filter: invert(1); }

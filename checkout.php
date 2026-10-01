@@ -612,14 +612,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 function setupPayPalButton() {
     const container = document.getElementById('paypal-button-container');
     
-    // Check if PayPal SDK is loaded
+    // Payments cannot be started without the provider button.
     if (typeof paypal === 'undefined') {
-        // Fallback to demo mode if PayPal SDK not configured
         container.innerHTML = `
-            <button type="button" class="btn btn-primary btn-lg w-100" onclick="handleDemoCheckout()">
-                <i class="bi bi-paypal"></i> Complete Order (Demo Mode)
-            </button>
-            <small class="text-muted d-block mt-2">Configure PayPal credentials for live payments</small>
+            <div class="alert alert-warning mb-0" role="alert">
+                Payment is temporarily unavailable. Please try again later or contact us for help.
+            </div>
         `;
         return;
     }
@@ -691,6 +689,8 @@ function setupPayPalButton() {
             
             return actions.order.create({
                 purchase_units: [{
+                    invoice_id: orderResult.order_number,
+                    custom_id: 'FAS-CHECKOUT-' + orderResult.order_id,
                     amount: {
                         currency_code: 'USD',
                         value: total.toFixed(2),
@@ -727,21 +727,16 @@ function setupPayPalButton() {
         
         // Handle payment approval
         onApprove: async function(data, actions) {
+            if (!pendingOrderResult || !pendingOrderResult.order_id) {
+                alert('Your order reference could not be recovered. Contact support with PayPal reference ' + data.orderID + ' before making another payment.');
+                return;
+            }
+            // Retain the reference if capture succeeds but its browser response is lost.
+            window.FASOrderRecovery.begin(data.orderID, '', pendingOrderResult.order_id);
             try {
-                // Capture the payment
                 const orderData = await actions.order.capture();
-                
-                if (!pendingOrderResult || !pendingOrderResult.order_id) {
-                    throw new Error('Order reference lost. Please contact support with PayPal order ID: ' + data.orderID);
-                }
-                
-                // Complete order in our system
-                await completeOrder(data.orderID, orderData.purchase_units[0].payments.captures[0].id, pendingOrderResult.order_id);
-                
-                    // Show success message and redirect
-                    alert('Payment successful! Order #' + orderData.id + ' completed.');
-                window.location.href = '/?order_success=1';
-                
+                const captureId = orderData?.purchase_units?.[0]?.payments?.captures?.[0]?.id || '';
+                await completeOrder(data.orderID, captureId, pendingOrderResult.order_id);
             } catch (error) {
                 console.error('Payment capture error:', error);
             logCheckoutError('paypal', 'PayPal approved payment, but checkout finalization failed.', {
@@ -750,7 +745,8 @@ function setupPayPalButton() {
                 order_id: pendingOrderResult && pendingOrderResult.order_id ? pendingOrderResult.order_id : '',
                 stage: 'paypal_capture_or_order_finalize'
             }, error);
-                alert('PayPal approved the payment, but the order could not be finalized. Please contact support with your PayPal confirmation.');
+                window.FASOrderRecovery.render();
+                alert('Your payment needs confirmation. Retry this same order or contact support with your PayPal reference. Do not pay again.');
             }
         },
         
@@ -766,11 +762,20 @@ function setupPayPalButton() {
                 provider: 'paypal',
                 reason: err && err.message ? err.message : 'PayPal error'
             });
-            alert('PayPal could not complete the payment. Please review your details, try again, or contact support.');
+            if (window.FASOrderRecovery.pending()) {
+                window.FASOrderRecovery.render();
+                alert('This payment needs confirmation. Retry this same order or contact support with your PayPal reference. Do not pay again.');
+            } else {
+                alert('PayPal could not complete the payment. Please review your details, try again, or contact support.');
+            }
         },
 
         // Handle cancellation
         onCancel: function(data) {
+            if (window.FASOrderRecovery.pending()) {
+                window.FASOrderRecovery.render();
+                return;
+            }
             console.log('Payment cancelled:', data);
             trackCheckoutEvent('payment_cancelled', {
                 provider: 'paypal',
@@ -779,71 +784,6 @@ function setupPayPalButton() {
             alert('Payment was cancelled. Your cart items are still saved so you can adjust shipping or continue shopping.');
         }
     }).render('#paypal-button-container');
-}
-
-/**
- * Demo checkout handler (fallback when PayPal not configured)
- */
-async function handleDemoCheckout() {
-    const form = document.getElementById('checkout-form');
-    
-    // Validate form
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    // Validate shipping is selected
-    if (!selectedShippingRate) {
-        alert('Enter your shipping address, calculate rates, and choose a shipping method before completing checkout.');
-        return;
-    }
-    
-    // Create order
-    const orderResult = await createOrder();
-    if (!orderResult) {
-        return;
-    }
-    
-    // Simulate payment completion
-    if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
-        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now(), orderResult.order_id);
-        
-            // Redirect
-            alert('Demo order completed successfully! Order #' + orderResult.order_number);
-        window.location.href = '/';
-    }
-}
-
-/**
- * Handle checkout process (kept for legacy compatibility)
- */
-async function handleCheckout() {
-    const form = document.getElementById('checkout-form');
-    
-    // Validate form
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    // Validate shipping is selected
-    if (!selectedShippingRate) {
-        alert('Enter your shipping address, calculate rates, and choose a shipping method before completing checkout.');
-        return;
-    }
-    
-    // Create order
-    const orderResult = await createOrder();
-    if (!orderResult) {
-        return;
-    }
-    
-    // In a real implementation, this would integrate with PayPal SDK
-    // For demo purposes, we'll simulate payment completion
-    if (confirm('Simulate payment completion for order #' + orderResult.order_number + '?')) {
-        await completeOrder('DEMO-PAYPAL-ORDER-' + orderResult.order_id, 'DEMO-TRANSACTION-' + Date.now(), orderResult.order_id);
-    }
 }
 
 async function calculateShipping() {
@@ -1203,7 +1143,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         
         if (response.status === 429 || response.status === 503) {
             window.FASOrderRecovery.wait(response);
-            return;
+            return false;
         }
         if (!response.ok) {
             throw new Error(data.error || 'Failed to complete order');
@@ -1231,6 +1171,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         // Redirect to success page
         alert('Order completed successfully! Order #' + data.order_number);
         window.location.href = '/';
+        return true;
         
     } catch (error) {
         console.error('Order completion error:', error);
@@ -1248,6 +1189,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         });
         window.FASOrderRecovery.render();
         alert('Your payment needs order confirmation. Use Retry order confirmation for this same payment, or contact support with your PayPal reference. Do not pay again.');
+        return false;
     }
 }
 /**
