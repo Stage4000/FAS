@@ -372,10 +372,15 @@ if ($action === 'list') {
     <?php include __DIR__ . '/includes/footer.php'; ?>
     
     <script>
+function initWarehouses() {
         // Auto-uppercase state input
         document.querySelector('input[name="state"]')?.addEventListener('input', function(e) {
             this.value = this.value.toUpperCase();
         });
-    </script>
+    
+}
+initWarehouses();
+document.addEventListener('admin:updated', initWarehouses);
+</script>
 </body>
 </html>

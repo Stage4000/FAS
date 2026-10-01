@@ -508,7 +508,7 @@ function emFilterUrl(array $updates): string
                             <?php endif; ?>
                         </div>
                         <?php endif; ?>
-                        <details class="error-detail mt-1">
+                        <details id="error-detail-<?php echo (int)$event['id']; ?>" class="error-detail mt-1">
                             <summary>Details</summary>
                             <div class="mt-2">
                                 <div><span class="text-muted">Event:</span> #<?php echo (int)$event['id']; ?></div>

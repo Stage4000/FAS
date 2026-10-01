@@ -583,8 +583,9 @@ $csrfToken = CSRF::generateToken();
 <script>
 AOS.init({ duration: 700, once: true });
 
-document.getElementById('sync-ebay-health-btn')?.addEventListener('click', function () {
-    const button = this;
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('#sync-ebay-health-btn');
+    if (!button) return;
     const status = document.getElementById('sync-health-status');
     button.disabled = true;
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';

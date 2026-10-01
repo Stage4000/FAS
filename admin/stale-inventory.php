@@ -606,6 +606,7 @@ $defaultExpiry = Timezone::toUserDateTime('+14 days', 'Y-m-d\TH:i');
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
     <script>
+function initStaleInventory() {
         const selectAllButton = document.getElementById('selectAllStale');
         const markdownForm = document.getElementById('staleMarkdownForm');
 
@@ -636,6 +637,10 @@ $defaultExpiry = Timezone::toUserDateTime('+14 days', 'Y-m-d\TH:i');
                 }
             });
         }
-    </script>
+    
+}
+initStaleInventory();
+document.addEventListener('admin:updated', initStaleInventory);
+</script>
 </body>
 </html>

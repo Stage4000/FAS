@@ -115,4 +115,4 @@ $ajaxEnabled = in_array($ajaxPage, [
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10" <?php if ($ajaxEnabled): ?>id="admin-content" data-admin-page="<?php echo htmlspecialchars($ajaxPage, ENT_QUOTES, 'UTF-8'); ?>" data-admin-error="<?php echo htmlspecialchars((string)($error ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-admin-notice="<?php echo htmlspecialchars((string)($success ?: ($notice ?? '')), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+        <div class="col-md-9 col-lg-10" <?php if ($ajaxEnabled): ?>id="admin-content" data-admin-page="<?php echo htmlspecialchars($ajaxPage, ENT_QUOTES, 'UTF-8'); ?>" data-admin-error="<?php echo htmlspecialchars((string)($error ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-admin-notice="<?php echo htmlspecialchars((string)(($success ?? '') ?: ($notice ?? ($notices[$saved ?? ''] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>

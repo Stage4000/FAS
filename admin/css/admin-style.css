@@ -13,6 +13,8 @@
     --admin-text: #333333;
     --admin-card-bg: #ffffff;
     --admin-border: #e0e0e0;
+    --admin-disabled-bg: #e9ecef;
+    --admin-disabled-text: #495057;
     --admin-hero-bg: linear-gradient(135deg, #ffffff 0%, #fff5f7 48%, #ffe1e9 100%);
     --admin-hero-text: #241f22;
     --admin-hero-muted: #765a63;
@@ -27,6 +29,8 @@
     --admin-text: #e0e0e0;
     --admin-card-bg: #2d2d2d;  /* rgb(45,45,45) - lighter card background for strong contrast */
     --admin-border: #555555;  /* Lighter border for better visibility */
+    --admin-disabled-bg: #242629;
+    --admin-disabled-text: #d1d5db;
     --admin-hero-bg: linear-gradient(135deg, #1f1f24 0%, #3b0b16 48%, #db0335 100%);
     --admin-hero-text: #ffffff;
     --admin-hero-muted: rgba(255, 255, 255, 0.74);
@@ -337,6 +341,21 @@ body {
     border-color: var(--admin-primary);
     box-shadow: 0 0 0 0.2rem rgba(219, 3, 53, 0.15);
     background-color: var(--admin-card-bg);
+}
+
+/* Includes controls disabled by a parent fieldset, such as locked security rules. */
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--admin-disabled-bg);
+    color: var(--admin-disabled-text);
+    -webkit-text-fill-color: var(--admin-disabled-text);
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+[data-theme="dark"] .form-select {
+    --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    color-scheme: dark;
 }
 
 [data-theme="dark"] .form-control:focus,

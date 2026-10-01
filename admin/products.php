@@ -1057,6 +1057,7 @@ if ($action === 'list') {
     <?php include __DIR__ . '/includes/footer.php'; ?>
 
 <script>
+function initProducts() {
 // Bulk product actions
 const bulkProductsForm = document.getElementById('bulkProductsForm');
 const bulkActionSelect = document.getElementById('bulkActionSelect');
@@ -1246,7 +1247,7 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
             if (targetImgElement) {
                 const deleteBtn = targetImgElement.querySelector('.image-delete-btn');
                 const imagePath = deleteBtn ? deleteBtn.dataset.imageUrl : null;
-                const prodId = <?php echo $product ? $product['id'] : 'null'; ?>;
+                const prodId = document.querySelector('form input[name="product_id"]')?.value;
 
                 // If editing an existing product, delete immediately via AJAX
                 if (prodId && imagePath) {
@@ -1353,6 +1354,10 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                 uploadField.files = transfer.files;
             }
         }
-    </script>
+    
+}
+initProducts();
+document.addEventListener('admin:updated', initProducts);
+</script>
 </body>
 </html>

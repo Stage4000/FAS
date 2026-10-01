@@ -273,6 +273,7 @@ if (!empty($sale['enabled'])) {
         }
     }
     document.addEventListener('DOMContentLoaded', updatePreview);
+    document.addEventListener('admin:updated', updatePreview);
     </script>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>

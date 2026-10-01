@@ -331,6 +331,7 @@ $textColorOptions = [
         }
     }
 
+    function initBannerForms() {
     // Populate edit modal fields from data attributes
     document.getElementById('editBannerModal').addEventListener('show.bs.modal', function (event) {
         const btn = event.relatedTarget;
@@ -382,6 +383,9 @@ $textColorOptions = [
         .addEventListener('submit', function(e) {
             if (!validateCountdownField('edit_')) e.preventDefault();
         });
+    }
+    initBannerForms();
+    document.addEventListener('admin:updated', initBannerForms);
     </script>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
