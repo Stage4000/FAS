@@ -136,6 +136,7 @@ session_*
 # Image processing cache
 gallery/cache/
 gallery/thumbs/
+gallery/responsive/
 
 # Admin backups and exports
 admin/backups/
@@ -150,3 +151,6 @@ backups/
 
 # Track the additive Apple Pay schema used by the maintenance command
 !/database/applepay.sql
+
+# Local Python regression-test cache
+/tests/__pycache__/

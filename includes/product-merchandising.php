@@ -5,6 +5,7 @@ require_once __DIR__ . '/../src/utils/Analytics.php';
 require_once __DIR__ . '/../src/utils/ProductAltText.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
+require_once __DIR__ . '/../src/utils/ResponsiveImage.php';
 
 use FAS\Models\Product;
 use FAS\Utils\Analytics;
@@ -66,7 +67,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
         <div class="card product-card h-100">
             <a href="<?php echo htmlspecialchars($productUrl); ?>" class="text-decoration-none">
                 <div class="position-relative">
-<img src="<?php echo htmlspecialchars($imageUrl); ?>"
+<img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw'); ?>
 class="card-img-top product-image"
 alt="<?php echo htmlspecialchars($imageAltText); ?>"
 loading="lazy"
@@ -106,7 +107,7 @@ decoding="async">
                     <?php if (!empty($product['sku'])): ?>
                         <small class="text-muted d-block mb-2">SKU: <?php echo htmlspecialchars($product['sku']); ?></small>
                     <?php endif; ?>
-                    <button class="btn btn-danger w-100 add-to-cart"
+                    <button class="btn btn-danger w-100 add-to-cart" <?php echo $stock>0?'':'disabled'; ?>
                             data-id="<?php echo (int)($product['id'] ?? 0); ?>"
                             data-name="<?php echo htmlspecialchars($product['name'] ?? ''); ?>"
                             data-price="<?php echo htmlspecialchars((string)$priceInfo['effective_price']); ?>"
@@ -123,7 +124,7 @@ decoding="async">
                             data-height="<?php echo !empty($product['height']) ? (float)$product['height'] : 10.0; ?>"
                             data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
                             data-stock="<?php echo $stock; ?>">
-                        <i class="fas fa-cart-plus"></i> Add to Cart
+                        <i class="fas fa-cart-plus"></i> <?php echo $stock>0?'Add to Cart':'Out of stock'; ?>
                     </button>
                 </div>
             </div>

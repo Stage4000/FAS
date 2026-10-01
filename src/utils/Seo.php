@@ -6,6 +6,7 @@
 namespace FAS\Utils;
 
 require_once __DIR__ . '/ShippingRules.php';
+require_once __DIR__ . '/ProductCondition.php';
 
 class Seo
 {
@@ -104,10 +105,10 @@ class Seo
         }
 
         $boilerplatePatterns = [
-            '/\bPlease visit our eBay Store for more parts!?+\b.*$/i',
-            '/\bFor other .*? parts click here\b.*$/i',
-            '/\bVideo will open in new window\b.*$/i',
-            '/\bUsing mobile app\? Copy this link into your browser\b.*$/i',
+            '/\bPlease visit our eBay Store for more parts[.!]*/i',
+            '/\bFor other [^.!?\r\n]{1,100} parts click here[.!]*/i',
+            '/\bVideo will open in new window[.!]*/i',
+            '/\bUsing mobile app\?\s*Copy this link into your browser[.!]*/i',
         ];
 
         $cleaned = preg_replace($boilerplatePatterns, '', $text);
@@ -262,7 +263,7 @@ class Seo
             '@type' => 'Product',
             'name' => self::cleanText($product['name'] ?? ''),
             'image' => $imageUrls,
-            'description' => self::metaDescription($description),
+            'description' => self::limitText($product['storefront_description'] ?? $description, 5000, ''),
             'sku' => self::cleanText($product['sku'] ?? ($product['id'] ?? '')),
             'offers' => [
                 '@type' => 'Offer',
@@ -303,7 +304,7 @@ class Seo
             ];
         }
 
-        $mpn = self::cleanText($product['model'] ?? '');
+        $mpn = ProductCondition::identifier($product['model'] ?? '');
         if ($mpn !== '') {
             $schema['mpn'] = $mpn;
         }
@@ -376,21 +377,7 @@ class Seo
 
     private static function itemConditionUrl($condition): string
     {
-        $value = strtolower(self::cleanText($condition));
-
-        if (strpos($value, 'new') !== false) {
-            return 'https://schema.org/NewCondition';
-        }
-
-        if (strpos($value, 'refurb') !== false || strpos($value, 'reman') !== false) {
-            return 'https://schema.org/RefurbishedCondition';
-        }
-
-        if (strpos($value, 'for parts') !== false || strpos($value, 'damaged') !== false) {
-            return 'https://schema.org/DamagedCondition';
-        }
-
-        return 'https://schema.org/UsedCondition';
+        return ProductCondition::schema($condition);
     }
 
     private static function filterEmpty(array $value): array

@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-01T19:40:18.571348+00:00",
+  "scope": "local synthetic fixture only",
+  "origin": "http://127.0.0.1:64116",
+  "checks": 24,
+  "passed": [
+    "Product detail renders",
+    "Mobile DOM prioritizes product identity and purchase controls",
+    "All original listing notes retained",
+    "Main image includes responsive options and dimensions, eager priority preserved",
+    "Original photo remains directly accessible",
+    "Gallery provides named native buttons with selection state",
+    "Schema normalizes explicit new condition and omits placeholder MPN",
+    "Schema retains full quality source image",
+    "Sold out page has truthful visible stock badge",
+    "Sold out schema agrees with display",
+    "Sold out detail purchase controls disabled",
+    "Missing products remain 404",
+    "Catalog renders",
+    "API renders without warnings: OK",
+    "server catalog includes responsive lazy images",
+    "server catalog disables sold out purchase",
+    "API catalog includes responsive lazy images",
+    "API catalog disables sold out purchase",
+    "related products includes responsive lazy images",
+    "related products disables sold out purchase",
+    "Feed uses matching new condition",
+    "Feed omits placeholders and retains real part number",
+    "Feed retains original source photo",
+    "Animation outage fixture retains guarded initialization"
+  ],
+  "image_builds": [
+    {
+      "source": "/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg",
+      "status": "ready",
+      "original_bytes": 813970,
+      "width": 3216,
+      "height": 2933,
+      "variant_bytes": {
+        "80": 1594,
+        "160": 4428,
+        "320": 11958,
+        "640": 28700,
+        "960": 45814,
+        "1440": 70412
+      }
+    },
+    {
+      "source": "/gallery/default.jpg",
+      "status": "ready",
+      "original_bytes": 813970,
+      "width": 3216,
+      "height": 2933,
+      "variant_bytes": {
+        "80": 1594,
+        "160": 4428,
+        "320": 11958,
+        "640": 28700,
+        "960": 45814,
+        "1440": 70412
+      }
+    }
+  ],
+  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-r5e40b7o",
+  "server_pid": 16116,
+  "production_verified": false
+}

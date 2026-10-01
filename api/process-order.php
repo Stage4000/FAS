@@ -264,6 +264,19 @@ function completeOrder($input, $orderModel, $productModel)
     
     try {
         $db->beginTransaction();
+
+        // Acquire SQLite's writer lock before rechecking completion. Another worker
+        // may have completed this order since the initial lookup above.
+        $claim = $db->prepare('UPDATE orders SET id=id WHERE id=?');
+        $claim->execute([$order['id']]);
+        $currentOrder = $orderModel->getById($order['id']);
+        if (!$currentOrder) throw new RuntimeException('Order is no longer available.');
+        if ($currentOrder['payment_status'] === 'completed') {
+            $db->commit();
+            echo json_encode(['success'=>true,'message'=>'Order already completed','order_number'=>$currentOrder['order_number']]);
+            return;
+        }
+        $order = $currentOrder;
         
         // Verify inventory is still available and lock the rows
         $items = $orderModel->getItems($order['id']);

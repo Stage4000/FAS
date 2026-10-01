@@ -19,6 +19,14 @@
     let pending = null;
     let session = null;
     let disabledControls = [];
+    let retryAt = 0;
+    let retryTimer;
+    function applyCooldown() {
+        const waiting = Date.now() < retryAt;
+        [checkButton, stopButton, finishButton].forEach(button => { button.disabled = waiting; });
+        clearTimeout(retryTimer);
+        if (waiting) retryTimer = setTimeout(applyCooldown, retryAt - Date.now() + 10);
+    }
 
     function say(text) {
         message.textContent = text;
@@ -115,6 +123,7 @@
         })]).finally(() => clearTimeout(timer));
     }
     async function api(action, fields = {}) {
+        if (Date.now() < retryAt) throw new Error('Please wait ' + Math.ceil((retryAt-Date.now())/1000) + ' seconds before checking this payment again.');
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 25000);
         try {
@@ -124,6 +133,10 @@
                 body: JSON.stringify({ ...fields, action, attempt_id: pending?.id })
             });
             const data = await response.json();
+            if (response.status === 429 || response.status === 503) {
+                retryAt = Date.now() + Math.max(1, Math.min(86400, Number(response.headers?.get('Retry-After')) || 30)) * 1000;
+                applyCooldown();
+            }
             if (!response.ok || !data.ok) {
                 const error = new Error(data.error || 'Payment status is unavailable.');
                 error.code = data.code;
@@ -188,6 +201,7 @@
             }
         } finally {
             checkButton.disabled = false;
+            applyCooldown();
         }
     }
     async function recover(action, button) {
@@ -199,6 +213,7 @@
             showRecovery(error.message);
         } finally {
             button.disabled = false;
+            applyCooldown();
         }
     }
     function requestFields(state) {
@@ -208,6 +223,7 @@
         return fields;
     }
     function begin() {
+        if (window.FASOrderRecovery?.pending()) return;
         const state = JSON.parse(JSON.stringify(readState()));
         if (busy || !eligible || !ready(state)) return;
         const form = document.getElementById('checkout-form');

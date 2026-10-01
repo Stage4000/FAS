@@ -370,7 +370,7 @@ I agree to be contacted only about matching Flip and Strip inventory.
                                     );
                                     ?>
                                     <?php if ($hasImage): ?>
-<img src="<?php echo htmlspecialchars($imageUrl); ?>"
+<img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 25vw, (min-width: 768px) 38vw, 100vw'); ?>
 class="card-img-top product-image"
 alt="<?php echo htmlspecialchars($imageAltText); ?>"
 loading="lazy"
@@ -429,7 +429,7 @@ style="cursor: pointer;">
                                         </div>
                                         <small class="text-muted">SKU: <?php echo htmlspecialchars($product['sku']); ?></small>
                                     </div>
-                                    <button class="btn btn-danger w-100 add-to-cart"
+                                    <button class="btn btn-danger w-100 add-to-cart" <?php echo (int)($product['quantity']??0)>0?'':'disabled'; ?>
                                             data-id="<?php echo $product['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($product['name']); ?>"
                                             data-price="<?php echo $priceInfo['effective_price']; ?>"
@@ -446,7 +446,7 @@ data-width="<?php echo !empty($product['width']) ? floatval($product['width']) :
 data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
 data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
 data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']) : 999; ?>">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                        <i class="fas fa-cart-plus"></i> <?php echo (int)($product['quantity']??0)>0?'Add to Cart':'Out of stock'; ?>
                                     </button>
                                 </div>
                             </div>

@@ -1,6 +1,8 @@
 <?php
 // Determine active page
 $currentPage = basename($_SERVER['PHP_SELF']);
+if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
+$compactQualitySidebar = $currentPage === 'product-quality.php';
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
@@ -37,7 +39,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <div class="row">
         <!-- Sidebar -->
         <div class="col-md-3 col-lg-2">
-            <div class="list-group">
+            <?php if ($compactQualitySidebar): ?>
+                <button class="btn btn-outline-secondary d-md-none mb-3 w-100" type="button" data-bs-toggle="collapse" data-bs-target="#qualitySidebar" aria-expanded="false" aria-controls="qualitySidebar">Admin sections</button>
+            <?php endif; ?>
+            <div class="list-group <?php echo $compactQualitySidebar ? 'collapse d-md-flex' : ''; ?>" <?php echo $compactQualitySidebar ? 'id="qualitySidebar"' : ''; ?>>
     <a href="index.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
         <i class="fas fa-tachometer-alt me-2"></i>Dashboard
     </a>
@@ -77,8 +82,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <a href="analytics.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'analytics.php' ? 'active' : ''; ?>">
 <i class="fas fa-chart-line me-2"></i>Analytics
 </a>
+<a href="growth.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'growth.php' ? 'active' : ''; ?>">
+    <i class="fas fa-envelope-open-text me-2"></i>Sales &amp; Email
+</a>
 <a href="error-monitor.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'error-monitor.php' ? 'active' : ''; ?>">
 <i class="fas fa-triangle-exclamation me-2"></i>Error Monitor
+</a>
+<a href="security.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'security.php' ? 'active' : ''; ?>">
+    <i class="fas fa-shield-halved me-2"></i>Security
 </a>
 <a href="settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
 <i class="fas fa-cog me-2"></i>Settings

@@ -8,6 +8,7 @@ namespace FAS\Utils;
 use FAS\Models\Product;
 
 require_once __DIR__ . '/Seo.php';
+require_once __DIR__ . '/ProductCondition.php';
 require_once __DIR__ . '/ShippingRules.php';
 
 class MerchantFeedBuilder
@@ -73,7 +74,7 @@ class MerchantFeedBuilder
         $additionalImages = array_slice($images, 1, 10);
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
-        $mpn = $this->normalizeText($product['model'] ?? '');
+        $mpn = ProductCondition::identifier($product['model'] ?? '');
         $description = $this->buildDescription($product);
         $productType = $this->resolveProductType($product);
     $priceInfo = $this->resolvePriceInfo($product);
@@ -211,7 +212,10 @@ class MerchantFeedBuilder
      */
     private function buildDescription(array $product)
     {
-        $description = $this->normalizeText(strip_tags((string) ($product['description'] ?? '')));
+        $description = Seo::limitText(
+            $product['storefront_description'] ?? Seo::cleanProductSeoDescription($product['description'] ?? ''),
+            5000, ''
+        );
         if ($description !== '') {
             return $description;
         }
@@ -313,16 +317,6 @@ class MerchantFeedBuilder
      */
     private function normalizeCondition($condition)
     {
-        $value = strtolower($this->normalizeText($condition));
-
-        if ($value === 'new') {
-            return 'new';
-        }
-
-        if ($value === 'used' || $value === 'pre-owned' || $value === 'pre owned') {
-            return 'used';
-        }
-
-        return 'used';
+        return ProductCondition::merchant($condition);
     }
 }

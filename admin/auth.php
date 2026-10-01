@@ -42,7 +42,7 @@ class AdminAuth
     public function login($username, $password)
     {
         $this->lastError = '';
-        $username = is_string($username) ? substr($username, 0, 255) : '';
+        $username = is_string($username) && strlen($username)<=255 ? $username : '';
         $password = is_string($password) ? $password : '';
         $ip = fas_security_ip()['ip'];
         $limit = fas_security_check(['login_ip'=>$ip,'login_pair'=>$ip.'|'.$username,'login_account'=>$username]);
@@ -120,7 +120,7 @@ class AdminAuth
     {
         $this->lastError = '';
         $ip = fas_security_ip()['ip'];
-        $limit = fas_security_check(['reauth_ip'=>$ip,'reauth_account'=>(string)$adminId]);
+        $limit = fas_security_check(['reauth_ip'=>$ip,'reauth_account'=>(string)$adminId], false, true);
         if (!$limit['allowed']) {
             fas_security_headers($limit); $this->lastError = fas_security_message($limit); return false;
         }

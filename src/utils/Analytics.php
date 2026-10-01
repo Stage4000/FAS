@@ -52,6 +52,8 @@ class Analytics
         'cart_quantity_changed',
         'cart_stock_limit_hit',
         'cart_abandonment_signal',
+        'cart_saved',
+        'newsletter_requested',
         'checkout_start',
         'shipping_rate_requested',
 'shipping_rates_returned',

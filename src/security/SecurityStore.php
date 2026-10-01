@@ -29,6 +29,12 @@ final class SecurityStore
             'analytics'=>['Analytics collection',120,60],
             'client_error'=>['Client error collection',30,60],
             'sync_auth'=>['Invalid sync authentication',20,900],
+            'growth_session'=>['Signup and saved-cart session',60,300],
+            'newsletter'=>['Newsletter signup / IP',5,600],
+            'newsletter_email'=>['Newsletter confirmation / address',2,86400],
+            'cart_save'=>['Saved-cart updates / IP',30,300],
+            'cart_email'=>['Email my cart / address',3,86400],
+            'growth_token'=>['Email confirmation and recovery links',60,300],
         ];
     }
 
@@ -243,6 +249,19 @@ final class SecurityStore
         }
         $counts['active_blocks'] = (int)$this->run('SELECT COUNT(*) FROM security_blocks WHERE expires>?',[$this->now()])->fetchColumn();
         return $counts;
+    }
+
+    public function restrictions(): array
+    {
+        $values = []; $args = [];
+        foreach ($this->rules() as $id=>$r) {
+            $values[] = '(?,?,?)'; array_push($args,$id,(int)$r['capacity'],(int)$r['seconds']);
+        }
+        $args[] = $this->now();
+        return $this->run('WITH policy(rule,capacity,seconds) AS (VALUES '.implode(',',$values).')
+            SELECT b.id,b.rule,b.ip,b.updated+(1-b.tokens)*p.seconds/p.capacity AS available
+            FROM security_buckets b JOIN policy p ON p.rule=b.rule
+            WHERE b.updated+(1-b.tokens)*p.seconds/p.capacity>CAST(? AS INTEGER) ORDER BY available DESC LIMIT 100',$args)->fetchAll();
     }
 
     public function prune(): void

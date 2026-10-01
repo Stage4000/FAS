@@ -144,4 +144,28 @@ scenario('database failures roll back paid markers and inventory together',funct
     check((int)value($db,'SELECT quantity FROM products WHERE id=1')===10,'stock rollback');check(value($db,'SELECT payment_status FROM orders')==='pending','paid marker rollback');
     $db->exec('DROP TRIGGER fail_final');check($s->status($id,$owner)['state']==='paid','GET repair after DB recovery');check($p->captureCalls===1,'still one charge');
 });
+scenario('rate limits reject new attempts before provider calls and retain retry identity',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    $allow=false;
+    $s->setSecurityGate(function($kind,$attempt)use(&$allow){if(!$allow)throw new CheckoutProblem('rate_limited','Wait',429);});
+    throws(fn()=>$s->create($id,$owner,$in,$q),'rate_limited');
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,'no create effects while throttled');
+    $allow=true;$r=$s->create($id,$owner,$in,$q);$p->approve($r['paypal_order_id']);$allow=false;
+    throws(fn()=>$s->capture($id,$owner),'rate_limited');
+    check($p->captureCalls===0 && (int)value($db,'SELECT quantity FROM products WHERE id=1')===10,'no charge or inventory deduction while throttled');
+    $allow=true;check($s->capture($id,$owner)['state']==='paid','same attempt completes after cooldown');
+    $allow=false;check($s->capture($id,$owner)['state']==='paid','terminal result bypasses downstream budget');
+    check($p->captureCalls===1 && (int)value($db,'SELECT quantity FROM products WHERE id=1')===8,'one charge and deduction');
+});
+scenario('replayed creation uses recovery budget only after ownership validation',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();$seen=[];
+    $s->setSecurityGate(function($kind,$attempt)use(&$seen){$seen[]=$kind;});
+    $r=$s->create($id,$owner,$in,$q);$s->create($id,$owner,$in,$q);
+    check($seen===['create','recovery'],'idempotent replay does not spend new-attempt quota');
+    throws(fn()=>$s->capture($id,'wrong-owner'),'not_found');
+    throws(fn()=>$s->status($id,'wrong-owner'),'not_found');
+    throws(fn()=>$s->abandon($id,'wrong-owner'),'not_found');
+    check($seen===['create','recovery'],'guessed references never use owned recovery budget');
+    check($p->createCalls===1,'only one provider order created');
+});
 echo "PASS $scenarios scenarios; $assertions assertions. Provider calls are MOCKED; no live payment was made.\n";

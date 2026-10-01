@@ -75,6 +75,11 @@ try {
     }
     echo json_encode($result, JSON_THROW_ON_ERROR);
 } catch (CheckoutProblem $e) {
+    if ($e->httpStatus === 429) {
+        $hasRetry = false;
+        foreach (headers_list() as $header) if (stripos($header, 'Retry-After:') === 0) $hasRetry = true;
+        if (!$hasRetry) header('Retry-After: 3600'); // Existing per-session hourly attempt cap.
+    }
     http_response_code($e->httpStatus);
     echo json_encode(['ok' => false, 'code' => $e->reason, 'error' => $e->getMessage(), 'attempt_id' => $id]);
 } catch (Throwable $e) {

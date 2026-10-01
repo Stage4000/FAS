@@ -3,6 +3,7 @@ require_once __DIR__ . '/src/config/Database.php';
 require_once __DIR__ . '/src/models/Product.php';
 require_once __DIR__ . '/src/utils/ProductAltText.php';
 require_once __DIR__ . '/src/utils/Seo.php';
+require_once __DIR__ . '/src/utils/ProductContent.php';
 require_once __DIR__ . '/src/utils/ShippingRules.php';
 require_once __DIR__ . '/includes/ebay-seller-rating.php';
 require_once __DIR__ . '/includes/sale-helper.php';
@@ -44,6 +45,14 @@ if ((int)($product['show_on_website'] ?? 0) !== 1) {
     header('Cache-Control: private, no-store');
 }
 $productInStock = (int)($product['quantity'] ?? 0) > 0;
+try {
+    $product = \FAS\Utils\ProductContent::applyPublished($db, [$product])[0];
+} catch (Throwable $e) {
+    error_log('Product editorial content unavailable: '.$e->getMessage());
+    http_response_code(503);
+    header('Retry-After: 60');
+    exit('This product is temporarily unavailable. Please try again shortly.');
+}
 
 $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
 $relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 3);
@@ -140,7 +149,7 @@ $ogType = 'product';
 
 // Include header with the meta tags
 $productName = Seo::cleanText($product['name'] ?? 'Product');
-$productDescription = Seo::cleanText($product['description'] ?? $productName);
+$productDescription = Seo::cleanText($product['storefront_description'] ?? $product['description'] ?? $productName);
 $productCategoryPath = $productModel->getEbayStoreCategoryPath($product);
 $schemaImages = $images;
 if ($mainImage && !in_array($mainImage, $schemaImages, true)) {
@@ -171,8 +180,12 @@ $seoProductDescription = Seo::cleanProductSeoDescription($productDescription);
 if ($seoProductDescription === '') {
     $seoProductDescription = $productName;
 }
-$metaTitle = Seo::metaTitle($productName . ' | Flip and Strip');
-$metaDescription = Seo::productMetaDescription($productName, $productDescription, (float) $priceInfo['effective_price'], $metaDetails);
+$metaTitle = Seo::metaTitle(!empty($product['seo_title']) ? $product['seo_title'] : $productName . ' | Flip and Strip');
+$metaDescription = !empty($product['seo_description'])
+    ? Seo::metaDescription($product['seo_description'])
+    : (isset($product['storefront_description'])
+        ? Seo::metaDescription($productDescription)
+        : Seo::productMetaDescription($productName, $productDescription, (float) $priceInfo['effective_price'], $metaDetails));
 $ogTitle = $metaTitle;
 $ogDescription = $metaDescription;
 $ogImage = Seo::absoluteUrl($mainImage);
@@ -189,16 +202,52 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container my-5">
-    <nav aria-label="breadcrumb" data-aos="fade-down">
+    <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Home</a></li>
             <li class="breadcrumb-item"><a href="/products">Products</a></li>
             <li class="breadcrumb-item active"><?php echo htmlspecialchars($product['name']); ?></li>
         </ol>
     </nav>
-    <div class="row">
-        <!-- Product Images -->
-        <div class="col-lg-6 mb-4" data-aos="fade-right">
+    <div class="product-layout">
+        <section class="product-overview" aria-label="Product overview">
+            <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
+
+            <div class="mb-2">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
+                <?php endif; ?>
+                        <span class="badge <?= $productInStock ? 'bg-success' : 'bg-secondary' ?> me-2"><?= $productInStock ? 'In Stock' : 'Out of stock' ?></span>
+                        <?php if (!empty($product['condition_name'])): ?>
+                            <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($productFreeShipping): ?>
+                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
+                        <?php endif; ?>
+                    </div>
+
+            <div class="mb-4">
+                <?php if ($priceInfo['on_sale']): ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                    <small class="text-muted text-decoration-line-through ms-2 fs-5">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
+                <?php else: ?>
+                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
+                <?php endif; ?>
+            </div>
+
+                    <div class="mb-4">
+                        <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
+                    </div>
+
+                    <?php if ($productFreeShipping): ?>
+                        <div class="alert alert-success border-0 shadow-sm small mb-4">
+                            <i class="fas fa-truck-fast me-2"></i>
+                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
+                        </div>
+                    <?php endif; ?>
+
+        </section>
+        <section class="product-gallery" aria-label="Product photos">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <?php
@@ -210,15 +259,16 @@ require_once __DIR__ . '/includes/header.php';
                     );
                     ?>
                     <?php if ($hasMainImage): ?>
-                            <img src="<?php echo htmlspecialchars($mainImage); ?>"
+                            <a id="product-image-original" href="<?php echo htmlspecialchars($mainImage); ?>" target="_blank" rel="noopener" aria-label="Open full-size product photo">
+                            <img <?php echo \FAS\Utils\ResponsiveImage::attributes($mainImage, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw'); ?>
                                  class="img-fluid product-detail-img w-100"
                                  id="main-product-image"
                                  alt="<?php echo htmlspecialchars($productImageAltText); ?>"
                                  loading="eager"
                                  fetchpriority="high"
                                  decoding="async"
-                                 sizes="(min-width: 992px) 50vw, 100vw"
-                                 style="max-width: 100%; height: auto;">
+                                 >
+                            </a>
                     <?php else: ?>
                         <div class="bg-light p-5 text-center">
                             <i class="bi bi-image display-1 text-muted"></i>
@@ -229,7 +279,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Thumbnail Gallery -->
             <?php if (!empty($images) && count($images) > 1): ?>
-                <div class="product-thumbnails mt-3 d-flex gap-2 flex-wrap">
+                <div class="product-thumbnails mt-3 d-flex gap-2" aria-label="Choose a product photo">
                     <?php foreach ($images as $index => $image): ?>
                         <?php
                         // Check if image is external or local
@@ -240,18 +290,140 @@ require_once __DIR__ . '/includes/header.php';
                         );
                         ?>
                         <?php if ($hasImage): ?>
-                            <img src="<?php echo htmlspecialchars($image); ?>"
-                                 class="img-thumbnail thumbnail-image <?php echo $index === 0 ? 'active' : ''; ?>"
-                                 data-full="<?php echo htmlspecialchars($image); ?>"
-                                 alt="<?php echo htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
-                                 loading="lazy"
-                                 decoding="async"
-                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; flex-shrink: 0;">
+                            <button type="button" class="product-thumbnail <?= $index === 0 ? 'active' : '' ?>"
+                                aria-label="View product photo <?= $index + 1 ?>" aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>"
+                                data-image-attributes="<?= htmlspecialchars(\FAS\Utils\ResponsiveImage::attributes($image, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw'), ENT_QUOTES, 'UTF-8') ?>"
+                                data-full="<?= htmlspecialchars($image, ENT_QUOTES, 'UTF-8') ?>">
+                                <img <?= \FAS\Utils\ResponsiveImage::attributes($image, '80px', 320) ?>
+                                     alt="<?= htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
+                                     loading="lazy" decoding="async">
+                            </button>
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
 
+        </section>
+        <section class="product-purchase-column" aria-label="Purchase options">
+            <div class="mb-4">
+                <?php if (!$productInStock): ?>
+                    <p class="alert alert-secondary" role="status"><strong>Out of stock.</strong> This listing is available for reference. <a href="/products" class="alert-link">Browse current inventory</a> for another part.</p>
+                <?php endif; ?>
+                <label for="quantity-input" class="form-label fw-bold">Quantity:</label>
+                <div class="input-group quantity-selector">
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty" aria-label="Decrease quantity" <?php echo $productInStock ? '' : 'disabled'; ?>>-</button>
+                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo max(1, (int)($product['quantity'] ?? 0)); ?>" id="quantity-input" <?php echo $productInStock ? '' : 'disabled'; ?>>
+                    <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty" aria-label="Increase quantity" <?php echo $productInStock ? '' : 'disabled'; ?>>+</button>
+                </div>
+            </div>
+
+                        <div class="d-grid gap-2 mb-4 product-action-stack">
+                            <button class="btn btn-outline-danger btn-lg add-to-cart product-detail-add-to-cart"
+                        <?php echo $productInStock ? '' : 'disabled'; ?>
+                        data-id="<?php echo $product['id']; ?>"
+                        data-name="<?php echo htmlspecialchars($product['name']); ?>"
+                        data-price="<?php echo $priceInfo['effective_price']; ?>"
+                        data-image="<?php echo htmlspecialchars($mainImage); ?>"
+                        data-image-alt="<?php echo htmlspecialchars($productImageAltText); ?>"
+                                data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
+data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
+data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
+data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
+                        data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
+                        data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
+                        data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
+                        data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
+                        data-stock="<?php echo max(0, (int)($product['quantity'] ?? 0)); ?>">
+                    <i class="bi bi-cart-plus"></i> Add to Cart
+                </button>
+                            <button type="button" class="btn btn-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart" <?php echo $productInStock ? '' : 'disabled'; ?>>
+                    <i class="fas fa-bolt"></i> Buy Now
+                </button>
+                            <?php if ($productInStock): ?>
+                                <small class="text-muted text-center">Buy Now skips the cart and keeps any existing cart items unchanged. Shipping is confirmed before PayPal opens.</small>
+                            <?php endif; ?>
+                <a href="/cart" class="btn btn-dark btn-lg">
+                    <i class="bi bi-cart3"></i> View Cart
+                </a>
+                <button class="btn btn-secondary btn-lg" id="share-button" aria-label="Share product link">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4 shipping-estimator-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="text-danger fs-4">
+                            <i class="fas fa-truck-fast"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-bold mb-1">Estimate Shipping Before Checkout</h2>
+                            <p class="small text-muted mb-0">Enter city, state, and ZIP to check estimated shipping or continental US free-shipping eligibility.</p>
+                        </div>
+                    </div>
+                        <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold" for="product-estimate-city">City</label>
+                            <input type="text" class="form-control form-control-sm" id="product-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold" for="product-estimate-state">State</label>
+                            <input type="text" class="form-control form-control-sm text-uppercase" id="product-estimate-state" name="state" maxlength="2" placeholder="OR" autocomplete="address-level1">
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label small fw-semibold" for="product-estimate-zip">ZIP Code</label>
+                            <input type="text" class="form-control form-control-sm" id="product-estimate-zip" name="zip" inputmode="numeric" placeholder="97035" autocomplete="postal-code">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="fas fa-calculator me-1"></i>Estimate Shipping
+                            </button>
+                        </div>
+                    </form>
+                    <div id="product-shipping-estimate-result" class="mt-3"></div>
+                </div>
+            </div>
+
+                <div class="card border-0 shadow-sm mb-4" data-theme-card>
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h6>
+                        <div class="row g-3 small">
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Actual Item Photographed</div>
+                                <div class="text-muted">Photos represent the part you are reviewing.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Condition as Listed</div>
+                                <div class="text-muted">Review this item's condition, photos, and description before ordering.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="fw-semibold">Secure Payment</div>
+                                <div class="text-muted">Checkout runs through PayPal for buyer protection.</div>
+                            </div>
+                        <div class="col-sm-6">
+                            <div class="fw-semibold">Shipping Support</div>
+                            <div class="text-muted">Rates are calculated at checkout before payment.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fw-semibold">30-Day Return Policy</div>
+                            <div class="text-muted">Eligible orders may be returned within 30 days.</div>
+                        </div>
+                    </div>
+                        <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($productCategoryPath)): ?>
+                            <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+                                <i class="fas fa-wrench me-1"></i>
+                                Confirm fitment using the manufacturer, model, SKU, category, and photos before purchase. Contact us if you need help matching this part.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
+
+        </section>
+        <section class="product-details" aria-label="Product details">
                     <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
                     <h6 class="mb-3">Part Facts</h6>
@@ -299,11 +471,11 @@ require_once __DIR__ . '/includes/header.php';
             <div class="card border-0 shadow-sm mb-4" data-theme-card>
                 <div class="card-body p-4">
                     <h3 class="mb-2">Product Details &amp; Notes</h3>
-                    <p class="text-muted small mb-4">Use the part facts above for quick reference. These notes may include fitment, condition, or other seller details from the original listing.</p>
+                    <p class="text-muted small mb-4">Review the part facts, condition, photos and details before ordering. Contact us if you need help confirming fitment.</p>
                     <?php
                     // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
                     // Display as plain text with proper escaping and preserve line breaks
-                    $description = $product['description'] ?? '';
+                    $description = $product['storefront_description'] ?? $product['description'] ?? '';
                     if (!empty($description)) {
                         echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
                     } else {
@@ -312,170 +484,8 @@ require_once __DIR__ . '/includes/header.php';
                     ?>
                 </div>
             </div>
-        </div>
-
-        <!-- Product Information -->
-        <div class="col-lg-6 product-purchase-column" data-aos="fade-left">
-            <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
-
-            <div class="mb-2">
-                <?php if ($priceInfo['on_sale']): ?>
-                    <span class="badge bg-danger me-2"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
-                <?php endif; ?>
-                        <span class="badge bg-success me-2">In Stock</span>
-                        <?php if (!empty($product['condition_name'])): ?>
-                            <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
-                        <?php endif; ?>
-                        <?php if ($productFreeShipping): ?>
-                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
-                        <?php endif; ?>
-                    </div>
-
-            <div class="mb-4">
-                <?php if ($priceInfo['on_sale']): ?>
-                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
-                    <small class="text-muted text-decoration-line-through ms-2 fs-5">$<?php echo number_format($priceInfo['original_price'], 2); ?></small>
-                <?php else: ?>
-                    <span class="product-price display-4 fw-bold text-danger">$<?php echo number_format($priceInfo['effective_price'], 2); ?></span>
-                <?php endif; ?>
-            </div>
-
-                    <div class="mb-4">
-                        <strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?>
-                    </div>
-
-                    <?php if ($productFreeShipping): ?>
-                        <div class="alert alert-success border-0 shadow-sm small mb-4">
-                            <i class="fas fa-truck-fast me-2"></i>
-                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
-                        </div>
-                    <?php endif; ?>
-
-                <div class="card border-0 shadow-sm mb-4" data-theme-card>
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h6>
-                        <div class="row g-3 small">
-                            <div class="col-sm-6">
-                                <div class="fw-semibold">Actual Item Photographed</div>
-                                <div class="text-muted">Photos represent the part you are reviewing.</div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="fw-semibold">Condition as Listed</div>
-                                <div class="text-muted">Review this item's condition, photos, and description before ordering.</div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="fw-semibold">Secure Payment</div>
-                                <div class="text-muted">Checkout runs through PayPal for buyer protection.</div>
-                            </div>
-                        <div class="col-sm-6">
-                            <div class="fw-semibold">Shipping Support</div>
-                            <div class="text-muted">Rates are calculated at checkout before payment.</div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="fw-semibold">30-Day Return Policy</div>
-                            <div class="text-muted">Eligible orders may be returned within 30 days.</div>
-                        </div>
-                    </div>
-                        <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($ebayCategory)): ?>
-                            <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
-                                <i class="fas fa-wrench me-1"></i>
-                                Confirm fitment using the manufacturer, model, SKU, category, and photos before purchase. Contact us if you need help matching this part.
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <?php echo fasRenderSellerRatingBlock($sellerRating, 'product'); ?>
-
-            <div class="mb-4">
-                <?php if (!$productInStock): ?>
-                    <p class="alert alert-secondary" role="status"><strong>Out of stock.</strong> This listing is available for reference. <a href="/products" class="alert-link">Browse current inventory</a> for another part.</p>
-                <?php endif; ?>
-                <label class="form-label fw-bold">Quantity:</label>
-                <div class="input-group quantity-selector">
-                    <button class="btn btn-outline-danger quantity-btn" type="button" id="decrease-qty" <?php echo $productInStock ? '' : 'disabled'; ?>>-</button>
-                    <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="<?php echo max(1, (int)($product['quantity'] ?? 0)); ?>" id="quantity-input" <?php echo $productInStock ? '' : 'disabled'; ?>>
-                    <button class="btn btn-outline-danger quantity-btn" type="button" id="increase-qty" <?php echo $productInStock ? '' : 'disabled'; ?>>+</button>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-4 shipping-estimator-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-start gap-3 mb-3">
-                        <div class="text-danger fs-4">
-                            <i class="fas fa-truck-fast"></i>
-                        </div>
-                        <div>
-                            <h2 class="h6 fw-bold mb-1">Estimate Shipping Before Checkout</h2>
-                            <p class="small text-muted mb-0">Enter city, state, and ZIP to check estimated shipping or continental US free-shipping eligibility.</p>
-                        </div>
-                    </div>
-                        <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold" for="product-estimate-city">City</label>
-                            <input type="text" class="form-control form-control-sm" id="product-estimate-city" name="city" placeholder="Portland" autocomplete="address-level2">
-                        </div>
-                        <div class="col-5">
-                            <label class="form-label small fw-semibold" for="product-estimate-state">State</label>
-                            <input type="text" class="form-control form-control-sm text-uppercase" id="product-estimate-state" name="state" maxlength="2" placeholder="OR" autocomplete="address-level1">
-                        </div>
-                        <div class="col-7">
-                            <label class="form-label small fw-semibold" for="product-estimate-zip">ZIP Code</label>
-                            <input type="text" class="form-control form-control-sm" id="product-estimate-zip" name="zip" inputmode="numeric" placeholder="97035" autocomplete="postal-code">
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
-                                <i class="fas fa-calculator me-1"></i>Estimate Shipping
-                            </button>
-                        </div>
-                    </form>
-                    <div id="product-shipping-estimate-result" class="mt-3"></div>
-                </div>
-            </div>
-
-                        <div class="d-grid gap-2 mb-4 product-action-stack">
-                            <button class="btn btn-outline-danger btn-lg add-to-cart product-detail-add-to-cart"
-                        <?php echo $productInStock ? '' : 'disabled'; ?>
-                        data-id="<?php echo $product['id']; ?>"
-                        data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                        data-price="<?php echo $priceInfo['effective_price']; ?>"
-                        data-image="<?php echo htmlspecialchars($mainImage); ?>"
-                        data-image-alt="<?php echo htmlspecialchars($productImageAltText); ?>"
-                                data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
-data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
-data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
-data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
-data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
-data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
-                        data-length="<?php echo !empty($product['length']) ? floatval($product['length']) : 10.0; ?>"
-                        data-width="<?php echo !empty($product['width']) ? floatval($product['width']) : 10.0; ?>"
-                        data-height="<?php echo !empty($product['height']) ? floatval($product['height']) : 10.0; ?>"
-                        data-free-shipping="<?php echo $productFreeShipping ? '1' : '0'; ?>"
-                        data-stock="<?php echo max(0, (int)($product['quantity'] ?? 0)); ?>">
-                    <i class="bi bi-cart-plus"></i> Add to Cart
-                </button>
-                            <button type="button" class="btn btn-danger btn-lg product-buy-now" data-buy-now-source=".product-detail-add-to-cart" <?php echo $productInStock ? '' : 'disabled'; ?>>
-                    <i class="fas fa-bolt"></i> Buy Now
-                </button>
-                            <?php if ($productInStock): ?>
-                                <small class="text-muted text-center">Buy Now skips the cart and keeps any existing cart items unchanged. Shipping is confirmed before PayPal opens.</small>
-                            <?php endif; ?>
-                <a href="/cart" class="btn btn-dark btn-lg">
-                    <i class="bi bi-cart3"></i> View Cart
-                </a>
-                <button class="btn btn-secondary btn-lg" id="share-button" aria-label="Share product link">
-                    <i class="fas fa-share-alt"></i> Share
-                </button>
-            </div>
-
-                <div class="alert alert-info">
-                    <i class="bi bi-truck me-2"></i>
-                    <strong>Shipping calculated before payment</strong><br>
-                    <small>Enter your address at checkout to compare available carrier rates.</small>
-                </div>
-        </div>
+        </section>
     </div>
-
 </div>
 
 <?php if (!empty($relatedProducts)): ?>
@@ -509,22 +519,6 @@ window.FAS_PRODUCT_DATA = {
 </script>
 
 <script>
-// Thumbnail gallery functionality
-document.querySelectorAll('.thumbnail-image').forEach(thumbnail => {
-    thumbnail.addEventListener('click', function() {
-        const fullImageUrl = this.dataset.full;
-        const mainImage = document.getElementById('main-product-image');
-
-        if (mainImage && fullImageUrl) {
-            mainImage.src = fullImageUrl;
-        }
-
-        // Update active state
-        document.querySelectorAll('.thumbnail-image').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-    });
-});
-
 // Quantity controls
 document.getElementById('decrease-qty').addEventListener('click', function() {
     const input = document.getElementById('quantity-input');

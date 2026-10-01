@@ -5,9 +5,11 @@
 **Scope:** live public storefront, every current product listing, catalog discovery, Merchant feed, shared templates, and repository SEO implementation.  
 **Baseline deliverable:** audit and implementation plan; no storefront code, inventory, settings, or deployment changed during the audit.
 
-**Implementation follow-up, September 30:** the first two batches are deployed. Live retesting covered 66 HTML/API route pairs and all eight free-shipping pages in the browser. The next batch is implemented and locally retested: lifecycle/404 handling, robots, explicit alias redirects, sitemap eligibility/failure handling, and catalog-title protection. These new changes still require deployment and live verification (section 12). Completed items below retain only their status; open or partially verified items retain their remaining work. The original crawl and listing register are a dated baseline.
+**Implementation follow-up, September 30:** the first two batches are deployed. Live retesting covered 66 HTML/API route pairs and all eight free-shipping pages in the browser. The third batch adds lifecycle/404 handling, robots, explicit alias redirects, sitemap eligibility/failure handling, and catalog-title protection (section 12). The fourth batch adds responsive image delivery, mobile product ordering, accessible photo selection, consistent condition classification, placeholder-MPN omission and stock controls (section 13). Both later batches are locally implemented and retested; deployment/live verification remains open. Completed items below retain only their status; open or partially verified items retain their remaining work. The original crawl and listing register are a dated baseline.
 
 ## 1. Executive assessment at the original audit
+
+**Implementation follow-up, October 1:** the fifth batch adds protected product-content drafts, explicit publishing, search-text overrides and expanded review warnings (section 14). It is implemented and retested locally. A [fresh read-only live follow-up](seo-live-followup-2026-10-01.json) still found the older robots, missing-product, out-of-range pagination and PHP-alias behavior. Production deployment, initialization and real inventory review remain open; no production inventory edits were made in this batch.
 
 The site has a working technical foundation: server-rendered listings, product canonicals, Product/Offer and breadcrumb structured data, an accessible sitemap, HTTPS/host redirects, and product discovery through ordinary links. Every one of the **607 current public listings** ultimately returned HTTP 200, and every primary feed image returned HTTP 200.
 
@@ -98,17 +100,21 @@ Priority definitions: **P1** = fix first because relevance, discovery, or shoppe
 
 ### SEO-03 — P1: inherited descriptions can describe the wrong product (L)
 
+**Progress:** section 14 implements an independent reviewed-content store, draft/publication workflow, import-preservation checks and shared visible/schema/feed descriptions. Targeted cleanup now preserves facts after recognized boilerplate. Real listing 5649 and the 61-description cluster still require verified item-by-item corrections; no replacement facts or fitment were inferred.
+
 **Counts:** 596/607 descriptions match the marketplace-boilerplate review rule; 404 explicitly refer to the “eBay shipping calculator”; 194 include “IMPORTANT BUYER NOTICE.” These sets overlap. **78 listings** share one of eight duplicate schema-description strings; **61 share the same Harley clutch-cover text**. The overlap heuristic flags 45 listings for manual relevance review, independently of duplicate detection.
 
 **Confirmed example:** [product 5649](https://flipandstrip.com/product/5649/2000-victory-v92sc-crankshaft-and-connecting-rods-2203143-low-miles) has a Victory crankshaft title and visible Victory notes, but begins with a Harley Sportster clutch-cover description. The Product JSON-LD description contains only that unrelated opening. This was confirmed in both fetched HTML and the browser.
 
-**Code:** `product.php:133–179`, `product.php:290–300`, `Seo.php:99–117`, and `MerchantFeedBuilder.php:210–218`. The cleanup removes everything after selected boilerplate markers. If useful item facts follow such a marker, those facts disappear from the SEO description while an incorrect opening survives. Feed descriptions retain the original marketplace boilerplate.
+**Code at the original audit:** `product.php:133–179`, `product.php:290–300`, `Seo.php:99–117`, and `MerchantFeedBuilder.php:210–218`. The cleanup removed everything after selected boilerplate markers. If useful item facts followed such a marker, those facts disappeared from the SEO description while an incorrect opening survived. Feed descriptions retained the original marketplace boilerplate. Section 14 records the local correction and remaining editorial/deployment gates.
 
 **Plan:** prioritize the 61-description cluster and the confirmed mismatch, then review the 45 relevance candidates and all 404 shipping-copy cases. Separate item-specific facts from storefront shipping/return policies. Preserve source text for admin reference; add a reviewed storefront summary that survives subsequent eBay sync. Use it consistently for the visible description, schema, and feed. Clean targeted boilerplate blocks without deleting later product facts. Normalize spacing and readable paragraphs.
 
 **Acceptance:** no unrelated product identity in title, first paragraph, schema, or feed; no statements that website shipping is calculated by eBay; no removal of useful later notes. Human review must confirm part number, fitment, damage, included pieces, and actual images. Do not automatically delete duplicate products or invent replacement copy from the title alone.
 
 ### SEO-04 — P1: separate part identifiers from vehicle fitment (L)
+
+**Progress:** placeholder MPN omission is implemented and locally retested in section 13. Feed/schema omit empty markers such as na, Does Not Apply and unknown while retaining real identifier spelling. Production checks on 5651/5730/5753, the source-aware field separation, and identifier applicability remain open.
 
 **Evidence:** `src/models/Product.php:1062–1063` initially imports eBay `brand` and `mpn` into `manufacturer` and `model`; later category extraction can fill those same fields. `product.php:265–269` labels `model` as “Model.” `src/utils/Seo.php:306–309` and `src/utils/MerchantFeedBuilder.php:75–76` output it as MPN. On product 5649, the browser shows **Model: 2203143**, which is a part number. The make/model landing-page builder also groups on this field.
 
@@ -186,14 +192,14 @@ Catalog product anchors also point to bare `/product/{id}` URLs, adding a redire
 
 ### SEO-11 — P2: schema needs accurate content and complete merchant policies (M)
 
-**Progress:** the shared used-condition label is complete, deployed, and live-verified (section 10). Schema descriptions, identifiers, and policy work remain open.
+**Progress:** the shared used-condition label is complete, deployed, and live-verified (section 10). Full reviewed descriptions and page/schema/feed agreement are locally implemented and retested in section 14. Production content checks, identifiers and policy work remain open.
 
 The Product/Offer structures exist and prices/availability agree with the feed. The remaining work is semantic: descriptions, true identifiers, actual condition, and supported policies.
 
 - Fix SEO-03 and SEO-04 first. Do not treat valid JSON as correct product data.
-- Product schema descriptions are capped at 160 characters by `Seo::productSchema()`, independently of whether the product's important notes fit. Use a useful reviewed product summary rather than applying the search-snippet limit to all schema content.
+- Local implementation/retest: Product schema now carries the complete reviewed description, up to 5,000 characters, independently of the 160-character search-snippet field. The dynamic feed uses the same reviewed text. Production validation and the underlying item-fact review remain open.
 - [x] Complete: neutral condition label and accurate shared condition copy; deployed and retested.
-- Condition normalization remains open: product 6392 visibly says “New with tags,” while the saved feed classifies it as used. Do not equate corrected template copy with corrected feed data.
+- Condition normalization is implemented and locally retested in section 13 using one shared mapping for schema/feed. Explicit “New with tags” now maps to new; “Like new” and opened/missing-packaging labels are not inferred to be new. Product 6392's live result and the actual inventory/packaging/refurbishment facts still require verification.
 - The 30-day return policy exists in visible product copy and schema, but the footer offers no dedicated shipping, returns, privacy, or terms links. Add owner-approved, accessible policy pages with the actual scope, exceptions, return method, and cost responsibilities; keep markup and Merchant Center settings consistent. This is a trust/merchant-readiness finding, not a legal compliance determination.
 - Shipping schema is emitted for qualifying free shipping, but does not supply delivery timing. Add timing and other recommended properties only when operationally verified. Absence of optional shipping details on a paid-shipping product is not automatically a rich-result error.
 - Keep eBay seller feedback attributed to the seller/platform; do not turn it into invented product reviews or product aggregate ratings. Current Product schema does not need fabricated ratings.
@@ -201,6 +207,8 @@ The Product/Offer structures exist and prices/availability agree with the feed. 
 **Acceptance:** representative new, used, free-shipping, paid-shipping, apparel, sale, and out-of-stock fixtures pass structured-data validation and match visible content. Review eligible live examples in Google's Rich Results Test and Merchant Center. [Merchant listing structured data](https://developers.google.com/search/docs/appearance/structured-data/merchant-listing).
 
 ### SEO-12 — P2: image delivery and mobile layout need measurable improvement (M)
+
+**Progress:** responsive local-image candidates, original-photo access, earlier mobile product/purchase information, keyboard photo controls, mobile animation safeguards, reduced-motion rules and footer wrapping are implemented and locally retested in section 13. Production image generation, representative live photo/long-title checks, delivery measurements and field performance evidence remain open.
 
 **Measured primary-image sources:** median **719,773 bytes**; 95th percentile **3,077,254 bytes**; maximum **6,142,170 bytes**; **258/607 exceed 1 MB**. All 607 main-image tags lack `width`/`height` and `srcset`. A `sizes` attribute without srcset does not choose smaller image candidates. These HEAD lengths describe source assets; they are not measured whole-page transfer totals or decoding times.
 
@@ -216,6 +224,8 @@ The local shared JPEG is 813,970 bytes and the logo PNG is 314,141 bytes; check 
 
 ### SEO-13 — P2/P3: metadata exists but can communicate product intent better (M–L)
 
+**Progress:** optional reviewed search-title and snippet overrides now survive imports, with draft privacy, conflict detection and publication reauthentication (section 14). Product names and canonical URLs are unchanged. Writing and verifying the real inventory's search text remains editorial work.
+
 **Counts:** 596 titles exceed a 70-character editorial review threshold; the helper allows up to 110 characters. These are **not Google character-limit violations**. Google truncates displayed titles according to available space. All 607 product meta descriptions are present and unique.
 
 The only exact duplicate title pair is **5748 and 5796**, both the Harley Big Twin “No Pain Drain” oil-change kit. Determine whether they are distinct stock items before changing URLs or consolidating anything. Shared brand and MPN are not sufficient proof of accidental duplication.
@@ -228,7 +238,9 @@ The only exact duplicate title pair is **5748 and 5796**, both the Harley Big Tw
 
 ### SEO-14 — P2: expand admin quality controls and protect reviewed content (M)
 
-`admin/product-quality.php:148–163` treats fitment as missing only when manufacturer and model are both blank and uses a short-description length rule. Those checks do not catch an MPN presented as a vehicle model, long irrelevant descriptions, placeholder identifiers, or incorrect category results.
+**Progress:** section 14 adds eight review warning types, links each listing to a protected editor, shows source provenance and publication activity, and detects source changes and simultaneous edits. Completeness scores are explicitly field-completeness measures, not SEO approval. The mobile review navigation is collapsible. Separate verified fitment, category reconciliation and broader merchant-account diagnostics remain open.
+
+**Original behavior:** `admin/product-quality.php:148–163` treated fitment as missing only when manufacturer and model were both blank and used a short-description length rule. Those checks did not catch an MPN presented as a vehicle model, long irrelevant descriptions, placeholder identifiers, or incorrect category results. The new local review warnings address several of these gaps; verified field separation and category reconciliation remain outstanding.
 
 **Plan:** extend the existing quality dashboard rather than building a separate workflow. Add the issue codes from this audit, separate hard publish blockers from review warnings, show source provenance, and record the review state. Add import regression checks for changes to verified product identity, fitment, description, and image. Track storefront overrides independently so the next eBay sync cannot restore corrected boilerplate.
 
@@ -412,3 +424,75 @@ Keep `audit/`, `tests/`, and `tmp/` outside public deployment. The deployed inte
 - [ ] Resolve product 6305's record/mapping discrepancy and the source-fact reviews in SEO-03/04 before closing those findings.
 
 After these gates pass, mark the corresponding findings completed and remove their body text. Preserve the dated evidence files and retain body text for outstanding data, policy, account, performance, and editorial work.
+
+## 13. Fourth implementation batch — locally implemented and retested; deployment pending
+
+**Status:** no production deployment or inventory edit was performed. Keep these findings open until their production checks pass; local verification does not certify every source photo or product fact.
+
+- [x] Local implementation/retest: product title, price and stock precede the gallery on mobile; quantity and purchase controls precede long notes. Original notes remain intact.
+- [x] Local implementation/retest: CLI-generated responsive image candidates and intrinsic dimensions on detail/catalog/related images; smaller shared-logo delivery. Original photos stay available, including in feed/schema. Missing variants fall back to the original.
+- [x] Local implementation/retest: native keyboard-operable thumbnail buttons update the main photo, responsive candidates, original link and selected state together.
+- [x] Local implementation/retest: mobile horizontal animation transforms disabled, guarded AOS initialization, reduced-motion CSS and scroll behavior; content remains visible in the tested AOS outage.
+- [x] Local implementation/retest: long footer email wraps at tablet width. DOM measurements traced the previously reported 19 px overflow to this footer link, not the shared header.
+- [x] Local implementation/retest: schema/feed share explicit condition normalization and omit placeholder MPN values. Ambiguous vehicle-model/MPN data is not migrated or guessed.
+- [x] Local implementation/retest: out-of-stock detail badge and disabled catalog/API/related purchase buttons agree with existing stock schema.
+- [ ] Deploy and retest these changes on the actual host, together with the outstanding third batch.
+- [ ] Build origin image variants, review skips and verify actual photo quality/request sizes. Establish field performance evidence separately.
+- [ ] Verify live product 6392 condition and placeholder identifiers on 5651/5730/5753; continue inventory-owner review of the remaining identity/fitment/description findings.
+
+### Verification and practical limits
+
+- **51 PHP presentation assertions** pass: explicit condition mappings, schema/feed parity, placeholder omission, preserved identifiers, responsive sizes, original-image preservation, reusable builds, stale-cache invalidation, transparency and unsupported/malformed source fallbacks.
+- **24 HTTP checks** pass against disposable synthetic inventory with mocked eBay category access: detail/catalog/API/related cards, stock state, metadata/feed original images, preserved notes and missing-product 404. Evidence: [local HTTP/image results](seo-presentation-local.json).
+- Product and catalog layouts pass DOM width checks at **320, 390, 768 and 1440 px in both themes**. Keyboard photo selection, expanded tablet navigation, AJAX search with disabled sold-out controls, and animation-library outage were checked in the browser. Evidence: [browser results](seo-presentation-browser.json). These are representative local template tests, not a repeat visual review of all 607 live listings. Reduced-motion preferences are implemented in CSS/JavaScript; OS preference emulation was not available in this browser pass.
+- Existing regressions pass: catalog **50**, discovery **13**, redirect patterns **29**, catalog navigation **14**, growth **32 server / 17 client**, security **71 server / 11 client / 52 HTTP**, and Apple Pay **93 assertions across 17 mocked scenarios plus 10 client scenarios**. No live customer emails, payments or sync runs were performed. Redirect-pattern checks are not an Apache integration test.
+- For the existing **813,970-byte shared logo JPEG**, the builder produced a **1,594-byte 80 px** option and **28,700-byte 640 px** option, with the original hash unchanged. These are local sample measurements, not a guaranteed reduction for every photograph or a measured LCP improvement.
+- A read-only live check still found the old cart/checkout/search robots restrictions, a missing product redirecting to the catalog, out-of-range catalog page 99999 returning 200, and the stale text feed returning 200. These checks do not establish deployment of either newer batch.
+
+### Deployment
+
+Deploy this batch's matching runtime files together:
+
+- product.php, products.php, api/products.php
+- includes/header.php, includes/footer.php, includes/product-merchandising.php
+- src/utils/Seo.php, src/utils/MerchantFeedBuilder.php
+- New src/utils/ProductCondition.php and src/utils/ResponsiveImage.php
+- public/css/style.css, public/js/main.js, public/js/animations.js
+
+Preserve the existing security/growth additions in shared files. There is no inventory migration.
+
+Install scripts/build-responsive-images.php for CLI use and follow [the image deployment runbook](../docs/responsive-images.md). GD/WebP is needed for the builder; variants are generated on the origin under gallery/responsive/, excluded from Git. Public requests never resize or download images. External, unsupported, rotated-EXIF, oversized or unbuilt images retain their original delivery. Production image generation has not been performed.
+
+Keep audit/test fixtures out of public deployment. Close only the fully deployed and retested sub-items; preserve outstanding product-fact, policy, account, static-feed and performance work.
+
+## 14. Fifth implementation batch — locally implemented and retested; deployment pending
+
+**Date:** October 1, 2026. No production inventory changes, deployment, customer emails, charges or live sync runs were performed. Detailed finding bodies remain because production and editorial acceptance gates have not passed.
+
+- [x] Local implementation/retest: separate drafts and published descriptions/search text, preserved through the model update path used by imports. Source records remain available to the editor.
+- [x] Local implementation/retest: published description agrees across the visible product page, Product schema and dynamic Merchant feed. Product names, canonical URLs, identifiers, price and stock are unchanged by the review workflow.
+- [x] Local implementation/retest: remove the schema's 160-character snippet cap; bound descriptions to 5,000 characters and retain later facts when stripping recognized boilerplate phrases.
+- [x] Local implementation/retest: active administrator authorization, CSRF, ten-minute publication/withdrawal reauthentication, explicit item-verification confirmation, escaped plain text, private responses and bounded content fields.
+- [x] Local implementation/retest: reject stale revisions and source snapshots, retain submitted text and stale tokens after conflicts, and require explicit withdrawal while preserving the draft.
+- [x] Local implementation/retest: review warnings for unpublished content/edits, changed source, placeholders, marketplace copy, repeated openings, weak description relevance and ambiguous model/part-number data. Source provenance and an activity trail are visible in the editor.
+- [x] Local implementation/retest: read-only behavior before CLI initialization; retriable product/feed failures and disabled editor writes for corrupt publication storage; healthy storage recovery.
+- [x] Local implementation/retest: keyboard draft/publish controls, quality filtering, both themes and responsive review pages. Mobile admin navigation collapses; navigation entry animation no longer briefly extends the page horizontally.
+- [ ] Deploy the matching runtime and security dependencies, back up the inventory database, run editorial initialization/health checks, and retest on the origin.
+- [ ] Verify actual product descriptions and search text, prioritizing 5649 and the duplicate-description cluster. Check photos, condition, included pieces, identifiers and fitment before publication.
+- [ ] Complete the remaining identifier/fitment separation, category reconciliation, owner-approved merchant policies, static-feed retirement and account-level validation work.
+
+### Verification and limits
+
+- **44 PHP assertions** pass for storage setup, draft privacy, publication, import preservation, conflicts, validation, withdrawal, corruption handling, cleanup and review warnings.
+- **37 editorial HTTP checks** pass, alongside the reused **24 presentation HTTP checks**, against disposable synthetic inventory. These cover authentication/authorization, CSRF, reauthentication, page/schema/feed parity, private drafts, rejected stale writes, source preservation, malformed storage and recovery. Evidence: [editorial HTTP results](seo-content-local.json).
+- The editor and quality dashboard pass layout checks at **320, 390, 768 and 1440 px in both themes**. Keyboard draft and publish submissions, the mobile sidebar and a placeholder-identifier filter were exercised. Evidence: [editorial browser results](seo-content-browser.json). These are representative local template tests, not a visual review or correction of every live listing.
+- Existing regressions pass: catalog **50**, discovery **13**, redirect patterns **29**, presentation **51**, catalog navigation **14**, growth **32 server / 17 client**, security **71 server / 11 client / 52 HTTP**, and Apple Pay **93 assertions across 17 mocked scenarios plus 10 client scenarios**. PHP syntax and whitespace checks pass. Pattern checks are not Apache integration tests; import preservation uses the actual model update method without invoking a live eBay sync.
+- Six read-only live probes still show older robots restrictions, a missing-product redirect, an out-of-range catalog 200, a directly accessible PHP alias and the static text feed. Product 6392's ID URL redirects to its canonical slug. These observations do not certify deployment of the newer batches and are not a repeat crawl of all 607 baseline listings.
+
+Warnings are review aids, not proof that an item is correct. After a source change, the last published correction stays active and the editor requires a fresh comparison before saving. The activity trail records who changed a review and when; it does not archive every prior description. The original 607-listing register remains a dated baseline.
+
+### Deployment and completion
+
+Follow the [product-content deployment and editorial runbook](../docs/product-content-review.md). Initialize the additive review/history tables through scripts/product-content-maintenance.php; public requests never create them. Preserve all pending security, growth and earlier SEO changes in shared files. Keep test fixtures and audit artifacts out of public deployment.
+
+After deployment, verify the protected editor and a designated nonpublic test listing, then review real inventory using established facts. Mark each finding completed and remove its detailed body only after its own implementation and required production retests pass. Keep unresolved facts, policies, account access and performance measurements open.

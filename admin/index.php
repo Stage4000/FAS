@@ -6,6 +6,8 @@ require_once __DIR__ . '/../src/utils/Timezone.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+$securitySummary = null;
+try { $securitySummary = fas_security_store()->summary(); } catch (Throwable $e) {}
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -59,6 +61,13 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
 </div>
 
                 <!-- Stats Cards -->
+                <a href="security.php" class="card card-body mb-4 text-decoration-none">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <strong><i class="fas fa-shield-halved me-2" aria-hidden="true"></i>Security</strong>
+                        <span><?= $securitySummary === null ? 'Storage needs attention' : number_format($securitySummary['login_failed']).' failed logins in 24h · '.number_format($securitySummary['active_blocks']).' active IP blocks' ?></span>
+                        <span>Review activity <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></span>
+                    </div>
+                </a>
                 <div class="row mb-4">
                     <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
                         <div class="card border-0 shadow-sm">

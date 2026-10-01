@@ -11,6 +11,7 @@
     const pageStartedAt = Date.now();
     const batchSize = 20;
     const maxQueueSize = 120;
+    let retryAt = 0;
     const sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
     const sessionTtlDays = 30;
     const sessionStateKey = 'fas_session_state';
@@ -578,7 +579,7 @@
         flushTimer = window.setTimeout(() => {
             flushTimer = null;
             flush(false);
-        }, 1800);
+        }, Math.max(1800, retryAt - Date.now()));
     }
 
     function buildPayload(events) {
@@ -638,6 +639,10 @@
     }
 
     function flush(useBeacon) {
+        if (Date.now() < retryAt) {
+            if (!useBeacon) scheduleFlush();
+            return Promise.resolve(false);
+        }
         if (flushInFlight || queue.length === 0) {
             return flushInFlight || Promise.resolve(false);
         }
@@ -662,6 +667,10 @@
             keepalive: !!useBeacon
         })
             .then(response => {
+                if (response.status === 429 || response.status === 503) {
+                    retryAt = Date.now() + Math.max(1, Math.min(86400, Number(response.headers?.get('Retry-After')) || 30)) * 1000;
+                    return {}; // Drop this batch; never report throttling as a client error.
+                }
                 if (!response.ok) {
                     const error = new Error('Analytics request failed with HTTP ' + response.status);
                     error.status = response.status;
@@ -671,6 +680,7 @@
                 return response.json().catch(() => ({}));
             })
             .catch(error => {
+                retryAt = Date.now() + 30000;
                 if (shouldReportAnalyticsUploadError(error)) {
                     reportClientError('analytics', 'Analytics endpoint rejected event batch.', {
                         severity: 'warning',
@@ -681,6 +691,7 @@
                     }, error);
                 }
                 events.reverse().forEach(event => queue.unshift(event));
+                queue.splice(maxQueueSize);
                 return false;
             })
             .finally(() => {

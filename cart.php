@@ -117,6 +117,17 @@ require_once __DIR__ . '/includes/header.php';
                         <i class="fas fa-credit-card"></i> Proceed to Checkout
                     </a>
                     <a href="/products" class="btn btn-outline-danger w-100">Continue Shopping</a>
+                    <section class="border rounded-3 p-3 mt-4" aria-labelledby="email-cart-heading">
+                        <h2 id="email-cart-heading" class="h6 fw-bold">Not ready to check out?</h2>
+                        <p class="small text-muted">Save a link to these parts so you can return later.</p>
+                        <form data-email-cart>
+                            <label class="form-label small" for="cart-save-email">Email address</label>
+                            <input id="cart-save-email" name="email" type="email" autocomplete="email" maxlength="254" required class="form-control mb-2">
+                            <div class="form-check mb-3"><input id="cart-save-consent" name="consent" type="checkbox" required class="form-check-input"><label for="cart-save-consent" class="form-check-label small">Email me this cart and one reminder if I don’t check out. This does not sign me up for marketing emails.</label></div>
+                            <button type="submit" class="btn btn-outline-danger w-100">Email my cart</button>
+                            <p data-growth-status class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                        </form>
+                    </section>
                     
                     <div class="mt-4 pt-3 border-top">
                         <h6 class="mb-3">We Accept</h6>

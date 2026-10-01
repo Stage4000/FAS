@@ -9,10 +9,10 @@ function fas_security_store(): \FAS\Security\SecurityStore
 }
 function fas_security_ip(): array { return \FAS\Security\ClientIp::resolve($_SERVER); }
 
-function fas_security_check(array $subjects, bool $recovery = false): array
+function fas_security_check(array $subjects, bool $recovery = false, bool $ignoreBlocks = false): array
 {
     try {
-        $result = fas_security_store()->check($subjects, fas_security_ip()['ip'], $recovery);
+        $result = fas_security_store()->check($subjects, fas_security_ip()['ip'], $recovery || $ignoreBlocks);
         return $result + ['status'=>$result['allowed'] ? 200:429];
     } catch (Throwable $e) {
         // No database path, credentials or request data in public responses or logs.

@@ -3,13 +3,16 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
+require_once __DIR__ . '/../src/utils/ProductContentQuality.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Utils\Seo;
 
 $auth = new AdminAuth();
-$auth->requireLogin();
+$auth->requireActiveAdmin();
+header('Cache-Control: private, no-store');
+header('X-Robots-Tag: noindex, nofollow');
 
 $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
@@ -118,13 +121,13 @@ function pqProductImages(array $product): array
     return array_values(array_unique($images));
 }
 
-function pqProductIssues(array $product): array
+function pqProductIssues(array $product, ?array $review = null, array $openings = []): array
 {
     $definitions = pqIssueDefinitions();
     $issues = [];
     $images = pqProductImages($product);
     $missingDimensions = [];
-    $descriptionText = pqCleanText($product['description'] ?? '');
+    $descriptionText = pqCleanText(\FAS\Utils\ProductContentQuality::description($product, $review));
 
     if (empty($images)) {
         $issues['photos'] = $definitions['photos'];
@@ -168,7 +171,7 @@ function pqProductIssues(array $product): array
         $issues['hidden'] = $definitions['hidden'];
     }
 
-    return $issues;
+    return array_merge($issues, \FAS\Utils\ProductContentQuality::issues($product, $review, $openings));
 }
 
 function pqQualityScore(array $issues): int
@@ -224,7 +227,7 @@ function pqFieldValue($value, string $suffix = ''): string
     return pqPositive($value) ? rtrim(rtrim(number_format((float)$value, 2), '0'), '.') . $suffix : 'Missing';
 }
 
-$issueDefinitions = pqIssueDefinitions();
+$issueDefinitions = array_merge(pqIssueDefinitions(), \FAS\Utils\ProductContentQuality::definitions());
 $allowedIssues = array_merge(['all', 'ready'], array_keys($issueDefinitions));
 $allowedSources = ['', 'ebay', 'manual'];
 $allowedVisibility = ['', 'visible', 'hidden'];
@@ -249,6 +252,8 @@ if (!in_array($issueFilter, $allowedIssues, true)) {
 }
 
 $allProducts = $productModel->getProductsForQualityAudit();
+$contentReviews = \FAS\Utils\ProductContent::all($db);
+$contentOpenings = \FAS\Utils\ProductContentQuality::openings($allProducts, $contentReviews);
 $summary = [
     'total' => count($allProducts),
     'visible' => 0,
@@ -262,7 +267,7 @@ $auditedProducts = [];
 $totalScore = 0;
 
 foreach ($allProducts as $product) {
-    $issues = pqProductIssues($product);
+    $issues = pqProductIssues($product, $contentReviews[(int)$product['id']] ?? null, $contentOpenings);
     $score = pqQualityScore($issues);
     $isHidden = (int)($product['show_on_website'] ?? 0) !== 1;
     $blockingIssues = array_diff(array_keys($issues), ['hidden']);
@@ -380,6 +385,8 @@ $baseParams = [
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link rel="stylesheet" href="css/admin-style.css">
 <style>
+/* Keep the full-width navigation inside the viewport during page entry. */
+.navbar { animation: none; }
 .quality-card {
     background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
     border: 1px solid rgba(31, 31, 36, .08);
@@ -474,7 +481,7 @@ $baseParams = [
 <div class="admin-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
     <div>
         <h1 class="mb-2"><i class="fas fa-clipboard-check me-2"></i>Product Data Quality</h1>
-        <p class="mb-0 text-muted">Find products missing photos, shipping data, fitment, SKU, category, SEO text, or storefront visibility.</p>
+        <p class="mb-0 text-muted">Review product facts, shipping data and storefront content. Flags guide a human review; they do not verify compatibility or block publication automatically.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="products.php" class="btn btn-outline-secondary">
@@ -491,7 +498,7 @@ $baseParams = [
         <div class="quality-card p-3 h-100">
             <div class="d-flex justify-content-between gap-3">
                 <div>
-                    <div class="small text-muted">Average Quality Score</div>
+                    <div class="small text-muted">Average Field Completeness</div>
                     <div class="h3 mb-0"><?php echo number_format($summary['average_score']); ?>%</div>
                 </div>
                 <span class="quality-icon"><i class="fas fa-gauge-high"></i></span>
@@ -502,7 +509,7 @@ $baseParams = [
         <div class="quality-card p-3 h-100">
             <div class="d-flex justify-content-between gap-3">
                 <div>
-                    <div class="small text-muted">Ready Visible Products</div>
+                    <div class="small text-muted">Visible Without Review Flags</div>
                     <div class="h3 mb-0 text-success"><?php echo number_format($summary['ready']); ?></div>
                 </div>
                 <span class="quality-icon"><i class="fas fa-circle-check"></i></span>
@@ -545,7 +552,7 @@ $baseParams = [
                 <label class="form-label fw-semibold" for="issue">Issue</label>
                 <select class="form-select" id="issue" name="issue">
                     <option value="all" <?php echo $issueFilter === 'all' ? 'selected' : ''; ?>>All Issues</option>
-                    <option value="ready" <?php echo $issueFilter === 'ready' ? 'selected' : ''; ?>>Ready Products</option>
+                    <option value="ready" <?php echo $issueFilter === 'ready' ? 'selected' : ''; ?>>No Review Flags</option>
                     <?php foreach ($issueDefinitions as $issueKey => $definition): ?>
                         <option value="<?php echo pqSafe($issueKey); ?>" <?php echo $issueFilter === $issueKey ? 'selected' : ''; ?>><?php echo pqSafe($definition['label']); ?></option>
                     <?php endforeach; ?>
@@ -581,7 +588,7 @@ $baseParams = [
         <a class="quality-card quality-issue-card p-3 h-100 <?php echo $issueFilter === 'ready' ? 'active' : ''; ?>" href="<?php echo pqSafe(pqIssueUrl($baseParams, ['issue' => 'ready', 'page' => 1])); ?>">
             <div class="d-flex justify-content-between gap-3">
                 <div>
-                    <div class="small text-muted">Ready Products</div>
+                    <div class="small text-muted">No Review Flags</div>
                     <div class="h4 mb-0"><?php echo number_format($summary['ready']); ?></div>
                     <div class="small text-muted">Visible with required data</div>
                 </div>
@@ -590,6 +597,7 @@ $baseParams = [
         </a>
     </div>
     <?php foreach ($issueDefinitions as $issueKey => $definition): ?>
+        <?php if (empty($issueCounts[$issueKey]) && $issueFilter !== $issueKey) continue; ?>
         <div class="col-sm-6 col-xl-3">
             <a class="quality-card quality-issue-card p-3 h-100 <?php echo $issueFilter === $issueKey ? 'active' : ''; ?>" href="<?php echo pqSafe(pqIssueUrl($baseParams, ['issue' => $issueKey, 'page' => 1])); ?>">
                 <div class="d-flex justify-content-between gap-3">
@@ -623,7 +631,7 @@ $baseParams = [
                 <thead>
                     <tr>
                         <th>Product</th>
-                        <th>Score</th>
+                        <th>Fields</th>
                         <th>Missing / Review Items</th>
                         <th>Shipping Data</th>
                         <th>Fitment / Category</th>
@@ -668,7 +676,7 @@ $baseParams = [
                             </td>
                             <td>
                                 <?php if (empty($issues)): ?>
-                                    <span class="badge text-bg-success">Complete</span>
+                                    <span class="badge text-bg-success">No automated flags</span>
                                 <?php else: ?>
                                     <?php foreach ($issues as $issue): ?>
                                         <span class="badge text-bg-<?php echo pqSafe($issue['class']); ?> quality-issue-pill" title="<?php echo pqSafe($issue['note']); ?>"><?php echo pqSafe($issue['label']); ?></span>
@@ -699,6 +707,7 @@ $baseParams = [
                             </td>
                             <td class="text-end text-nowrap">
                                 <div class="btn-group btn-group-sm">
+                                    <a href="product-content.php?id=<?php echo (int)$product['id']; ?>" class="btn btn-outline-danger">Review content</a>
                                     <a href="products.php?action=edit&id=<?php echo (int)$product['id']; ?>" class="btn btn-outline-primary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>

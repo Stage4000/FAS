@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-10-01T19:20:50.420421+00:00",
+  "scope": "read-only production probes",
+  "results": [
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "location": null,
+      "type": "text/plain",
+      "sample": "User-agent: *\nDisallow: /admin/\nDisallow: /api/\nDisallow: /cart\nDisallow: /checkout\nDisallow: /database/\nDisallow: /src/\nDisallow: /install.php\nDisallow: /diagnostic_script.php\nDisallow: /*?search=\nDisallow: /*?*search=\n\nSitemap: https://flipandstrip.com/sitemap.xml\n"
+    },
+    {
+      "path": "/product/999999999",
+      "status": 302,
+      "location": "/products",
+      "type": "text/html; charset=UTF-8",
+      "sample": null
+    },
+    {
+      "path": "/products?page=99999",
+      "status": 200,
+      "location": null,
+      "type": "text/html; charset=UTF-8",
+      "sample": null
+    },
+    {
+      "path": "/products.php",
+      "status": 200,
+      "location": null,
+      "type": "text/html; charset=UTF-8",
+      "sample": null
+    },
+    {
+      "path": "/google-merchant-feed.txt",
+      "status": 200,
+      "location": null,
+      "type": "text/plain",
+      "sample": null
+    },
+    {
+      "path": "/product/6392",
+      "status": 301,
+      "location": "https://flipandstrip.com/product/6392/gloves-alpinestars-megawatt-black-orange-mx-motorcycle-riding-3565018-1056-3xl",
+      "type": "text/html; charset=UTF-8",
+      "sample": null
+    }
+  ]
+}

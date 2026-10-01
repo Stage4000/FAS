@@ -1,0 +1,174 @@
+{
+  "checked_at": "2026-10-01T19:41:49.076Z",
+  "scope": "Local synthetic inventory only; no production publication or live import",
+  "origin": "http://127.0.0.1:64191",
+  "production_verified": false,
+  "layouts": [
+    {
+      "client": 305,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 305,
+      "tableContained": true,
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "client": 375,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 375,
+      "tableContained": true,
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "client": 753,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 753,
+      "tableContained": true,
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "client": 1425,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 1425,
+      "tableContained": true,
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "client": 305,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 305,
+      "tableContained": true,
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "client": 375,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 375,
+      "tableContained": true,
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "client": 753,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 753,
+      "tableContained": true,
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "client": 1425,
+      "navbarAnimation": "none",
+      "page": "quality",
+      "scroll": 1425,
+      "tableContained": true,
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "client": 305,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 305,
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "client": 375,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 375,
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "client": 753,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 753,
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "client": 1425,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 1425,
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "client": 305,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 305,
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "client": 375,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 375,
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "client": 753,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 753,
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "client": 1425,
+      "controlsFit": true,
+      "navbarAnimation": "none",
+      "page": "editor",
+      "scroll": 1425,
+      "theme": "dark",
+      "width": 1440
+    }
+  ],
+  "checks": {
+    "keyboardDraftSaved": true,
+    "draftKeptExistingPublication": true,
+    "keyboardPublishAfterVerificationAndPassword": true,
+    "publishedReviewStateShown": true,
+    "mobileSidebarExpandedAndCollapsed": true,
+    "placeholderFilterReturnedOneMatchingListing": true,
+    "publishedDescriptionVisibleInStorefront": true,
+    "sourceNotesReplacedOnlyInPublicView": true,
+    "reviewedSearchTitleRendered": true,
+    "canonicalPreserved": true
+  },
+  "visual_review": [
+    "Desktop dark editor",
+    "Mobile light editor and collapsible sidebar"
+  ],
+  "notes": [
+    "Initial mobile sidebar and light hero-link contrast issues were corrected and retested.",
+    "A transient 14-17px navigation animation overflow was reproduced on initial quality-page load. The entry animation is disabled on these two pages; final checks report no horizontal overflow.",
+    "Layout checks are DOM measurements at four widths in both themes. No OS reduced-motion emulation was performed.",
+    "HTTP integration tests separately verify authorization, CSRF, stale writes, import preservation, withdrawal, storage failure and page/schema/feed parity."
+  ]
+}

@@ -453,6 +453,56 @@ footer a:hover {
 }
 
 /* Product Detail */
+.product-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    grid-template-areas: "overview" "gallery" "purchase" "details";
+}
+.product-layout > * { min-width: 0; }
+.product-overview { grid-area: overview; overflow-wrap: anywhere; }
+.product-gallery { grid-area: gallery; }
+.product-purchase-column { grid-area: purchase; }
+.product-details { grid-area: details; overflow-wrap: anywhere; }
+.product-overview h1 { font-size: clamp(1.5rem, 2.5vw, 2.5rem); }
+#product-image-original { display: block; border-radius: var(--border-radius); overflow: hidden; }
+.product-gallery .product-detail-img {
+    width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain;
+    background: var(--card-bg); max-height: 640px;
+}
+.product-thumbnail {
+    flex: 0 0 84px; padding: 2px; border: 2px solid transparent;
+    background: var(--card-bg); border-radius: var(--border-radius-sm);
+}
+.product-thumbnail.active, .product-thumbnail:focus-visible { border-color: var(--primary-color); }
+.product-thumbnails .product-thumbnail img, .product-thumbnails .product-thumbnail img:hover {
+    display: block; width: 76px; height: 76px; object-fit: contain; transform: none; border: 0;
+}
+@media (min-width: 992px) {
+    .product-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas: "gallery overview" "gallery purchase" "details details";
+        column-gap: 2rem;
+    }
+}
+.navbar-brand { min-width: 0; max-width: calc(100% - 70px); }
+.navbar-brand img { width: 40px; height: 40px; object-fit: cover; }
+footer a { overflow-wrap: anywhere; }
+@media (max-width: 991px) {
+    .navbar-brand { font-size: clamp(1rem, 3vw, 1.5rem); margin-right: .5rem; }
+    .navbar > .container-fluid { min-width: 0; }
+    [data-aos] { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .product-gallery .product-detail-img { max-height: 480px; }
+}
+html:not(.aos-ready) [data-aos] { opacity: 1 !important; transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+    [data-aos], .scroll-reveal { opacity: 1 !important; transform: none !important; }
+}
 .product-detail-img {
     max-width: 100%;
     height: auto;

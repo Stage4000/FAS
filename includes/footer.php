@@ -4,6 +4,19 @@ $sellerRating = fasGetCachedSellerRating();
 $sellerRatingConfig = fasGetSellerRatingConfig();
 ?>
     <!-- Footer -->
+    <section class="container my-5" aria-labelledby="newsletter-heading">
+        <div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4 p-lg-5">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-5"><h2 id="newsletter-heading" class="h4 fw-bold">Find your next part.</h2><p class="text-muted mb-0">Get new arrivals and offers from Flip and Strip in your inbox.</p></div>
+                <div class="col-lg-7"><form data-newsletter-signup>
+                    <label for="newsletter-email" class="form-label">Email address</label>
+                    <div class="d-flex flex-column flex-sm-row gap-2"><input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" required class="form-control"><button type="submit" class="btn btn-danger text-nowrap">Sign up</button></div>
+                    <div class="form-check mt-3"><input id="newsletter-consent" name="consent" type="checkbox" class="form-check-input" required><label for="newsletter-consent" class="form-check-label small">Email me new arrivals and offers from Flip and Strip. I can unsubscribe anytime.</label></div>
+                    <p data-growth-status class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                </form></div>
+            </div>
+        </div></div>
+    </section>
     <footer class="bg-black text-white py-4 mt-5">
         <div class="container">
             <div class="row">
@@ -89,20 +102,25 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
     <!-- AOS (Animate On Scroll) -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
+        if (window.AOS) {
         AOS.init({
+            disable: () => window.matchMedia('(max-width: 991px), (prefers-reduced-motion: reduce)').matches,
             duration: 800,
             once: true,
             offset: 100,
             easing: 'ease-in-out'
         });
+        document.documentElement.classList.add('aos-ready');
+        }
     </script>
 <!-- Custom JS -->
 <script src="/public/js/timezone.js?v=<?php echo filemtime(__DIR__ . '/../public/js/timezone.js'); ?>"></script>
 <script src="/public/js/analytics.js?v=<?php echo filemtime(__DIR__ . '/../public/js/analytics.js'); ?>"></script>
 <script src="/public/js/address-autofill.js?v=<?php echo filemtime(__DIR__ . '/../public/js/address-autofill.js'); ?>"></script>
-<script src="/public/js/main.js"></script>
+<script src="/public/js/main.js?v=<?php echo filemtime(__DIR__ . '/../public/js/main.js'); ?>"></script>
+<script src="/public/js/growth.js?v=20260930-1"></script>
     <!-- Animation & UX Enhancement JS -->
-    <script src="/public/js/animations.js"></script>
+    <script src="/public/js/animations.js?v=<?php echo filemtime(__DIR__ . '/../public/js/animations.js'); ?>"></script>
     
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" tabindex="0">

@@ -1,0 +1,232 @@
+{
+  "date": "2026-09-30",
+  "scope": "local synthetic storefront; no production transactions",
+  "layouts": [
+    {
+      "buyBeforeNotes": true,
+      "client": 310,
+      "headingBeforeNotes": true,
+      "mainVisible": "1",
+      "original": "/gallery/default.jpg",
+      "page": "product",
+      "scroll": 310,
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 380,
+      "headingBeforeNotes": true,
+      "mainVisible": "1",
+      "original": "/gallery/default.jpg",
+      "page": "product",
+      "scroll": 380,
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 758,
+      "headingBeforeNotes": true,
+      "mainVisible": "1",
+      "original": "/gallery/default.jpg",
+      "page": "product",
+      "scroll": 758,
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 1430,
+      "headingBeforeNotes": true,
+      "mainVisible": "1",
+      "original": "/gallery/default.jpg",
+      "page": "product",
+      "scroll": 1430,
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 310,
+      "page": "product",
+      "scroll": 310,
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 380,
+      "page": "product",
+      "scroll": 380,
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 758,
+      "page": "product",
+      "scroll": 758,
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "buyBeforeNotes": true,
+      "client": 1430,
+      "page": "product",
+      "scroll": 1430,
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "client": 310,
+      "images": [
+        {
+          "complete": true,
+          "srcset": true
+        },
+        {
+          "complete": true,
+          "srcset": true
+        }
+      ],
+      "page": "catalog",
+      "scroll": 310,
+      "stockDisabled": true,
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "client": 380,
+      "images": [
+        {
+          "complete": true,
+          "srcset": true
+        },
+        {
+          "complete": true,
+          "srcset": true
+        }
+      ],
+      "page": "catalog",
+      "scroll": 380,
+      "stockDisabled": true,
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "client": 758,
+      "images": [
+        {
+          "complete": true,
+          "srcset": true
+        },
+        {
+          "complete": true,
+          "srcset": true
+        }
+      ],
+      "page": "catalog",
+      "scroll": 758,
+      "stockDisabled": true,
+      "theme": "dark",
+      "width": 768
+    },
+    {
+      "client": 1430,
+      "images": [
+        {
+          "complete": true,
+          "srcset": true
+        },
+        {
+          "complete": true,
+          "srcset": true
+        }
+      ],
+      "page": "catalog",
+      "scroll": 1430,
+      "stockDisabled": true,
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "client": 310,
+      "page": "catalog",
+      "scroll": 310,
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "client": 380,
+      "page": "catalog",
+      "scroll": 380,
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "client": 758,
+      "page": "catalog",
+      "scroll": 758,
+      "theme": "light",
+      "width": 768
+    },
+    {
+      "client": 1430,
+      "page": "catalog",
+      "scroll": 1430,
+      "theme": "light",
+      "width": 1440
+    }
+  ],
+  "animationOutage": {
+    "animationReady": false,
+    "cards": [
+      {
+        "opacity": "1",
+        "wrapperOpacity": "1",
+        "wrapperTransform": "none"
+      },
+      {
+        "opacity": "1",
+        "wrapperOpacity": "1",
+        "wrapperTransform": "none"
+      }
+    ],
+    "client": 1430,
+    "libraryIncluded": false,
+    "scroll": 1430
+  },
+  "keyboardGallery": {
+    "activation": "Enter on View product photo 2",
+    "selectedStates": [
+      "false",
+      "true"
+    ],
+    "originalLink": "/gallery/default.jpg",
+    "srcAndSrcsetChanged": true
+  },
+  "tabletMenu": {
+    "expanded": true,
+    "horizontalOverflow": false
+  },
+  "ajaxSearch": {
+    "query": "sold out",
+    "matches": 1,
+    "outOfStockButtonDisabled": true
+  },
+  "cart": {
+    "addedQuantity": 1,
+    "subtotal": 100,
+    "persistedAcrossNavigation": true
+  },
+  "buyNow": {
+    "checkoutRendered": true,
+    "product": "Synthetic test part",
+    "quantity": 1,
+    "subtotal": 100,
+    "existingCartUnchangedOnReturn": true,
+    "paymentSubmitted": false
+  },
+  "productionVerified": false
+}

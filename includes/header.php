@@ -2,6 +2,7 @@
 // Apply the site-configured timezone before any date/time output
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
+require_once __DIR__ . '/../src/utils/ResponsiveImage.php';
 
 \FAS\Utils\Timezone::apply();
 
@@ -104,7 +105,7 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
     <!-- AOS (Animate On Scroll) -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="/public/css/style.css?v=<?php echo filemtime(__DIR__ . '/../public/css/style.css'); ?>">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/gallery/favicons/favicon.png">
@@ -272,7 +273,7 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Home">
-                <img src="/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg" alt="Flip and Strip Logo" height="40" class="d-inline-block align-text-top me-2 rounded-circle">
+                <img <?= \FAS\Utils\ResponsiveImage::attributes('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg', '40px', 160) ?> alt="Flip and Strip Logo" class="d-inline-block align-text-top me-2 rounded-circle">
                 FLIP AND STRIP
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

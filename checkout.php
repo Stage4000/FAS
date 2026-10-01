@@ -65,20 +65,25 @@ require_once __DIR__ . '/includes/header.php';
                         <h4 class="mb-4"><i class="bi bi-person me-2"></i>Customer Information</h4>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">First Name *</label>
-                                <input type="text" class="form-control" name="first_name" required>
+                                <label for="checkout-first_name" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" name="first_name" id="checkout-first_name" autocomplete="given-name" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Last Name *</label>
-                                <input type="text" class="form-control" name="last_name" required>
+                                <label for="checkout-last_name" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" name="last_name" id="checkout-last_name" autocomplete="family-name" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Email *</label>
-                                <input type="email" class="form-control" name="email" required>
+                                <label for="checkout-email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" name="email" id="checkout-email" autocomplete="email" required>
+                                <div class="form-check mt-3">
+                                    <input type="checkbox" id="cart-reminder-optin" name="cart_reminder" class="form-check-input">
+                                    <label for="cart-reminder-optin" class="form-check-label small">Email me one reminder if I leave this cart behind. No newsletter signup.</label>
+                                </div>
+                                <p id="cart-reminder-status" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Phone</label>
-                                <input type="tel" class="form-control" name="phone">
+                                <label for="checkout-phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" name="phone" id="checkout-phone" autocomplete="tel">
                             </div>
                         </div>
                     </div>
@@ -89,25 +94,25 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card-body p-4">
                         <h4 class="mb-4"><i class="bi bi-truck me-2"></i>Shipping Address</h4>
                         <div class="mb-3">
-                            <label class="form-label">Address Line 1 *</label>
-                            <input type="text" class="form-control" name="address1" required>
+                            <label for="checkout-address1" class="form-label">Address Line 1 *</label>
+                            <input type="text" class="form-control" name="address1" id="checkout-address1" autocomplete="address-line1" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Address Line 2</label>
-                            <input type="text" class="form-control" name="address2">
+                            <label for="checkout-address2" class="form-label">Address Line 2</label>
+                            <input type="text" class="form-control" name="address2" id="checkout-address2" autocomplete="address-line2">
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">City *</label>
-                                <input type="text" class="form-control" name="city" required>
+                                <label for="checkout-city" class="form-label">City *</label>
+                                <input type="text" class="form-control" name="city" id="checkout-city" autocomplete="address-level2" required>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label">State *</label>
-                                <input type="text" class="form-control" name="state" required>
+                                <label for="checkout-state" class="form-label">State *</label>
+                                <input type="text" class="form-control" name="state" id="checkout-state" autocomplete="address-level1" required>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label">ZIP Code *</label>
-                                <input type="text" class="form-control" name="zip" required>
+                                <label for="checkout-zip" class="form-label">ZIP Code *</label>
+                                <input type="text" class="form-control" name="zip" id="checkout-zip" autocomplete="postal-code" required>
                             </div>
                         </div>
                         <button type="button" class="btn btn-danger col-12" id="calculate-shipping-btn">
@@ -199,6 +204,10 @@ require_once __DIR__ . '/includes/header.php';
                             <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
                             <strong>Complete the required fields and choose a shipping method to unlock payment options.</strong>
                         </div>
+                        <div id="order-recovery" class="alert alert-warning" hidden>
+                            <p data-recovery-message role="status" aria-live="polite"></p>
+                            <button type="button" class="btn btn-outline-dark">Retry order confirmation</button>
+                        </div>
                         <?php if ($applePayUiAvailable): ?>
                         <div id="applepay-payment" style="margin-bottom:14px" hidden>
                             <!-- Notices stay above the buttons, not between payment choices. -->
@@ -229,6 +238,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 <?php endif; ?>
 
+<script src="/public/js/order-recovery.js?v=20260930-1"></script>
 <script type="text/javascript">
 let selectedShippingRate = null;
 let applePayShippingQuoteId = null;
@@ -481,7 +491,7 @@ function isFormReadyForPayment() {
 function updatePaymentButtonState() {
     const container = document.getElementById('paypal-button-container');
     const instructions = document.getElementById('paypal-instructions');
-    const isReady = isFormReadyForPayment();
+    const isReady = isFormReadyForPayment() && !window.FASOrderRecovery?.pending();
     
     if (container) {
         container.style.opacity = isReady ? '1' : '0.5';
@@ -509,13 +519,18 @@ async function validateCartItems() {
         try {
             const response = await fetch(`/api/product-check.php?id=${encodeURIComponent(item.id)}`);
             const data = await response.json();
+            if (!response.ok || typeof data.exists !== 'boolean' || typeof data.active !== 'boolean') {
+                alert(data.error || 'Item availability could not be checked. Please try again shortly.');
+                return false;
+            }
 
             if (!data.exists || !data.active) {
                 invalidItems.push(item);
             }
         } catch (error) {
             console.error('Error validating product:', item.id, error);
-            invalidItems.push(item);
+            alert('Item availability could not be checked. Please try again shortly.');
+            return false;
         }
     }
 
@@ -552,6 +567,11 @@ async function validateCartItems() {
 document.addEventListener('DOMContentLoaded', async function() {
     buyNowCheckoutItem = loadBuyNowCheckoutItem();
     applyBuyNowShippingEstimate();
+
+    if (window.FASOrderRecovery?.pending()) {
+        window.FASOrderRecovery.render();
+        return;
+    }
 
     // Validate cart items before proceeding
     const checkoutItemsAreValid = await validateCartItems();
@@ -1060,6 +1080,7 @@ function updateCheckoutSummary() {
  * Process order creation
  */
 async function createOrder() {
+    if (!window.FASOrderRecovery.canStart()) return null;
     const form = document.getElementById('checkout-form');
     const cart = getCheckoutItems();
     
@@ -1118,6 +1139,11 @@ async function createOrder() {
         
         const data = await response.json();
         
+        if (response.status === 429 || response.status === 503) {
+            window.FASOrderRecovery.wait(response);
+            alert(data.error || 'Please wait before trying again.');
+            return null;
+        }
         if (!response.ok) {
             throw new Error(data.error || 'Failed to create order');
         }
@@ -1138,6 +1164,7 @@ async function createOrder() {
  * Complete order after payment
  */
 async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
+    window.FASOrderRecovery.begin(paypalOrderId, paypalTransactionId, orderId);
     try {
         const response = await fetch('/api/process-order.php', {
             method: 'POST',
@@ -1154,6 +1181,10 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         
         const data = await response.json();
         
+        if (response.status === 429 || response.status === 503) {
+            window.FASOrderRecovery.wait(response);
+            return;
+        }
         if (!response.ok) {
             throw new Error(data.error || 'Failed to complete order');
         }
@@ -1174,7 +1205,8 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
         });
 
         // Clear cart
-        clearCheckoutSourceAfterOrder();
+        if (window.FASOrderRecovery.sameSource()) clearCheckoutSourceAfterOrder();
+        window.FASOrderRecovery.clear();
         
         // Redirect to success page
         alert('Order completed successfully! Order #' + data.order_number);
@@ -1194,7 +1226,8 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
             paypal_order_id: paypalOrderId,
             reason: error.message || 'Order completion error'
         });
-        alert('Payment succeeded, but the order could not be finalized. Please contact support with your PayPal confirmation.');
+        window.FASOrderRecovery.render();
+        alert('Your payment needs order confirmation. Use Retry order confirmation for this same payment, or contact support with your PayPal reference. Do not pay again.');
     }
 }
 /**
@@ -1352,7 +1385,7 @@ window.FASApplePayOptions = {
     }
 };
 </script>
-<script src="/public/js/applepay-checkout.js?v=20260918-ui1" defer></script>
+<script src="/public/js/applepay-checkout.js?v=20260930-security" defer></script>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

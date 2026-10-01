@@ -15,6 +15,7 @@ class ShoppingCart {
     saveCart() {
         localStorage.setItem('flipandstrip_cart', JSON.stringify(this.cart));
         this.updateCartCount();
+        document.dispatchEvent(new CustomEvent('fas:cart-changed'));
     }
 
     getCartSummary() {
@@ -213,16 +214,26 @@ document.addEventListener('click', (e) => {
 
 // Product image gallery
 function setupImageGallery() {
-    const thumbnails = document.querySelectorAll('.product-thumbnails img');
+    const thumbnails = document.querySelectorAll('.product-thumbnail');
     const mainImage = document.querySelector('.product-detail-img');
 
     if (thumbnails.length > 0 && mainImage) {
         thumbnails.forEach(thumb => {
             thumb.addEventListener('click', () => {
-                mainImage.src = thumb.dataset.full || thumb.src;
-                mainImage.alt = thumb.alt || mainImage.alt;
-                thumbnails.forEach(t => t.classList.remove('active'));
+                const template = document.createElement('template');
+                template.innerHTML = '<img ' + thumb.dataset.imageAttributes + '>';
+                const nextImage = template.content.querySelector('img');
+                ['srcset', 'sizes', 'width', 'height'].forEach(name => {
+                    if (nextImage.hasAttribute(name)) mainImage.setAttribute(name, nextImage.getAttribute(name));
+                    else mainImage.removeAttribute(name);
+                });
+                mainImage.src = thumb.dataset.full;
+                mainImage.alt = thumb.querySelector('img').alt || mainImage.alt;
+                const original = document.getElementById('product-image-original');
+                if (original) original.href = thumb.dataset.full;
+                thumbnails.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed', 'false'); });
                 thumb.classList.add('active');
+                thumb.setAttribute('aria-pressed', 'true');
             });
         });
     }
@@ -240,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (href !== '#' && document.querySelector(href)) {
                 e.preventDefault();
                 document.querySelector(href).scrollIntoView({
-                    behavior: 'smooth'
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                 });
             }
         });

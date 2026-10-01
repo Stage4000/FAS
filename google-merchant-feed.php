@@ -95,7 +95,8 @@ $xml->endElement();
 
     echo $xml->outputMemory();
 } catch (Throwable $e) {
-    http_response_code(500);
+    http_response_code(503);
+    header('Retry-After: 60');
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Failed to generate Google Merchant feed.';
     error_log('[Google Merchant Feed] Fatal error: ' . $e->getMessage());
