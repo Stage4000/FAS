@@ -4,9 +4,10 @@ require_once __DIR__.'/auth.php';
 require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
+require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
 
 use FAS\Config\Database;
-use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingLabelOperations};
+use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingLabelOperations,ShippingLabelCancellations};
 
 $auth=new AdminAuth();
 $auth->requireActiveAdmin();
@@ -14,7 +15,8 @@ header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
 function shipmentQueueHtml($value): string { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
 
-$storageError=''; $rows=[]; $states=['submitted'=>0,'review'=>0];
+$storageError=''; $rows=[]; $cancelRows=[]; $states=['submitted'=>0,'review'=>0];
+$cancelStates=['submitted'=>0,'review'=>0,'refund_pending'=>0];
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']==='') throw new RuntimeException('Private shipping storage is not configured.');
@@ -22,8 +24,16 @@ try {
     $operations=new ShippingLabelOperations($cache->database());
     $states=$operations->health();
     $rows=$operations->attention();
+    $cancellations=new ShippingLabelCancellations($cache->database());
+    $cancelStates=$cancellations->health();
+    $cancelRows=$cancellations->attention();
     $lookup=Database::getInstance()->getConnection()->prepare('SELECT order_number FROM orders WHERE id=?');
     foreach ($rows as &$row) {
+        $lookup->execute([(int)$row['order_id']]);
+        $row['order_number']=$lookup->fetchColumn() ?: null;
+    }
+    unset($row);
+    foreach ($cancelRows as &$row) {
         $lookup->execute([(int)$row['order_id']]);
         $row['order_number']=$lookup->fetchColumn() ?: null;
     }
@@ -56,8 +66,9 @@ try {
     <?php if ($storageError): ?><div class="alert alert-danger" role="alert"><?php echo shipmentQueueHtml($storageError); ?></div><?php endif; ?>
     <?php if (!$storageError): ?>
         <div class="row g-3 mb-4">
-            <div class="col-sm-6"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Awaiting carrier outcome</span><strong class="fs-3"><?php echo (int)($states['submitted'] ?? 0); ?></strong></div></div></div>
-            <div class="col-sm-6"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Needs reconciliation</span><strong class="fs-3"><?php echo (int)($states['review'] ?? 0); ?></strong></div></div></div>
+            <div class="col-sm-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Label outcome pending</span><strong class="fs-3"><?php echo (int)($states['submitted'] ?? 0); ?></strong></div></div></div>
+            <div class="col-sm-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Label needs reconciliation</span><strong class="fs-3"><?php echo (int)($states['review'] ?? 0); ?></strong></div></div></div>
+            <div class="col-sm-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Cancellation follow-ups</span><strong class="fs-3"><?php echo (int)($cancelStates['submitted'] ?? 0)+(int)($cancelStates['review'] ?? 0)+(int)($cancelStates['refund_pending'] ?? 0); ?></strong></div></div></div>
         </div>
         <div class="card border-0 shadow-sm"><div class="card-body">
             <h2 class="h5 mb-3">Shipments to check</h2>
@@ -81,6 +92,28 @@ try {
                     </tbody>
                 </table></div>
                 <?php if (count($rows)===100): ?><p class="text-muted small mt-3 mb-0">Showing the 100 most recent outcomes. Use the shipping health check for full counts.</p><?php endif; ?>
+            <?php endif; ?>
+        </div></div>
+        <div class="card border-0 shadow-sm mt-4"><div class="card-body">
+            <h2 class="h5 mb-3">Cancellation and refund follow-ups</h2>
+            <?php if (!$cancelRows): ?>
+                <p class="text-muted mb-0">No carrier cancellation outcomes need review.</p>
+            <?php else: ?>
+                <p class="text-muted small">A refund request is pending until the carrier confirms its result. Do not submit another cancellation for an uncertain outcome.</p>
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                    <thead><tr><th scope="col">Order</th><th scope="col">Carrier</th><th scope="col">Tracking</th><th scope="col">Status</th><th scope="col">Last update</th><th scope="col"><span class="visually-hidden">Action</span></th></tr></thead>
+                    <tbody><?php foreach ($cancelRows as $row): ?>
+                        <tr>
+                            <th scope="row"><?php echo shipmentQueueHtml($row['order_number'] ?: '#'.$row['order_id']); ?></th>
+                            <td><?php echo shipmentQueueHtml(strtoupper($row['provider'])); ?></td>
+                            <td><?php echo shipmentQueueHtml($row['tracking_number']); ?></td>
+                            <td><span class="badge text-bg-warning"><?php echo shipmentQueueHtml(str_replace('_',' ',$row['state'])); ?></span></td>
+                            <td><?php echo shipmentQueueHtml(date('M j, Y g:i A',(int)$row['updated_at'])); ?></td>
+                            <td><?php if ($row['order_number']): ?><a class="btn btn-outline-primary btn-sm" href="shipping-label-cancel.php?id=<?php echo (int)$row['order_id']; ?>&amp;package=<?php echo (int)$row['package_index']; ?>">Review request</a><?php else: ?><span class="text-muted">Order unavailable</span><?php endif; ?></td>
+                        </tr>
+                    <?php endforeach; ?></tbody>
+                </table></div>
+                <?php if (count($cancelRows)===100): ?><p class="text-muted small mt-3 mb-0">Showing the 100 most recent requests. Use the shipping health check for full counts.</p><?php endif; ?>
             <?php endif; ?>
         </div></div>
     <?php endif; ?>

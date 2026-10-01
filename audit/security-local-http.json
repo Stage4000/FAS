@@ -1,11 +1,12 @@
 {
   "date": "2026-10-01",
   "scope": "Isolated localhost fixture; no production requests or real payments",
-  "assertions": 66,
+  "assertions": 67,
   "passed": [
     "Anonymous security access redirects to sign-in",
     "Login rejects missing CSRF",
     "Valid credentials and CSRF authenticate",
+    "Security overview renders burst context and recent traffic history",
     "Rules require reauthentication; responses are private",
     "Security mutation blocked without recent password verification",
     "Reauthentication succeeds",

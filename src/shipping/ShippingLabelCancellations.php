@@ -103,6 +103,20 @@ final class ShippingLabelCancellations
         return $states;
     }
 
+    /** Read-only queue for carrier void/refund results that need follow-up. */
+    public function attention(int $limit=100): array
+    {
+        if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid cancellation queue limit.');
+        $stmt=$this->db->prepare("SELECT o.order_id,o.package_index,o.provider,o.tracking_number,
+            c.state,c.carrier_reference,c.updated_at FROM shipping_label_cancellations c
+            JOIN shipping_label_operations o ON o.id=c.operation_id
+            WHERE c.state IN ('submitted','review','refund_pending')
+            ORDER BY c.updated_at DESC,c.operation_id DESC LIMIT ?");
+        $stmt->bindValue(1,$limit,\PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     private static function requireAdmin(\PDO $ordersDb,int $operatorId): void
     {
         if ($operatorId<1) throw new \InvalidArgumentException('Invalid administrator.');

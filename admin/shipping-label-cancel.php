@@ -49,6 +49,8 @@ $enabled=$operation && $carrier && ($carrier['enabled'] ?? false)===true
     && ($carrier['label_cancellation_enabled'] ?? false)===true
     && !empty($carrier['client_id']) && !empty($carrier['client_secret'])
     && (($carrier['environment'] ?? '')==='sandbox' || ($carrier['production_verified'] ?? false)===true);
+$canSubmit=!$cancellation || ($cancellation['state']==='reserved'
+    && (int)$cancellation['operator_id']===(int)$admin['id']);
 if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     fas_security_body();
     try {
@@ -56,7 +58,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
             http_response_code(403);
             throw new InvalidArgumentException('Your session expired. Refresh the page and try again.');
         }
-        if (!$enabled || $cancellation || $order['payment_status']!=='completed') {
+        if (!$enabled || !$canSubmit || $order['payment_status']!=='completed') {
             throw new RuntimeException('Carrier cancellation is unavailable for this shipment.');
         }
         if (($_POST['confirm_unused'] ?? '')!=='yes'
@@ -83,6 +85,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     }
 }
 $cancellation=$cancellations ? $cancellations->find((int)$orderId,$packageIndex) : null;
+$canSubmit=!$cancellation || ($cancellation['state']==='reserved'
+    && (int)$cancellation['operator_id']===(int)$admin['id']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -112,13 +116,15 @@ $cancellation=$cancellations ? $cancellations->find((int)$orderId,$packageIndex)
                 <div class="col-sm-6"><span class="text-muted d-block small">Scope</span><strong><?php echo $operation['provider']==='usps' ? 'Parcel '.($packageIndex+1) : 'Entire UPS shipment'; ?></strong></div>
                 <div class="col-12"><span class="text-muted d-block small">Tracking</span><strong><?php echo shippingCancelHtml($operation['tracking_number']); ?></strong></div>
             </div>
-            <?php if ($cancellation): ?>
+            <?php if ($cancellation && !$canSubmit): ?>
                 <div class="alert alert-warning mb-0" role="status">
                     <?php echo $cancellation['state']==='cancelled'
                         ? 'The carrier confirmed cancellation. This label must not be used.'
                         : ($cancellation['state']==='refund_pending'
                             ? 'A refund request is pending with the carrier. This is not a confirmed refund.'
-                            : 'The cancellation outcome needs carrier reconciliation. Do not submit another request.'); ?>
+                            : ($cancellation['state']==='reserved'
+                                ? 'Another administrator prepared this action. Contact them before proceeding.'
+                                : 'The cancellation outcome needs carrier reconciliation. Do not submit another request.')); ?>
                     <?php if ($cancellation['state']==='refund_pending' && $cancellation['carrier_reference']): ?>
                         <span class="d-block mt-1">Carrier reference: <?php echo shippingCancelHtml($cancellation['carrier_reference']); ?></span>
                     <?php endif; ?>

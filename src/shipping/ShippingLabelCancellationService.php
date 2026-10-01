@@ -34,7 +34,11 @@ final class ShippingLabelCancellationService
         $authorization=$client->authorizeCancellation();
         $operationId=(int)$record['operation_id'];
         if (!$this->cancellations->markSubmitted($this->ordersDb,$operationId,$operatorId)) {
-            return self::summary($this->cancellations->find($orderId,$packageIndex));
+            $current=$this->cancellations->find($orderId,$packageIndex);
+            if ($current && $current['state']==='reserved') {
+                throw new \RuntimeException('Another administrator prepared this carrier action.');
+            }
+            return self::summary($current);
         }
         try {
             $result=$client->cancel($record['tracking_number'],$authorization);

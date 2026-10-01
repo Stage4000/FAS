@@ -111,16 +111,29 @@ try {
     $disabledClient=$factory('usps',$disabled['carriers']['usps'],$cache);
     cancelReject(static fn()=>$disabledClient->authorizeCancellation(),
         'Disabled carrier cancellation makes no carrier request');
+    $guardCalls=0;
+    $guard=new CarrierLabelHttp(microtime(true)+20,static function() use (&$guardCalls) {
+        $guardCalls++;
+        return ['status'=>200,'content_type'=>'application/json','body'=>'{}'];
+    });
+    cancelReject(static fn()=>$guard->delete('https://example.invalid/labels/v3/label/9400111899223847199999',
+        ['Authorization: Bearer synthetic']), 'Untrusted cancellation host is rejected');
+    cancelReject(static fn()=>$guard->delete('https://apis.usps.com/labels/v3/label/9400111899223847199999?token=secret',
+        ['Authorization: Bearer synthetic']), 'Cancellation URL cannot carry query secrets');
+    cancelCheck($guardCalls===0,'Rejected carrier endpoints never reach transport');
     cancelCheck(FAS\Shipping\CarrierLabelResponses::cancellation('usps','9400111899223847199999',
         ['trackingNumber'=>'9400111899223847199999','status'=>'REFUND_REQUESTED',
             'disputeId'=>'SYNTHETIC123'])['state']==='refund_pending',
         'USPS refund request stays pending rather than claiming a voided label');
+    cancelReject(static fn()=>FAS\Shipping\CarrierLabelResponses::cancellation('usps',
+        '9400111899223847199999',['trackingNumber'=>'9400111899223847199998','status'=>'CANCELED']),
+        'A different USPS tracking number cannot confirm cancellation');
     file_put_contents(__DIR__.'/../audit/shipping-label-cancellation-local.json',json_encode([
         'date'=>gmdate('c'),'scope'=>'synthetic paid orders and mocked carrier cancellation responses',
         'checks'=>count($checks),'passed'=>$checks,'live_carrier_calls'=>0,
         'label_cancellations'=>0,'production_verified'=>false],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL);
 } finally {
-    unset($disabledClient,$service,$factory,$labels,$cache,$orders);
+    unset($guard,$disabledClient,$service,$factory,$labels,$cache,$orders);
     gc_collect_cycles();
     if (is_file($path)) unlink($path);
     if (is_dir($dir)) rmdir($dir);

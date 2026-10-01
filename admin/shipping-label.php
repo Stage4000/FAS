@@ -164,7 +164,7 @@ for ($index=0;$index<$scopes;$index++) {
             <?php if ($state==='ready'): ?>
                 <p class="mb-2">Tracking: <strong><?php echo shippingLabelHtml($operation['tracking_number']); ?></strong></p>
                 <?php if ($operation['billed_cents']!==null): ?><p class="mb-3">Carrier charged $<?php echo number_format((int)$operation['billed_cents']/100,2); ?></p><?php endif; ?>
-                <?php if ($cancelState): ?><p class="alert alert-warning py-2">Cancellation: <?php echo shippingLabelHtml(str_replace('_',' ',$cancelState)); ?>. Do not use this label while its outcome is under review.</p><?php endif; ?>
+                <?php if ($cancelState): ?><p class="alert alert-warning py-2">Cancellation: <?php echo shippingLabelHtml(str_replace('_',' ',$cancelState)); ?>. This label is unavailable after a carrier cancellation request.</p><?php endif; ?>
                 <div class="d-flex flex-wrap gap-2">
                 <?php if (!$cancelState): ?>
                 <?php for($piece=0;$piece<$pieces;$piece++): ?>

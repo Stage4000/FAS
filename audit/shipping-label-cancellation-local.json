@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-01T22:18:16+00:00",
+    "date": "2026-10-01T22:20:55+00:00",
     "scope": "synthetic paid orders and mocked carrier cancellation responses",
-    "checks": 17,
+    "checks": 21,
     "passed": [
         "Synthetic label operation claims one purchase",
         "Synthetic label operation claims one purchase",
@@ -19,7 +19,11 @@
         "UPS void uses the saved shipment identifier",
         "Confirmed UPS shipment void is recorded",
         "Disabled carrier cancellation makes no carrier request",
-        "USPS refund request stays pending rather than claiming a voided label"
+        "Untrusted cancellation host is rejected",
+        "Cancellation URL cannot carry query secrets",
+        "Rejected carrier endpoints never reach transport",
+        "USPS refund request stays pending rather than claiming a voided label",
+        "A different USPS tracking number cannot confirm cancellation"
     ],
     "live_carrier_calls": 0,
     "label_cancellations": 0,

@@ -1,6 +1,6 @@
 """Isolated HTTP fixture. No production credentials, mail, sync runs, or payment calls."""
 from pathlib import Path
-import concurrent.futures, http.cookiejar, json, os, re, shutil, sqlite3, subprocess, sys, tempfile, time
+import concurrent.futures, datetime, http.cookiejar, json, os, re, shutil, sqlite3, subprocess, sys, tempfile, time
 import urllib.request, urllib.error, urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +31,21 @@ with sqlite3.connect(dbfile) as db:
     db.execute("INSERT OR REPLACE INTO admin_users(id,username,password_hash,email,role,is_active) VALUES(9001,'security-fixture',?,'fixture@example.invalid','admin',1)", [password])
     db.execute("CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,customer_email TEXT,payment_status TEXT,updated_at TEXT)")
     db.execute("CREATE TABLE IF NOT EXISTS ebay_sync_log(id INTEGER PRIMARY KEY,status TEXT,last_sync_timestamp TEXT)")
+# Use the real analytics schema so admin-side session marking and Security traffic queries run normally.
+analytics_code = "require_once "+json.dumps(str(SITE / "src/utils/Analytics.php").replace("\\","/"))+"; $db=new PDO('sqlite:' . "+json.dumps(str(dbfile).replace("\\","/"))+"); (new \\FAS\\Utils\\Analytics($db))->ensureTables();"
+subprocess.check_call(["php","-r",analytics_code])
+traffic_now = datetime.datetime.now(datetime.timezone.utc)
+def traffic_stamp(offset):
+    return (traffic_now+datetime.timedelta(seconds=offset)).strftime("%Y-%m-%d %H:%M:%S")
+with sqlite3.connect(dbfile) as db:
+    for i in range(8):
+        session_id = f"traffic-sg-{i}"
+        db.execute("INSERT INTO analytics_sessions (session_id,visitor_id,started_at,last_seen_at,cf_country,ip_hash,is_potential_bot,is_admin_session) VALUES (?,?,?,?,?,?,?,?)",
+            (session_id,session_id,traffic_stamp(-100),traffic_stamp(-100),"SG",f"traffic-addr-{i%4}",i<2,0))
+        db.execute("INSERT INTO analytics_events (session_id,visitor_id,event_type,created_at) VALUES (?,?,?,?)",
+            (session_id,session_id,"tawk_widget_loaded",traffic_stamp(-90)))
+    db.execute("INSERT INTO analytics_sessions (session_id,visitor_id,started_at,last_seen_at,cf_country,ip_hash,is_admin_session) VALUES (?,?,?,?,?,?,?)",
+        ("traffic-sg-prior","traffic-sg-prior",traffic_stamp(-1000),traffic_stamp(-1000),"SG","traffic-addr-prior",0))
 gallery = SITE / "gallery"
 gallery.mkdir()
 for name in ["logo.png","default.jpg","FLIPANDSTRIP.COM_d00a_018a.jpg"]:
@@ -84,6 +99,9 @@ try:
     check(status==403,"Login rejects missing CSRF")
     status,h,b=request("/admin/login.php",{"username":"security-fixture","password":"Local-test-only","csrf_token":csrf})
     check(status==302,"Valid credentials and CSRF authenticate")
+    status,h,b=request("/admin/security.php?tab=overview")
+    check(status==200 and "Traffic watch" in b and "Review burst" in b and "Recent pattern" in b,
+        "Security overview renders burst context and recent traffic history")
     status,h,b=request("/admin/security.php?tab=rules")
     csrf=token(b)
     check(status==200 and "no-store" in h["Cache-Control"] and '<fieldset disabled' in b,"Rules require reauthentication; responses are private")

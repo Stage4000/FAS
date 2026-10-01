@@ -83,7 +83,7 @@ Local test commands:
     php tests/growth-test.php
     node tests/growth-client-test.cjs
 
-The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 66 assertions include concurrent legacy completion through three PHP workers against one SQLite database, with one stock deduction. Results are recorded in audit/security-local-http.json; it does not call production services. The September 30 browser verification additionally covered login, reauthentication, rule save, temporary block/unblock, and activity filters. No console errors were observed during those Security-page checks.
+The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 67 assertions include concurrent legacy completion through three PHP workers against one SQLite database, with one stock deduction. Results are recorded in audit/security-local-http.json; it does not call production services. The September 30 browser verification additionally covered login, reauthentication, rule save, temporary block/unblock, and activity filters. No console errors were observed during those Security-page checks.
 
 ### Follow-up validation — 2026-10-01
 
@@ -106,4 +106,5 @@ The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 
 ### Traffic history follow-up — 2026-10-01
 
 - The Security overview now shows six rolling 15-minute windows for site sessions, widget-loaded sessions, and bot signals. The current and previous columns match the same windows used for the burst cue.
-- `php tests/security-traffic-test.php` passed 11 assertions, covering interval boundaries, widget-session deduplication, and excluding administrator sessions. The history rendered in dark mode at desktop and mobile widths in an isolated browser fixture, with no page overflow or console errors.
+- `php tests/security-traffic-test.php` passed 11 assertions, covering interval boundaries, widget-session deduplication, and excluding administrator sessions. The HTTP fixture now initializes the full analytics schema and passed 67 assertions, including the overview burst/history render.
+- The history rendered in light and dark themes at desktop and mobile widths in an isolated browser fixture, with no page overflow. Production Tawk events and location accuracy remain unverified.
