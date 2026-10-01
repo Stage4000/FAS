@@ -92,10 +92,10 @@ function fas_security_traffic_history(PDO $db, ?int $now = null): array
         array_push($params,gmdate('Y-m-d H:i:s',$row['start']),
             gmdate('Y-m-d H:i:s',$row['start'] + 900 + ($index === 5 ? 1 : 0)));
     }
-    $loads = $db->prepare('SELECT '.implode(', ',$parts).' FROM analytics_events e
+    $loads = $db->prepare("SELECT ".implode(', ',$parts)." FROM analytics_events e
         JOIN analytics_sessions s ON s.session_id=e.session_id
         WHERE e.created_at>=? AND e.created_at<=? AND e.event_type='tawk_widget_loaded'
-          AND COALESCE(s.is_admin_session,0)=0');
+          AND COALESCE(s.is_admin_session,0)=0");
     $loads->execute(array_merge($params,[$since,$until]));
     $widgetCounts = $loads->fetch(PDO::FETCH_ASSOC) ?: [];
     foreach ($rows as $index=>&$row) {

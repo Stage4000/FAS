@@ -6,11 +6,12 @@ require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
+require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelService.php';
 
 use FAS\Config\Database;
 use FAS\Utils\CSRF;
-use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingOrder,ShippingLabelOperations,ShippingLabelService};
+use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingOrder,ShippingLabelOperations,ShippingLabelCancellations,ShippingLabelService};
 
 $auth=new AdminAuth();
 $admin=$auth->requireActiveAdmin();
@@ -29,12 +30,13 @@ if (!$order || !$shipping || !in_array($shipping['provider'],['usps','ups'],true
 }
 $error=''; $notice=$_SESSION['shipping_label_notice'] ?? '';
 unset($_SESSION['shipping_label_notice']);
-$config=null; $cache=null; $operations=null;
+$config=null; $cache=null; $operations=null; $cancellations=null;
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']!=='') {
         $cache=new ShippingCache($config['cache_path']);
         $operations=new ShippingLabelOperations($cache->database());
+        $cancellations=new ShippingLabelCancellations($cache->database());
     }
 } catch (Throwable $e) { $error='Private shipping storage is unavailable. Ask an administrator to run the shipping health check.'; }
 $provider=$shipping['provider'];
@@ -98,8 +100,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     }
 }
 $rows=[];
+$cancelRows=[];
 for ($index=0;$index<$scopes;$index++) {
     $rows[$index]=$operations ? $operations->find((int)$orderId,$index) : null;
+    $cancelRows[$index]=$cancellations ? $cancellations->find((int)$orderId,$index) : null;
 }
 ?>
 <!DOCTYPE html>
@@ -138,6 +142,7 @@ for ($index=0;$index<$scopes;$index++) {
     <div class="row g-3">
     <?php foreach ($rows as $index=>$operation):
         $state=$operation['state'] ?? 'not prepared';
+        $cancelState=$cancelRows[$index]['state'] ?? null;
         $pieces=$provider==='ups' ? count($savedPackages) : 1;
         $price=$prices[$index] ?? null;
         $canPurchase=$purchaseEnabled && !$operation && is_int($price)
@@ -159,10 +164,14 @@ for ($index=0;$index<$scopes;$index++) {
             <?php if ($state==='ready'): ?>
                 <p class="mb-2">Tracking: <strong><?php echo shippingLabelHtml($operation['tracking_number']); ?></strong></p>
                 <?php if ($operation['billed_cents']!==null): ?><p class="mb-3">Carrier charged $<?php echo number_format((int)$operation['billed_cents']/100,2); ?></p><?php endif; ?>
+                <?php if ($cancelState): ?><p class="alert alert-warning py-2">Cancellation: <?php echo shippingLabelHtml(str_replace('_',' ',$cancelState)); ?>. Do not use this label while its outcome is under review.</p><?php endif; ?>
                 <div class="d-flex flex-wrap gap-2">
+                <?php if (!$cancelState): ?>
                 <?php for($piece=0;$piece<$pieces;$piece++): ?>
                     <a class="btn btn-outline-primary btn-sm" href="shipping-label-download.php?id=<?php echo (int)$orderId; ?>&amp;package=<?php echo $index; ?>&amp;piece=<?php echo $piece; ?>">Download label <?php echo $piece+1; ?></a>
                 <?php endfor; ?>
+                <?php endif; ?>
+                    <a class="btn btn-outline-secondary btn-sm" href="shipping-label-cancel.php?id=<?php echo (int)$orderId; ?>&amp;package=<?php echo $index; ?>">Review cancellation</a>
                 </div>
             <?php elseif ($state==='review'||$state==='submitted'): ?>
                 <p class="mb-0">The carrier outcome is uncertain. Reconcile this shipment before any further purchase.</p>

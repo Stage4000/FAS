@@ -43,6 +43,15 @@ final class ShippingLabelOperations
             label_image BLOB NOT NULL,
             PRIMARY KEY(operation_id,shipment_package_index)
         )");
+        $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_cancellations (
+            operation_id INTEGER PRIMARY KEY REFERENCES shipping_label_operations(id),
+            state TEXT NOT NULL CHECK(state IN ('reserved','submitted','cancelled','refund_pending','review')),
+            carrier_reference TEXT,
+            operator_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            submitted_at INTEGER,
+            updated_at INTEGER NOT NULL
+        )");
     }
 
     public function __construct(\PDO $privateDb)

@@ -5,6 +5,7 @@ require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
+require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
 require_once __DIR__.'/../src/config/Database.php';
 use FAS\Shipping\{ShippingConfig,ShippingCache};
 
@@ -39,11 +40,15 @@ try {
         $result['cache']=$cache->health();
         $labelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_operations'")->fetchColumn();
         $packageTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_packages'")->fetchColumn();
+        $cancelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_cancellations'")->fetchColumn();
         $result['label_operations']=$labelTable && $packageTable
             ? (new \FAS\Shipping\ShippingLabelOperations($cache->database()))->health()
             : ['initialized'=>false];
         $result['label_storage']=$packageTable
             ? ['initialized'=>true,'packages'=>(int)$cache->database()->query('SELECT COUNT(*) FROM shipping_label_packages')->fetchColumn()]
+            : ['initialized'=>false];
+        $result['label_cancellations']=$cancelTable
+            ? (new \FAS\Shipping\ShippingLabelCancellations($cache->database()))->health()
             : ['initialized'=>false];
         if ($command==='cleanup') $result['removed']=$cache->cleanup();
         if (!$result['cache']['healthy']) throw new RuntimeException('Shipping cache health check failed.');

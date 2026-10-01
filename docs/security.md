@@ -42,7 +42,7 @@ The Security overview displays the current sign-in, password verification, and s
 
 ### Traffic watch and chat activity
 
-Security → Overview shows site sessions from the last 15 minutes beside the preceding 15 minutes, grouped by country when location is available. A **Review burst** badge appears only when one location has at least 6 recent sessions from at least 3 distinct server-derived addresses and at least 3 times its preceding-window count. It is a review cue, not a country block. The table also shows sessions with bot signals, Tawk widget loads, widget opens, and chats started. Follow **Review visitor sessions** for the underlying session details.
+Security → Overview shows site sessions from the last 15 minutes beside the preceding 15 minutes, grouped by country when location is available. A **Review burst** badge appears only when one location has at least 6 recent sessions from at least 3 distinct server-derived addresses and at least 3 times its preceding-window count. It is a review cue, not a country block. The table also shows sessions with bot signals, Tawk widget loads, widget opens, and chats started. A six-interval history covers the last 90 minutes so an operator can see whether a spike is new, persistent, or fading. Its final interval is incomplete until 15 minutes have passed. Follow **Review visitor sessions** for the underlying session details.
 
 The widget events use Tawk's [onLoad, onChatMaximized, and onChatStarted callbacks](https://developer.tawk.to/jsapi/) and first-party analytics. They begin only after the updated footer and analytics JavaScript are deployed. Counts are browser-reported, deduplicated by site session, and can be lower than Tawk's visitor dashboard when analytics is blocked or a chat is opened directly. Site sessions are a broader signal: [Tawk counts visits to pages with its widget as visitors](https://help.tawk.to/article/understanding-visitor-monitoring-and-chat-sessions), even without a chat.
 
@@ -102,3 +102,8 @@ The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 
 
 - `php tests/analytics-session-test.php` passed 19 assertions, including forged versus trusted proxy headers. `php tests/security-traffic-test.php` passed 7 synthetic burst and widget-count assertions. `node tests/security-client-test.cjs` passed 11 client assertions.
 - Production Tawk callbacks, analytics storage, visitor location, and bot signals still require live verification after deployment.
+
+### Traffic history follow-up — 2026-10-01
+
+- The Security overview now shows six rolling 15-minute windows for site sessions, widget-loaded sessions, and bot signals. The current and previous columns match the same windows used for the burst cue.
+- `php tests/security-traffic-test.php` passed 11 assertions, covering interval boundaries, widget-session deduplication, and excluding administrator sessions. The history rendered in dark mode at desktop and mobile widths in an isolated browser fixture, with no page overflow or console errors.

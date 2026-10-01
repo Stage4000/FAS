@@ -21,6 +21,10 @@ function secCountryLabel(string $code): string {
         $name = \Locale::getDisplayRegion('und-'.$code,'en');
         if (is_string($name) && $name !== '' && $name !== $code) return $name.' ('.$code.')';
     }
+    $common = ['SG'=>'Singapore','CN'=>'China','US'=>'United States','CA'=>'Canada',
+        'GB'=>'United Kingdom','AU'=>'Australia','IN'=>'India','JP'=>'Japan',
+        'DE'=>'Germany','FR'=>'France'];
+    if (isset($common[$code])) return $common[$code].' ('.$code.')';
     return $code;
 }
 $tabs = ['overview'=>'Overview','rules'=>'Rules','restrictions'=>'Restrictions','activity'=>'Activity'];
@@ -89,7 +93,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 $verified = (int)($_SESSION['security_reauth_at'] ?? 0) >= time()-600;
 $active = false; $summary = []; $rules = []; $blocks = []; $buckets = []; $events = []; $total = 0;
-$traffic = null;
+$traffic = null; $trafficHistory = [];
 $days = (int)secText($_GET['days'] ?? '1'); if (!in_array($days,[1,7,30],true)) $days = 1;
 $filterIp = ClientIp::normalize($_GET['ip'] ?? '');
 $filterRule = secText($_GET['rule'] ?? '');
@@ -121,6 +125,7 @@ if ($healthy && $tab === 'overview') {
     try {
         $siteDb = \FAS\Config\Database::getInstance()->getConnection();
         $traffic = fas_security_widget_traffic($siteDb);
+        $trafficHistory = fas_security_traffic_history($siteDb);
     } catch (Throwable $e) { $traffic = null; }
 }
 ?>
@@ -142,6 +147,13 @@ if ($healthy && $tab === 'overview') {
         .security-rule {display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(90px,1fr)) auto;gap:1rem;align-items:end}
         .security-rule label {font-size:.85rem}
         .security-shell .form-text {margin-bottom:0}
+        .security-history {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.65rem}
+        .security-history-item {min-width:0;padding:.7rem;border:1px solid var(--bs-border-color,#dee2e6);border-radius:.7rem;text-align:center}
+        .security-history-bars {height:5rem;display:flex;gap:.25rem;align-items:flex-end;justify-content:center;margin-bottom:.65rem;border-bottom:1px solid var(--bs-border-color,#dee2e6)}
+        .security-history-bar {display:block;width:1.1rem;max-width:35%;border-radius:.25rem .25rem 0 0}
+        .security-history-bar.sessions,.security-history-key.sessions {background:#0d6efd}
+        .security-history-bar.widget,.security-history-key.widget {background:#0f8f71}
+        .security-history-key {display:inline-block;width:.65rem;height:.65rem;border-radius:.15rem;margin-right:.3rem}
         [data-theme="dark"] .security-shell .nav-link:not(.active) {color:#9ec5fe}
         [data-theme="dark"] .security-shell .btn-outline-primary {color:#9ec5fe;border-color:#9ec5fe}
         [data-theme="dark"] .security-shell .btn-outline-primary:hover {color:#fff;background:#0d6efd}
@@ -155,6 +167,7 @@ if ($healthy && $tab === 'overview') {
         }
         [data-theme="dark"] .security-shell fieldset:disabled .security-rule .form-select {color-scheme:dark}
         @media(max-width:991px){.security-rule{grid-template-columns:1fr 1fr}.security-rule-title{grid-column:1/-1}}
+        @media(max-width:767px){.security-history{grid-template-columns:repeat(3,minmax(0,1fr))}}
         @media(max-width:420px){.security-rule{grid-template-columns:1fr}.security-shell .nav{gap:.25rem}.security-shell .nav-link{padding:.5rem .65rem}}
     </style>
 </head>
@@ -220,7 +233,7 @@ if ($healthy && $tab === 'overview') {
                 <p class="alert alert-warning mb-0">Traffic data is unavailable. Check that site analytics storage is initialized and readable.</p>
             <?php else: $counts = $traffic['totals']; ?>
                 <div class="row g-3 mb-3">
-                    <?php foreach (['sessions'=>'Site sessions','loads'=>'Widget loads','opens'=>'Widget opens','chats'=>'Chats started'] as $key=>$label): ?>
+                    <?php foreach (['sessions'=>'Site sessions','loads'=>'Widget sessions','opens'=>'Widget opens','chats'=>'Chats started'] as $key=>$label): ?>
                         <div class="col-6 col-xl-3"><div class="border rounded p-3 h-100"><p class="small text-muted mb-1"><?= $label ?> · 15 min</p><p class="h3 mb-0"><?= number_format($counts[$key]) ?></p></div></div>
                     <?php endforeach; ?>
                 </div>
@@ -231,7 +244,7 @@ if ($healthy && $tab === 'overview') {
                     <p class="text-muted mb-3">No site sessions in the past 30 minutes. Widget signals begin after this update is deployed.</p>
                 <?php else: ?>
                     <div class="table-responsive" tabindex="0" role="region" aria-label="Recent traffic by country">
-                        <table class="table align-middle mb-2"><thead><tr><th scope="col">Location</th><th scope="col">Sessions now / prior</th><th scope="col">Addresses</th><th scope="col">Bot signals</th><th scope="col">Widget loads</th><th scope="col">Opens / chats</th></tr></thead><tbody>
+                        <table class="table align-middle mb-2"><thead><tr><th scope="col">Location</th><th scope="col">Sessions now / prior</th><th scope="col">Addresses</th><th scope="col">Bot signals</th><th scope="col">Widget sessions</th><th scope="col">Opens / chats</th></tr></thead><tbody>
                             <?php foreach ($traffic['countries'] as $row): ?><tr>
                                 <th scope="row"><?= secHtml(secCountryLabel($row['country'])) ?><?php if ($row['surge']): ?> <span class="badge bg-warning text-dark">Review burst</span><?php endif; ?></th>
                                 <td><?= (int)$row['sessions'] ?> / <?= (int)$row['previous_sessions'] ?></td>
@@ -241,6 +254,25 @@ if ($healthy && $tab === 'overview') {
                         </tbody></table>
                     </div>
                 <?php endif; ?>
+                <?php $historyPeak = 1; foreach ($trafficHistory as $period) $historyPeak = max($historyPeak,$period['sessions'],$period['widget_loads']); ?>
+                <section class="mt-4" aria-labelledby="traffic-history-heading">
+                    <h3 id="traffic-history-heading" class="h6 mb-1">Recent pattern</h3>
+                    <p class="small text-muted mb-2">Six 15-minute intervals ending now. Times mark the start of each interval in <?= secHtml(Timezone::userTimezone()) ?>. The final interval is still in progress.</p>
+                    <p class="small mb-3"><span class="security-history-key sessions" aria-hidden="true"></span>Site sessions <span class="security-history-key widget ms-3" aria-hidden="true"></span>Widget sessions</p>
+                    <div class="security-history">
+                        <?php foreach ($trafficHistory as $period): ?>
+                            <div class="security-history-item">
+                                <div class="security-history-bars" aria-hidden="true">
+                                    <span class="security-history-bar sessions" style="height:<?= (int)round(100*$period['sessions']/$historyPeak) ?>%"></span>
+                                    <span class="security-history-bar widget" style="height:<?= (int)round(100*$period['widget_loads']/$historyPeak) ?>%"></span>
+                                </div>
+                                <div class="small fw-semibold"><?= secHtml(Timezone::toUserDateTime(gmdate('Y-m-d H:i:s',$period['start']),'g:i A')) ?></div>
+                                <div class="small"><?= (int)$period['sessions'] ?> site · <?= (int)$period['widget_loads'] ?> widget</div>
+                                <?php if ($period['bot_signals']): ?><div class="small text-muted"><?= (int)$period['bot_signals'] ?> bot signals</div><?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
                 <p class="small text-muted mb-2">Now and prior are adjacent 15-minute windows. A burst is 6 or more sessions from at least 3 addresses and at least 3 times the prior window. Country alone never triggers a block.</p>
                 <p class="small text-muted mb-0">Site sessions are first-party analytics. Widget counts come from the visitor's browser and may differ from Tawk's dashboard; direct chat links and blocked tracking can be missing. <a href="analytics.php?days=1#session-explorer">Review visitor sessions</a>.</p>
             <?php endif; ?>

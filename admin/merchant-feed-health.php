@@ -222,9 +222,12 @@ body[data-theme="dark"] .table th {
 <h1 class="display-6 fw-bold mb-2"><i class="fas fa-store me-2"></i>Merchant Feed Health</h1>
 <p class="mb-0 text-white-50">Checks visible inventory for Google Shopping readiness, richer feed fields, and avoidable listing risks.</p>
 </div>
+<div class="d-flex flex-wrap gap-2">
+<a class="btn btn-light text-danger fw-semibold" href="merchant-feed-health.php" data-admin-refresh><i class="fas fa-rotate me-2" aria-hidden="true"></i>Refresh status</a>
 <a href="../google-merchant-feed.php" class="btn btn-light text-danger fw-semibold" target="_blank" rel="noopener">
 <i class="fas fa-rss me-2"></i>Open Feed
 </a>
+</div>
 </div>
 
 <div class="row g-3 mb-4">

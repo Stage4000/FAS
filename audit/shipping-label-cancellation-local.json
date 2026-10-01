@@ -1,0 +1,27 @@
+{
+    "date": "2026-10-01T22:15:56+00:00",
+    "scope": "synthetic paid orders and mocked carrier cancellation responses",
+    "checks": 17,
+    "passed": [
+        "Synthetic label operation claims one purchase",
+        "Synthetic label operation claims one purchase",
+        "Synthetic label operation claims one purchase",
+        "Viewer cannot cancel a label",
+        "Unauthorized operator makes no carrier call",
+        "Cancellation uses one bounded DELETE",
+        "USPS void uses saved tracking and a payment token",
+        "USPS confirmed cancellation is recorded once",
+        "Repeated USPS cancellation cannot send another DELETE",
+        "Cancellation uses one bounded DELETE",
+        "Uncertain UPS void needs reconciliation",
+        "Uncertain UPS void remains in review without replay",
+        "Cancellation uses one bounded DELETE",
+        "UPS void uses the saved shipment identifier",
+        "Confirmed UPS shipment void is recorded",
+        "Disabled carrier cancellation makes no carrier request",
+        "USPS refund request stays pending rather than claiming a voided label"
+    ],
+    "live_carrier_calls": 0,
+    "label_cancellations": 0,
+    "production_verified": false
+}

@@ -5,6 +5,43 @@ namespace FAS\Shipping;
 /** Parse bounded carrier confirmations before private label persistence. No network calls. */
 final class CarrierLabelResponses
 {
+    /** Keep a requested USPS refund distinct from a voided, unusable label. */
+    public static function cancellation(string $provider,string $tracking,array $response): array
+    {
+        if ($provider==='usps') {
+            if (!self::uspsTracking($tracking) || ($response['trackingNumber'] ?? null)!==$tracking) {
+                throw new \RuntimeException('USPS cancellation needs reconciliation.');
+            }
+            if (($response['status'] ?? null)==='CANCELED' && !isset($response['disputeId'])) {
+                return ['state'=>'cancelled','carrier_reference'=>null];
+            }
+            $dispute=$response['disputeId'] ?? null;
+            if (is_string($dispute) && preg_match('/\A[A-Za-z0-9_-]{1,100}\z/D',$dispute)
+                && ($response['status'] ?? null)!=='CANCELED') {
+                return ['state'=>'refund_pending','carrier_reference'=>$dispute];
+            }
+            throw new \RuntimeException('USPS cancellation needs reconciliation.');
+        }
+        if ($provider==='ups' && self::upsTracking($tracking)) {
+            $result=$response['VoidShipmentResponse'] ?? null;
+            if (is_array($result)
+                && ($result['Response']['ResponseStatus']['Code'] ?? null)==='1'
+                && ($result['SummaryResult']['Status']['Code'] ?? null)==='1') {
+                $packages=$result['PackageLevelResults'] ?? [];
+                if (is_array($packages) && array_is_list($packages)) {
+                    foreach ($packages as $package) {
+                        if (($package['Status']['Code'] ?? null)!=='1') {
+                            throw new \RuntimeException('UPS void needs reconciliation.');
+                        }
+                    }
+                    return ['state'=>'cancelled','carrier_reference'=>null];
+                }
+            }
+            throw new \RuntimeException('UPS void needs reconciliation.');
+        }
+        throw new \InvalidArgumentException('Unknown carrier cancellation.');
+    }
+
     public static function usps(string $contentType,string $body): array
     {
         if (strlen($body)>8388608

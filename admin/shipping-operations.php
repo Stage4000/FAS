@@ -14,7 +14,7 @@ header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
 function shipmentQueueHtml($value): string { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
 
-$error=''; $rows=[]; $states=['submitted'=>0,'review'=>0];
+$storageError=''; $rows=[]; $states=['submitted'=>0,'review'=>0];
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']==='') throw new RuntimeException('Private shipping storage is not configured.');
@@ -29,7 +29,7 @@ try {
     }
     unset($row);
 } catch (Throwable $e) {
-    $error='Private shipping storage is unavailable. Run the shipping health check.';
+    $storageError='Private shipping storage is unavailable. Run the shipping health check.';
 }
 ?>
 <!DOCTYPE html>
@@ -48,10 +48,13 @@ try {
     <div class="admin-hero d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
         <div><h1 class="mb-1"><i class="fas fa-truck me-2"></i>Shipping Review</h1>
             <p class="mb-0 opacity-75">Carrier label outcomes that need attention</p></div>
-        <a class="btn btn-outline-secondary" href="orders.php">View orders</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="shipping-operations.php" data-admin-refresh><i class="fas fa-rotate me-1" aria-hidden="true"></i>Refresh status</a>
+            <a class="btn btn-outline-secondary" href="orders.php">View orders</a>
+        </div>
     </div>
-    <?php if ($error): ?><div class="alert alert-danger" role="alert"><?php echo shipmentQueueHtml($error); ?></div><?php endif; ?>
-    <?php if (!$error): ?>
+    <?php if ($storageError): ?><div class="alert alert-danger" role="alert"><?php echo shipmentQueueHtml($storageError); ?></div><?php endif; ?>
+    <?php if (!$storageError): ?>
         <div class="row g-3 mb-4">
             <div class="col-sm-6"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Awaiting carrier outcome</span><strong class="fs-3"><?php echo (int)($states['submitted'] ?? 0); ?></strong></div></div></div>
             <div class="col-sm-6"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="text-muted d-block small">Needs reconciliation</span><strong class="fs-3"><?php echo (int)($states['review'] ?? 0); ?></strong></div></div></div>

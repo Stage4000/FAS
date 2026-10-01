@@ -214,6 +214,13 @@
         refresh: () => update(new URL(location.href), {}, null, 'none')
     });
 
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-admin-refresh]');
+        if (!button || !root.contains(button)) return;
+        event.preventDefault();
+        window.FASAdminAjax.refresh();
+    });
+
     // Bubble after existing form validation and confirmation handlers.
     document.addEventListener('submit', event => {
         const form = event.target;

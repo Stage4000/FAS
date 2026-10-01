@@ -26,12 +26,22 @@ final class CarrierLabelClient
     /** Preflight authorization before claiming the one permitted purchase submission. */
     public function authorize(): array
     {
+        return $this->authorizeFor('label_purchasing_enabled');
+    }
+
+    public function authorizeCancellation(): array
+    {
+        return $this->authorizeFor('label_cancellation_enabled');
+    }
+
+    private function authorizeFor(string $switch): array
+    {
         if (($this->config['enabled'] ?? false)!==true
-            || ($this->config['label_purchasing_enabled'] ?? false)!==true
+            || ($this->config[$switch] ?? false)!==true
             || !in_array($this->config['environment'] ?? '',['sandbox','production'],true)
             || (($this->config['environment'] ?? '')==='production'
                 && ($this->config['production_verified'] ?? false)!==true)) {
-            throw new \RuntimeException('Carrier label purchasing is disabled.');
+            throw new \RuntimeException('Carrier label action is disabled.');
         }
         $access=$this->oauth->accessToken();
         $result=['access_token'=>$access];
@@ -39,6 +49,33 @@ final class CarrierLabelClient
             $result['payment_token']=$this->paymentToken($access);
         }
         return $result;
+    }
+
+    /** The caller must durably claim this exact cancellation before this one DELETE. */
+    public function cancel(string $tracking,array $authorization): array
+    {
+        if (($this->name==='usps' && !preg_match('/\A[0-9]{20,34}\z/D',$tracking))
+            || ($this->name==='ups' && !preg_match('/\A1Z[A-Z0-9]{16}\z/D',$tracking))) {
+            throw new \InvalidArgumentException('Invalid carrier shipment reference.');
+        }
+        $access=self::token($authorization['access_token'] ?? null);
+        $headers=['Authorization: Bearer '.$access,'Accept: application/json'];
+        if ($this->name==='usps') {
+            $headers[]='X-Payment-Authorization-Token: '.self::token($authorization['payment_token'] ?? null);
+            $path='/labels/v3/label/'.$tracking;
+        } else {
+            $headers[]='transId: '.bin2hex(random_bytes(16));
+            $headers[]='transactionSrc: FlipAndStrip';
+            $path='/api/shipments/v2409/void/cancel/'.$tracking;
+        }
+        $response=$this->http->delete($this->oauth->baseUrl().$path,$headers);
+        if ($response['status']!==200
+            || !str_starts_with(strtolower($response['content_type']),'application/json')) {
+            throw new \RuntimeException('Carrier cancellation outcome needs reconciliation.');
+        }
+        $data=json_decode($response['body'],true,32);
+        if (!is_array($data)) throw new \RuntimeException('Carrier cancellation outcome needs reconciliation.');
+        return CarrierLabelResponses::cancellation($this->name,$tracking,$data);
     }
 
     /** Caller must persist markSubmitted before invoking this method; never retry it. */

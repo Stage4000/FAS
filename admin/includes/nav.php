@@ -10,6 +10,7 @@ $ajaxEnabled = in_array($ajaxPage, [
     'homepage-categories.php', 'settings.php', 'password.php', 'security.php',
     'growth.php', 'product-content.php', 'product-quality.php', 'stale-inventory.php',
     'ebay-sync-health.php', 'analytics.php', 'administrators.php',
+    'shipping-operations.php', 'merchant-feed-health.php',
 ], true);
 $ajaxUrl = '';
 if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($action)) {

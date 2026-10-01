@@ -4,9 +4,10 @@ require_once __DIR__.'/auth.php';
 require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
+require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
 
 use FAS\Config\Database;
-use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingLabelOperations};
+use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingLabelOperations,ShippingLabelCancellations};
 
 $auth=new AdminAuth();
 $admin=$auth->requireActiveAdmin();
@@ -22,6 +23,8 @@ try {
     $config=ShippingConfig::load();
     $cache=new ShippingCache($config['cache_path']);
     $labels=new ShippingLabelOperations($cache->database());
+    $cancel=(new ShippingLabelCancellations($cache->database()))->find((int)$id,$package);
+    if ($cancel) throw new RuntimeException('This label has a cancellation operation.');
     $item=$labels->label(Database::getInstance()->getConnection(),(int)$id,$package,$piece,(int)$admin['id']);
     $mime=$item['format']==='pdf' ? 'application/pdf' : 'image/gif';
     $ext=$item['format']==='pdf' ? 'pdf' : 'gif';

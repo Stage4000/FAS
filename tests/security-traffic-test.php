@@ -24,6 +24,7 @@ for ($i=0; $i<8; $i++) {
 }
 $addEvent->execute(['sg-0','tawk_widget_loaded',gmdate('Y-m-d H:i:s',$now-60)]);
 $addSession->execute(['sg-prior','SG',gmdate('Y-m-d H:i:s',$now-1000),'ip-prior',0,0]);
+$addEvent->execute(['sg-prior','tawk_widget_loaded',gmdate('Y-m-d H:i:s',$now-990)]);
 for ($i=0; $i<3; $i++) {
     $id = 'cn-'.$i;
     $addSession->execute([$id,'CN',gmdate('Y-m-d H:i:s',$now-120),'one-address',0,0]);
@@ -31,6 +32,8 @@ for ($i=0; $i<3; $i++) {
 $addSession->execute(['admin','SG',gmdate('Y-m-d H:i:s',$now-60),'admin-ip',0,1]);
 $addEvent->execute(['admin','tawk_widget_loaded',gmdate('Y-m-d H:i:s',$now-50)]);
 $addSession->execute(['unknown','',gmdate('Y-m-d H:i:s',$now-45),'unknown-ip',0,0]);
+$addSession->execute(['older','US',gmdate('Y-m-d H:i:s',$now-5400),'older-ip',0,0]);
+$addEvent->execute(['older','tawk_widget_loaded',gmdate('Y-m-d H:i:s',$now-5400)]);
 
 $result = fas_security_widget_traffic($db,$now);
 trafficCheck($result['totals']['sessions']===12 && $result['totals']['previous_sessions']===1, 'Counts recent and prior site sessions without admins');
@@ -40,4 +43,9 @@ trafficCheck($result['countries'][0]['country']==='SG' && $result['countries'][0
 trafficCheck($result['countries'][1]['country']==='CN' && !$result['countries'][1]['surge'], 'Country alone does not mark a burst');
 trafficCheck($result['countries'][2]['country']==='??', 'Unknown location remains visible');
 trafficCheck(fas_security_traffic_country('SG')==='SG' && fas_security_traffic_country('<x>')==='??', 'Country labels are constrained to two-letter codes');
+$history = fas_security_traffic_history($db,$now);
+trafficCheck(count($history)===6 && $history[0]['start']===$now-5400 && $history[5]['start']===$now-900, 'History uses six adjacent rolling windows');
+trafficCheck($history[0]['sessions']===1 && $history[0]['widget_loads']===1, 'History includes the oldest window boundary');
+trafficCheck($history[4]['sessions']===1 && $history[4]['widget_loads']===1, 'History counts the preceding window');
+trafficCheck($history[5]['sessions']===12 && $history[5]['bot_signals']===2 && $history[5]['widget_loads']===8, 'History deduplicates widget sessions and excludes admin traffic');
 echo "PASS {$checks} traffic-monitor assertions; synthetic local analytics only.\n";
