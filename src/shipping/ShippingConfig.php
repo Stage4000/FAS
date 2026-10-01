@@ -32,16 +32,23 @@ final class ShippingConfig
             throw new \RuntimeException('Invalid packing policy.');
         }
         if (!is_string($config['cache_path'] ?? null)) throw new \RuntimeException('Invalid shipping cache path.');
+        foreach (['shipper_name'=>35,'shipper_phone'=>30] as $key=>$max) {
+            $value=$config[$key] ?? null;
+            if (!is_string($value) || strlen($value)>$max || preg_match('/[\x00-\x1f\x7f]/',$value)) {
+                throw new \RuntimeException('Invalid shipping fulfillment identity.');
+            }
+        }
         if (array_diff(array_keys($config['carriers'] ?? []),['usps','ups'])) {
             throw new \RuntimeException('Unknown shipping carrier.');
         }
         foreach (['usps','ups'] as $name) {
             $carrier = $config['carriers'][$name] ?? [];
             if (!is_bool($carrier['enabled'] ?? null) || !is_bool($carrier['production_verified'] ?? null)
+                || !is_bool($carrier['label_purchasing_enabled'] ?? null)
                 || !in_array($carrier['environment'] ?? '', ['sandbox','production'], true)) {
                 throw new \RuntimeException('Invalid carrier activation settings.');
             }
-            foreach (['client_id','client_secret','account_number'] as $key) {
+            foreach (['client_id','client_secret','account_number','crid','mid','manifest_mid','eps_account_number'] as $key) {
                 $value = $carrier[$key] ?? '';
                 if (!is_string($value) || strlen($value)>4096 || preg_match('/[\x00-\x1f\x7f]/', $value)) {
                     throw new \RuntimeException('Invalid carrier credentials.');

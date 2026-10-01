@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -12,11 +13,7 @@ try { $securitySummary = fas_security_store()->summary(); } catch (Throwable $e)
 use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Utils\Timezone;
-
-// Load config to get the sync API key
-$configFile = __DIR__ . '/../src/config/config.php';
-$config = file_exists($configFile) ? require $configFile : [];
-$syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
+use FAS\Utils\CSRF;
 
 // Get database connection
 $pdo = Database::getInstance()->getConnection();
@@ -75,7 +72,7 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Total Products</h6>
-                                        <h3 class="mb-0"><?php echo number_format($activeProducts); ?></h3>
+                                        <h3 class="mb-0" id="dashboard-active-products"><?php echo number_format($activeProducts); ?></h3>
                                     </div>
                                     <div class="text-primary">
                                         <i class="fas fa-box display-4"></i>
@@ -90,7 +87,7 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <h6 class="text-muted">Visible Products</h6>
-                                        <h3 class="mb-0 text-success"><?php echo number_format($visibleProducts); ?></h3>
+                                        <h3 class="mb-0 text-success" id="dashboard-visible-products"><?php echo number_format($visibleProducts); ?></h3>
                                     </div>
                                     <div class="text-warning">
                                         <i class="fas fa-eye display-4"></i>
@@ -155,7 +152,7 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                         <button class="btn btn-primary" id="sync-ebay-btn">
                             <i class="fas fa-sync-alt me-2"></i>Start eBay Sync
                         </button>
-                        <div id="sync-status" class="mt-3"></div>
+                        <div id="sync-status" class="mt-3" role="status" aria-live="polite"></div>
                     </div>
                 </div>
 
@@ -207,8 +204,32 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
         // Date range validation
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
+        const syncToken = <?php echo json_encode(CSRF::getToken()); ?>;
+
+        function safeSyncText(value) {
+            const span = document.createElement('span');
+            span.textContent = String(value ?? '');
+            return span.innerHTML;
+        }
+
+        async function refreshDashboardSummary() {
+            const response = await fetch('dashboard-summary.php', { credentials: 'same-origin', cache: 'no-store' });
+            if (!response.ok) throw new Error('Dashboard totals could not be refreshed.');
+            const summary = await response.json();
+            document.getElementById('dashboard-active-products').textContent = Number(summary.active_products || 0).toLocaleString();
+            document.getElementById('dashboard-visible-products').textContent = Number(summary.visible_products || 0).toLocaleString();
+            const timestamp = summary.last_sync_timestamp;
+            lastSyncElement.dataset.timestamp = timestamp || '';
+            lastSyncElement.textContent = timestamp
+                ? (window.FASTimezone ? window.FASTimezone.format(timestamp) : new Date(timestamp).toLocaleString())
+                : 'Never';
+        }
         
         function validateDateRange() {
+            if (!startDateInput.value || !endDateInput.value) {
+                alert('Choose both a start and end date.');
+                return false;
+            }
             const startDate = new Date(startDateInput.value);
             const endDate = new Date(endDateInput.value);
             const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -250,7 +271,12 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
             statusDiv.innerHTML = '<div class="alert alert-info">Starting eBay synchronization...</div>';
             
             // Call sync API with date parameters
-            fetch(`../api/ebay-sync.php?key=<?php echo htmlspecialchars($syncApiKey, ENT_QUOTES, 'UTF-8'); ?>&start_date=${startDate}&end_date=${endDate}`)
+            fetch('../api/ebay-sync.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ csrf_token: syncToken, start_date: startDate, end_date: endDate })
+            })
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {
@@ -259,48 +285,51 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                     }
                     return response.json();
                 })
-                .then(data => {
+                .then(async data => {
                     if (data.success) {
                         let syncDetails = `
                             <div class="alert alert-success">
                                 <strong>Sync Completed!</strong><br>
-                                Processed: ${data.processed}<br>
-                                Added: ${data.added}<br>
-                                Updated: ${data.updated}<br>
-                                Failed: ${data.failed}`;
+                                Processed: ${safeSyncText(data.processed)}<br>
+                                Added: ${safeSyncText(data.added)}<br>
+                                Updated: ${safeSyncText(data.updated)}<br>
+                                Failed: ${safeSyncText(data.failed)}`;
                         
                         // Show additional info for multi-range syncs
                         if (data.date_ranges_processed) {
-                            syncDetails += `<br>Date Ranges: ${data.date_ranges_processed}`;
+                            syncDetails += `<br>Date Ranges: ${safeSyncText(data.date_ranges_processed)}`;
                             if (data.date_ranges_empty > 0) {
-                                syncDetails += ` (${data.date_ranges_empty} had no items)`;
+                                syncDetails += ` (${safeSyncText(data.date_ranges_empty)} had no items)`;
                             }
                         }
                         
                         if (data.message) {
-                            syncDetails += `<br><small class="text-muted">${data.message}</small>`;
+                            syncDetails += `<br><small class="text-muted">${safeSyncText(data.message)}</small>`;
                         }
                         
                         syncDetails += `</div>`;
                         statusDiv.innerHTML = syncDetails;
-                    } else if (data.error) {
-                        let helpLink = '';
-                        if (data.help) {
-                            helpLink = `<br><small><a href="${data.help}" class="alert-link" target="_blank">Click here for help</a></small>`;
+                        try {
+                            await refreshDashboardSummary();
+                        } catch (error) {
+                            statusDiv.querySelector('.alert')?.append(document.createTextNode(' Dashboard totals could not be refreshed; revisit this page to see updated counts.'));
                         }
+                    } else if (data.error) {
                         statusDiv.innerHTML = `
                             <div class="alert alert-danger">
                                 <strong>Sync Failed:</strong><br>
-                                ${data.message || data.error}
-                                ${helpLink}
+                                ${safeSyncText(data.message || data.error)}
+                                ${data.help ? '<br><small>' + safeSyncText(data.help) + '</small>' : ''}
                             </div>
                         `;
+                    } else {
+                        throw new Error('The sync ended without a result.');
                     }
                 })
                 .catch(error => {
                     statusDiv.innerHTML = `
                         <div class="alert alert-danger">
-                            <strong>Error:</strong> ${error.message}<br>
+                            <strong>Error:</strong> ${safeSyncText(error.message)}<br>
                             <small>Please check your eBay API credentials in <a href="settings.php" class="alert-link">Settings</a>.</small>
                         </div>
                     `;

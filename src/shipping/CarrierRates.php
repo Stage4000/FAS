@@ -4,7 +4,7 @@ namespace FAS\Shipping;
 require_once __DIR__.'/CarrierHttp.php';
 require_once __DIR__.'/ShippingCache.php';
 
-/** Direct rate adapters only. This class cannot buy labels or create shipments. */
+/** Direct rate adapters and shared OAuth token cache. No shipment creation here. */
 final class CarrierRates
 {
     private string $name;
@@ -72,6 +72,17 @@ final class CarrierRates
         }
         $this->cache->put($key,['token'=>$token],min(3600,(int)$expires-60));
         return $token;
+    }
+
+    /** Share the existing carrier OAuth cache with label operations. */
+    public function accessToken(): string
+    {
+        return $this->token();
+    }
+
+    public function baseUrl(): string
+    {
+        return $this->base();
     }
 
     private function request(string $path,array $payload): array

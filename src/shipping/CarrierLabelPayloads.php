@@ -8,6 +8,7 @@ final class CarrierLabelPayloads
 {
     public static function usps(array $order,array $shipping,int $packageIndex,array $fulfillment,string $mailingDate): array
     {
+        self::paidOrder($order);
         self::date($mailingDate);
         if (($shipping['provider'] ?? '')!=='usps') throw new \InvalidArgumentException('USPS order required.');
         $packages=$shipping['packages'] ?? [];
@@ -38,6 +39,7 @@ final class CarrierLabelPayloads
 
     public static function ups(array $order,array $shipping,array $fulfillment,string $accountNumber): array
     {
+        self::paidOrder($order);
         if (($shipping['provider'] ?? '')!=='ups' || !in_array($shipping['service_code'] ?? '',
             ['01','02','03','12','13','14','59'],true)
             || !preg_match('/\A[A-Z0-9]{6,20}\z/D',$accountNumber)
@@ -46,10 +48,19 @@ final class CarrierLabelPayloads
         }
         $from=self::upsAddress(self::origin($shipping));
         $to=self::upsAddress(self::destination($order));
+        // The checkout has no verified business-address classification, so the
+        // residential flag matches the conservative UPS rating request.
+        $to['ResidentialAddressIndicator']='Y';
         $name=self::shipperName($fulfillment);
         $phone=self::phone($fulfillment['shipper_phone'] ?? '');
         $recipient=self::recipientName($order);
-        $recipientPhone=self::phone($order['customer_phone'] ?? '');
+        if (strlen($recipient)>35) throw new \RuntimeException('Recipient name needs review for UPS.');
+        $recipientPhone=$order['customer_phone'] ?? '';
+        $recipientPhone=trim((string)$recipientPhone)==='' ? null : self::phone($recipientPhone);
+        // UPS requires a consignee phone for Next Day Air Early.
+        if ($shipping['service_code']==='14' && $recipientPhone===null) {
+            throw new \RuntimeException('A recipient phone is required for this UPS service.');
+        }
         $packages=[];
         foreach ($shipping['packages'] as $parcel) {
             $packages[]=['Packaging'=>['Code'=>'02'],
@@ -62,13 +73,14 @@ final class CarrierLabelPayloads
         }
         $shipper=['Name'=>$name,'AttentionName'=>$name,'ShipperNumber'=>$accountNumber,
             'Phone'=>['Number'=>$phone],'Address'=>$from];
+        $shipTo=['Name'=>$recipient,'AttentionName'=>$recipient,'Address'=>$to];
+        if ($recipientPhone!==null) $shipTo['Phone']=['Number'=>$recipientPhone];
         return ['ShipmentRequest'=>[
             'Request'=>['RequestOption'=>'nonvalidate','TransactionReference'=>[
                 'CustomerContext'=>self::orderNumber($order)]],
             'Shipment'=>['Description'=>'Automotive parts','Shipper'=>$shipper,
                 'ShipFrom'=>['Name'=>$name,'AttentionName'=>$name,'Phone'=>['Number'=>$phone],'Address'=>$from],
-                'ShipTo'=>['Name'=>$recipient,'AttentionName'=>$recipient,
-                    'Phone'=>['Number'=>$recipientPhone],'Address'=>$to,'Residential'=>'Y'],
+                'ShipTo'=>$shipTo,
                 'PaymentInformation'=>['ShipmentCharge'=>['Type'=>'01',
                     'BillShipper'=>['AccountNumber'=>$accountNumber]]],
                 'Service'=>['Code'=>$shipping['service_code']],
@@ -144,8 +156,20 @@ final class CarrierLabelPayloads
     private static function upsAddress(array $address): array
     {
         $lines=array_values(array_filter([$address['address1'],$address['address2']],static fn($v)=>$v!==''));
+        foreach ($lines as $line) {
+            if (strlen($line)>35) throw new \RuntimeException('Carrier address line needs review for UPS.');
+        }
+        if (strlen($address['city'])>30) throw new \RuntimeException('Carrier city needs review for UPS.');
         return ['AddressLine'=>$lines,'City'=>$address['city'],'StateProvinceCode'=>$address['state'],
-            'PostalCode'=>$address['zip'],'CountryCode'=>'US'];
+            'PostalCode'=>str_replace('-','',$address['zip']),'CountryCode'=>'US'];
+    }
+
+    private static function paidOrder(array $order): void
+    {
+        if (($order['payment_status'] ?? '')!=='completed' || ($order['order_status'] ?? '')!=='processing'
+            || empty($order['paypal_transaction_id'])) {
+            throw new \RuntimeException('Only a paid, processing order may prepare a label request.');
+        }
     }
 
     private static function measurement(array $parcel,string $key): float

@@ -4,6 +4,9 @@
  */
 
 namespace FAS\Utils;
+require_once __DIR__ . '/../security/ClientIp.php';
+
+use FAS\Security\ClientIp;
 
 class Analytics
 {
@@ -41,6 +44,9 @@ class Analytics
         'page_hidden',
         'page_resumed',
         'page_exit',
+        'tawk_widget_loaded',
+        'tawk_widget_opened',
+        'tawk_chat_started',
         'scroll_depth',
         'product_view',
         'product_impression',
@@ -1413,7 +1419,7 @@ $stages = [
         $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
         $clientIp = $this->clientIpWithSource($server);
         $sessionGeo = $this->sessionGeo($server, $clientIp, $now);
-        $bot = $this->botAssessment($server);
+        $bot = $this->botAssessment($server, $clientIp);
 
         $data = [
             'visitor_id' => $visitorId,
@@ -2202,43 +2208,22 @@ private function getAbandonedCartSummary(string $since): array
 
     private function clientIpWithSource(array $server): array
     {
-        $candidates = [
-            'cloudflare_connecting_ip' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IP', 'CF_CONNECTING_IP', 'CF-Connecting-IP', 'cf-connecting-ip']),
-            'cloudflare_connecting_ipv6' => $this->serverValue($server, ['HTTP_CF_CONNECTING_IPV6', 'CF_CONNECTING_IPV6', 'CF-Connecting-IPv6', 'cf-connecting-ipv6']),
-            'cloudflare_true_client_ip' => $this->serverValue($server, ['HTTP_TRUE_CLIENT_IP', 'TRUE_CLIENT_IP', 'True-Client-IP', 'true-client-ip']),
-            'x_forwarded_for' => $this->serverValue($server, ['HTTP_X_FORWARDED_FOR', 'X_FORWARDED_FOR', 'X-Forwarded-For', 'x-forwarded-for']),
-            'remote_addr' => $this->serverValue($server, ['REMOTE_ADDR']),
-        ];
-
-        foreach ($candidates as $source => $value) {
-            $ip = trim(explode(',', (string) $value)[0]);
-            if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP)) {
-                continue;
-            }
-
-            if ($source === 'remote_addr' && $this->hasCloudflareSignal($server)) {
-                return ['ip' => $ip, 'source' => 'cloudflare_proxy_remote_addr'];
-            }
-
-            return ['ip' => $ip, 'source' => $source];
+        $resolved = ClientIp::resolve($server);
+        $ip = $resolved['ip'] === 'unknown' ? '' : $resolved['ip'];
+        if ($resolved['source'] === 'Trusted Cloudflare header') {
+            return ['ip' => $ip, 'source' => 'cloudflare_connecting_ip'];
         }
-
-        return ['ip' => '', 'source' => $this->hasCloudflareSignal($server) ? 'cloudflare_headers_missing_ip' : ''];
+        $peer = ClientIp::normalize($server['REMOTE_ADDR'] ?? '');
+        $trustedPeer = ClientIp::inRanges($peer, ClientIp::CLOUDFLARE)
+            || ClientIp::inRanges($peer, ClientIp::proxies());
+        return ['ip' => $ip, 'source' => $trustedPeer ? 'cloudflare_proxy_remote_addr' : 'remote_addr'];
     }
 
-    private function hasCloudflareSignal(array $server): bool
+    private function cloudflareGeo(array $server, array $clientIp): array
     {
-        foreach (['HTTP_CF_RAY', 'HTTP_CF_IPCOUNTRY', 'HTTP_CF_VISITOR', 'HTTP_CF_CONNECTING_IP', 'HTTP_CF_CONNECTING_IPV6'] as $key) {
-            if (!empty($server[$key])) {
-                return true;
-            }
+        if (($clientIp['source'] ?? '') !== 'cloudflare_connecting_ip') {
+            return $this->emptyGeo('');
         }
-
-        return false;
-    }
-
-    private function cloudflareGeo(array $server): array
-    {
         return [
             'country' => strtoupper($this->cleanText($this->serverValue($server, ['HTTP_CF_IPCOUNTRY', 'CF_IPCOUNTRY', 'CF-IPCountry', 'cf-ipcountry']), 10)),
             'region' => $this->cleanText($this->serverValue($server, ['HTTP_CF_REGION', 'HTTP_CF_IPREGION', 'CF_REGION', 'CF-Region', 'cf-region']), 255),
@@ -2254,7 +2239,7 @@ private function getAbandonedCartSummary(string $since): array
 
     private function sessionGeo(array $server, array $clientIp, string $now): array
     {
-        $geo = $this->cloudflareGeo($server);
+        $geo = $this->cloudflareGeo($server, $clientIp);
         $geo['source'] = $this->hasGeoLocation($geo) ? 'cloudflare_headers' : '';
 
         if (!$this->needsIpGeoFallback($geo)) {
@@ -2488,11 +2473,12 @@ private function getAbandonedCartSummary(string $since): array
         }
     }
 
-    private function botAssessment(array $server): array
+    private function botAssessment(array $server, array $clientIp): array
     {
         $userAgent = strtolower((string) ($server['HTTP_USER_AGENT'] ?? ''));
-        $botScore = $this->nullableInt($this->serverValue($server, ['HTTP_CF_BOT_SCORE', 'HTTP_CF_BOTSCORE']));
-        $verifiedBot = $this->truthyHeader($this->serverValue($server, ['HTTP_CF_VERIFIED_BOT', 'HTTP_CF_CLIENT_BOT'])) ? 1 : 0;
+        $trustedHeaders = ($clientIp['source'] ?? '') === 'cloudflare_connecting_ip';
+        $botScore = $trustedHeaders ? $this->nullableInt($this->serverValue($server, ['HTTP_CF_BOT_SCORE', 'HTTP_CF_BOTSCORE'])) : null;
+        $verifiedBot = $trustedHeaders && $this->truthyHeader($this->serverValue($server, ['HTTP_CF_VERIFIED_BOT', 'HTTP_CF_CLIENT_BOT'])) ? 1 : 0;
         $reasons = [];
 
         if ($userAgent === '') {

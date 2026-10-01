@@ -26,7 +26,6 @@ $productModel = new Product($db);
 
 $configFile = __DIR__ . '/../src/config/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
-$syncApiKey = $config['security']['sync_api_key'] ?? 'fas_sync_key_2026';
 
 $success = '';
 $error = '';
@@ -582,6 +581,11 @@ $csrfToken = CSRF::generateToken();
 <script src="js/pwa-installer.js"></script>
 <script>
 AOS.init({ duration: 700, once: true });
+function safeSyncText(value) {
+    const span = document.createElement('span');
+    span.textContent = String(value ?? '');
+    return span.innerHTML;
+}
 
 document.addEventListener('click', function (event) {
     const button = event.target.closest('#sync-ebay-health-btn');
@@ -591,29 +595,38 @@ document.addEventListener('click', function (event) {
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';
     status.innerHTML = '<div class="alert alert-info">Starting eBay sync. This can take a few minutes for large date ranges.</div>';
 
-    fetch('../api/ebay-sync.php?key=<?php echo eshSafe(rawurlencode($syncApiKey)); ?>')
+    fetch('../api/ebay-sync.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ csrf_token: <?php echo json_encode($csrfToken); ?> })
+    })
         .then(response => response.json().then(data => ({ ok: response.ok, data })))
-        .then(({ ok, data }) => {
+        .then(async ({ ok, data }) => {
             if (!ok || data.error) {
                 throw new Error(data.message || data.error || 'eBay sync failed.');
             }
 
-            status.innerHTML = `<div class="alert alert-success">
+            const refreshed = await window.FASAdminAjax?.refresh();
+            const currentStatus = document.getElementById('sync-health-status') || status;
+            currentStatus.innerHTML = `<div class="alert alert-success">
                 <strong>Sync completed.</strong>
-                Processed: ${data.processed || 0},
-                Added: ${data.added || 0},
-                Updated: ${data.updated || 0},
-                Failed: ${data.failed || 0},
-                Removed: ${data.removed || data.hidden || 0}.
-                <a href="ebay-sync-health.php" class="alert-link">Refresh dashboard</a>
+                Processed: ${safeSyncText(data.processed || 0)},
+                Added: ${safeSyncText(data.added || 0)},
+                Updated: ${safeSyncText(data.updated || 0)},
+                Failed: ${safeSyncText(data.failed || 0)},
+                Removed: ${safeSyncText(data.removed || data.hidden || 0)}.
+                ${refreshed ? '' : '<a href="ebay-sync-health.php" class="alert-link">Refresh dashboard</a>'}
             </div>`;
         })
         .catch(error => {
-            status.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            const currentStatus = document.getElementById('sync-health-status') || status;
+            currentStatus.innerHTML = `<div class="alert alert-danger">${safeSyncText(error.message)}</div>`;
         })
         .finally(() => {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Run Full Sync';
+            const currentButton = document.getElementById('sync-ebay-health-btn') || button;
+            currentButton.disabled = false;
+            currentButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Run Full Sync';
         });
 });
 </script>

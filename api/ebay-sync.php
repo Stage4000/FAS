@@ -20,14 +20,34 @@ use FAS\Utils\ErrorMonitor;
 
 require_once __DIR__ . '/../includes/security.php';
 header('Content-Type: application/json');
-$config = require __DIR__ . '/../src/config/config.php';
-$expectedKey = (string)($config['security']['sync_api_key'] ?? 'fas_sync_key_2026');
-$authKey = $_GET['key'] ?? '';
-if (!is_string($authKey) || !hash_equals($expectedKey, $authKey)) {
-    fas_security_guard('sync_auth');
-    http_response_code(401);
-    echo json_encode(['error'=>'Unauthorized','message'=>'Invalid sync API key provided.']);
-    exit;
+$adminRequest = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+if ($adminRequest) {
+    require_once __DIR__ . '/../admin/auth.php';
+    require_once __DIR__ . '/../src/utils/CSRF.php';
+    $adminAuth = new AdminAuth();
+    if (!$adminAuth->isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['error'=>'Unauthorized','message'=>'Sign in again before starting a sync.']);
+        exit;
+    }
+    if (!\FAS\Utils\CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        echo json_encode(['error'=>'Invalid security token','message'=>'Reload the admin page and try again.']);
+        exit;
+    }
+    // A long sync must not hold the session lock while other admin requests run.
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+} else {
+    // Preserve the existing key-based route for integrations outside the admin UI.
+    $config = require __DIR__ . '/../src/config/config.php';
+    $expectedKey = (string)($config['security']['sync_api_key'] ?? 'fas_sync_key_2026');
+    $authKey = $_GET['key'] ?? '';
+    if (!is_string($authKey) || !hash_equals($expectedKey, $authKey)) {
+        fas_security_guard('sync_auth');
+        http_response_code(401);
+        echo json_encode(['error'=>'Unauthorized','message'=>'Invalid sync API key provided.']);
+        exit;
+    }
 }
 // Initialize comprehensive logging to log.txt
 SyncLogger::init(__DIR__ . '/../log.txt');
@@ -47,11 +67,12 @@ set_exception_handler(function($exception) {
 SyncLogger::log("Authentication successful");
 
 // Get date parameters from query string, default to last 120 days
-$startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-120 days'));
-$endDate = $_GET['end_date'] ?? date('Y-m-d');
+$syncInput = $adminRequest ? $_POST : $_GET;
+$startDate = $syncInput['start_date'] ?? date('Y-m-d', strtotime('-120 days'));
+$endDate = $syncInput['end_date'] ?? date('Y-m-d');
 
 // Validate date format
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+if (!is_string($startDate) || !is_string($endDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
     SyncLogger::log("Invalid date format provided");
     http_response_code(400);
     echo json_encode([

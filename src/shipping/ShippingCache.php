@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace FAS\Shipping;
 
-/** Private, bounded cache. No customer addresses or carrier response bodies are stored. */
+/** Private, bounded cache table. The same protected database also holds fulfillment labels. */
 final class ShippingCache
 {
     private \PDO $db;
@@ -33,6 +33,7 @@ final class ShippingCache
         try {
             $this->db = new \PDO('sqlite:'.$path, null, null, [\PDO::ATTR_ERRMODE=>\PDO::ERRMODE_EXCEPTION]);
             $this->db->exec('PRAGMA busy_timeout=1000');
+            $this->db->exec('PRAGMA foreign_keys=ON');
             if ($initialize) {
                 $this->db->exec('CREATE TABLE IF NOT EXISTS shipping_cache(cache_key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL)');
                 $this->db->exec('CREATE INDEX IF NOT EXISTS shipping_cache_expiry ON shipping_cache(expires)');

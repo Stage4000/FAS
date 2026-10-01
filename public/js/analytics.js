@@ -127,6 +127,9 @@
     };
 
     const dedupedEvents = {
+        tawk_widget_loaded: 60000,
+        tawk_widget_opened: 10000,
+        tawk_chat_started: 10000,
         checkout_start: 2500,
         cart_view: 2500,
         product_view: 2500,
@@ -1088,6 +1091,14 @@
         refreshProductImpressions: setupProductImpressions,
         refreshBannerViews: setupBannerViews
     };
+
+    const pendingTawkSignals = Array.isArray(window.fasPendingTawkSignals)
+        ? window.fasPendingTawkSignals.splice(0, 6) : [];
+    pendingTawkSignals.forEach(type => {
+        if (['tawk_widget_loaded', 'tawk_widget_opened', 'tawk_chat_started'].includes(type)) {
+            track(type, { event_name: type.replace(/_/g, ' ') }, { immediate: true });
+        }
+    });
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {

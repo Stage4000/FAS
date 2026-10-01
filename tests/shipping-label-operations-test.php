@@ -31,6 +31,7 @@ try {
         INSERT INTO admin_users VALUES(1,'admin',1);
         INSERT INTO admin_users VALUES(2,'viewer',1);
         CREATE TABLE orders(id INTEGER PRIMARY KEY,payment_status TEXT,order_status TEXT,
+            order_number TEXT,customer_name TEXT,customer_phone TEXT,
             shipping_address TEXT,paypal_transaction_id TEXT);
         CREATE TABLE order_shipping(order_id INTEGER PRIMARY KEY,provider TEXT,service_code TEXT,
             quote_hash TEXT,origin_json TEXT,packages_json TEXT,fulfillment_json TEXT)");
@@ -38,7 +39,8 @@ try {
     $origin=json_encode(['address1'=>'100 Fixture Road','city'=>'Test City','state'=>'KS','zip'=>'66614']);
     $parcels=json_encode([['weight'=>1,'length'=>10,'width'=>10,'height'=>10],
         ['weight'=>2,'length'=>12,'width'=>8,'height'=>6]]);
-    $stmt=$orders->prepare("INSERT INTO orders VALUES(10,'completed','processing',?,'CAPTURE123456')");
+    $stmt=$orders->prepare("INSERT INTO orders VALUES(10,'completed','processing','FAS-10',
+        'Alex Buyer','5555551234',?,'CAPTURE123456')");
     $stmt->execute([$address]);
     $options=json_encode([
         ['rate_indicator'=>'SP','processing_category'=>'MACHINABLE','destination_entry_facility_type'=>'NONE','price_type'=>'RETAIL','quoted_cents'=>900],
@@ -62,26 +64,39 @@ try {
     refuses(static fn()=>$labels->markSubmitted($orders,10,0,2),'Non-admin operator cannot start a label purchase');
     claim($labels->markSubmitted($orders,10,0,1),'First submission claims the external call');
     claim(!$anotherWorker->markSubmitted($orders,10,0,1),'Repeated submission never claims a second carrier call');
-    refuses(static fn()=>$labels->recordReady(10,0,'bad','bad',0),'Malformed carrier confirmation refused');
-    $labels->recordReady(10,0,'SHIPMENT123456','TRACKING123456',900);
+    $uspsConfirmation=['shipment_id'=>'9400111899223847199999','billed_cents'=>900,
+        'packages'=>[['tracking_number'=>'9400111899223847199999','format'=>'pdf',
+            'label'=>"%PDF-1.4\nsynthetic-only"]]];
+    $invalid=$uspsConfirmation; $invalid['packages'][0]['label']='invalid';
+    refuses(static fn()=>$labels->recordReady(10,0,$invalid),'Malformed carrier confirmation refused');
+    $labels->recordReady(10,0,$uspsConfirmation);
     claim($labels->find(10,0)['state']==='ready' && $labels->find(10,0)['billed_cents']===900,
         'Confirmed shipment and billed price persist privately');
-    refuses(static fn()=>$labels->recordReady(10,0,'SHIPMENT123456','TRACKING123456',900),
+    claim($anotherWorker->label($orders,10,0,0,1)['label']===$uspsConfirmation['packages'][0]['label'],
+        'Another worker can retrieve a ready USPS PDF from private storage');
+    refuses(static fn()=>$labels->label($orders,10,0,0,2),
+        'Non-administrator cannot retrieve private label content');
+    refuses(static fn()=>$labels->recordReady(10,0,$uspsConfirmation),
         'Second carrier confirmation cannot overwrite a ready label');
     claim($labels->markSubmitted($orders,10,1,1),'Second parcel can begin independently');
     $labels->markReview(10,1);
     claim($labels->find(10,1)['state']==='review' && !$labels->markSubmitted($orders,10,1,1),
         'Ambiguous result stays in review and cannot trigger a new call');
+    refuses(static fn()=>$labels->label($orders,10,1,0,1),
+        'Unconfirmed shipment has no retrievable label');
     claim($labels->health()===['reserved'=>0,'submitted'=>0,'ready'=>1,'review'=>1],
         'Private operation health shows unresolved review count');
     $orders->exec("UPDATE orders SET shipping_address='changed' WHERE id=10");
     refuses(static fn()=>$labels->reserve($orders,10,0,1),'Changed destination cannot reuse a prepared operation');
+    $orders->exec("UPDATE orders SET shipping_address='".str_replace("'","''",$address)."',customer_name='Another Buyer' WHERE id=10");
+    refuses(static fn()=>$labels->reserve($orders,10,0,1),'Changed recipient cannot reuse a prepared operation');
     $orders->exec("UPDATE orders SET shipping_address='".str_replace("'","''",$address)."',payment_status='pending' WHERE id=10");
     refuses(static fn()=>$labels->reserve($orders,10,0,1),'Unpaid order cannot prepare a label');
     $orders->exec("UPDATE orders SET payment_status='completed' WHERE id=10");
     $orders->exec("UPDATE order_shipping SET provider='ups',service_code='03' WHERE order_id=10");
     refuses(static fn()=>$labels->reserve($orders,10,1,1),'UPS multi-package shipment has one operation scope');
-    $stmt=$orders->prepare("INSERT INTO orders VALUES(11,'completed','processing',?,'CAPTURE789012')");
+    $stmt=$orders->prepare("INSERT INTO orders VALUES(11,'completed','processing','FAS-11',
+        'Taylor Buyer','5555551234',?,'CAPTURE789012')");
     $stmt->execute([$address]);
     $stmt=$orders->prepare("INSERT INTO order_shipping VALUES(11,'ups','03','ups-quote',?,?,NULL)");
     $stmt->execute([$origin,$parcels]);
@@ -91,9 +106,33 @@ try {
     $orders->exec('UPDATE admin_users SET is_active=0 WHERE id=1');
     refuses(static fn()=>$labels->markSubmitted($orders,11,0,1),
         'Deactivated administrator cannot submit a reserved shipment');
+    refuses(static fn()=>$labels->label($orders,10,0,0,1),
+        'Deactivated administrator cannot read an existing private label');
     $orders->exec('UPDATE admin_users SET is_active=1 WHERE id=1');
     claim($labels->markSubmitted($orders,11,0,1),
         'Revalidated administrator may submit the reserved UPS shipment once');
+    $upsConfirmation=['shipment_id'=>'1Z1234567890123456','billed_cents'=>2025,'packages'=>[
+        ['tracking_number'=>'1Z1234567890123456','format'=>'gif','label'=>'GIF89a'.'synthetic-one'],
+        ['tracking_number'=>'1Z1234567890123457','format'=>'gif','label'=>'GIF89a'.'synthetic-two']]];
+    $partial=$upsConfirmation; array_pop($partial['packages']);
+    refuses(static fn()=>$labels->recordReady(11,0,$partial),
+        'UPS confirmation cannot omit an expected package label');
+    $cache->database()->exec("CREATE TRIGGER fail_second_package BEFORE INSERT ON shipping_label_packages
+        WHEN NEW.shipment_package_index=1 BEGIN SELECT RAISE(ABORT,'synthetic failure'); END");
+    refuses(static fn()=>$labels->recordReady(11,0,$upsConfirmation),
+        'A failed second UPS label write rolls back the entire confirmation');
+    claim($labels->find(11,0)['state']==='submitted'
+        && (int)$cache->database()->query('SELECT COUNT(*) FROM shipping_label_packages WHERE operation_id='.(int)$ups['id'])->fetchColumn()===0,
+        'Failed label persistence leaves a submitted operation with no partial labels');
+    $cache->database()->exec('DROP TRIGGER fail_second_package');
+    $labels->recordReady(11,0,$upsConfirmation);
+    claim($labels->find(11,0)['state']==='ready' && $labels->find(11,0)['billed_cents']===2025
+        && $anotherWorker->label($orders,11,0,1,1)['tracking_number']==='1Z1234567890123457',
+        'UPS confirmation atomically retains both package labels and actual charge');
+    $cache->database()->exec("UPDATE shipping_label_packages SET label_image='corrupt'
+        WHERE operation_id=".(int)$ups['id']." AND shipment_package_index=1");
+    refuses(static fn()=>$labels->label($orders,11,0,1,1),
+        'A corrupted private label fails its content digest check');
     $legacy=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $legacy->exec("CREATE TABLE orders(id INTEGER PRIMARY KEY);
         INSERT INTO orders VALUES(99);
@@ -114,6 +153,16 @@ try {
     $saved=ShippingOrder::find($legacy,99);
     claim(count($saved['fulfillment_options'])===2 && $saved['fulfillment_options'][1]['quoted_cents']===1100,
         'Paid order retains the chosen rate ingredients for each USPS parcel');
+    $oldLedger=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+    $oldLedger->exec('CREATE TABLE shipping_label_operations(id INTEGER PRIMARY KEY,order_id INTEGER,package_index INTEGER,
+        provider TEXT,service_code TEXT,fingerprint TEXT,idempotency_key TEXT,state TEXT,shipment_id TEXT,
+        tracking_number TEXT,billed_cents INTEGER,operator_id INTEGER,created_at INTEGER,submitted_at INTEGER,
+        updated_at INTEGER)');
+    ShippingLabelOperations::install($oldLedger);
+    $ledgerColumns=array_column($oldLedger->query('PRAGMA table_info(shipping_label_operations)')->fetchAll(PDO::FETCH_ASSOC),'name');
+    claim(in_array('expected_packages',$ledgerColumns,true)
+        && $oldLedger->query("SELECT 1 FROM sqlite_master WHERE name='shipping_label_packages'")->fetchColumn()==1,
+        'Existing private ledger gains package-count and image storage additively');
     file_put_contents(__DIR__.'/../audit/shipping-label-local.json',json_encode([
         'date'=>gmdate('c'),'scope'=>'local private SQLite and synthetic orders',
         'assertions'=>count($checks),'passed'=>$checks,

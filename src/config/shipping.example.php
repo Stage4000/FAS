@@ -10,17 +10,26 @@ return [
     'max_packages' => 10,
     'request_budget_seconds' => 18,
     'quote_ttl_seconds' => 180,
+    // Label purchasing stays off until sandbox acceptance and admin workflow verification.
+    'shipper_name' => getenv('FAS_SHIPPER_NAME') ?: '',
+    'shipper_phone' => getenv('FAS_SHIPPER_PHONE') ?: '',
     'carriers' => [
         'usps' => [
             'enabled' => false, 'environment' => 'sandbox', 'production_verified' => false,
+            'label_purchasing_enabled' => false,
             'client_id' => getenv('FAS_USPS_CLIENT_ID') ?: '',
             'client_secret' => getenv('FAS_USPS_CLIENT_SECRET') ?: '',
+            'crid' => getenv('FAS_USPS_CRID') ?: '',
+            'mid' => getenv('FAS_USPS_MID') ?: '',
+            'manifest_mid' => getenv('FAS_USPS_MANIFEST_MID') ?: '',
+            'eps_account_number' => getenv('FAS_USPS_EPS_ACCOUNT_NUMBER') ?: '',
             // Match the gateway assigned to the USPS developer application.
             'gateway' => 'apis', // apis (apis / apis-tem) | api (api / api-cat)
             'price_type' => 'RETAIL', // Change to COMMERCIAL only after account validation.
         ],
         'ups' => [
             'enabled' => false, 'environment' => 'sandbox', 'production_verified' => false,
+            'label_purchasing_enabled' => false,
             'client_id' => getenv('FAS_UPS_CLIENT_ID') ?: '',
             'client_secret' => getenv('FAS_UPS_CLIENT_SECRET') ?: '',
             'account_number' => getenv('FAS_UPS_ACCOUNT_NUMBER') ?: '',

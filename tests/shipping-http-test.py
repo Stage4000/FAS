@@ -119,6 +119,8 @@ cart={"items":[{"id":1,"quantity":1}],"address":address}
 try:
     check(shippingHealth["label_operations"]=={"reserved":0,"submitted":0,"ready":0,"review":0},
           "CLI initialization and health include the private fulfillment operation ledger")
+    check(shippingHealth["label_storage"]=={"initialized":True,"packages":0},
+          "CLI health confirms private per-package label storage without revealing label content")
     for _ in range(40):
         try: request("/api/shipping-rates.php"); break
         except OSError:time.sleep(.1)

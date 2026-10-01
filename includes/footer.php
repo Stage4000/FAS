@@ -86,6 +86,19 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
     <script type="text/javascript">
     var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
     (function(){
+    function recordTawkSignal(type){
+        if(window.fasAnalytics && typeof window.fasAnalytics.track === 'function'){
+            window.fasAnalytics.track(type, {event_name:type.replace(/_/g,' ')}, {immediate:true});
+        }else{
+            var pending=window.fasPendingTawkSignals||(window.fasPendingTawkSignals=[]);
+            if(pending.length<6) pending.push(type);
+        }
+    }
+    Tawk_API.onLoad=function(){recordTawkSignal('tawk_widget_loaded');};
+    Tawk_API.onChatMaximized=function(){recordTawkSignal('tawk_widget_opened');};
+    Tawk_API.onChatStarted=function(){recordTawkSignal('tawk_chat_started');};
+    })();
+    (function(){
     var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
     s1.async=true;
     s1.src='https://embed.tawk.to/<?php echo htmlspecialchars($tawkPropertyId); ?>/<?php echo htmlspecialchars($tawkWidgetId); ?>';

@@ -1,6 +1,6 @@
 # Rate limiting and Security dashboard
 
-The Security page is at /admin/security.php. Only active administrators can access it. Rules, temporary blocks, counter clearing, and restoring defaults require CSRF protection and password confirmation within the last ten minutes.
+The Security page is at /admin/security.php. Only active administrators can access it. Changing enforcement, rules, temporary blocks, counter clearing, and restoring defaults require CSRF protection and password confirmation within the last ten minutes.
 
 ## Deployment
 
@@ -11,7 +11,7 @@ Deploy all security helpers, endpoint integrations, admin views, and checkout/an
 3. Open Security → Overview from two different connections and compare detected visitor addresses with those connections. Forwarded headers are accepted only from the pinned [Cloudflare IP ranges](https://www.cloudflare.com/ips/) or FAS_TRUSTED_PROXY_CIDRS (comma-separated CIDRs).
 4. If nginx already restores the visitor into REMOTE_ADDR, leave the custom proxy variable unset. If PHP sees a local reverse proxy, trust only that proxy's exact address and configure it to **strip untrusted client headers and set verified Cloudflare headers itself**. Do not trust arbitrary X-Forwarded-For or configure broad private networks merely to make the diagnostic change.
 5. Verify normal login, contact validation, shipping, cart availability, and payment recovery with safe test traffic. Use sandbox payments, not real charges. Confirm browsing, sitemap/feed routes, authenticated sync, and verified webhook processing remain unaffected.
-6. Run activation only after these checks. This enables the enforced defaults and clears observation counters.
+6. After these checks, open Security → Overview, verify your password, confirm the checks on this server, and select **Start enforcing limits**. This enables rules set to Enforce and clears observation counters. The server command remains available when the admin panel is unavailable.
 
     php scripts/security-maintenance.php init
     php scripts/security-maintenance.php activate --verified
@@ -28,7 +28,7 @@ Application limits do not replace origin access controls or network-level protec
 
 Run prune periodically using the server scheduler. Each execution removes at most 1,000 expired rows per table; request-time cleanup also runs in bounded batches. Activity is retained for 30 days and capped at 100,000 entries. Repeated denials are grouped by IP, rule, outcome, and minute.
 
-Unblock removes the selected IP's manual block and associated counters. Reset-rules restores built-in policies and clears all counters; neither erases activity. Observe provides an emergency rollback for enforcement, with an audit event. Established admin sessions remain accessible while login is throttled.
+Unblock removes the selected IP's manual block and associated counters. Reset-rules restores built-in policies and clears all counters; neither erases activity. Security → Overview also offers **Return to observation** after password confirmation. That switch and the `observe` command both clear counters and record an audit event. Rules set to Observe never block requests, even with global enforcement on. Established admin sessions remain accessible while login is throttled.
 
 Rules use burst capacity plus continuous refill, not fixed-window request counts. Default values live in SecurityStore::defaults() and appear on the Rules page. Editing a rule clears its counters. Manual blocks last 15 minutes, one hour, or 24 hours and exclude payment recovery and authenticated security management.
 
@@ -83,3 +83,9 @@ The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 
 - Verified shared settings budgets, denial before configuration writes, active-admin authorization, CSRF behavior, successful-save audit events, and the shared password-verification budget across Security and Change Password.
 - Inspected the updated overview at 1440px and 390px, including light and dark desktop views. At 390px the page had no horizontal overflow. The new settings rule remained disabled before reauthentication; no console errors were observed during that check.
 - Production deployment, IP resolution checks, and activation remain pending.
+
+### Dashboard enforcement switch — 2026-10-01
+
+- Security → Overview now has a password-protected enforcement switch. Activation requires confirmation that private storage, visitor IP detection, and checkout recovery were checked on the target server; both directions clear counters and record the administrator in Activity.
+- `php tests/security-test.php` passed 94 assertions. `python tests/security-enforcement-http-test.py` passed 20 isolated HTTP assertions, including 429 responses for repeated admin logins only while enforcement is on. The existing `python tests/security-http-test.py` passed 66 isolated HTTP assertions.
+- The Overview control rendered in the local browser in dark mode. Password confirmation exposed the rollback button; at a mobile viewport, the page had no horizontal overflow. These checks use disposable local databases. Production activation and checks remain pending.

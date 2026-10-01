@@ -44,7 +44,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 http_response_code(403);
                 throw new InvalidArgumentException('Verify your password before changing security controls.');
             }
-            if ($action === 'save_rule') {
+            if ($action === 'set_enforcement') {
+                $mode = secText($_POST['mode'] ?? '');
+                $expected = secText($_POST['expected'] ?? '');
+                if (!in_array($mode,['enforce','observe'],true) || !in_array($expected,['0','1'],true)) {
+                    throw new InvalidArgumentException('Refresh the page and choose a valid enforcement mode.');
+                }
+                if ($mode === 'enforce' && ($_POST['readiness_confirmed'] ?? '') !== '1') {
+                    throw new InvalidArgumentException('Confirm the server checks before enforcing limits.');
+                }
+                $changed = $store->activate($mode === 'enforce',$ip,(int)$admin['id'],$expected === '1');
+                $success = $changed
+                    ? ($mode === 'enforce' ? 'Limits are now enforced. All counters were reset.' : 'Limits are now observed. All counters were reset.')
+                    : 'Enforcement was already in the selected mode.';
+            } elseif ($action === 'save_rule') {
                 $capacity = filter_var($_POST['capacity'] ?? null,FILTER_VALIDATE_INT);
                 $seconds = filter_var($_POST['seconds'] ?? null,FILTER_VALIDATE_INT);
                 $store->saveRule(secText($_POST['rule'] ?? ''),(int)$capacity,(int)$seconds,secText($_POST['mode'] ?? ''),$ip,(int)$admin['id']);
@@ -103,7 +116,7 @@ if ($store && $healthy) {
     <link rel="shortcut icon" href="../gallery/favicons/favicon.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/admin-style.css">
+    <link rel="stylesheet" href="css/admin-style.css?v=<?= (int)filemtime(__DIR__.'/css/admin-style.css') ?>">
     <style>
         .security-shell {max-width:1400px;margin:auto}
         .security-shell .card {border:0;box-shadow:0 .125rem .5rem #0000000d}
@@ -116,6 +129,15 @@ if ($store && $healthy) {
         [data-theme="dark"] .security-shell .nav-link:not(.active) {color:#9ec5fe}
         [data-theme="dark"] .security-shell .btn-outline-primary {color:#9ec5fe;border-color:#9ec5fe}
         [data-theme="dark"] .security-shell .btn-outline-primary:hover {color:#fff;background:#0d6efd}
+        [data-theme="dark"] .security-shell fieldset:disabled .security-rule .form-control,
+        [data-theme="dark"] .security-shell fieldset:disabled .security-rule .form-select {
+            background-color:#25282c;
+            border-color:#6b7280;
+            color:#e5e7eb;
+            -webkit-text-fill-color:#e5e7eb;
+            opacity:1;
+        }
+        [data-theme="dark"] .security-shell fieldset:disabled .security-rule .form-select {color-scheme:dark}
         @media(max-width:991px){.security-rule{grid-template-columns:1fr 1fr}.security-rule-title{grid-column:1/-1}}
         @media(max-width:420px){.security-rule{grid-template-columns:1fr}.security-shell .nav{gap:.25rem}.security-shell .nav-link{padding:.5rem .65rem}}
     </style>
@@ -127,7 +149,7 @@ if ($store && $healthy) {
         <div><h1 class="display-6 fw-bold"><i class="fas fa-shield-halved me-2" aria-hidden="true"></i>Security</h1>
         <p class="mb-0">Manage access restrictions and review recent activity.</p></div>
         <span class="badge rounded-pill <?= $healthy ? ($active?'bg-success':'bg-warning text-dark'):'bg-danger' ?> p-3">
-            <?= !$healthy ? 'Storage unavailable' : ($active?'Limits enforced':'Awaiting activation') ?>
+            <?= !$healthy ? 'Storage unavailable' : ($active?'Limits enforced':'Observation mode') ?>
         </span>
     </div>
     <?php if ($success): ?><div class="alert alert-success" role="status"><?= secHtml($success) ?></div><?php endif; ?>
@@ -135,12 +157,38 @@ if ($store && $healthy) {
     <?php if (!$healthy): ?>
         <div class="alert alert-danger" role="alert">Security storage is unavailable. New protected actions may be temporarily unavailable. Existing admin access and payment recovery remain available. Check the private database on the server.</div>
     <?php elseif (!$active): ?>
-        <div class="alert alert-warning">Limits are being observed. Activate enforcement on the server after verifying storage permissions, visitor IP detection, and checkout recovery.</div>
+        <div class="alert alert-warning">Limits are being observed. Verify storage permissions, visitor IP detection, and checkout recovery before enabling enforcement below.</div>
     <?php endif; ?>
     <nav class="nav nav-pills flex-wrap gap-2 mb-4" aria-label="Security sections">
         <?php foreach ($tabs as $key=>$label): ?><a class="nav-link <?= $tab===$key?'active':'' ?>" <?= $tab===$key?'aria-current="page"':'' ?> href="?tab=<?= $key ?>"><?= $label ?></a><?php endforeach; ?>
     </nav>
     <?php if ($healthy && $tab==='overview'): ?>
+        <section class="card mb-4" aria-labelledby="enforcement-heading"><div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                <div><h2 class="h5 mb-1" id="enforcement-heading">Enforcement</h2>
+                    <p class="text-muted mb-0"><?= $active ? 'Enforcement is on. Rules set to Enforce can block requests when their limits are reached.' : 'Observation mode is on. Limits are recorded without blocking requests.' ?></p>
+                </div>
+                <span class="badge <?= $active?'bg-success':'bg-warning text-dark' ?> px-3 py-2"><?= $active?'On':'Off' ?></span>
+            </div>
+            <p class="small text-muted">Changing modes resets all rate-limit counters. Rules set to Observe remain observation-only when enforcement is on. Temporary IP blocks are applied only while enforcement is on.</p>
+            <?php if (!$verified): ?>
+                <form method="post" class="row g-3 align-items-end">
+                    <?= CSRF::tokenField() ?><input type="hidden" name="action" value="reauth">
+                    <div class="col-sm-8 col-lg-5"><label class="form-label" for="overview-security-password">Current password</label><input id="overview-security-password" type="password" name="password" class="form-control" autocomplete="current-password" maxlength="4096" required></div>
+                    <div class="col-sm-4 col-lg-3"><button class="btn btn-primary w-100" type="submit">Unlock changes</button></div>
+                </form>
+            <?php else: ?>
+                <p class="small text-success">Password verified until <?= secHtml(secTime((int)$_SESSION['security_reauth_at']+600)) ?>.</p>
+                <form method="post">
+                    <?= CSRF::tokenField() ?><input type="hidden" name="action" value="set_enforcement"><input type="hidden" name="mode" value="<?= $active?'observe':'enforce' ?>"><input type="hidden" name="expected" value="<?= $active?'1':'0' ?>">
+                    <?php if (!$active): ?>
+                        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="readiness_confirmed" value="1" id="readiness-confirmed" required>
+                            <label class="form-check-label" for="readiness-confirmed">I verified private storage, visitor IP detection, and checkout recovery on this server.</label></div>
+                    <?php endif; ?>
+                    <button type="submit" class="btn <?= $active?'btn-outline-warning':'btn-danger' ?>"><?= $active?'Return to observation':'Start enforcing limits' ?></button>
+                </form>
+            <?php endif; ?>
+        </div></section>
         <div class="row g-3 mb-4">
             <?php foreach (['login_failed'=>'Failed logins · 24h','throttled'=>'Throttled requests · 24h','observed'=>'Observed limits · 24h','active_blocks'=>'Active IP blocks'] as $key=>$label): ?>
                 <div class="col-6 col-xl-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-2"><?= $label ?></p><p class="h2 mb-0"><?= number_format($summary[$key]) ?></p></div></div></div>

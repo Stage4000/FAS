@@ -64,12 +64,23 @@ try:
         try: request('/admin/login.php');break
         except OSError: time.sleep(.1)
     check(request('/admin/error-monitor.php')[0]==302,'Anonymous error monitor still requires sign-in')
+    check(request('/admin/dashboard-summary.php')[0]==401,'Anonymous dashboard summary is denied')
+    check(request('/api/ebay-sync.php',{'csrf_token':'invalid'})[0]==401,'Anonymous admin sync POST is denied')
     csrf=token(request('/admin/login.php')[2])
     check(request('/admin/login.php',{'username':'ajax-fixture','password':'Local-test-only','csrf_token':csrf})[0]==302,'Fixture signs in through normal CSRF-protected login')
-    routes=['error-monitor.php','products.php','orders.php','order-details.php?id=9001','warehouses.php','coupons.php','banners.php','sale.php','free-shipping.php','homepage-categories.php','settings.php','password.php','security.php','growth.php','product-content.php?id=9001','product-quality.php','stale-inventory.php','ebay-sync-health.php','analytics.php']
+    routes=['error-monitor.php','products.php','orders.php','order-details.php?id=9001','warehouses.php','coupons.php','banners.php','sale.php','free-shipping.php','homepage-categories.php','settings.php','password.php','security.php','growth.php','product-content.php?id=9001','product-quality.php','stale-inventory.php','ebay-sync-health.php','analytics.php','administrators.php']
     for route in routes:
         status,headers,body=request('/admin/'+route)
         check(status==200 and 'id="admin-content"' in body and 'js/admin-ajax.js?' in body and 'Fatal error' not in body and '<b>Warning</b>' not in body,'Enhanced page renders: '+route)
+    status,headers,body=request('/admin/dashboard-summary.php')
+    summary=json.loads(body)
+    check(status==200 and summary['active_products']>=1 and summary['visible_products']>=1,'Signed-in dashboard summary returns current counts')
+    check(request('/api/ebay-sync.php',{'csrf_token':'invalid'})[0]==403,'Admin sync POST rejects invalid CSRF')
+    check(request('/api/ebay-sync.php',{'csrf_token':csrf,'start_date':'bad','end_date':'2026-10-01'})[0]==400,'Admin sync POST validates dates before starting work')
+    check(request('/api/ebay-sync.php?key=invalid-fixture-key')[0]==401,'Legacy key route remains protected')
+    check('sync_api_key' not in request('/admin/index.php')[2],'Dashboard does not embed the sync key')
+    poll=json.loads(request('/admin/error-monitor.php?poll=1')[2])
+    check(poll['latest_id']>=9003 and poll['open_count']>=3,'Monitor polling reports current activity')
     path='/admin/error-monitor.php?status=open&area=checkout&days=7'
     body=request(path)[2];csrf=token(body)
     body=request(path,{'action':'resolve_event','event_id':9001,'csrf_token':'invalid'})[2]
@@ -87,7 +98,7 @@ try:
     check(code==303 and headers['Location']=='security.php?tab=rules','Existing POST/redirect/GET semantics preserved')
     body=request('/admin/security.php?tab=rules')[2]
     check('data-admin-notice="Password verified.' in body,'Redirected fragment carries flash notice')
-    body=request('/admin/order-details.php?id=9001',{'action':'update_tracking','tracking_number':'AJAX-TRACK'})[2]
+    body=request('/admin/order-details.php?id=9001',{'action':'update_tracking','tracking_number':'AJAX-TRACK','csrf_token':csrf})[2]
     check('data-admin-notice="Tracking information updated successfully' in body and 'AJAX-TRACK' in body,'Order tracking action returns refreshed state')
     body=request('/admin/warehouses.php?action=create',{
         'action':'create','name':'Fixture warehouse','code':'AJAX-QA','address_line1':'1 Test Street',

@@ -181,12 +181,18 @@ final class SecurityStore
             [$now,ClientIp::normalize($ip) ?: 'unknown',substr($rule,0,50),$outcome,$path,$actor,substr(preg_replace('/[\x00-\x1f\x7f]/','',$detail),0,200),$aggregate]);
     }
 
-    public function activate(bool $active): void
+    public function activate(bool $active, string $ip = '', int $actor = 0, ?bool $expected = null): bool
     {
-        $this->transaction(function () use ($active) {
+        return $this->transaction(function () use ($active, $ip, $actor, $expected) {
+            $current = $this->active();
+            if ($expected !== null && $current !== $expected) {
+                throw new \InvalidArgumentException('Enforcement changed since this page loaded. Refresh and review the current state.');
+            }
+            if ($current === $active) return false;
             $this->run("UPDATE security_meta SET value=? WHERE name='active'", [$active?'1':'0']);
             $this->db->exec('DELETE FROM security_buckets');
-            $this->event('','system',$active?'activated':'deactivated','CLI');
+            $this->event($ip,'system',$active?'activated':'deactivated',$actor > 0 ? 'Admin panel' : 'CLI',$actor);
+            return true;
         });
     }
 

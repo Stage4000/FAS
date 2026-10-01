@@ -77,7 +77,9 @@ scenario('direct carrier selection and packing are kept before payment',function
     [$s,$p,$db,$in,$q,$id,$owner]=fixture();
     $q['rates'][0]=['total_charge'=>5.00,'courier_id'=>'direct_usps_USPS_GROUND_ADVANTAGE',
         'courier_name'=>'USPS','service_name'=>'Ground Advantage','provider'=>'usps',
-        'service_code'=>'USPS_GROUND_ADVANTAGE','rate_basis'=>'commercial'];
+        'service_code'=>'USPS_GROUND_ADVANTAGE','rate_basis'=>'commercial',
+        'parcel_services'=>[['rate_indicator'=>'SP','processing_category'=>'MACHINABLE',
+            'destination_entry_facility_type'=>'NONE','price_type'=>'COMMERCIAL','quoted_cents'=>500]]];
     $q['shipment']=['origin'=>['zip'=>'66614','state'=>'KS'],
         'packages'=>[['weight'=>1.0,'length'=>10.0,'width'=>10.0,'height'=>10.0]]];
     $s->create($id,$owner,$in,$q);
@@ -86,6 +88,9 @@ scenario('direct carrier selection and packing are kept before payment',function
         'wallet order records selected direct service');
     check(count($shipping['packages'])===1 && (float)$shipping['packages'][0]['weight']===1.0,
         'wallet order records measured parcel');
+    check($shipping['fulfillment_options'][0]['quoted_cents']===500
+        && $shipping['fulfillment_options'][0]['rate_indicator']==='SP',
+        'wallet order retains USPS parcel rate ingredients for its label');
     [$s,$p,$db,$in,$q,$id,$owner]=fixture();
     $q['rates'][0]['provider']='usps';
     $q['rates'][0]['courier_id']='direct_usps_USPS_GROUND_ADVANTAGE';

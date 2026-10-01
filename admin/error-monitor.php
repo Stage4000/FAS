@@ -35,6 +35,15 @@ if (!in_array($status, $allowedStatuses, true)) {
     $status = '';
 }
 
+$latestEventId = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM error_monitor_events')->fetchColumn();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['poll'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    $pollSummary = $monitor->getSummary($days);
+    echo json_encode(['latest_id' => $latestEventId, 'open_count' => (int)$pollSummary['open']]);
+    exit;
+}
+
 $success = '';
 $error = '';
 
@@ -329,6 +338,12 @@ function emFilterUrl(array $updates): string
 <div class="alert alert-danger"><?php echo emSafe($error); ?></div>
 <?php endif; ?>
 
+<div id="error-monitor-refresh" class="alert alert-info d-none align-items-center justify-content-between gap-3"
+     data-latest-id="<?php echo $latestEventId; ?>" data-open-count="<?php echo (int)$summary['open']; ?>" role="status">
+    <span>Error activity has changed since this view loaded.</span>
+    <button type="button" class="btn btn-sm btn-outline-primary" id="error-monitor-refresh-button">Refresh results</button>
+</div>
+
 <div class="row g-3 mb-4">
     <div class="col-xl-3 col-md-6">
         <div class="card error-monitor-stat error-monitor-card">
@@ -531,7 +546,7 @@ function emFilterUrl(array $updates): string
                             <input type="hidden" name="csrf_token" value="<?php echo emSafe($csrfToken); ?>">
                             <input type="hidden" name="action" value="resolve_event">
                             <input type="hidden" name="event_id" value="<?php echo (int)$event['id']; ?>">
-                            <button class="btn btn-sm btn-outline-success">Resolve</button>
+                            <button class="btn btn-sm btn-outline-success" data-ajax-focus-group="error-resolve">Resolve</button>
                         </form>
                         <?php else: ?>
                         <span class="badge bg-success">Resolved</span>
@@ -556,5 +571,56 @@ function emFilterUrl(array $updates): string
 <script src="../public/js/theme-toggle.js"></script>
 <script src="js/pwa-installer.js"></script>
 <script>AOS.init({ duration: 700, once: true });</script>
+<script>
+(() => {
+    let polling = false;
+    let latestId = 0;
+    let openCount = 0;
+
+    function rememberView() {
+        const notice = document.getElementById('error-monitor-refresh');
+        if (!notice) return;
+        latestId = Number(notice.dataset.latestId || 0);
+        openCount = Number(notice.dataset.openCount || 0);
+        notice.classList.add('d-none');
+        notice.classList.remove('d-flex');
+    }
+
+    async function checkForUpdates() {
+        const root = document.getElementById('admin-content');
+        const notice = document.getElementById('error-monitor-refresh');
+        if (polling || document.visibilityState !== 'visible' || !root || !notice || root.hasAttribute('aria-busy') || !notice.classList.contains('d-none')) return;
+        polling = true;
+        try {
+            const url = new URL(location.href);
+            url.searchParams.set('poll', '1');
+            const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+            if (!response.ok) return;
+            const current = await response.json();
+            if (Number(current.latest_id) > latestId || Number(current.open_count) !== openCount) {
+                notice.classList.remove('d-none');
+                notice.classList.add('d-flex');
+            }
+        } catch (error) {
+            // A later visibility change or interval will retry without disturbing this view.
+        } finally {
+            polling = false;
+        }
+    }
+
+    rememberView();
+    document.addEventListener('admin:updated', event => {
+        if (event.detail.page === 'error-monitor.php') rememberView();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdates();
+    });
+    document.addEventListener('click', async event => {
+        if (!event.target.closest('#error-monitor-refresh-button')) return;
+        if (await window.FASAdminAjax?.refresh()) rememberView();
+    });
+    window.setInterval(checkForUpdates, 30000);
+})();
+</script>
 </body>
 </html>

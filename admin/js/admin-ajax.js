@@ -95,7 +95,7 @@
     }
 
     async function update(url, options = {}, submitted = null, historyMode = 'push') {
-        if (busy) return;
+        if (busy) return false;
         busy = true;
         const isPost = options.method === 'POST';
         const scroll = [window.scrollX, window.scrollY];
@@ -103,6 +103,9 @@
         const edits = isPost ? dirtyForms(submitted) : [];
         const buttons = submitted ? Array.from(submitted.querySelectorAll('button, input[type="submit"]')).filter(el => !el.disabled) : [];
         const active = document.activeElement;
+        const focusGroup = active?.dataset?.ajaxFocusGroup;
+        const focusIndex = focusGroup ? Array.from(root.querySelectorAll('[data-ajax-focus-group]'))
+            .filter(el => el.dataset.ajaxFocusGroup === focusGroup).indexOf(active) : -1;
         root.setAttribute('aria-busy', 'true');
         // Prevent edits and competing actions until this response has been applied.
         root.inert = true;
@@ -120,7 +123,7 @@
             if (!samePage(finalUrl)) {
                 if (finalUrl.pathname.endsWith('/login.php')) {
                     announce('Your session has expired. Sign in before trying again. Your entries are still here.', true, true);
-                    return;
+                    return false;
                 }
                 throw new Error('The server returned a different page. Check the current state before trying again.');
             }
@@ -177,14 +180,23 @@
             root.inert = false;
             const focus = active?.id ? document.getElementById(active.id) : null;
             if (focus) focus.focus({ preventScroll: true });
+            else if (focusGroup) {
+                const candidates = Array.from(root.querySelectorAll('[data-ajax-focus-group]'))
+                    .filter(el => el.dataset.ajaxFocusGroup === focusGroup);
+                const nextAction = candidates[Math.min(Math.max(focusIndex, 0), candidates.length - 1)];
+                if (nextAction) nextAction.focus({ preventScroll: true });
+                else { root.setAttribute('tabindex', '-1'); root.focus({ preventScroll: true }); }
+            }
             else { root.setAttribute('tabindex', '-1'); root.focus({ preventScroll: true }); }
             window.scrollTo(...scroll);
             if (finalUrl.hash) document.getElementById(decodeURIComponent(finalUrl.hash.slice(1)))?.scrollIntoView();
             announce(next.dataset.adminNotice || (isPost ? 'Changes saved.' : 'View updated.'));
+            return true;
         } catch (error) {
             announce(error instanceof TypeError || error.name === 'AbortError'
                 ? 'Connection interrupted. Your entries are still here. Check whether the change was saved before submitting again.'
                 : error.message, true);
+            return false;
         } finally {
             window.clearTimeout(timeout);
             busy = false;
@@ -197,6 +209,10 @@
             }
         }
     }
+
+    window.FASAdminAjax = Object.freeze({
+        refresh: () => update(new URL(location.href), {}, null, 'none')
+    });
 
     // Bubble after existing form validation and confirmation handlers.
     document.addEventListener('submit', event => {

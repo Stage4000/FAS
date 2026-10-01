@@ -1,0 +1,18 @@
+{
+    "date": "2026-10-01T21:24:01+00:00",
+    "scope": "synthetic orders and mocked carrier calls",
+    "checks": 8,
+    "passed": [
+        "Viewer cannot reserve a label operation",
+        "Administrator must confirm the exact saved USPS parcel charge",
+        "Failed price confirmation makes no carrier purchase call",
+        "One USPS label POST becomes a durable ready operation with actual charge",
+        "Repeated administrator submission cannot purchase a second USPS label",
+        "Uncertain UPS carrier response requires reconciliation",
+        "A failed UPS response stays in review without repeating the shipment POST",
+        "Confirmed USPS label remains available to an active administrator"
+    ],
+    "live_carrier_calls": 0,
+    "label_purchases": 0,
+    "production_verified": false
+}

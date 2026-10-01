@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-01T20:39:58.159876+00:00",
+  "date": "2026-10-01T21:05:53.529373+00:00",
   "scope": "local synthetic inventory",
   "checks": 38,
   "passed": [
@@ -42,8 +42,8 @@
     "Restored storage recovers storefront",
     "Review activity excludes passwords, request bodies and tokens"
   ],
-  "origin": "http://127.0.0.1:54744",
-  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-63bv7d80",
-  "server_pid": 14344,
+  "origin": "http://127.0.0.1:62889",
+  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-hu05ylr1",
+  "server_pid": 25592,
   "production_verified": false
 }

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-01T21:26:33Z",
+  "scope": "isolated synthetic administrator and paid order; purchasing disabled",
+  "checks": 11,
+  "passed": [
+    "Anonymous label page redirects to sign-in",
+    "Synthetic active administrator signs in",
+    "Private label page renders for active administrator",
+    "Disabled carrier configuration shows saved quote without purchase control",
+    "Order page links to carrier label review",
+    "Label purchase requires CSRF",
+    "Valid CSRF cannot purchase while carrier configuration is disabled",
+    "Disabled label page creates no shipment operation",
+    "Unconfirmed label cannot be downloaded",
+    "Order tracking mutation now requires CSRF",
+    "Rejected tracking mutation leaves order unchanged"
+  ],
+  "live_carrier_calls": 0,
+  "label_purchases": 0,
+  "production_verified": false
+}

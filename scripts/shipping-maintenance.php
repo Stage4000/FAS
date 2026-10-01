@@ -38,8 +38,12 @@ try {
         if ($command==='init') \FAS\Shipping\ShippingLabelOperations::install($cache->database());
         $result['cache']=$cache->health();
         $labelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_operations'")->fetchColumn();
-        $result['label_operations']=$labelTable
+        $packageTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_packages'")->fetchColumn();
+        $result['label_operations']=$labelTable && $packageTable
             ? (new \FAS\Shipping\ShippingLabelOperations($cache->database()))->health()
+            : ['initialized'=>false];
+        $result['label_storage']=$packageTable
+            ? ['initialized'=>true,'packages'=>(int)$cache->database()->query('SELECT COUNT(*) FROM shipping_label_packages')->fetchColumn()]
             : ['initialized'=>false];
         if ($command==='cleanup') $result['removed']=$cache->cleanup();
         if (!$result['cache']['healthy']) throw new RuntimeException('Shipping cache health check failed.');

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Order.php';
 require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -11,6 +12,7 @@ $auth->requireLogin();
 use FAS\Config\Database;
 use FAS\Models\Order;
 use FAS\Utils\Timezone;
+use FAS\Utils\CSRF;
 
 $db = Database::getInstance()->getConnection();
 $orderModel = new Order($db);
@@ -37,7 +39,11 @@ $billingAddress = json_decode($order['billing_address'], true);
 $success = '';
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
+    && !CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    $error = 'Your session expired. Refresh the page and try again.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     switch ($_POST['action']) {
         case 'update_status':
             $newStatus = $_POST['order_status'] ?? '';
@@ -274,6 +280,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <?php if (in_array($shippingSelection['provider'], ['usps', 'ups'], true)): ?>
+                            <a class="btn btn-outline-primary mt-3" href="shipping-label.php?id=<?php echo (int)$orderId; ?>">
+                                <i class="fas fa-box me-1"></i>Review shipping labels
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -296,6 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <div class="card-body">
                     <h5 class="mb-3">Update Status</h5>
                     <form method="POST">
+                        <?php echo CSRF::tokenField(); ?>
                         <input type="hidden" name="action" value="update_status">
                         <div class="mb-3">
                             <label class="form-label">Order Status</label>
@@ -318,6 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <div class="card-body">
                     <h5 class="mb-3">Tracking Information</h5>
                     <form method="POST">
+                        <?php echo CSRF::tokenField(); ?>
                         <input type="hidden" name="action" value="update_tracking">
                         <div class="mb-3">
                             <label class="form-label">Tracking Number</label>

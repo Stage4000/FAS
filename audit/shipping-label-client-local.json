@@ -1,0 +1,22 @@
+{
+    "date": "2026-10-01T21:24:01+00:00",
+    "scope": "mock OAuth, payment authorization and label responses",
+    "checks": 12,
+    "passed": [
+        "USPS payment authorization includes payer and label owner EPS roles",
+        "USPS authorization preflight obtains OAuth and EPS payment tokens",
+        "USPS purchase sends its unique carrier reference and payment token once",
+        "USPS label reply is parsed without a second purchase POST",
+        "Disabled USPS label purchases make no carrier request",
+        "Unverified production USPS credentials cannot authorize purchases",
+        "UPS shipment sends the fixed v2409 endpoint and one transaction reference",
+        "UPS response keeps both package labels with no retry",
+        "UPS shipment sends the fixed v2409 endpoint and one transaction reference",
+        "UPS package count mismatch cannot be treated as success",
+        "Carrier failure remains an unknown outcome requiring reconciliation",
+        "A carrier failure never causes a repeated shipment POST"
+    ],
+    "live_carrier_calls": 0,
+    "label_purchases": 0,
+    "production_verified": false
+}
