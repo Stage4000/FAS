@@ -46,6 +46,7 @@ final class ShippingConfig
             if (!is_bool($carrier['enabled'] ?? null) || !is_bool($carrier['production_verified'] ?? null)
                 || !is_bool($carrier['label_purchasing_enabled'] ?? null)
                 || !is_bool($carrier['label_cancellation_enabled'] ?? null)
+                || !is_bool($carrier['tracking_enabled'] ?? null)
                 || !in_array($carrier['environment'] ?? '', ['sandbox','production'], true)) {
                 throw new \RuntimeException('Invalid carrier activation settings.');
             }

@@ -7,11 +7,12 @@ require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
+require_once __DIR__.'/../src/shipping/ShippingTracking.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelService.php';
 
 use FAS\Config\Database;
 use FAS\Utils\CSRF;
-use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingOrder,ShippingLabelOperations,ShippingLabelCancellations,ShippingLabelService};
+use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingOrder,ShippingLabelOperations,ShippingLabelCancellations,ShippingTracking,ShippingLabelService};
 
 $auth=new AdminAuth();
 $admin=$auth->requireActiveAdmin();
@@ -30,13 +31,15 @@ if (!$order || !$shipping || !in_array($shipping['provider'],['usps','ups'],true
 }
 $error=''; $notice=$_SESSION['shipping_label_notice'] ?? '';
 unset($_SESSION['shipping_label_notice']);
-$config=null; $cache=null; $operations=null; $cancellations=null;
+$config=null; $cache=null; $operations=null; $cancellations=null; $trackingStore=null;
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']!=='') {
         $cache=new ShippingCache($config['cache_path']);
         $operations=new ShippingLabelOperations($cache->database());
         $cancellations=new ShippingLabelCancellations($cache->database());
+        $trackingTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_tracking'")->fetchColumn();
+        if ($trackingTable) $trackingStore=new ShippingTracking($cache->database());
     }
 } catch (Throwable $e) { $error='Private shipping storage is unavailable. Ask an administrator to run the shipping health check.'; }
 $provider=$shipping['provider'];
@@ -101,9 +104,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
 }
 $rows=[];
 $cancelRows=[];
+$trackingRows=[];
 for ($index=0;$index<$scopes;$index++) {
     $rows[$index]=$operations ? $operations->find((int)$orderId,$index) : null;
     $cancelRows[$index]=$cancellations ? $cancellations->find((int)$orderId,$index) : null;
+    $trackingRows[$index]=[];
+    if ($rows[$index] && $rows[$index]['state']==='ready' && $cache) {
+        $stmt=$cache->database()->prepare('SELECT p.tracking_number FROM shipping_label_packages p
+            JOIN shipping_label_operations o ON o.id=p.operation_id
+            WHERE o.order_id=? AND o.package_index=? ORDER BY p.shipment_package_index');
+        $stmt->execute([(int)$orderId,$index]);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $number) {
+            $trackingRows[$index][]=['number'=>$number,
+                'status'=>$trackingStore ? $trackingStore->find($number) : null];
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -165,6 +180,21 @@ for ($index=0;$index<$scopes;$index++) {
                 <p class="mb-2">Tracking: <strong><?php echo shippingLabelHtml($operation['tracking_number']); ?></strong></p>
                 <?php if ($operation['billed_cents']!==null): ?><p class="mb-3">Carrier charged $<?php echo number_format((int)$operation['billed_cents']/100,2); ?></p><?php endif; ?>
                 <?php if ($cancelState): ?><p class="alert alert-warning py-2">Cancellation: <?php echo shippingLabelHtml(str_replace('_',' ',$cancelState)); ?>. This label is unavailable after a carrier cancellation request.</p><?php endif; ?>
+                <?php if (!$cancelState && $trackingRows[$index]): ?>
+                    <div class="border rounded p-3 mb-3">
+                        <h3 class="h6 mb-2">Carrier tracking</h3>
+                        <?php foreach ($trackingRows[$index] as $pieceIndex=>$item):
+                            $status=$item['status']; ?>
+                            <div class="<?php echo $pieceIndex ? 'border-top pt-2 mt-2' : ''; ?>">
+                                <div class="small text-muted">Package <?php echo $pieceIndex+1; ?> · <span class="text-break"><?php echo shippingLabelHtml($item['number']); ?></span></div>
+                                <?php if ($status && $status['status_text']): ?>
+                                    <strong><?php echo shippingLabelHtml($status['status_text']); ?></strong>
+                                    <span class="text-muted small d-block">Checked <?php echo shippingLabelHtml(date('M j, Y g:i A',(int)$status['checked_at'])); ?><?php echo $status['last_result']==='error' ? ' · Latest check unavailable' : ''; ?></span>
+                                <?php else: ?><span class="text-muted small">Status has not been checked yet.</span><?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="d-flex flex-wrap gap-2">
                 <?php if (!$cancelState): ?>
                 <?php for($piece=0;$piece<$pieces;$piece++): ?>

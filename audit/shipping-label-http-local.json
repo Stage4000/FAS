@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-01T22:21:34Z",
-  "scope": "isolated synthetic administrator and paid order; purchasing disabled",
-  "checks": 23,
+  "date": "2026-10-01T22:41:42Z",
+  "scope": "isolated synthetic administrator and paid orders; purchase and cancellation disabled",
+  "checks": 26,
   "passed": [
     "Anonymous label page redirects to sign-in",
     "Anonymous shipment review queue redirects to sign-in",
@@ -21,7 +21,10 @@
     "Valid CSRF cannot cancel while the carrier switch is disabled",
     "Disabled cancellation page creates no carrier action",
     "Confirmed label can be downloaded before cancellation",
+    "Administrator label view shows the saved package status",
     "Label with uncertain cancellation cannot be downloaded for use",
+    "Uncertain cancellation shows reconciliation state without another action",
+    "Order label view hides the saved label after a cancellation request",
     "Uncertain carrier cancellation appears in administrator review queue",
     "Unconfirmed label cannot be downloaded",
     "Order tracking mutation now requires CSRF",

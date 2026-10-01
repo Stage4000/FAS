@@ -32,9 +32,12 @@ with sqlite3.connect(DB) as db:
     db.execute("INSERT INTO admin_users(id,username,email,full_name,password_hash) VALUES(1,'shipping-fixture','shipping@example.invalid','Shipping Fixture',?)",[hashed])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(10,'FAS-10','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123456')",[address])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(11,'FAS-11','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123457')",[address])
+    db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(12,'FAS-12','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123458')",[address])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(10,'usps','direct_usps_USPS_GROUND_ADVANTAGE','USPS_GROUND_ADVANTAGE','USPS','Ground Advantage',900,'USD','fixture-hash',?,?,?,?)",
         [int(time.time())+600,origin,packages,options])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(11,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups',?,?,?,NULL)",
+        [int(time.time())+600,origin,packages])
+    db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(12,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups-12',?,?,?,NULL)",
         [int(time.time())+600,origin,packages])
 env={k:v for k,v in os.environ.items() if not k.startswith('FAS_')}
 env['FAS_SECURITY_DB_PATH']=str(BASE/'private/security.sqlite')
@@ -100,6 +103,13 @@ try:
         image=b'GIF89asynthetic'
         op=db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,shipment_id,tracking_number,billed_cents,operator_id,created_at,submitted_at,updated_at) VALUES(11,0,'ups','03',1,'synthetic-ups-fingerprint','5da882d6-c20e-47c5-87be-167ad86823b5','ready',?,?,900,1,?,?,?)",[tracking,tracking,now,now,now]).lastrowid
         db.execute("INSERT INTO shipping_label_packages(operation_id,shipment_package_index,tracking_number,label_format,label_sha256,label_image) VALUES(?,0,?,'gif',?,?)",[op,tracking,hashlib.sha256(image).hexdigest(),image])
+        db.execute("INSERT INTO shipping_tracking(tracking_number,provider,status_code,status_text,checked_at,attempted_at,next_attempt_at,last_result) VALUES(?,'ups','IT','On the way',?,?,?,'ok')",
+            [tracking,now,now,now+1800])
+        tracking2='1Z1234567890123458'
+        op2=db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,shipment_id,tracking_number,billed_cents,operator_id,created_at,submitted_at,updated_at) VALUES(12,0,'ups','03',1,'synthetic-ups-fingerprint-12','5da882d6-c20e-47c5-87be-167ad86823b6','ready',?,?,900,1,?,?,?)",[tracking2,tracking2,now,now,now]).lastrowid
+        db.execute("INSERT INTO shipping_label_packages(operation_id,shipment_package_index,tracking_number,label_format,label_sha256,label_image) VALUES(?,0,?,'gif',?,?)",[op2,tracking2,hashlib.sha256(image).hexdigest(),image])
+        db.execute("INSERT INTO shipping_tracking(tracking_number,provider,status_code,status_text,checked_at,attempted_at,next_attempt_at,last_result) VALUES(?,'ups','IT','On the way',?,?,?,'ok')",
+            [tracking2,now,now,now+1800])
     queue=request('/admin/shipping-operations.php')[2]
     check('FAS-10' in queue and 'Review order' in queue and 'Label needs reconciliation' in queue,
           'Uncertain shipment is visible in the administrator review queue')
@@ -123,10 +133,21 @@ try:
     check(count==0,'Disabled cancellation page creates no carrier action')
     check(request('/admin/shipping-label-download.php?id=11&package=0&piece=0')[0]==200,
           'Confirmed label can be downloaded before cancellation')
+    labelPage=request('/admin/shipping-label.php?id=11')[2]
+    check('Carrier tracking' in labelPage and 'On the way' in labelPage,
+          'Administrator label view shows the saved package status')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         db.execute("INSERT INTO shipping_label_cancellations(operation_id,state,operator_id,created_at,submitted_at,updated_at) VALUES(?,'review',1,?,?,?)",[op,now,now,now])
     check(request('/admin/shipping-label-download.php?id=11&package=0&piece=0')[0]==404,
           'Label with uncertain cancellation cannot be downloaded for use')
+    status,_,cancelPage=request(cancelPath)
+    check(status==200 and 'needs carrier reconciliation' in cancelPage
+          and 'Submit carrier request' not in cancelPage,
+          'Uncertain cancellation shows reconciliation state without another action')
+    labelPage=request('/admin/shipping-label.php?id=11')[2]
+    check('This label is unavailable after a carrier cancellation request' in labelPage
+          and 'Download label 1' not in labelPage and 'Carrier tracking' not in labelPage,
+          'Order label view hides the saved label after a cancellation request')
     queue=request('/admin/shipping-operations.php')[2]
     check('Cancellation and refund follow-ups' in queue and tracking in queue
           and 'Review request' in queue,

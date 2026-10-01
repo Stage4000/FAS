@@ -1,0 +1,31 @@
+{
+    "date": "2026-10-01T22:41:27+00:00",
+    "scope": "synthetic confirmed labels and mocked USPS/UPS tracking",
+    "checks": 22,
+    "passed": [
+        "Tracking uses bounded authorized transport",
+        "USPS tracking sends only the saved package number",
+        "Tracking uses bounded authorized transport",
+        "UPS tracking requests the saved package number",
+        "Tracking uses bounded authorized transport",
+        "Bounded polling processes confirmed, uncancelled, recent labels only",
+        "Each eligible package is requested at most once in a batch",
+        "Carrier statuses are saved per exact package",
+        "Cancelled and old labels are never polled",
+        "Carrier throttling retains a retryable status without raw response data",
+        "Carrier throttling stops the remaining packages in that batch",
+        "Another worker cannot immediately claim a checked package",
+        "Recent statuses and provider backoff prevent immediate replay",
+        "Raw response customer fields are not persisted",
+        "Disabled tracking makes no carrier request",
+        "USPS status for another package is rejected",
+        "UPS warning without a matching package is rejected",
+        "Untrusted tracking host is rejected",
+        "Tracking URL with a query string is rejected",
+        "Rejected tracking endpoints never reach transport",
+        "Revoked tracking token is rejected",
+        "A rejected cached token is cleared before the next check"
+    ],
+    "live_carrier_calls": 0,
+    "production_verified": false
+}

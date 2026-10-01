@@ -88,6 +88,8 @@ echo json_encode(\\FAS\\Payments\\ApplePayContext::shipping($_GET['key'] ?? ''))
 subprocess.check_call(["php",str(SITE/"scripts/shipping-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
 shippingHealth=json.loads(subprocess.check_output(
     ["php",str(SITE/"scripts/shipping-maintenance.php"),"health"],env=env,text=True))
+trackingRefresh=json.loads(subprocess.check_output(
+    ["php",str(SITE/"scripts/shipping-maintenance.php"),"refresh-tracking"],env=env,text=True))
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"activate","--verified"],env=env,stdout=subprocess.DEVNULL)
 with socket.socket() as s:
@@ -121,6 +123,11 @@ try:
           "CLI initialization and health include the private fulfillment operation ledger")
     check(shippingHealth["label_storage"]=={"initialized":True,"packages":0},
           "CLI health confirms private per-package label storage without revealing label content")
+    check(shippingHealth["tracking"]=={"initialized":True,"packages":0,"with_status":0,"last_attempt_failed":0},
+          "CLI initialization and health include private tracking status storage")
+    check(trackingRefresh["tracking_refresh"]["enabled_carriers"]==[]
+          and trackingRefresh["tracking_refresh"]["selected"]==0,
+          "Disabled tracking refresh makes no carrier request")
     for _ in range(40):
         try: request("/api/shipping-rates.php"); break
         except OSError:time.sleep(.1)

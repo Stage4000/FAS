@@ -6,13 +6,15 @@ require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
 require_once __DIR__.'/../src/shipping/ShippingLabelCancellations.php';
+require_once __DIR__.'/../src/shipping/ShippingTracking.php';
+require_once __DIR__.'/../src/shipping/ShippingTrackingService.php';
 require_once __DIR__.'/../src/config/Database.php';
 use FAS\Shipping\{ShippingConfig,ShippingCache};
 
 try {
     $command=$argv[1] ?? 'health';
-    if (!in_array($command,['init','init-orders','health','cleanup'],true)) {
-        throw new RuntimeException('Usage: php scripts/shipping-maintenance.php init|init-orders|health|cleanup');
+    if (!in_array($command,['init','init-orders','health','cleanup','refresh-tracking'],true)) {
+        throw new RuntimeException('Usage: php scripts/shipping-maintenance.php init|init-orders|health|cleanup|refresh-tracking');
     }
     $config=ShippingConfig::load();
     $result=['mode'=>$config['mode'],'parcel_data_verified'=>$config['parcel_data_verified'],
@@ -36,11 +38,15 @@ try {
         $result['cache']=['initialized'=>false,'required_for'=>'direct carriers'];
     } else {
         $cache=new ShippingCache($config['cache_path'],$command==='init');
-        if ($command==='init') \FAS\Shipping\ShippingLabelOperations::install($cache->database());
+        if ($command==='init') {
+            \FAS\Shipping\ShippingLabelOperations::install($cache->database());
+            \FAS\Shipping\ShippingTracking::install($cache->database());
+        }
         $result['cache']=$cache->health();
         $labelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_operations'")->fetchColumn();
         $packageTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_packages'")->fetchColumn();
         $cancelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_cancellations'")->fetchColumn();
+        $trackingTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_tracking'")->fetchColumn();
         $result['label_operations']=$labelTable && $packageTable
             ? (new \FAS\Shipping\ShippingLabelOperations($cache->database()))->health()
             : ['initialized'=>false];
@@ -50,6 +56,13 @@ try {
         $result['label_cancellations']=$cancelTable
             ? (new \FAS\Shipping\ShippingLabelCancellations($cache->database()))->health()
             : ['initialized'=>false];
+        $result['tracking']=$trackingTable
+            ? (new \FAS\Shipping\ShippingTracking($cache->database()))->health()
+            : ['initialized'=>false];
+        if ($command==='refresh-tracking') {
+            if (!$trackingTable) throw new RuntimeException('Tracking storage is not initialized.');
+            $result['tracking_refresh']=(new \FAS\Shipping\ShippingTrackingService($cache,$config))->refresh();
+        }
         if ($command==='cleanup') $result['removed']=$cache->cleanup();
         if (!$result['cache']['healthy']) throw new RuntimeException('Shipping cache health check failed.');
     }

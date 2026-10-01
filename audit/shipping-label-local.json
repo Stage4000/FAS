@@ -1,5 +1,5 @@
 {
-    "date": "2026-10-01T22:20:55+00:00",
+    "date": "2026-10-01T22:35:59+00:00",
     "scope": "local private SQLite and synthetic orders",
     "assertions": 33,
     "passed": [

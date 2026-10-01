@@ -80,6 +80,12 @@ final class CarrierRates
         return $this->token();
     }
 
+    /** A carrier may revoke a cached token before its stated expiry. */
+    public function invalidateAccessToken(): void
+    {
+        $this->cache->forget('token:'.$this->key);
+    }
+
     public function baseUrl(): string
     {
         return $this->base();
