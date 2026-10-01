@@ -89,6 +89,28 @@ try {
     $failed = false;
     try { $analytics->recordBatch($payload, $server); } catch (PDOException $error) { $failed = true; }
     analyticsCheck($failed, 'Unrelated storage errors remain visible');
+
+    putenv('ANALYTICS_IP_GEO_ENABLED=0');
+    $payload['session_id'] = 'ses_spoofed_geo';
+    $spoofed = array_merge($server, [
+        'HTTP_CF_CONNECTING_IP'=>'203.0.113.9', 'HTTP_X_FORWARDED_FOR'=>'203.0.113.10',
+        'HTTP_CF_IPCOUNTRY'=>'CN', 'HTTP_CF_BOT_SCORE'=>'4', 'HTTP_CF_VERIFIED_BOT'=>'1',
+    ]);
+    analyticsCheck($analytics->recordBatch($payload, $spoofed) === 1, 'Spoofed-header fixture recorded');
+    $row = $db->query("SELECT * FROM analytics_sessions WHERE session_id='ses_spoofed_geo'")->fetch(PDO::FETCH_ASSOC);
+    analyticsCheck($row['client_ip']==='127.0.0.1' && $row['client_ip_source']==='remote_addr', 'Untrusted proxy IP headers ignored');
+    analyticsCheck($row['cf_country']==='' && $row['cf_bot_score']===null && (int)$row['cf_verified_bot']===0, 'Untrusted country and bot headers ignored');
+
+    $payload['session_id'] = 'ses_trusted_geo';
+    $trusted = array_merge($server, [
+        'REMOTE_ADDR'=>'173.245.48.1', 'HTTP_CF_CONNECTING_IP'=>'198.51.100.9',
+        'HTTP_CF_IPCOUNTRY'=>'SG', 'HTTP_CF_BOT_SCORE'=>'4',
+    ]);
+    analyticsCheck($analytics->recordBatch($payload, $trusted) === 1, 'Trusted-edge fixture recorded');
+    $row = $db->query("SELECT * FROM analytics_sessions WHERE session_id='ses_trusted_geo'")->fetch(PDO::FETCH_ASSOC);
+    analyticsCheck($row['client_ip']==='198.51.100.9' && $row['client_ip_source']==='cloudflare_connecting_ip', 'Trusted visitor IP retained');
+    analyticsCheck($row['cf_country']==='SG' && (int)$row['cf_bot_score']===4, 'Trusted edge location and bot score retained');
+    putenv('ANALYTICS_IP_GEO_ENABLED');
     echo "PASS {$checks} analytics session assertions; isolated SQLite database.\n";
 } finally {
     unset($analytics, $other, $db, $otherDb, $connection);

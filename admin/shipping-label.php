@@ -47,6 +47,9 @@ $purchaseEnabled=$operations && $carrier
     && !empty($config['shipper_name'])
     && ($provider==='usps' || (!empty($config['shipper_phone']) && !empty($carrier['account_number'])));
 $savedPackages=is_array($shipping['packages'] ?? null) ? $shipping['packages'] : [];
+$destination=json_decode((string)($order['shipping_address'] ?? ''),true);
+$destination=is_array($destination) ? $destination : [];
+$origin=is_array($shipping['origin'] ?? null) ? $shipping['origin'] : [];
 $scopes=$provider==='usps' ? count($savedPackages) : 1;
 if ($scopes<1 || $scopes>10) $purchaseEnabled=false;
 $prices=[];
@@ -127,6 +130,8 @@ for ($index=0;$index<$scopes;$index++) {
         <div class="row g-3">
             <div class="col-sm-6"><span class="text-muted d-block small">Service</span><strong><?php echo shippingLabelHtml($shipping['courier_name'].' — '.$shipping['service_name']); ?></strong></div>
             <div class="col-sm-6"><span class="text-muted d-block small">Customer shipping quote</span><strong>$<?php echo number_format((int)$shipping['quoted_cents']/100,2); ?></strong></div>
+            <div class="col-sm-6"><span class="text-muted d-block small">Ship from</span><strong><?php echo shippingLabelHtml(implode(', ',array_filter([$origin['address1'] ?? '',$origin['address2'] ?? '',$origin['city'] ?? '',$origin['state'] ?? '',$origin['zip'] ?? ''],static fn($part)=>is_string($part) && $part!==''))); ?></strong></div>
+            <div class="col-sm-6"><span class="text-muted d-block small">Ship to</span><strong><?php echo shippingLabelHtml(implode(', ',array_filter([$destination['address1'] ?? '',$destination['address2'] ?? '',$destination['city'] ?? '',$destination['state'] ?? '',$destination['zip'] ?? ''],static fn($part)=>is_string($part) && $part!==''))); ?></strong></div>
         </div>
         <p class="text-muted small mt-3 mb-0">The carrier’s final charge may differ from the customer’s shipping quote. Check the parcel and address before purchasing.</p>
     </div></div>
@@ -144,7 +149,13 @@ for ($index=0;$index<$scopes;$index++) {
                 <h2 class="h5 mb-1"><?php echo $provider==='usps'?'Parcel '.($index+1):'UPS shipment'; ?></h2>
                 <span class="badge <?php echo $state==='ready'?'text-bg-success':($state==='review'||$state==='submitted'?'text-bg-warning':'text-bg-secondary'); ?>"><?php echo shippingLabelHtml(ucfirst($state)); ?></span>
             </div>
-            <p class="text-muted small mb-3"><?php echo (int)$pieces; ?> <?php echo $pieces===1?'package':'packages'; ?><?php if (is_int($price)): ?> · Quoted $<?php echo number_format($price/100,2); ?><?php endif; ?></p>
+            <p class="text-muted small mb-2"><?php echo (int)$pieces; ?> <?php echo $pieces===1?'package':'packages'; ?><?php if (is_int($price)): ?> · Quoted $<?php echo number_format($price/100,2); ?><?php endif; ?></p>
+            <ul class="small text-muted ps-3 mb-3">
+            <?php foreach ($savedPackages as $pieceIndex=>$parcel): ?>
+                <?php if ($provider==='usps' && $pieceIndex!==$index) continue; ?>
+                <li>Package <?php echo (int)$pieceIndex+1; ?>: <?php echo shippingLabelHtml($parcel['weight'] ?? '?'); ?> lb, <?php echo shippingLabelHtml($parcel['length'] ?? '?'); ?> × <?php echo shippingLabelHtml($parcel['width'] ?? '?'); ?> × <?php echo shippingLabelHtml($parcel['height'] ?? '?'); ?> in</li>
+            <?php endforeach; ?>
+            </ul>
             <?php if ($state==='ready'): ?>
                 <p class="mb-2">Tracking: <strong><?php echo shippingLabelHtml($operation['tracking_number']); ?></strong></p>
                 <?php if ($operation['billed_cents']!==null): ?><p class="mb-3">Carrier charged $<?php echo number_format((int)$operation['billed_cents']/100,2); ?></p><?php endif; ?>

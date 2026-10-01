@@ -40,6 +40,14 @@ Throttled saves return an HTML error with HTTP 429 and Retry-After before any se
 
 The Security overview displays the current sign-in, password verification, and settings policies, with effective enforcement or observation status. New policies appear automatically in Rules and Activity filters. Existing installations retain their activation state; this change does not activate production enforcement.
 
+### Traffic watch and chat activity
+
+Security → Overview shows site sessions from the last 15 minutes beside the preceding 15 minutes, grouped by country when location is available. A **Review burst** badge appears only when one location has at least 6 recent sessions from at least 3 distinct server-derived addresses and at least 3 times its preceding-window count. It is a review cue, not a country block. The table also shows sessions with bot signals, Tawk widget loads, widget opens, and chats started. Follow **Review visitor sessions** for the underlying session details.
+
+The widget events use Tawk's [onLoad, onChatMaximized, and onChatStarted callbacks](https://developer.tawk.to/jsapi/) and first-party analytics. They begin only after the updated footer and analytics JavaScript are deployed. Counts are browser-reported, deduplicated by site session, and can be lower than Tawk's visitor dashboard when analytics is blocked or a chat is opened directly. Site sessions are a broader signal: [Tawk counts visits to pages with its widget as visitors](https://help.tawk.to/article/understanding-visitor-monitoring-and-chat-sessions), even without a chat.
+
+Location and Cloudflare bot headers are accepted only when the immediate connection is a pinned Cloudflare address or a specifically trusted proxy that supplies a verified visitor IP. Otherwise analytics uses the server's remote address and, when enabled, its IP-location lookup. A missing or unverified location is shown as unknown. Confirm proxy configuration and analytics storage before relying on a surge badge. Neither the new monitoring nor a country code changes enforcement or blocks visitors.
+
 ## Responses and recovery
 
 - Throttled actions return 429 and an integer Retry-After, retaining each endpoint's existing response fields. Repeated denials do not extend a restriction.
@@ -89,3 +97,8 @@ The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 
 - Security → Overview now has a password-protected enforcement switch. Activation requires confirmation that private storage, visitor IP detection, and checkout recovery were checked on the target server; both directions clear counters and record the administrator in Activity.
 - `php tests/security-test.php` passed 94 assertions. `python tests/security-enforcement-http-test.py` passed 20 isolated HTTP assertions, including 429 responses for repeated admin logins only while enforcement is on. The existing `python tests/security-http-test.py` passed 66 isolated HTTP assertions.
 - The Overview control rendered in the local browser in dark mode. Password confirmation exposed the rollback button; at a mobile viewport, the page had no horizontal overflow. These checks use disposable local databases. Production activation and checks remain pending.
+
+### Traffic watch validation — 2026-10-01
+
+- `php tests/analytics-session-test.php` passed 19 assertions, including forged versus trusted proxy headers. `php tests/security-traffic-test.php` passed 7 synthetic burst and widget-count assertions. `node tests/security-client-test.cjs` passed 11 client assertions.
+- Production Tawk callbacks, analytics storage, visitor location, and bot signals still require live verification after deployment.

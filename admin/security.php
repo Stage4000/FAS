@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/auth.php';
 require_once __DIR__.'/../src/utils/CSRF.php';
+require_once __DIR__.'/../includes/security-traffic.php';
 use FAS\Utils\CSRF;
 use FAS\Utils\Timezone;
 use FAS\Security\ClientIp;
@@ -14,6 +15,14 @@ header('X-Robots-Tag: noindex, nofollow');
 function secText($v): string { return is_string($v) ? $v : ''; }
 function secHtml($v): string { return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); }
 function secTime($v): string { return Timezone::toUserDateTime(gmdate('Y-m-d H:i:s',(int)$v)); }
+function secCountryLabel(string $code): string {
+    if ($code === '??') return 'Unknown location';
+    if (class_exists('Locale')) {
+        $name = \Locale::getDisplayRegion('und-'.$code,'en');
+        if (is_string($name) && $name !== '' && $name !== $code) return $name.' ('.$code.')';
+    }
+    return $code;
+}
 $tabs = ['overview'=>'Overview','rules'=>'Rules','restrictions'=>'Restrictions','activity'=>'Activity'];
 $tab = secText($_GET['tab'] ?? '');
 if (!isset($tabs[$tab])) $tab = 'overview';
@@ -80,6 +89,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 $verified = (int)($_SESSION['security_reauth_at'] ?? 0) >= time()-600;
 $active = false; $summary = []; $rules = []; $blocks = []; $buckets = []; $events = []; $total = 0;
+$traffic = null;
 $days = (int)secText($_GET['days'] ?? '1'); if (!in_array($days,[1,7,30],true)) $days = 1;
 $filterIp = ClientIp::normalize($_GET['ip'] ?? '');
 $filterRule = secText($_GET['rule'] ?? '');
@@ -106,6 +116,12 @@ if ($store && $healthy) {
             $events = $store->run('SELECT * FROM security_events WHERE '.$whereSql.' ORDER BY id DESC LIMIT 50 OFFSET '.(($page-1)*50),$params)->fetchAll();
         }
     } catch (Throwable $e) { $healthy = false; }
+}
+if ($healthy && $tab === 'overview') {
+    try {
+        $siteDb = \FAS\Config\Database::getInstance()->getConnection();
+        $traffic = fas_security_widget_traffic($siteDb);
+    } catch (Throwable $e) { $traffic = null; }
 }
 ?>
 <!DOCTYPE html>
@@ -194,6 +210,41 @@ if ($store && $healthy) {
                 <div class="col-6 col-xl-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-2"><?= $label ?></p><p class="h2 mb-0"><?= number_format($summary[$key]) ?></p></div></div></div>
             <?php endforeach; ?>
         </div>
+        <section id="traffic-watch" class="card mb-4" aria-labelledby="traffic-heading"><div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                <div><h2 id="traffic-heading" class="h5 mb-1">Traffic watch</h2>
+                    <p class="text-muted mb-0">Recent site visits and activity from the Tawk chat widget.</p></div>
+                <a href="?tab=overview#traffic-watch" class="btn btn-outline-primary btn-sm">Refresh</a>
+            </div>
+            <?php if ($traffic === null): ?>
+                <p class="alert alert-warning mb-0">Traffic data is unavailable. Check that site analytics storage is initialized and readable.</p>
+            <?php else: $counts = $traffic['totals']; ?>
+                <div class="row g-3 mb-3">
+                    <?php foreach (['sessions'=>'Site sessions','loads'=>'Widget loads','opens'=>'Widget opens','chats'=>'Chats started'] as $key=>$label): ?>
+                        <div class="col-6 col-xl-3"><div class="border rounded p-3 h-100"><p class="small text-muted mb-1"><?= $label ?> · 15 min</p><p class="h3 mb-0"><?= number_format($counts[$key]) ?></p></div></div>
+                    <?php endforeach; ?>
+                </div>
+                <?php if ($counts['surges']): ?>
+                    <div class="alert alert-warning" role="status"><?= (int)$counts['surges'] ?> location<?= $counts['surges']===1?' has':'s have' ?> a sharp rise in site sessions. Review the details before taking action.</div>
+                <?php endif; ?>
+                <?php if (!$traffic['countries']): ?>
+                    <p class="text-muted mb-3">No site sessions in the past 30 minutes. Widget signals begin after this update is deployed.</p>
+                <?php else: ?>
+                    <div class="table-responsive" tabindex="0" role="region" aria-label="Recent traffic by country">
+                        <table class="table align-middle mb-2"><thead><tr><th scope="col">Location</th><th scope="col">Sessions now / prior</th><th scope="col">Addresses</th><th scope="col">Bot signals</th><th scope="col">Widget loads</th><th scope="col">Opens / chats</th></tr></thead><tbody>
+                            <?php foreach ($traffic['countries'] as $row): ?><tr>
+                                <th scope="row"><?= secHtml(secCountryLabel($row['country'])) ?><?php if ($row['surge']): ?> <span class="badge bg-warning text-dark">Review burst</span><?php endif; ?></th>
+                                <td><?= (int)$row['sessions'] ?> / <?= (int)$row['previous_sessions'] ?></td>
+                                <td><?= (int)$row['addresses'] ?></td><td><?= (int)$row['bot_signals'] ?></td>
+                                <td><?= (int)$row['loads'] ?></td><td><?= (int)$row['opens'] ?> / <?= (int)$row['chats'] ?></td>
+                            </tr><?php endforeach; ?>
+                        </tbody></table>
+                    </div>
+                <?php endif; ?>
+                <p class="small text-muted mb-2">Now and prior are adjacent 15-minute windows. A burst is 6 or more sessions from at least 3 addresses and at least 3 times the prior window. Country alone never triggers a block.</p>
+                <p class="small text-muted mb-0">Site sessions are first-party analytics. Widget counts come from the visitor's browser and may differ from Tawk's dashboard; direct chat links and blocked tracking can be missing. <a href="analytics.php?days=1#session-explorer">Review visitor sessions</a>.</p>
+            <?php endif; ?>
+        </div></section>
         <section class="card mb-4"><div class="card-body p-4">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                 <div><h2 class="h5">Admin account protection</h2><p class="text-muted mb-0">Separate limits protect sign-in, password verification, and settings changes.</p></div>
