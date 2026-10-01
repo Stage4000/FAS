@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-01T19:40:20.451587+00:00",
+  "date": "2026-10-01T20:39:58.159876+00:00",
   "scope": "local synthetic inventory",
-  "checks": 37,
+  "checks": 38,
   "passed": [
     "Anonymous editor redirects to login",
     "Synthetic active admin signs in",
@@ -35,14 +35,15 @@
     "Description size is bounded",
     "Inactive or non-admin account cannot read or write reviews",
     "Inactive or non-admin account cannot read or write reviews",
-    "Recent reauthentication remains valid",
+    "Access revocation clears previous password confirmation",
+    "Restored administrator can confirm password again",
     "Corrupt editorial storage fails retriably without exposing stale source as reviewed",
     "Corrupt review storage disables editor mutations",
     "Restored storage recovers storefront",
     "Review activity excludes passwords, request bodies and tokens"
   ],
-  "origin": "http://127.0.0.1:64116",
-  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-r5e40b7o",
-  "server_pid": 16116,
+  "origin": "http://127.0.0.1:54744",
+  "fixture": "C:\\Users\\admin\\AppData\\Local\\Temp\\fas-seo-presentation-63bv7d80",
+  "server_pid": 14344,
   "production_verified": false
 }

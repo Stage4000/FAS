@@ -1,7 +1,7 @@
 /* Same-page progressive enhancement. PHP remains responsible for validation and rendering. */
 (() => {
     'use strict';
-    if (!window.fetch || !window.FormData || !window.DOMParser) return;
+    if (!window.fetch || !window.FormData || !window.DOMParser || !window.AbortController) return;
     const root = document.getElementById('admin-content');
     if (!root) return;
     function includeModals(scope, content) {
@@ -62,7 +62,12 @@
             Array.from(form.elements).some(el => {
                 if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return false;
                 if (el.type === 'checkbox' || el.type === 'radio') return el.checked !== el.defaultChecked;
-                if (el.tagName === 'SELECT') return Array.from(el.options).some((o, i) => o.selected !== (o.defaultSelected || (!el.multiple && i === 0 && !Array.from(el.options).some(item => item.defaultSelected))));
+                if (el.tagName === 'SELECT') {
+                    const options = Array.from(el.options);
+                    const hasDefault = options.some(option => option.defaultSelected);
+                    return options.some((option, i) => option.selected !==
+                        (option.defaultSelected || (!el.multiple && i === 0 && !hasDefault)));
+                }
                 return 'defaultValue' in el && el.value !== el.defaultValue;
             })).map(form => ({ key: formKey(form), form }));
     }
@@ -134,8 +139,6 @@
             edits.forEach(({ key, form }) => {
                 const replacement = Array.from(root.querySelectorAll('form')).find(el => formKey(el) === key);
                 if (replacement) {
-                    const token = replacement.querySelector('input[name="csrf_token"]');
-                    if (token) form.querySelectorAll('input[name="csrf_token"]').forEach(el => { el.value = token.value; });
                     const original = Array.from(form.elements).filter(el => el.name && el.type !== 'hidden');
                     const fresh = Array.from(replacement.elements).filter(el => el.name && el.type !== 'hidden');
                     original.forEach((el, i) => {

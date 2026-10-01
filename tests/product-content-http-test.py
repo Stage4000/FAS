@@ -103,7 +103,8 @@ try:
         check(request("/admin/product-content.php?id=1")[0]==403 and post({**tokens,**copy,"action":"draft"})[0]==403,"Inactive or non-admin account cannot read or write reviews")
     with sqlite3.connect(dbfile) as db:db.execute("UPDATE admin_users SET role='admin',is_active=1 WHERE id=9001")
     body,tokens=editor()
-    check(post({**tokens,**copy,"action":"publish","verified":"1"})[0]==303,"Recent reauthentication remains valid")
+    check(post({**tokens,**copy,"action":"publish","verified":"1"})[0]==403,"Access revocation clears previous password confirmation")
+    check(post({**tokens,**copy,"action":"publish","verified":"1","password":"Local-test-only"})[0]==303,"Restored administrator can confirm password again")
     with sqlite3.connect(dbfile) as db:
         valid=db.execute("SELECT published_json FROM product_content_reviews WHERE product_id=1").fetchone()[0]
         db.execute("UPDATE product_content_reviews SET published_json='corrupt' WHERE product_id=1")

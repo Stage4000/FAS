@@ -28,6 +28,9 @@ with sqlite3.connect(dbfile) as db:
 (SITE / "gallery").mkdir()
 shutil.copytree(ROOT / "gallery/favicons", SITE / "gallery/favicons")
 env = os.environ.copy()
+for key in list(env):
+    if key.startswith('FAS_'): env.pop(key)
+env['ANALYTICS_IP_GEO_ENABLED'] = '0'
 env['FAS_SECURITY_DB_PATH'] = str(BASE / 'private/security.sqlite')
 # All optional subsystem stores derive from this disposable site path.
 for script in ['security-maintenance.php','product-content-maintenance.php']:
@@ -86,6 +89,12 @@ try:
     check('data-admin-notice="Password verified.' in body,'Redirected fragment carries flash notice')
     body=request('/admin/order-details.php?id=9001',{'action':'update_tracking','tracking_number':'AJAX-TRACK'})[2]
     check('data-admin-notice="Tracking information updated successfully' in body and 'AJAX-TRACK' in body,'Order tracking action returns refreshed state')
+    body=request('/admin/warehouses.php?action=create',{
+        'action':'create','name':'Fixture warehouse','code':'AJAX-QA','address_line1':'1 Test Street',
+        'city':'Test City','state':'CA','postal_code':'90001','country_code':'US','is_active':'1'
+    })[2]
+    check('data-admin-notice="Warehouse created successfully' in body,'Warehouse create returns updated list')
+    check('data-admin-url="warehouses.php?action=list"' in body,'Editor save provides canonical list URL for history')
     # Restore disposable events for browser flows.
     with sqlite3.connect(dbfile) as db: db.execute("UPDATE error_monitor_events SET status='open',resolved_at=NULL")
     passed=True

@@ -83,13 +83,13 @@ $events = $db->query('SELECT e.*, a.username AS actor, t.username AS target FROM
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/admin-style.css?v=<?= filemtime(__DIR__.'/css/admin-style.css') ?>">
-<style>.accounts-shell{max-width:1400px;margin:auto}.accounts-shell td{overflow-wrap:anywhere}.accounts-table{min-width:700px}.account-form{max-width:760px}.accounts-shell .card{border:0}.accounts-shell summary{cursor:pointer}</style>
+<style>.accounts-shell{max-width:1400px;margin:auto}.accounts-shell td{overflow-wrap:anywhere}.accounts-table{min-width:700px}.account-form{max-width:760px}.accounts-shell .card{border:0}.accounts-shell summary{cursor:pointer}[data-theme="dark"] .accounts-shell a:not(.btn){color:#9ec5fe}[data-theme="dark"] .accounts-shell .text-success{color:#75b798!important}[data-theme="dark"] .accounts-shell .btn-outline-danger{color:#ff8fa3;border-color:#ff8fa3}</style>
 </head><body class="bg-light">
 <?php include __DIR__.'/includes/nav.php'; ?>
 <main class="accounts-shell">
     <div class="admin-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div><h1 class="display-6 fw-bold"><i class="fas fa-user-shield me-2" aria-hidden="true"></i>Administrators</h1><p class="mb-0">Individual accounts for everyone who manages your store.</p></div>
-        <a class="btn btn-danger" href="?create=1">Add administrator</a>
+        <a class="btn btn-light" href="?create=1">Add administrator</a>
     </div>
     <?php if ($success): ?><div class="alert alert-success" role="status"><?= accountH($success) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="alert alert-danger" role="alert"><?= accountH($error) ?></div><?php endif; ?>

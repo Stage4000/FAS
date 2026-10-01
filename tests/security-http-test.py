@@ -10,6 +10,15 @@ SITE.mkdir()
 for folder in ["src", "admin", "includes", "public", "api"]:
     shutil.copytree(ROOT / folder, SITE / folder,
         ignore=shutil.ignore_patterns("config.php", "config.local.php", "config.production.php", "applepay.php" if folder == "src" else "__none__", "uploads", "*.log", "*.db", "*.sqlite"))
+# Keep concurrent payment checks local: the fixture reads a synthetic PayPal response.
+(SITE / "src/integrations/PayPalAPI.php").write_text("""<?php
+namespace FAS\\Integrations;
+class PayPalAPI {
+    public function getOrderDetails($id) {
+        return json_decode(file_get_contents(__DIR__.'/../../../paypal-mock.json'),true);
+    }
+}
+""",encoding="utf-8")
 for name in ["checkout.php", "cart.php", "products.php", "product.php", "index.php", "contact.php", "recover-cart.php", "email-preferences.php"]:
     shutil.copy2(ROOT / name, SITE / name)
 shutil.copy2(ROOT / "src/config/config.example.php", SITE / "src/config/config.php")
@@ -171,14 +180,25 @@ try:
             extra_servers.append(subprocess.Popen(["php","-d","disable_functions=mail","-S","127.0.0.1:"+str(port),"-t",str(SITE),str(router)],env=env,stdout=log,stderr=log))
         with sqlite3.connect(dbfile) as db:
             db.execute('UPDATE products SET quantity=10 WHERE id=1')
-            db.execute("INSERT INTO orders(id,order_number,customer_email,payment_method,payment_status,updated_at) VALUES(10,'TEST-RETRY','payment@example.invalid','paypal','pending','2026-09-30')")
+            shipping=json.dumps({"address1":"200 Synthetic Street","address2":"","city":"Test City",
+                "state":"CA","zip":"90210","country":"US"})
+            db.execute("INSERT INTO orders(id,order_number,customer_email,payment_method,payment_status,order_status,total_amount,shipping_address,updated_at) VALUES(10,'TEST-RETRY','payment@example.invalid','paypal','pending','pending',100,?,'2026-09-30')",[shipping])
             db.execute("INSERT INTO order_items(id,order_id,product_id,product_name,quantity,unit_price,total_price) VALUES(1,10,1,'Synthetic test part',1,100,100)")
+        provider={"id":"MOCKORDER123","intent":"CAPTURE","status":"COMPLETED","purchase_units":[{
+            "invoice_id":"TEST-RETRY","custom_id":"FAS-CHECKOUT-10","payee":{"merchant_id":"FIXTUREMERCHANT"},
+            "amount":{"currency_code":"USD","value":"100.00"},
+            "shipping":{"address":{"address_line_1":"200 Synthetic Street","address_line_2":"",
+                "admin_area_2":"Test City","admin_area_1":"CA","postal_code":"90210","country_code":"US"}},
+            "payments":{"captures":[{"id":"MOCKCAPTURE123","status":"COMPLETED",
+                "amount":{"currency_code":"USD","value":"100.00"},"final_capture":True}]}
+        }]}
+        (BASE/"paypal-mock.json").write_text(json.dumps({"success":True,"data":provider}),encoding="utf-8")
         for port in [8789,8790]:
             for attempt in range(30):
                 try: urllib.request.urlopen('http://127.0.0.1:'+str(port)+'/api/growth.php',timeout=2).close();break
                 except OSError: time.sleep(.1)
         def complete(port):
-            body=json.dumps(dict(action='complete_order',order_id=10,paypal_order_id='MOCK-ORDER',paypal_transaction_id='MOCK-CAPTURE')).encode()
+            body=json.dumps(dict(action='complete_order',order_id=10,paypal_order_id='MOCKORDER123',paypal_transaction_id='MOCKCAPTURE123')).encode()
             req=urllib.request.Request('http://127.0.0.1:'+str(port)+'/api/process-order.php',data=body,headers={'Content-Type':'application/json'})
             with urllib.request.urlopen(req,timeout=10) as response: return json.load(response)
         lock=sqlite3.connect(dbfile)
