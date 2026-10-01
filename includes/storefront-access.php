@@ -10,5 +10,6 @@ function fasCanViewHiddenProducts(): bool
     }
     if (($_SESSION['admin_logged_in'] ?? false) !== true) return false;
     require_once __DIR__.'/../admin/auth.php';
-    return (new AdminAuth())->isLoggedIn();
+    try { return (new AdminAuth())->isLoggedIn(); }
+    catch (Throwable $e) { return false; }
 }

@@ -64,6 +64,7 @@ try:
         try:request('/admin/login.php');break
         except OSError:time.sleep(.1)
     check(request(PATH)[0]==302,'Anonymous account management redirects to login')
+    check(request('/admin/init-admin.php')[0]==404,'Initial administrator setup cannot run over HTTP')
     check(login(owner,'owner-fixture',OWNER_PASSWORD)[0]==302,'Existing administrator signs in')
     token=csrf()
     def change(action,**data):return request(PATH,{'csrf_token':token,'action':action,**data})

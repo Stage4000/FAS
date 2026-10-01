@@ -1,0 +1,32 @@
+{
+    "date": "2026-10-01T20:56:39+00:00",
+    "scope": "local private SQLite and synthetic orders",
+    "assertions": 22,
+    "passed": [
+        "Paid USPS package receives one durable UUID operation",
+        "Another PHP worker reuses the same operation and carrier key",
+        "Separate USPS parcels have separate operations",
+        "Nonexistent parcel refused",
+        "Non-admin operator refused",
+        "Non-admin operator cannot start a label purchase",
+        "First submission claims the external call",
+        "Repeated submission never claims a second carrier call",
+        "Malformed carrier confirmation refused",
+        "Confirmed shipment and billed price persist privately",
+        "Second carrier confirmation cannot overwrite a ready label",
+        "Second parcel can begin independently",
+        "Ambiguous result stays in review and cannot trigger a new call",
+        "Private operation health shows unresolved review count",
+        "Changed destination cannot reuse a prepared operation",
+        "Unpaid order cannot prepare a label",
+        "UPS multi-package shipment has one operation scope",
+        "Multi-package UPS order reserves one shipment operation",
+        "Deactivated administrator cannot submit a reserved shipment",
+        "Revalidated administrator may submit the reserved UPS shipment once",
+        "Existing order-shipping table gains USPS label options additively",
+        "Paid order retains the chosen rate ingredients for each USPS parcel"
+    ],
+    "carrier_calls": 0,
+    "label_purchases": 0,
+    "production_verified": false
+}

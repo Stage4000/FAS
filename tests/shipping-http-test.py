@@ -86,6 +86,8 @@ header('Content-Type: application/json');
 echo json_encode(\\FAS\\Payments\\ApplePayContext::shipping($_GET['key'] ?? ''));
 """)
 subprocess.check_call(["php",str(SITE/"scripts/shipping-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
+shippingHealth=json.loads(subprocess.check_output(
+    ["php",str(SITE/"scripts/shipping-maintenance.php"),"health"],env=env,text=True))
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"activate","--verified"],env=env,stdout=subprocess.DEVNULL)
 with socket.socket() as s:
@@ -115,6 +117,8 @@ def calls():
 address={"address1":"200 Synthetic Street","address2":"","city":"Test City","state":"CA","zip":"90210","country":"US"}
 cart={"items":[{"id":1,"quantity":1}],"address":address}
 try:
+    check(shippingHealth["label_operations"]=={"reserved":0,"submitted":0,"ready":0,"review":0},
+          "CLI initialization and health include the private fulfillment operation ledger")
     for _ in range(40):
         try: request("/api/shipping-rates.php"); break
         except OSError:time.sleep(.1)
@@ -151,7 +155,7 @@ try:
     created=request("/api/process-order.php",order,cookie=cookie)
     check(created[0]==200 and created[2]["success"],"Valid direct rate creates a pending local order")
     with sqlite3.connect(dbfile) as db:
-        row=db.execute("SELECT provider,courier_id,service_code,quoted_cents,quote_hash,origin_json,packages_json "
+        row=db.execute("SELECT provider,courier_id,service_code,quoted_cents,quote_hash,origin_json,packages_json,fulfillment_json "
                        "FROM order_shipping WHERE order_id=?",(created[2]["order_id"],)).fetchone()
         item=db.execute("SELECT product_name,product_sku,unit_price FROM order_items WHERE order_id=?",
                         (created[2]["order_id"],)).fetchone()
@@ -159,6 +163,9 @@ try:
     check(row[0]=="usps" and row[1]==body["rates"][0]["courier_id"] and row[3]==900
           and row[4]!=quote and json.loads(row[6])[0]["weight"]==1 and count==1,
           "Order records selected carrier, service, price and measured parcel without storing quote secret")
+    check(json.loads(row[7])==body["rates"][0]["parcel_services"]
+          and json.loads(row[7])[0]["quoted_cents"]==900,
+          "USPS order stores the exact quoted rate ingredients for its label")
     check(item==("Synthetic test part","TEST-1",100.0),
           "Order line names and prices come from inventory, not browser text")
     before=len(calls())

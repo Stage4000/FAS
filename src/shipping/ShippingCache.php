@@ -82,4 +82,10 @@ final class ShippingCache
         return ['healthy'=>$this->db->query('PRAGMA quick_check')->fetchColumn()==='ok',
             'entries'=>(int)$this->db->query('SELECT COUNT(*) FROM shipping_cache')->fetchColumn()];
     }
+
+    /** Share the validated private connection with fulfillment operation storage. */
+    public function database(): \PDO
+    {
+        return $this->db;
+    }
 }

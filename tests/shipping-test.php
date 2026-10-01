@@ -63,6 +63,9 @@ $service=new ShippingRateService($config,$legacy,'carrierFixture');
 $rates=$service->getShippingRates($items,$address,$warehouse);
 shippingCheck(count($rates)===4,'USPS and UPS return compatible, supported USD rates only');
 shippingCheck($rates[0]['courier_id']==='direct_usps_USPS_GROUND_ADVANTAGE' && $rates[0]['total_charge']===16.5,'USPS prices include each separately packed unit and fees');
+shippingCheck(count($rates[0]['parcel_services'])===2 && $rates[0]['parcel_services'][0]['quoted_cents']===825
+    && $rates[0]['parcel_services'][1]['rate_indicator']==='SP',
+    'USPS quote retains each parcel pricing option for later label creation');
 shippingCheck($rates[1]['total_charge']===17.89 && $rates[1]['rate_basis']==='account','UPS negotiated shipment total preferred without multiplying by parcel count');
 shippingCheck($rates[2]['total_charge']===24.7 && $rates[3]['rate_basis']==='published','Retail UPS fallback and USPS Priority retained');
 shippingCheck($legacyCalls===0,'Successful direct rates do not also query Easyship');

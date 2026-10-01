@@ -663,7 +663,7 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         <?php if ($selectedSessionId !== ''): ?>
         <input type="hidden" name="session" value="<?php echo safe($selectedSessionId); ?>">
         <?php endif; ?>
-        <select class="form-select" id="days" name="days" onchange="this.form.submit()">
+        <select class="form-select" id="days" name="days" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
             <?php foreach ($allowedDays as $option): ?>
             <option value="<?php echo $option; ?>" <?php echo $days === $option ? 'selected' : ''; ?>>
                 Last <?php echo $option; ?> days
@@ -1378,6 +1378,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     Use this report weekly to identify high-demand products, category revenue patterns, coupon effectiveness, and checkout steps where shoppers leave before buying.
 </div>
 
+<?php include __DIR__ . '/includes/footer.php'; ?>
 
 <div class="modal fade" id="sessionDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -1437,10 +1438,13 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     </div>
 </div>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
-
 <script>
-(function () {
+let analyticsSessionListeners;
+let analyticsInitialSessionHandled = false;
+function initAnalyticsSessions() {
+    analyticsSessionListeners?.abort();
+    analyticsSessionListeners = new AbortController();
+    const listenerSignal = analyticsSessionListeners.signal;
     const modalElement = document.getElementById('sessionDetailsModal');
     if (!modalElement) return;
 
@@ -1669,7 +1673,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
 
     function sessionLink(sessionId) {
         const url = new URL(window.location.href);
-        url.searchParams.set('days', String(<?php echo json_encode($days); ?>));
+        url.searchParams.set('days', document.getElementById('days')?.value || '30');
         url.searchParams.set('session', sessionId);
         return url.toString();
     }
@@ -1750,7 +1754,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
         if (row && !event.target.closest('a, button, input, select, textarea')) {
             openSession(row.dataset.sessionId || '');
         }
-    });
+    }, { signal: listenerSignal });
 
     document.querySelectorAll('.analytics-session-row').forEach(row => {
         row.addEventListener('keydown', event => {
@@ -1758,18 +1762,21 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
                 event.preventDefault();
                 openSession(row.dataset.sessionId || '');
             }
-        });
+        }, { signal: listenerSignal });
     });
 
     if (copyButton) {
-        copyButton.addEventListener('click', copySessionLink);
+        copyButton.addEventListener('click', copySessionLink, { signal: listenerSignal });
     }
 
-    const initialSessionId = <?php echo json_encode($selectedSessionId); ?>;
-    if (initialSessionId) {
+    const initialSessionId = new URL(location.href).searchParams.get('session') || '';
+    if (!analyticsInitialSessionHandled && initialSessionId) {
         openSession(initialSessionId);
     }
-})();
+    analyticsInitialSessionHandled = true;
+}
+initAnalyticsSessions();
+document.addEventListener('admin:updated', initAnalyticsSessions);
 </script>
 
 </body>

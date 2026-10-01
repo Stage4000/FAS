@@ -191,8 +191,13 @@ class AdminAuth
         // Check if any admin exists
         $stmt = $this->db->query("SELECT COUNT(*) as count FROM admin_users");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($result['count'] == 0) {
+            if (!is_string($username) || !preg_match('/\A[A-Za-z0-9][A-Za-z0-9._-]{2,63}\z/', $username)
+                || !is_string($email) || strlen($email)>254 || !filter_var($email,FILTER_VALIDATE_EMAIL)
+                || !fas_admin_password_valid($password)) {
+                throw new InvalidArgumentException('Set FAS_INITIAL_ADMIN_USERNAME, FAS_INITIAL_ADMIN_EMAIL, and a 12–72 byte FAS_INITIAL_ADMIN_PASSWORD before initializing.');
+            }
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $this->db->prepare("
                 INSERT INTO admin_users (username, email, password_hash, full_name, role) 

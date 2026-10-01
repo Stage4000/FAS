@@ -20,6 +20,19 @@ accountCheck($one !== $two, 'Sessions are bound to identity even with identical 
 accountCheck(!fas_admin_password_valid(str_repeat('a',73)), 'Passwords over bcrypt byte limit rejected');
 accountCheck(!fas_admin_password_valid(str_repeat('a',12)."\0"), 'NUL bytes rejected');
 accountCheck(!fas_admin_password_valid(['array']), 'Non-string password rejected');
+require_once __DIR__.'/../admin/auth.php';
+$initial = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$initial->exec("CREATE TABLE admin_users(id INTEGER PRIMARY KEY,username TEXT UNIQUE,email TEXT UNIQUE,full_name TEXT,password_hash TEXT,role TEXT,is_active INTEGER DEFAULT 1,updated_at TEXT)");
+$bootstrap = new AdminAuth($initial);
+try {
+    $bootstrap->createInitialAdmin('admin','admin@example.invalid','admin123');
+    throw new RuntimeException('Weak bootstrap password accepted');
+} catch (InvalidArgumentException $e) {
+    accountCheck((int)$initial->query('SELECT COUNT(*) FROM admin_users')->fetchColumn()===0, 'Weak bootstrap password creates no account');
+}
+accountCheck($bootstrap->createInitialAdmin('owner-fixture','owner@example.invalid','Bootstrap-password-123'), 'Strong initial administrator can be created');
+accountCheck(!$bootstrap->createInitialAdmin('other-fixture','other@example.invalid','Another-password-123'), 'Bootstrap cannot create a second administrator');
+unset($initial,$bootstrap);
 // Two independently authenticated workers attempt to remove each other's access.
 $children=[];
 foreach ([[1,$one,2],[2,$two,1]] as [$actor,$token,$target]) {

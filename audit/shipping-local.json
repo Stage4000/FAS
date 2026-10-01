@@ -1,10 +1,11 @@
 {
-    "date": "2026-10-01T20:33:18+00:00",
+    "date": "2026-10-01T20:57:00+00:00",
     "scope": "synthetic fixtures and mocked HTTP only",
-    "checks": 57,
+    "checks": 58,
     "passed": [
         "USPS and UPS return compatible, supported USD rates only",
         "USPS prices include each separately packed unit and fees",
+        "USPS quote retains each parcel pricing option for later label creation",
         "UPS negotiated shipment total preferred without multiplying by parcel count",
         "Retail UPS fallback and USPS Priority retained",
         "Successful direct rates do not also query Easyship",

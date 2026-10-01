@@ -7,13 +7,19 @@
     function includeModals(scope, content) {
         // Several legacy templates render their modal forms after the content column.
         scope.querySelectorAll('.modal').forEach(modal => {
+            // Analytics keeps its session modal alive across report refreshes so a
+            // Bootstrap hide transition cannot be interrupted by DOM replacement.
+            if (page === 'analytics.php' && modal.id === 'sessionDetailsModal') return;
             if (!content.contains(modal)) content.append(modal);
         });
     }
-    includeModals(document, root);
     const page = root.dataset.adminPage;
+    includeModals(document, root);
     let busy = false;
     let pendingHistory = false;
+    const closingModals = new WeakSet();
+    document.addEventListener('hide.bs.modal', event => closingModals.add(event.target));
+    document.addEventListener('hidden.bs.modal', event => closingModals.delete(event.target));
     const notice = document.createElement('div');
     notice.className = 'position-fixed bottom-0 end-0 p-3';
     notice.style.cssText = 'z-index:1090;max-width:100%;width:440px;pointer-events:none';
@@ -73,11 +79,16 @@
     }
 
     async function closeModals() {
-        await Promise.all(Array.from(root.querySelectorAll('.modal.show')).map(modal => new Promise(resolve => {
+        await Promise.all(Array.from(root.querySelectorAll('.modal')).map(modal => new Promise(resolve => {
             const instance = window.bootstrap?.Modal.getInstance(modal);
             if (!instance) return resolve();
+            if (!instance._isShown && !instance._isTransitioning && !closingModals.has(modal)) return resolve();
             modal.addEventListener('hidden.bs.modal', resolve, { once: true });
-            instance.hide();
+            if (instance._isShown && instance._isTransitioning) {
+                modal.addEventListener('shown.bs.modal', () => instance.hide(), { once: true });
+            } else if (instance._isShown) {
+                instance.hide();
+            }
         })));
         root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => window.bootstrap?.Tooltip.getInstance(el)?.dispose());
         root.querySelectorAll('.modal').forEach(el => window.bootstrap?.Modal.getInstance(el)?.dispose());
@@ -130,6 +141,7 @@
                 const canonical = new URL(next.dataset.adminUrl, finalUrl);
                 if (samePage(canonical)) finalUrl = canonical;
             }
+            if (!isPost && url.hash) finalUrl.hash = url.hash;
             await closeModals();
             // Page scripts are initialized explicitly, never evaluated from fetched HTML.
             next.querySelectorAll('script').forEach(el => el.remove());
@@ -167,6 +179,7 @@
             if (focus) focus.focus({ preventScroll: true });
             else { root.setAttribute('tabindex', '-1'); root.focus({ preventScroll: true }); }
             window.scrollTo(...scroll);
+            if (finalUrl.hash) document.getElementById(decodeURIComponent(finalUrl.hash.slice(1)))?.scrollIntoView();
             announce(next.dataset.adminNotice || (isPost ? 'Changes saved.' : 'View updated.'));
         } catch (error) {
             announce(error instanceof TypeError || error.name === 'AbortError'
@@ -212,7 +225,7 @@
         if (event.defaultPrevented || !link || !root.contains(link) || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         if (link.hasAttribute('download') || link.hasAttribute('data-bs-toggle') || link.hasAttribute('data-no-ajax') || (link.target && link.target !== '_self')) return;
         const url = new URL(link.href, location.href);
-        if (!samePage(url) || url.hash || link.getAttribute('href').startsWith('#')) return;
+        if (!samePage(url) || link.getAttribute('href').startsWith('#') || (url.hash && url.search === location.search)) return;
         event.preventDefault();
         update(url);
     });

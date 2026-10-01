@@ -4,6 +4,7 @@ if (PHP_SAPI!=='cli') { http_response_code(404); exit; }
 require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
+require_once __DIR__.'/../src/shipping/ShippingLabelOperations.php';
 require_once __DIR__.'/../src/config/Database.php';
 use FAS\Shipping\{ShippingConfig,ShippingCache};
 
@@ -34,7 +35,12 @@ try {
         $result['cache']=['initialized'=>false,'required_for'=>'direct carriers'];
     } else {
         $cache=new ShippingCache($config['cache_path'],$command==='init');
+        if ($command==='init') \FAS\Shipping\ShippingLabelOperations::install($cache->database());
         $result['cache']=$cache->health();
+        $labelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_operations'")->fetchColumn();
+        $result['label_operations']=$labelTable
+            ? (new \FAS\Shipping\ShippingLabelOperations($cache->database()))->health()
+            : ['initialized'=>false];
         if ($command==='cleanup') $result['removed']=$cache->cleanup();
         if (!$result['cache']['healthy']) throw new RuntimeException('Shipping cache health check failed.');
     }

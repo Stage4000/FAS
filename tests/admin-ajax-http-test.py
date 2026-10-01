@@ -66,7 +66,7 @@ try:
     check(request('/admin/error-monitor.php')[0]==302,'Anonymous error monitor still requires sign-in')
     csrf=token(request('/admin/login.php')[2])
     check(request('/admin/login.php',{'username':'ajax-fixture','password':'Local-test-only','csrf_token':csrf})[0]==302,'Fixture signs in through normal CSRF-protected login')
-    routes=['error-monitor.php','products.php','orders.php','order-details.php?id=9001','warehouses.php','coupons.php','banners.php','sale.php','free-shipping.php','homepage-categories.php','settings.php','password.php','security.php','growth.php','product-content.php?id=9001','product-quality.php','stale-inventory.php','ebay-sync-health.php']
+    routes=['error-monitor.php','products.php','orders.php','order-details.php?id=9001','warehouses.php','coupons.php','banners.php','sale.php','free-shipping.php','homepage-categories.php','settings.php','password.php','security.php','growth.php','product-content.php?id=9001','product-quality.php','stale-inventory.php','ebay-sync-health.php','analytics.php']
     for route in routes:
         status,headers,body=request('/admin/'+route)
         check(status==200 and 'id="admin-content"' in body and 'js/admin-ajax.js?' in body and 'Fatal error' not in body and '<b>Warning</b>' not in body,'Enhanced page renders: '+route)

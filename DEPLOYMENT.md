@@ -14,11 +14,12 @@ cd FAS
 The database and configuration files are pre-initialized for easy deployment:
 
 ```bash
-# Create admin user
+# Set FAS_INITIAL_ADMIN_USERNAME, FAS_INITIAL_ADMIN_EMAIL,
+# and FAS_INITIAL_ADMIN_PASSWORD in the server environment first.
 php admin/init-admin.php
 ```
 
-Default admin credentials: `admin` / `admin123`
+The first administrator signs in with the credentials you configured. No default password is created.
 
 ### 3. Configure the Site
 

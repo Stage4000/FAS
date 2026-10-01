@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS order_shipping (
     quote_expires_at INTEGER NOT NULL,
     origin_json TEXT,
     packages_json TEXT,
+    fulfillment_json TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_order_shipping_provider ON order_shipping(provider);

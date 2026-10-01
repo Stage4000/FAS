@@ -31,15 +31,13 @@ This will:
 
 ### 2. Create Admin User
 
-After initializing the database, create the admin user:
+After initializing the database, set `FAS_INITIAL_ADMIN_USERNAME`, `FAS_INITIAL_ADMIN_EMAIL`, and `FAS_INITIAL_ADMIN_PASSWORD` in the server environment and create the first administrator:
 
 ```bash
 php admin/init-admin.php
 ```
 
-Default credentials: `admin` / `admin123`
-
-**Important**: Change this password immediately after first login at `/admin/password.php`
+Use a unique 12–72 byte password. There are no default credentials.
 
 ### 3. Login and Configure
 

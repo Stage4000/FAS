@@ -1,8 +1,9 @@
 {
-  "date": "2026-10-01T20:39:05.879811+00:00",
+  "date": "2026-10-01T20:57:02.522735+00:00",
   "scope": "local synthetic inventory; mocked carrier transport",
-  "checks": 51,
+  "checks": 53,
   "passed": [
+    "CLI initialization and health include the private fulfillment operation ledger",
     "Checkout returns normalized direct USPS and UPS rates",
     "Paid shipping totals remain numeric USD amounts",
     "Checkout rates cannot be shared through public caches",
@@ -19,6 +20,7 @@
     "Browser cannot lower the catalog total",
     "Valid direct rate creates a pending local order",
     "Order records selected carrier, service, price and measured parcel without storing quote secret",
+    "USPS order stores the exact quoted rate ingredients for its label",
     "Order line names and prices come from inventory, not browser text",
     "Repeated checkout requests reuse cached rates across HTTP sessions",
     "Pre-checkout estimator uses the same rate providers",

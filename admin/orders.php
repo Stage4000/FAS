@@ -146,7 +146,7 @@ $stats = $db->query($statsQuery)->fetch(PDO::FETCH_ASSOC);
             <form method="GET" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Filter by Status</label>
-                    <select name="status" class="form-select" onchange="this.form.submit()">
+                    <select name="status" class="form-select" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                         <option value="all" <?php echo $status === 'all' ? 'selected' : ''; ?>>All Orders</option>
                         <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="processing" <?php echo $status === 'processing' ? 'selected' : ''; ?>>Processing</option>

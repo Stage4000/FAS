@@ -142,7 +142,16 @@ final class CarrierRates
                         || !in_array($line['processingCategory'] ?? '',['MACHINABLE','NONSTANDARD'],true)
                         || ($line['priceType'] ?? '')!==$this->config['price_type']) continue;
                     $rate=$this->rate((string)$code,$option['totalBasePrice'] ?? null,'USD',strtolower($this->config['price_type']));
-                    if ($rate && (!isset($options[$code]) || $rate['total_charge']<$options[$code]['total_charge'])) $options[$code]=$rate;
+                    if ($rate && (!isset($options[$code]) || $rate['total_charge']<$options[$code]['total_charge'])) {
+                        $rate['parcel_services']=[[
+                            'rate_indicator'=>$line['rateIndicator'],
+                            'processing_category'=>$line['processingCategory'],
+                            'destination_entry_facility_type'=>$line['destinationEntryFacilityType'],
+                            'price_type'=>$line['priceType'],
+                            'quoted_cents'=>self::cents($option['totalBasePrice']),
+                        ]];
+                        $options[$code]=$rate;
+                    }
                 }
                 $byParcel[$parcelKey]=$options;
             }
@@ -151,6 +160,7 @@ final class CarrierRates
             foreach ($common as $code=>&$rate) {
                 if (!isset($options[$code])) { unset($common[$code]); continue; }
                 $rate['total_charge']=(self::cents($rate['total_charge'])+self::cents($options[$code]['total_charge']))/100;
+                $rate['parcel_services']=array_merge($rate['parcel_services'],$options[$code]['parcel_services']);
             }
             unset($rate);
             if (!$common) return [];

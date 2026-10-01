@@ -1,9 +1,6 @@
-#!/usr/bin/env php
 <?php
-/**
- * Initialize Admin User
- * Creates the default admin user if no admin exists
- */
+/** Create the first administrator from server-provided values; CLI only. */
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../admin/auth.php';
@@ -11,21 +8,19 @@ require_once __DIR__ . '/../admin/auth.php';
 try {
     $auth = new AdminAuth();
     
-    // Try to create initial admin
-    $result = $auth->createInitialAdmin('admin', 'admin@flipandstrip.com', 'admin123');
+    $username = getenv('FAS_INITIAL_ADMIN_USERNAME') ?: '';
+    $email = getenv('FAS_INITIAL_ADMIN_EMAIL') ?: '';
+    $password = getenv('FAS_INITIAL_ADMIN_PASSWORD') ?: '';
+    $result = $auth->createInitialAdmin($username, $email, $password);
     
     if ($result) {
-        echo "✓ Default admin user created successfully!\n";
-        echo "  Username: admin\n";
-        echo "  Password: admin123\n";
-        echo "  \n";
-        echo "  Please change the password after first login at /admin/password.php\n";
+        echo "Initial administrator created. Sign in with the configured username and password.\n";
     } else {
-        echo "✓ Admin user already exists. No action needed.\n";
+        echo "An administrator already exists. No account was created.\n";
     }
     
     exit(0);
 } catch (Exception $e) {
-    echo "✗ Error: " . $e->getMessage() . "\n";
+    fwrite(STDERR, "Admin setup: " . $e->getMessage() . "\n");
     exit(1);
 }

@@ -91,13 +91,13 @@ Modern e-commerce website for Flip and Strip motorcycle, ATV/UTV, boat, and auto
 
 1. Configure your API credentials in `src/config/config.php`
 2. Import the database schema from `database/schema.sql`
-3. Initialize admin user:
+3. Set `FAS_INITIAL_ADMIN_USERNAME`, `FAS_INITIAL_ADMIN_EMAIL`, and `FAS_INITIAL_ADMIN_PASSWORD` in the server environment, then initialize the first administrator:
    ```bash
    php admin/init-admin.php
    ```
-   Default credentials: `admin` / `admin123` (change after first login)
-4. Visit `/admin/` and login with default credentials
-5. Change admin password immediately at `/admin/password.php`
+   Use a unique password of 12–72 bytes. The script creates no default credentials.
+4. Visit `/admin/` and sign in with those credentials
+5. Add other administrators at `/admin/administrators.php`
 6. Configure API settings at `/admin/settings.php`
 7. Click "Start eBay Sync" to import products
 8. Products will be automatically synced from your eBay store (moto800)
@@ -212,7 +212,7 @@ The **Sync API Key** is a security token that protects the sync endpoint from un
 Access the admin panel at `/admin/` with password protection:
 
 **Features:**
-- Password-protected access (default: admin/admin123)
+- Individual administrator accounts with password-protected access
 - Change password functionality
 - Full configuration management via web interface
 - View dashboard with statistics
@@ -220,6 +220,7 @@ Access the admin panel at `/admin/` with password protection:
 - Monitor sync logs
 
 **Initial Setup:**
+Set `FAS_INITIAL_ADMIN_USERNAME`, `FAS_INITIAL_ADMIN_EMAIL`, and `FAS_INITIAL_ADMIN_PASSWORD` in the server environment first.
 ```bash
 php admin/init-admin.php
 ```
@@ -228,6 +229,7 @@ php admin/init-admin.php
 - `/admin/` - Dashboard
 - `/admin/settings.php` - Configure all API credentials and settings
 - `/admin/password.php` - Change admin password
+- `/admin/administrators.php` - Manage administrators
 - `/admin/login.php` - Login page
 - `/admin/logout.php` - Logout
 

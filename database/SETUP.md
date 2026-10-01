@@ -31,17 +31,13 @@ This will:
 
 ### 3. Create Admin User
 
-Run the admin initialization script:
+Set `FAS_INITIAL_ADMIN_USERNAME`, `FAS_INITIAL_ADMIN_EMAIL`, and `FAS_INITIAL_ADMIN_PASSWORD` in the server environment, then run the admin initialization script:
 
 ```bash
 php admin/init-admin.php
 ```
 
-This will create the default admin account:
-- **Username**: `admin`
-- **Password**: `admin123`
-
-**Important**: Change this password immediately after first login at `/admin/password.php`
+This creates the first administrator with your configured username, email, and unique 12–72 byte password. No default credentials are used.
 
 ## Quick Setup (Alternative)
 
@@ -89,10 +85,10 @@ If `init-sqlite.php` reports the database already exists, it means you're alread
 
 ### Admin login not working
 
-If you can't log in, recreate the admin user:
+If no administrator exists, create the first account:
 
 ```bash
 php admin/init-admin.php
 ```
 
-This will only create an admin if none exists. If an admin already exists, change your password through the admin interface or manually update the database.
+This only creates an account if none exists. For an existing account, use the admin panel's password change or another active administrator's reset control.

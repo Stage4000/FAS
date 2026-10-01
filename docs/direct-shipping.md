@@ -10,6 +10,8 @@ The free-shipping rules still run first. All-free carts avoid carrier calls; mix
 
 There is no label purchase, pickup booking, shipment creation, cancellation, tracking sync or automatic fulfillment in this implementation. Rate quotes alone do not create orders or modify inventory. A pending order now receives an immutable carrier/service/quoted-price/parcel snapshot in `order_shipping`; this is shipping provenance, not a purchased label.
 
+The private shipping database now also has a fulfillment-operation ledger. It reserves one operation per USPS parcel or one UPS multi-package shipment, tied to a paid processing order and its saved parcel/address fingerprint. A reserved operation may be marked submitted only once; an ambiguous carrier outcome stays in review and cannot trigger another request. It stores the carrier key, state and eventual shipment/tracking/actual-price references, without storing addresses or label images. This is preparation for authenticated administrator label purchasing, not a callable purchase path. The [USPS Labels API](https://developers.usps.com/domesticlabelsv3) documents a label idempotency key and requires a separate payment-authorization token; the [UPS Shipping specification](https://github.com/UPS-API/api-documentation/blob/main/Shipping.yaml) describes a request transaction identifier but does not document it as purchase idempotency. UPS timeout recovery therefore needs carrier reconciliation before any new shipment request.
+
 ## Provider behavior
 
 USPS uses OAuth v3 and Domestic Prices v3 base-rates-list/search. It requests Ground Advantage, Priority Mail and Priority Mail Express, then accepts only supported ordinary customer-package options. It excludes flat-rate packaging, restricted-content classes, cubic tiers and destination-entry discounts. Each separately packed unit is charged; a service is returned only if it covers every parcel. Published retail pricing is the default. Commercial pricing requires separate operational/account verification. See the [USPS pricing specification](https://developers.usps.com/domesticpricesv3) and [official API examples](https://github.com/USPS/api-examples).
@@ -47,6 +49,7 @@ Deploy these files together:
 
 - src/shipping/ShippingConfig.php, ShippingShipment.php, ShippingRateService.php
 - src/shipping/CarrierHttp.php, CarrierRates.php, ShippingCache.php
+- src/shipping/ShippingLabelOperations.php (private operation ledger only; purchasing remains disabled)
 - src/config/shipping.example.php and the deployment-owned shipping.php when ready
 - api/shipping-rates.php, api/shipping-estimate.php
 - checkout.php, api/process-order.php, src/payments/ApplePayContext.php and ApplePayService.php
@@ -65,7 +68,7 @@ php scripts/shipping-maintenance.php health
 php scripts/shipping-maintenance.php cleanup
 ~~~
 
-CLI `init` creates the private `shipping_cache` table and the additive `order_shipping` table. `init-orders` initializes just the order table if the private cache is not configured yet. Public direct requests require initialized storage. Health reports configuration readiness, order-storage presence and cache health without secrets or account numbers; it makes no external API call. Cleanup removes at most 200 expired rows per invocation. The cache is capped at 1,000 records.
+CLI `init` creates the private `shipping_cache` and `shipping_label_operations` tables and the additive `order_shipping` table. `init-orders` initializes just the order table if the private cache is not configured yet. Public direct requests require initialized storage. Health reports configuration readiness, order-storage presence, cache health and fulfillment-operation state counts without secrets or account numbers; it makes no external API call. Cleanup removes at most 200 expired cache rows per invocation. The cache is capped at 1,000 records; fulfillment operations are durable and never pruned by cache cleanup.
 
 The cache stores OAuth tokens, normalized rates and provider cooldowns. Quote keys hash the complete shipment and carrier configuration, including credential/environment changes. Street addresses, client secrets and raw response bodies are not stored in the cache. Treat the cache as secret storage because it contains access tokens. It is separate from inventory and payment transactions.
 

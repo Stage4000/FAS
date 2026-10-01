@@ -26,8 +26,12 @@ final class ShippingOrder
             quote_expires_at INTEGER NOT NULL,
             origin_json TEXT,
             packages_json TEXT,
+            fulfillment_json TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )');
+        if (!self::hasFulfillmentColumn($db)) {
+            $db->exec('ALTER TABLE order_shipping ADD COLUMN fulfillment_json TEXT');
+        }
         $db->exec('CREATE INDEX IF NOT EXISTS idx_order_shipping_provider ON order_shipping(provider)');
     }
 
@@ -46,7 +50,8 @@ final class ShippingOrder
         if (!$row) return null;
         $row['origin']=$row['origin_json']===null ? null : json_decode($row['origin_json'],true);
         $row['packages']=$row['packages_json']===null ? [] : json_decode($row['packages_json'],true);
-        unset($row['origin_json'],$row['packages_json'],$row['quote_hash']);
+        $row['fulfillment_options']=empty($row['fulfillment_json']) ? [] : json_decode($row['fulfillment_json'],true);
+        unset($row['origin_json'],$row['packages_json'],$row['fulfillment_json'],$row['quote_hash']);
         return $row;
     }
 
@@ -98,6 +103,31 @@ final class ShippingOrder
             && (!is_array($shipment) || empty($shipment['origin']) || empty($shipment['packages']))) {
             throw new \RuntimeException('Direct shipping parcel snapshot is missing.');
         }
+        $fulfillment=null;
+        if ($provider==='usps') {
+            if (!self::hasFulfillmentColumn($db)) throw new \RuntimeException('USPS fulfillment storage is not initialized.');
+            $options=$rate['parcel_services'] ?? null;
+            if (!is_array($options) || !array_is_list($options)
+                || count($options)!==count($shipment['packages'])) {
+                throw new \RuntimeException('USPS parcel service selections are missing.');
+            }
+            $sum=0;
+            foreach ($options as $option) {
+                if (!is_array($option)
+                    || !in_array($option['rate_indicator'] ?? '',['SP','DR'],true)
+                    || !in_array($option['processing_category'] ?? '',['MACHINABLE','NONSTANDARD'],true)
+                    || ($option['destination_entry_facility_type'] ?? '')!=='NONE'
+                    || !in_array($option['price_type'] ?? '',['RETAIL','COMMERCIAL'],true)
+                    || !is_int($option['quoted_cents'] ?? null) || $option['quoted_cents']<1) {
+                    throw new \RuntimeException('Invalid USPS parcel service selection.');
+                }
+                $sum+=$option['quoted_cents'];
+            }
+            if ($sum!==ApplePayContext::catalogCents($rate['total_charge'] ?? null)) {
+                throw new \RuntimeException('USPS parcel charges do not match the selected rate.');
+            }
+            $fulfillment=json_encode($options,JSON_THROW_ON_ERROR);
+        }
         $short=static function($value,int $max): string {
             if (!is_string($value) || $value==='' || strlen($value)>$max
                 || preg_match('/[\x00-\x1f\x7f]/',$value)) throw new \RuntimeException('Invalid shipping rate metadata.');
@@ -117,5 +147,17 @@ final class ShippingOrder
             hash('sha256',$key),(int)$quote['expires'],
             $shipment===null ? null : json_encode($shipment['origin'] ?? null,JSON_THROW_ON_ERROR),
             $shipment===null ? null : json_encode($shipment['packages'] ?? null,JSON_THROW_ON_ERROR)]);
+        if ($fulfillment!==null) {
+            $stmt=$db->prepare('UPDATE order_shipping SET fulfillment_json=? WHERE order_id=?');
+            $stmt->execute([$fulfillment,$orderId]);
+        }
+    }
+
+    private static function hasFulfillmentColumn(\PDO $db): bool
+    {
+        foreach ($db->query('PRAGMA table_info(order_shipping)') as $column) {
+            if ($column['name']==='fulfillment_json') return true;
+        }
+        return false;
     }
 }
