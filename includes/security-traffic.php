@@ -61,6 +61,52 @@ function fas_security_widget_traffic(PDO $db, ?int $now = null): array
     return ['totals'=>$totals,'countries'=>array_slice($countries,0,8),'updated_at'=>$until];
 }
 
+/** Six rolling 15-minute windows, ending with the current window. */
+function fas_security_traffic_history(PDO $db, ?int $now = null): array
+{
+    $now = $now ?? time();
+    $rows = [];
+    for ($index = 0; $index < 6; $index++) {
+        $rows[] = ['start'=>$now - (6 - $index) * 900,
+            'sessions'=>0, 'bot_signals'=>0, 'widget_loads'=>0];
+    }
+    $since = gmdate('Y-m-d H:i:s', $rows[0]['start']);
+    $until = gmdate('Y-m-d H:i:s', $now);
+    $parts = []; $params = [];
+    foreach ($rows as $index=>$row) {
+        $start = gmdate('Y-m-d H:i:s', $row['start']);
+        $end = gmdate('Y-m-d H:i:s', $row['start'] + 900 + ($index === 5 ? 1 : 0));
+        $parts[] = "SUM(CASE WHEN started_at>=? AND started_at<? THEN 1 ELSE 0 END) AS sessions_$index";
+        array_push($params,$start,$end);
+        $parts[] = "SUM(CASE WHEN started_at>=? AND started_at<? AND COALESCE(is_potential_bot,0)=1 THEN 1 ELSE 0 END) AS bots_$index";
+        array_push($params,$start,$end);
+    }
+    $sessions = $db->prepare('SELECT '.implode(', ',$parts).' FROM analytics_sessions
+        WHERE started_at>=? AND started_at<=? AND COALESCE(is_admin_session,0)=0');
+    $sessions->execute(array_merge($params,[$since,$until]));
+    $sessionCounts = $sessions->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    $parts = []; $params = [];
+    foreach ($rows as $index=>$row) {
+        $parts[] = "COUNT(DISTINCT CASE WHEN e.created_at>=? AND e.created_at<? THEN e.session_id END) AS loads_$index";
+        array_push($params,gmdate('Y-m-d H:i:s',$row['start']),
+            gmdate('Y-m-d H:i:s',$row['start'] + 900 + ($index === 5 ? 1 : 0)));
+    }
+    $loads = $db->prepare('SELECT '.implode(', ',$parts).' FROM analytics_events e
+        JOIN analytics_sessions s ON s.session_id=e.session_id
+        WHERE e.created_at>=? AND e.created_at<=? AND e.event_type='tawk_widget_loaded'
+          AND COALESCE(s.is_admin_session,0)=0');
+    $loads->execute(array_merge($params,[$since,$until]));
+    $widgetCounts = $loads->fetch(PDO::FETCH_ASSOC) ?: [];
+    foreach ($rows as $index=>&$row) {
+        $row['sessions'] = (int)($sessionCounts['sessions_'.$index] ?? 0);
+        $row['bot_signals'] = (int)($sessionCounts['bots_'.$index] ?? 0);
+        $row['widget_loads'] = (int)($widgetCounts['loads_'.$index] ?? 0);
+    }
+    unset($row);
+    return $rows;
+}
+
 function fas_security_traffic_country(string $value): string
 {
     return preg_match('/^[A-Z]{2}$/D',$value) ? $value : '??';

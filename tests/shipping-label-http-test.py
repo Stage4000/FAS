@@ -65,6 +65,8 @@ try:
         except OSError: time.sleep(.1)
     path='/admin/shipping-label.php?id=10'
     check(request(path,who=anonymous)[0]==302,'Anonymous label page redirects to sign-in')
+    check(request('/admin/shipping-operations.php',who=anonymous)[0]==302,
+          'Anonymous shipment review queue redirects to sign-in')
     loginPage=request('/admin/login.php')[2]
     csrf=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)[1]
     login=request('/admin/login.php',{'csrf_token':csrf,'username':'shipping-fixture','password':PASSWORD})
@@ -74,6 +76,9 @@ try:
           'Private label page renders for active administrator')
     check('Ground Advantage' in page and '$9.00' in page and 'Purchase label' not in page,
           'Disabled carrier configuration shows saved quote without purchase control')
+    status,headers,queue=request('/admin/shipping-operations.php')
+    check(status==200 and 'no-store' in headers.get('Cache-Control','') and 'No carrier label outcomes need review' in queue,
+          'Active administrator sees an empty private shipment review queue')
     check('Review shipping labels' in request('/admin/order-details.php?id=10')[2],
           'Order page links to carrier label review')
     post={'package_index':'0','confirmed_cents':'900','confirm_charge':'yes',
@@ -85,6 +90,14 @@ try:
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         operations=db.execute('SELECT COUNT(*) FROM shipping_label_operations').fetchone()[0]
     check(operations==0,'Disabled label page creates no shipment operation')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        now=int(time.time())
+        db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,operator_id,created_at,submitted_at,updated_at) VALUES(10,0,'usps','USPS_GROUND_ADVANTAGE',1,'synthetic-fingerprint','9b71aa67-f7e8-4c72-9c75-3c79f4630506','review',1,?,?,?)",[now,now,now])
+    queue=request('/admin/shipping-operations.php')[2]
+    check('FAS-10' in queue and 'Review order' in queue and 'Needs reconciliation' in queue,
+          'Uncertain shipment is visible in the administrator review queue')
+    check('purchase label' not in request(path)[2].lower(),
+          'Uncertain shipment has no repeat purchase control')
     check(request('/admin/shipping-label-download.php?id=10&package=0&piece=0')[0]==404,
           'Unconfirmed label cannot be downloaded')
     check(request('/admin/order-details.php?id=10',{'action':'update_tracking','tracking_number':'INJECTED'})[0]==403,

@@ -204,6 +204,18 @@ final class ShippingLabelOperations
         return $states;
     }
 
+    /** Read-only queue for operations that must be checked with the carrier. */
+    public function attention(int $limit=100): array
+    {
+        if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid shipment queue limit.');
+        $stmt=$this->db->prepare("SELECT order_id,package_index,provider,state,submitted_at,updated_at
+            FROM shipping_label_operations WHERE state IN ('submitted','review')
+            ORDER BY updated_at DESC,id DESC LIMIT ?");
+        $stmt->bindValue(1,$limit,\PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     private static function scope(\PDO $ordersDb,int $orderId,int $packageIndex): array
     {
         $stmt=$ordersDb->prepare('SELECT o.payment_status,o.order_status,o.order_number,o.customer_name,

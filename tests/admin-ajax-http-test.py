@@ -43,7 +43,8 @@ ORIGIN = 'http://127.0.0.1:'+str(port)
 router = BASE / 'router.php'
 router.write_text("<?php file_put_contents(__DIR__.'/requests.jsonl',json_encode(['method'=>$_SERVER['REQUEST_METHOD'],'uri'=>$_SERVER['REQUEST_URI'],'ajax'=>$_SERVER['HTTP_X_REQUESTED_WITH']??'']) . PHP_EOL, FILE_APPEND); return false;")
 log = open(BASE / 'server.log','w')
-server = subprocess.Popen(['php','-d','disable_functions=mail','-d','session.save_path='+str(BASE / 'sessions'),'-S','127.0.0.1:'+str(port),'-t',str(SITE),str(router)],env=env,stdout=log,stderr=log)
+server = subprocess.Popen(['php','-d','disable_functions=mail','-d','session.save_path='+str(BASE / 'sessions'),
+    '-d','session.name=FASAJAX'+str(port),'-S','127.0.0.1:'+str(port),'-t',str(SITE),str(router)],env=env,stdout=log,stderr=log)
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args): return None
 client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),NoRedirect)
