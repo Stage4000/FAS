@@ -97,6 +97,25 @@ CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(customer_email);
 CREATE INDEX IF NOT EXISTS idx_orders_order_status ON orders(order_status);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
 
+-- Immutable selected checkout shipping quote and packing snapshot.
+CREATE TABLE IF NOT EXISTS order_shipping (
+    order_id INTEGER PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    courier_id TEXT NOT NULL,
+    service_code TEXT,
+    courier_name TEXT NOT NULL,
+    service_name TEXT NOT NULL,
+    quoted_cents INTEGER NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    rate_basis TEXT,
+    quote_hash TEXT NOT NULL,
+    quote_expires_at INTEGER NOT NULL,
+    origin_json TEXT,
+    packages_json TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_order_shipping_provider ON order_shipping(provider);
+
 -- Order items table
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

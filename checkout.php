@@ -480,7 +480,7 @@ function isFormReadyForPayment() {
     }
     
     // Check if shipping is selected
-    if (!selectedShippingRate) {
+    if (!selectedShippingRate || !applePayShippingQuoteId) {
         return false;
     }
     
@@ -591,8 +591,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Monitor form fields for changes to enable/disable payment button
     const form = document.getElementById('checkout-form');
     if (form) {
-        form.addEventListener('input', updatePaymentButtonState);
-        form.addEventListener('change', updatePaymentButtonState);
+        const onCheckoutChange = (event) => {
+            if (['address1', 'address2', 'city', 'state', 'zip'].includes(event.target.name)) {
+                invalidateShippingSelection();
+            }
+            updatePaymentButtonState();
+        };
+        form.addEventListener('input', onCheckoutChange);
+        form.addEventListener('change', onCheckoutChange);
     }
     
     // Initial state
@@ -881,9 +887,7 @@ async function calculateShipping() {
         cart_items_count: items.reduce((total, item) => total + Number(item.quantity || 0), 0)
     });
 
-    applePayShippingQuoteId = null;
-    applePayShippingQuoteSnapshot = null;
-    window.FASApplePay?.refresh();
+    invalidateShippingSelection();
     const btn = document.getElementById('calculate-shipping-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculating...';
@@ -900,7 +904,7 @@ async function calculateShipping() {
         const data = await response.json();
         
     if (data.success && data.rates) {
-                applePayShippingQuoteId = data.applepay_shipping_quote || null;
+                applePayShippingQuoteId = data.shipping_quote || data.applepay_shipping_quote || null;
                 applePayShippingQuoteSnapshot = { address, items };
                 displayShippingOptions(data.rates, data.free_shipping || null);
                 trackCheckoutEvent('shipping_rates_returned', {
@@ -930,6 +934,16 @@ async function calculateShipping() {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
     }
+}
+
+function invalidateShippingSelection() {
+    applePayShippingQuoteId = null;
+    applePayShippingQuoteSnapshot = null;
+    selectedShippingRate = null;
+    const card = document.getElementById('shipping-options-card');
+    if (card) card.style.display = 'none';
+    updateCheckoutSummary();
+    updatePaymentButtonState();
 }
 
 function displayShippingOptions(rates, freeShippingSummary = null) {
@@ -1081,6 +1095,10 @@ function updateCheckoutSummary() {
  */
 async function createOrder() {
     if (!window.FASOrderRecovery.canStart()) return null;
+    if (!selectedShippingRate || !applePayShippingQuoteId) {
+        alert('Calculate shipping and choose a current method before paying.');
+        return null;
+    }
     const form = document.getElementById('checkout-form');
     const cart = getCheckoutItems();
     
@@ -1123,6 +1141,8 @@ async function createOrder() {
         discount_code: appliedCoupon ? appliedCoupon.code : null,
         discount_amount: discount,
         total_amount: total,
+        shipping_quote: applePayShippingQuoteId || '',
+        shipping_index: selectedShippingRate ? selectedShippingRate.index : null,
         notes: form.notes.value,
         checkout_mode: getCheckoutMode(),
         paypal_order_id: 'PENDING-' + Date.now() // Will be updated with actual PayPal order ID

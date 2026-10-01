@@ -1,10 +1,10 @@
 <?php
 /**
  * Shipping API Endpoint
- * Get shipping rates from EasyShip with first-party free-shipping rules.
+ * Get shipping rates with first-party free-shipping rules.
  */
 
-require_once __DIR__ . '/../src/integrations/EasyShipAPI.php';
+require_once __DIR__ . '/../src/shipping/ShippingRateService.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
@@ -13,7 +13,7 @@ require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 require_once __DIR__ . '/../src/payments/ApplePayContext.php';
 
 use FAS\Config\Database;
-use FAS\Integrations\EasyShipAPI;
+use FAS\Shipping\ShippingRateService;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
@@ -26,6 +26,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 
 header('Content-Type: application/json');
+header('Cache-Control: private, no-store');
 
 function fasShippingRatesError(int $statusCode, string $message): void
 {
@@ -62,6 +63,8 @@ function fasShippingCatalogItem(array $item, array $product): array
         'length' => !empty($product['length']) ? (float)$product['length'] : 10.0,
         'width' => !empty($product['width']) ? (float)$product['width'] : 10.0,
         'height' => !empty($product['height']) ? (float)$product['height'] : 10.0,
+        'has_complete_shipping_data' => !empty($product['weight']) && !empty($product['length'])
+            && !empty($product['width']) && !empty($product['height']),
     ];
 }
 
@@ -71,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(fas_security_body(65536), true);
 
-if (!$input) {
+if (!is_array($input)) {
     fasShippingRatesError(400, 'Invalid JSON data');
 }
 
@@ -79,8 +82,8 @@ if (!isset($input['items']) || !isset($input['address'])) {
     fasShippingRatesError(400, 'Missing required fields: items and address');
 }
 
-if (!is_array($input['items']) || empty($input['items'])) {
-    fasShippingRatesError(400, 'Items must be a non-empty array');
+if (!is_array($input['items']) || empty($input['items']) || count($input['items'])>100 || !is_array($input['address'])) {
+    fasShippingRatesError(400, 'Enter a valid address and between 1 and 100 cart items');
 }
 
 $requiredAddressFields = ['address1', 'city', 'state', 'zip', 'country'];
@@ -107,13 +110,17 @@ try {
     ];
 
     foreach ($input['items'] as $item) {
+        if (!is_array($item) || filter_var($item['quantity'] ?? 1, FILTER_VALIDATE_INT,
+                ['options'=>['min_range'=>1,'max_range'=>999]])===false) {
+            fasShippingRatesError(400, 'Invalid shipping quantity');
+        }
         $productId = (int)($item['product_id'] ?? $item['id'] ?? 0);
         if ($productId <= 0) {
             fasShippingRatesError(400, 'Invalid product ID in cart item');
         }
 
         $product = $productModel->getById($productId);
-        if (!$product) {
+        if (!$product || empty($product['is_active']) || empty($product['show_on_website'])) {
             fasShippingRatesError(400, 'Product not found for shipping: ' . $productId);
         }
 
@@ -147,31 +154,32 @@ try {
     ];
 
     if (empty($ratedItems)) {
+        $freeRate = ShippingRules::freeShippingRate($freeShippingSummary);
+        $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, [$freeRate]);
+        if ($quoteId === null) fasShippingRatesError(503, 'Shipping checkout is temporarily unavailable. Please try again.');
         echo json_encode([
             'success' => true,
             'free_shipping' => $freeShippingSummary,
-            'applepay_shipping_quote' => \FAS\Payments\ApplePayContext::rememberShipping($input, [ShippingRules::freeShippingRate($freeShippingSummary)]),
-            'rates' => [
-                ShippingRules::freeShippingRate($freeShippingSummary),
-            ],
+            'shipping_quote' => $quoteId,
+            'applepay_shipping_quote' => $quoteId,
+            'rates' => [$freeRate],
         ]);
         exit;
     }
 
     $warehouseModel = new Warehouse($db);
     $warehouse = $warehouseModel->getForCartItems($ratedItems);
-    $easyship = new EasyShipAPI();
-    $rates = $easyship->getShippingRates($ratedItems, $input['address'], $warehouse);
+    $shipping = ShippingRateService::forDatabase($db);
+    $rates = $shipping->getShippingRates($ratedItems, $input['address'], $warehouse ?: null);
 
     if ($rates === null) {
         $monitor = new ErrorMonitor($db);
-        $monitor->record(ErrorMonitor::AREA_SHIPPING, 'Shipping rates returned null from EasyShip.', [
+        $monitor->record(ErrorMonitor::AREA_SHIPPING, 'Shipping providers could not return rates.', [
             'source' => 'api/shipping-rates.php',
             'severity' => 'error',
             'metadata' => [
                 'items_count' => count($ratedItems),
-                'destination_state' => $input['address']['state'] ?? null,
-                'destination_zip' => $input['address']['zip'] ?? null,
+                'providers' => $shipping->diagnostics(),
                 'warehouse_id' => $warehouse['id'] ?? null,
             ],
         ]);
@@ -182,10 +190,13 @@ try {
         fasShippingRatesError(200, 'No shipping rates available for this destination. Please contact support.');
     }
 
+    $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, $rates, $shipping->shipmentSnapshot());
+    if ($quoteId === null) fasShippingRatesError(503, 'Shipping checkout is temporarily unavailable. Please try again.');
     echo json_encode([
         'success' => true,
         'free_shipping' => $freeShippingSummary,
-        'applepay_shipping_quote' => \FAS\Payments\ApplePayContext::rememberShipping($input, $rates),
+        'shipping_quote' => $quoteId,
+        'applepay_shipping_quote' => $quoteId,
         'rates' => $rates,
     ]);
 } catch (Throwable $e) {
@@ -199,7 +210,7 @@ try {
             'source' => 'api/shipping-rates.php',
             'severity' => 'error',
             'metadata' => [
-                'input_preview' => isset($input) ? array_intersect_key((array)$input, array_flip(['address', 'items'])) : null,
+                'items_count' => count($ratedItems ?? []),
             ],
         ]);
     } catch (Throwable $monitorError) {

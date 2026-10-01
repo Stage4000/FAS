@@ -6,7 +6,7 @@
  * eligibility before the shopper reaches checkout.
  */
 
-require_once __DIR__ . '/../src/integrations/EasyShipAPI.php';
+require_once __DIR__ . '/../src/shipping/ShippingRateService.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
@@ -14,7 +14,7 @@ require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
-use FAS\Integrations\EasyShipAPI;
+use FAS\Shipping\ShippingRateService;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
@@ -27,6 +27,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 
 header('Content-Type: application/json');
+header('Cache-Control: private, no-store');
 
 function fasShippingEstimateError(int $statusCode, string $message): void
 {
@@ -106,8 +107,8 @@ if (!is_array($input)) {
     fasShippingEstimateError(400, 'Invalid JSON data');
 }
 
-if (empty($input['items']) || !is_array($input['items'])) {
-    fasShippingEstimateError(400, 'Add at least one item before estimating shipping');
+if (empty($input['items']) || !is_array($input['items']) || count($input['items'])>100) {
+    fasShippingEstimateError(400, 'Add between 1 and 100 items before estimating shipping');
 }
 
 $address = fasShippingEstimateAddress(is_array($input['address'] ?? null) ? $input['address'] : []);
@@ -134,13 +135,17 @@ try {
     ];
 
     foreach ($input['items'] as $item) {
+        if (!is_array($item) || filter_var($item['quantity'] ?? 1, FILTER_VALIDATE_INT,
+                ['options'=>['min_range'=>1,'max_range'=>999]])===false) {
+            fasShippingEstimateError(400, 'Invalid shipping quantity');
+        }
         $productId = (int)($item['product_id'] ?? $item['id'] ?? 0);
         if ($productId <= 0) {
             fasShippingEstimateError(400, 'Invalid product ID in estimate request');
         }
 
         $product = $productModel->getById($productId);
-        if (!$product || empty($product['show_on_website'])) {
+        if (!$product || empty($product['is_active']) || empty($product['show_on_website'])) {
             fasShippingEstimateError(400, 'Product is unavailable for shipping estimate: ' . $productId);
         }
 
@@ -213,8 +218,8 @@ try {
 
     $warehouseModel = new Warehouse($db);
     $warehouse = $warehouseModel->getForCartItems($ratedItems);
-    $easyship = new EasyShipAPI();
-$rates = $easyship->getShippingRates($ratedItems, $address, $warehouse);
+    $shipping = ShippingRateService::forDatabase($db);
+$rates = $shipping->getShippingRates($ratedItems, $address + ['_estimate'=>true], $warehouse ?: null);
 
 if ($rates === null || empty($rates)) {
     $monitor = new ErrorMonitor($db);
@@ -223,8 +228,7 @@ if ($rates === null || empty($rates)) {
         'severity' => 'warning',
         'metadata' => [
             'items_count' => count($ratedItems),
-            'destination_state' => $address['state'] ?? null,
-            'destination_zip' => $address['zip'] ?? null,
+            'providers' => $shipping->diagnostics(),
             'warehouse_id' => $warehouse['id'] ?? null,
             'rates_null' => $rates === null,
         ],
@@ -272,8 +276,7 @@ if ($rates === null || empty($rates)) {
             'source' => 'api/shipping-estimate.php',
             'severity' => 'error',
             'metadata' => [
-                'address' => $address ?? null,
-                'input_preview' => isset($input) ? array_intersect_key((array)$input, array_flip(['destination', 'items', 'product_id'])) : null,
+                'items_count' => count($ratedItems ?? []),
             ],
         ]);
     } catch (Throwable $monitorError) {

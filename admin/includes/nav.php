@@ -3,7 +3,18 @@
 $currentPage = basename($_SERVER['PHP_SELF']);
 if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
 $compactQualitySidebar = $currentPage === 'product-quality.php';
+$ajaxPage = basename($_SERVER['PHP_SELF']);
+$ajaxEnabled = in_array($ajaxPage, [
+    'error-monitor.php', 'products.php', 'orders.php', 'order-details.php',
+    'warehouses.php', 'coupons.php', 'banners.php', 'sale.php', 'free-shipping.php',
+    'homepage-categories.php', 'settings.php', 'password.php', 'security.php',
+    'growth.php', 'product-content.php', 'product-quality.php', 'stale-inventory.php',
+    'ebay-sync-health.php',
+], true);
 ?>
+<?php if ($ajaxEnabled): ?>
+<script defer src="js/admin-ajax.js?v=<?php echo filemtime(__DIR__ . '/../js/admin-ajax.js'); ?>"></script>
+<?php endif; ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="index.php">
@@ -104,4 +115,4 @@ $compactQualitySidebar = $currentPage === 'product-quality.php';
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
+        <div class="col-md-9 col-lg-10" <?php if ($ajaxEnabled): ?>id="admin-content" data-admin-page="<?php echo htmlspecialchars($ajaxPage, ENT_QUOTES, 'UTF-8'); ?>" data-admin-error="<?php echo htmlspecialchars((string)($error ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-admin-notice="<?php echo htmlspecialchars((string)($success ?: ($notice ?? '')), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>

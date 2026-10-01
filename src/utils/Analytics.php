@@ -253,32 +253,24 @@ class Analytics
         $pagePath = $this->pagePath($context['page_path'] ?? null, $context['page_url'] ?? null, $server);
         $adminUsername = $this->cleanText($adminUsername, 255);
 
-        if ($existing) {
-            $stmt = $this->db->prepare(
-                "UPDATE analytics_sessions
-                SET is_admin_session = 1,
-                    admin_username = ?,
-                    visitor_id = COALESCE(NULLIF(visitor_id, ''), ?),
-                    last_seen_at = ?,
-                    last_page = ?
-                WHERE session_id = ?"
-            );
-            $stmt->execute([$adminUsername, $visitorId, $now, $pagePath, $sessionId]);
-        } else {
-            $stmt = $this->db->prepare(
-                "INSERT INTO analytics_sessions (
-                    session_id,
-                    visitor_id,
-                    started_at,
-                    last_seen_at,
-                    landing_page,
-                    last_page,
-                    is_admin_session,
-                    admin_username
-                ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)"
-            );
-            $stmt->execute([$sessionId, $visitorId, $now, $now, $pagePath, $pagePath, $adminUsername]);
-        }
+        $conflictClause = $this->driver === 'sqlite'
+            ? ' ON CONFLICT(session_id) DO UPDATE SET '
+            : ' ON DUPLICATE KEY UPDATE ';
+        $stmt = $this->db->prepare(
+            "INSERT INTO analytics_sessions (
+                session_id, visitor_id, started_at, last_seen_at, landing_page,
+                last_page, is_admin_session, admin_username
+            ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)" . $conflictClause .
+            "is_admin_session = 1,
+                admin_username = ?,
+                visitor_id = COALESCE(NULLIF(visitor_id, ''), ?),
+                last_seen_at = ?,
+                last_page = ?"
+        );
+        $stmt->execute([
+            $sessionId, $visitorId, $now, $now, $pagePath, $pagePath, $adminUsername,
+            $adminUsername, $visitorId, $now, $pagePath,
+        ]);
 
         $marked = $this->fetchOne(
             "SELECT is_admin_session FROM analytics_sessions WHERE session_id = ?",
@@ -1423,11 +1415,6 @@ $stages = [
         $sessionGeo = $this->sessionGeo($server, $clientIp, $now);
         $bot = $this->botAssessment($server);
 
-        $existing = $this->fetchOne(
-            "SELECT session_id FROM analytics_sessions WHERE session_id = ?",
-            [$sessionId]
-        );
-
         $data = [
             'visitor_id' => $visitorId,
             'last_seen_at' => $now,
@@ -1469,37 +1456,28 @@ $stages = [
             'admin_username' => $this->adminUsername($server),
         ];
 
-        if ($existing) {
-            $stickyTextColumns = [
-                'referrer', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-                'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
-                'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason', 'admin_username',
-            ];
-            $nullableColumns = ['cf_latitude', 'cf_longitude', 'cf_bot_score'];
-            $stickyBooleanColumns = ['cf_verified_bot', 'is_potential_bot', 'is_admin_session'];
-            $assignments = [];
-            $values = [];
+        $stickyTextColumns = [
+            'referrer', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+            'cf_country', 'cf_region', 'cf_region_code', 'cf_city',
+            'cf_postal_code', 'cf_timezone', 'cf_ray', 'bot_reason', 'admin_username',
+        ];
+        $nullableColumns = ['cf_latitude', 'cf_longitude', 'cf_bot_score'];
+        $stickyBooleanColumns = ['cf_verified_bot', 'is_potential_bot', 'is_admin_session'];
+        $assignments = [];
+        $values = [];
 
-            foreach ($data as $column => $value) {
-                if (in_array($column, $stickyTextColumns, true)) {
-                    $assignments[] = "{$column} = COALESCE(NULLIF({$column}, ''), ?)";
-                } elseif (in_array($column, $nullableColumns, true)) {
-                    $assignments[] = "{$column} = COALESCE({$column}, ?)";
-                } elseif (in_array($column, $stickyBooleanColumns, true)) {
-                    $assignments[] = "{$column} = CASE WHEN {$column} = 1 OR ? = 1 THEN 1 ELSE 0 END";
-                } else {
-                    $assignments[] = "{$column} = ?";
-                }
-
-                $values[] = $value;
+        foreach ($data as $column => $value) {
+            if (in_array($column, $stickyTextColumns, true)) {
+                $assignments[] = "{$column} = COALESCE(NULLIF({$column}, ''), ?)";
+            } elseif (in_array($column, $nullableColumns, true)) {
+                $assignments[] = "{$column} = COALESCE({$column}, ?)";
+            } elseif (in_array($column, $stickyBooleanColumns, true)) {
+                $assignments[] = "{$column} = CASE WHEN {$column} = 1 OR ? = 1 THEN 1 ELSE 0 END";
+            } else {
+                $assignments[] = "{$column} = ?";
             }
 
-            $values[] = $sessionId;
-            $stmt = $this->db->prepare(
-                "UPDATE analytics_sessions SET " . implode(', ', $assignments) . " WHERE session_id = ?"
-            );
-            $stmt->execute($values);
-            return;
+            $values[] = $value;
         }
 
         $insertData = array_merge([
@@ -1508,11 +1486,17 @@ $stages = [
             'landing_page' => $this->cleanText($context['landing_page'] ?? $pagePath, 1000),
         ], $data);
 
+        // Let the unique key arbitrate concurrent collectors and admin markers.
+        // Updating in place preserves the original landing page and child events.
+        $conflictClause = $this->driver === 'sqlite'
+            ? ' ON CONFLICT(session_id) DO UPDATE SET '
+            : ' ON DUPLICATE KEY UPDATE ';
         $columns = array_keys($insertData);
         $stmt = $this->db->prepare(
             "INSERT INTO analytics_sessions (" . implode(', ', $columns) . ") VALUES (" . implode(', ', array_fill(0, count($columns), '?')) . ")"
+            . $conflictClause . implode(', ', $assignments)
         );
-        $stmt->execute(array_values($insertData));
+        $stmt->execute(array_merge(array_values($insertData), $values));
     }
 
     private function insertEvent(string $sessionId, string $visitorId, array $event, array $context, array $server, string $now): void

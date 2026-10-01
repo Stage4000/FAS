@@ -17,6 +17,8 @@ final class SecurityStore
             'login_account'=>['Admin login / username',20,900],
             'reauth_account'=>['Password verification / account',5,900],
             'reauth_ip'=>['Password verification / IP',20,900],
+            'settings_account'=>['Admin settings changes / account',10,300],
+            'settings_ip'=>['Admin settings changes / IP',30,300],
             'contact'=>['Contact submissions',5,600],
             'saved_search'=>['Saved search signups',10,3600],
             'shipping'=>['Shipping estimates and rates',60,300],

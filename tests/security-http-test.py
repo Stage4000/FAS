@@ -92,6 +92,10 @@ try:
         with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role=?,is_active=? WHERE id=9001",[role,active])
         check(request("/admin/security.php")[0]==403,"Inactive or non-admin identity rejected: "+role+"/"+str(active))
     with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role='admin',is_active=1 WHERE id=9001")
+    for role,active in [("viewer",1),("admin",0)]:
+        with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role=?,is_active=? WHERE id=9001",[role,active])
+        check(request("/admin/settings.php")[0]==403,"Site settings reject inactive or non-admin identity: "+role+"/"+str(active))
+    with sqlite3.connect(dbfile) as db: db.execute("UPDATE admin_users SET role='admin',is_active=1 WHERE id=9001")
     status,h,b=request("/admin/security.php?tab=restrictions",{"action":"block","ip":"127.0.0.1","reason":"Self","duration":"900","csrf_token":csrf})
     check(status==200 and "cannot be blocked" in b,"Self-block prevented")
     status,h,b=request("/admin/security.php?tab=restrictions",{"action":"block","ip":"203.0.113.4","reason":"<script>fixture</script>","duration":"900","csrf_token":csrf})
@@ -129,6 +133,33 @@ try:
     check(request("/admin/growth.php")[0]==200,"Sales and Email dashboard renders for active admin")
     status,h,b=request("/admin/growth.php",{"csrf_token":csrf,"from_email":"noreply@flipandstrip.com","reply_to":"reply@example.invalid","mail_enabled":"1","postal_address":""})
     check(status==200 and "Enter a business mailing address" in b,"Delivery cannot be enabled without a mailing address")
+    # Site and email configuration share budgets, before any settings are written.
+    rule("settings_account")
+    config_before=(SITE/"src/config/config.php").read_bytes()
+    check(request("/admin/settings.php",{"site_name":"Must not save"})[0]==403,"Settings reject missing CSRF")
+    with sqlite3.connect(env["FAS_SECURITY_DB_PATH"]) as db:
+        check(db.execute("SELECT COUNT(*) FROM security_buckets WHERE rule='settings_account'").fetchone()[0]==0,"Invalid CSRF does not consume account budget")
+    request("/admin/growth.php",{"csrf_token":csrf,"from_email":"invalid"})
+    status,h,b=request("/admin/settings.php",{"csrf_token":csrf,"site_name":"Must not save"})
+    check(status==429 and int(h.get("Retry-After","0"))>0 and "Too many attempts" in b,"Site settings share email settings budget with HTML retry guidance")
+    check((SITE/"src/config/config.php").read_bytes()==config_before,"Throttled settings do not write configuration")
+    with sqlite3.connect(growthdb) as db:
+        settings_before=db.execute("SELECT * FROM growth_settings ORDER BY name").fetchall()
+    status,h,b=request("/admin/growth.php",{"csrf_token":csrf,"from_email":"changed@example.invalid","reply_to":"reply@example.invalid","postal_address":"Fixture only"})
+    check(status==429 and "Retry-After" in h,"Email settings return rate limit status and retry header")
+    with sqlite3.connect(growthdb) as db:
+        check(db.execute("SELECT * FROM growth_settings ORDER BY name").fetchall()==settings_before,"Throttled email settings preserve stored values")
+    check(request("/admin/settings.php")[0]==200 and request("/admin/security.php")[0]==200,"Settings throttle preserves read access and security recovery")
+    rule("settings_account",10,300)
+    # Password verification has one budget across the Security and Password pages.
+    rule("reauth_account")
+    request("/admin/security.php?tab=rules",{"csrf_token":csrf,"action":"reauth","password":"Wrong-fixture"})
+    status,h,b=request("/admin/password.php",{"csrf_token":csrf,"current_password":"Local-test-only","new_password":"Must-not-change","confirm_password":"Must-not-change"})
+    check(status==429 and "Retry-After" in h,"Password changes share the reauthentication budget")
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute("SELECT password_hash FROM admin_users WHERE id=9001").fetchone()[0]==password,"Throttled password change preserves password hash")
+    rule("reauth_account",5,900)
+    check("Admin account protection" in request("/admin/security.php")[2],"Security overview exposes admin protection limits")
     with sqlite3.connect(growthdb) as db:
         check(db.execute("SELECT COUNT(*) FROM growth_messages WHERE status='sent'").fetchone()[0]==0,"No mail was sent during HTTP tests")
     # Multiple PHP origins here simulate workers against ONE isolated SQLite store.
@@ -196,7 +227,11 @@ try:
         check(not any(e[0]=="203.0.113.99" for e in events),"Spoofed Cloudflare header ignored at HTTP boundary")
     maintenance("unblock","127.0.0.1")
     check(request("/admin/login.php")[0]==200,"CLI emergency recovery available")
-    result={"date":"2026-09-30","scope":"Isolated localhost fixture; no production requests or real payments","assertions":len(rows),"passed":rows}
+    status,h,b=request("/admin/settings.php",{"csrf_token":csrf,"site_name":"Local fixture updated"})
+    check(status==200 and "Settings saved successfully" in b,"Authorized settings save succeeds within budget")
+    with sqlite3.connect(env["FAS_SECURITY_DB_PATH"]) as db:
+        check(db.execute("SELECT COUNT(*) FROM security_events WHERE outcome='settings_changed' AND actor=9001").fetchone()[0]==1,"Successful settings save records its admin actor")
+    result={"date":time.strftime("%Y-%m-%d"),"scope":"Isolated localhost fixture; no production requests or real payments","assertions":len(rows),"passed":rows}
     (ROOT/"audit/security-local-http.json").write_text(json.dumps(result,indent=2)+"\n",encoding="utf-8")
     print("PASS",len(rows),"isolated HTTP assertions.")
 finally:

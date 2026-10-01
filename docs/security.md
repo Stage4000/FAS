@@ -32,6 +32,14 @@ Unblock removes the selected IP's manual block and associated counters. Reset-ru
 
 Rules use burst capacity plus continuous refill, not fixed-window request counts. Default values live in SecurityStore::defaults() and appear on the Rules page. Editing a rule clears its counters. Manual blocks last 15 minutes, one hour, or 24 hours and exclude payment recovery and authenticated security management.
 
+### Admin settings protection
+
+Site configuration and email delivery settings share two budgets: a burst of 10 attempts per admin account and 30 per visitor IP, each refilling over 300 seconds. Account limits persist across sessions and connections; the IP budget also spans accounts. Both pages require an active administrator and valid CSRF token before consuming the budget. Invalid settings submissions consume a token; invalid CSRF submissions do not. Password confirmation on email settings continues to use the separate password-verification budgets.
+
+Throttled saves return an HTML error with HTTP 429 and Retry-After before any settings are written. Limiter storage failures fail closed with 503. Reading settings and accessing the Security page remain available; manual IP blocks do not lock an authenticated administrator out of these controls. Successful site configuration saves record the administrator ID with a settings_changed event, without recording configuration values.
+
+The Security overview displays the current sign-in, password verification, and settings policies, with effective enforcement or observation status. New policies appear automatically in Rules and Activity filters. Existing installations retain their activation state; this change does not activate production enforcement.
+
 ## Responses and recovery
 
 - Throttled actions return 429 and an integer Retry-After, retaining each endpoint's existing response fields. Repeated denials do not extend a restriction.
@@ -67,4 +75,11 @@ Local test commands:
     php tests/growth-test.php
     node tests/growth-client-test.cjs
 
-The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 52 assertions include concurrent legacy completion through three PHP workers against one SQLite database, with one stock deduction. Results are recorded in audit/security-local-http.json; it does not call production services. Browser verification additionally covered login, reauthentication, rule save, temporary block/unblock, and activity filters. No console errors were observed during those Security-page checks.
+The HTTP fixture creates its own synthetic inventory and disables PHP mail. Its 66 assertions include concurrent legacy completion through three PHP workers against one SQLite database, with one stock deduction. Results are recorded in audit/security-local-http.json; it does not call production services. The September 30 browser verification additionally covered login, reauthentication, rule save, temporary block/unblock, and activity filters. No console errors were observed during those Security-page checks.
+
+### Follow-up validation — 2026-10-01
+
+- Passed 86 limiter assertions, 66 isolated HTTP assertions, and 11 client backoff/recovery assertions.
+- Verified shared settings budgets, denial before configuration writes, active-admin authorization, CSRF behavior, successful-save audit events, and the shared password-verification budget across Security and Change Password.
+- Inspected the updated overview at 1440px and 390px, including light and dark desktop views. At 390px the page had no horizontal overflow. The new settings rule remained disabled before reauthentication; no console errors were observed during that check.
+- Production deployment, IP resolution checks, and activation remain pending.

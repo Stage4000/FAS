@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-30",
+  "date": "2026-10-01",
   "scope": "Isolated localhost fixture; no production requests or real payments",
-  "assertions": 52,
+  "assertions": 66,
   "passed": [
     "Anonymous security access redirects to sign-in",
     "Login rejects missing CSRF",
@@ -14,6 +14,8 @@
     "Rule persisted independently of site settings",
     "Inactive or non-admin identity rejected: viewer/1",
     "Inactive or non-admin identity rejected: admin/0",
+    "Site settings reject inactive or non-admin identity: viewer/1",
+    "Site settings reject inactive or non-admin identity: admin/0",
     "Self-block prevented",
     "Temporary exact IP block saved",
     "Block reason HTML escaped",
@@ -32,6 +34,16 @@
     "Sales and Email dashboard requires login",
     "Sales and Email dashboard renders for active admin",
     "Delivery cannot be enabled without a mailing address",
+    "Settings reject missing CSRF",
+    "Invalid CSRF does not consume account budget",
+    "Site settings share email settings budget with HTML retry guidance",
+    "Throttled settings do not write configuration",
+    "Email settings return rate limit status and retry header",
+    "Throttled email settings preserve stored values",
+    "Settings throttle preserves read access and security recovery",
+    "Password changes share the reauthentication budget",
+    "Throttled password change preserves password hash",
+    "Security overview exposes admin protection limits",
     "No mail was sent during HTTP tests",
     "Concurrent completion retries all return success for the same order",
     "Concurrent completion deducts inventory only once",
@@ -54,6 +66,8 @@
     "Password change rejects missing CSRF",
     "Activity excludes credentials and query strings",
     "Spoofed Cloudflare header ignored at HTTP boundary",
-    "CLI emergency recovery available"
+    "CLI emergency recovery available",
+    "Authorized settings save succeeds within budget",
+    "Successful settings save records its admin actor"
   ]
 }

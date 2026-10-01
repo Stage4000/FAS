@@ -15,12 +15,17 @@ require_once __DIR__ . '/../src/models/Order.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/integrations/PayPalAPI.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
+require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
+require_once __DIR__ . '/../src/payments/CheckoutPricing.php';
 
 use FAS\Config\Database;
 use FAS\Models\Order;
 use FAS\Models\Product;
 use FAS\Integrations\PayPalAPI;
 use FAS\Utils\ErrorMonitor;
+use FAS\Shipping\ShippingOrder;
+use FAS\Payments\CheckoutProblem;
+use FAS\Payments\CheckoutPricing;
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -32,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Get request data
 $input = json_decode(fas_security_body(), true);
 
-if (!$input) {
+if (!is_array($input)) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid JSON data']);
     exit;
@@ -61,6 +66,9 @@ try {
             echo json_encode(['error' => 'Invalid action']);
     }
     
+} catch (CheckoutProblem $e) {
+    http_response_code($e->httpStatus);
+    echo json_encode(['error' => $e->getMessage()]);
 } catch (Exception $e) {
     error_log('Order API Error: ' . $e->getMessage());
     try {
@@ -89,6 +97,7 @@ try {
  */
 function createOrder($input, $orderModel, $productModel)
 {
+    [$shippingKey, $shippingQuote, $selectedRate] = ShippingOrder::selected($input);
     // Validate required fields
     $required = ['customer_email', 'items', 'subtotal', 'total_amount'];
     foreach ($required as $field) {
@@ -106,56 +115,8 @@ function createOrder($input, $orderModel, $productModel)
         exit;
     }
     
-    // Validate items array
-    if (!is_array($input['items']) || empty($input['items'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Items must be a non-empty array']);
-        exit;
-    }
-    
-    // Validate amounts
-    if ($input['subtotal'] < 0 || $input['total_amount'] < 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid amounts']);
-        exit;
-    }
-    
-    // Validate inventory availability
-    foreach ($input['items'] as $item) {
-        if (!isset($item['product_id']) || !isset($item['quantity'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid item structure']);
-            exit;
-        }
-        
-        $product = $productModel->getById($item['product_id'], true); // Include inactive to check existence
-        if (!$product) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Product not found: ' . $item['product_id']]);
-            exit;
-        }
-        
-        // Check if product is active and available
-        if (!$product['is_active']) {
-            http_response_code(400);
-            echo json_encode([
-                'error' => 'Product is no longer available',
-                'product' => $product['name']
-            ]);
-            exit;
-        }
-        
-        if ($product['quantity'] < $item['quantity']) {
-            http_response_code(400);
-            echo json_encode([
-                'error' => 'Insufficient stock',
-                'product' => $product['name'],
-                'available' => $product['quantity'],
-                'requested' => $item['quantity']
-            ]);
-            exit;
-        }
-    }
+    $priced=CheckoutPricing::calculate($input,$shippingQuote['cart'],$productModel,
+        \FAS\Payments\ApplePayContext::catalogCents($selectedRate['total_charge']));
     
     // Generate order number
     $orderNumber = $orderModel->generateOrderNumber();
@@ -168,41 +129,34 @@ function createOrder($input, $orderModel, $productModel)
         'customer_phone' => $input['customer_phone'] ?? null,
         'billing_address' => $input['billing_address'] ?? null,
         'shipping_address' => $input['shipping_address'] ?? null,
-        'subtotal' => $input['subtotal'],
-        'shipping_cost' => $input['shipping_cost'] ?? 0,
-        'tax_amount' => $input['tax_amount'] ?? 0,
-        'discount_code' => $input['discount_code'] ?? null,
-        'discount_amount' => $input['discount_amount'] ?? 0,
-        'total_amount' => $input['total_amount'],
+        'subtotal' => $priced['subtotal'],
+        'shipping_cost' => $priced['shipping_cost'],
+        'tax_amount' => $priced['tax_amount'],
+        'discount_code' => $priced['discount_code'],
+        'discount_amount' => $priced['discount_amount'],
+        'total_amount' => $priced['total_amount'],
         'payment_method' => 'paypal',
         'payment_status' => 'pending',
-        'paypal_order_id' => $input['paypal_order_id'] ?? null,
+        'paypal_order_id' => null,
         'order_status' => 'pending',
         'notes' => $input['notes'] ?? null
     ];
     
-    $orderId = $orderModel->create($orderData);
+    $orderItems = $priced['items'];
     
-    if (!$orderId) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Failed to create order']);
-        exit;
+    $db = $productModel->getDb();
+    $db->beginTransaction();
+    try {
+        $orderId = $orderModel->create($orderData);
+        if (!$orderId || !$orderModel->addItems($orderId, $orderItems)) {
+            throw new RuntimeException('Failed to create order.');
+        }
+        ShippingOrder::record($db, (int)$orderId, $shippingKey, $shippingQuote, $selectedRate);
+        $db->commit();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        throw $e;
     }
-    
-    // Add order items
-    $orderItems = [];
-    foreach ($input['items'] as $item) {
-        $orderItems[] = [
-            'product_id' => $item['product_id'],
-            'product_name' => $item['product_name'],
-            'product_sku' => $item['product_sku'] ?? null,
-            'quantity' => $item['quantity'],
-            'unit_price' => $item['unit_price'],
-            'total_price' => $item['unit_price'] * $item['quantity']
-        ];
-    }
-    
-    $orderModel->addItems($orderId, $orderItems);
     
     echo json_encode([
         'success' => true,

@@ -40,6 +40,14 @@ expectSecurity($before===$store->run("SELECT tokens FROM security_buckets WHERE 
 for ($i=0;$i<15;$i++) expectSecurity($store->check(['login_account'=>'user'], '198.51.100.'.($i+1))['allowed'],'Distributed login attempts consume account budget');
 expectSecurity(!$store->check(['login_account'=>'user'],'203.0.113.9')['allowed'],'Distributed account throttle');
 expectSecurity(count($store->restrictions())>=3,'Active restrictions visible');
+for ($i=0;$i<10;$i++) expectSecurity($store->check(['settings_account'=>'admin-1','settings_ip'=>$ip],$ip)['allowed'],'Settings burst');
+expectSecurity(!$other->check(['settings_account'=>'admin-1','settings_ip'=>'198.51.100.10'],'198.51.100.10')['allowed'],'Settings account limit survives new connection and service instance');
+expectSecurity($store->check(['settings_account'=>'admin-2','settings_ip'=>$ip],$ip)['allowed'],'Other administrator retains independent account budget');
+$now += 30;
+expectSecurity($store->check(['settings_account'=>'admin-1','settings_ip'=>$ip],$ip)['allowed'],'Settings token refills after thirty seconds');
+$store->saveRule('settings_ip',1,300,'enforce',$ip,1);
+expectSecurity($store->check(['settings_account'=>'admin-3','settings_ip'=>$ip],$ip)['allowed'],'Settings IP burst');
+expectSecurity(!$store->check(['settings_account'=>'admin-4','settings_ip'=>$ip],$ip)['allowed'],'Settings IP budget spans administrator accounts');
 $store->saveRule('contact',1,60,'observe',$ip,1);
 expectSecurity($store->check(['contact'=>$ip],$ip)['allowed'],'Observation first token');
 expectSecurity($store->check(['contact'=>$ip],$ip)['allowed'],'Observation permits exhausted budget');

@@ -16,6 +16,7 @@ if(($_SERVER['REQUEST_METHOD']??'')==='POST' && $growth) {
     fas_security_body();
     try {
         if(!CSRF::validateToken($_POST['csrf_token']??null)){http_response_code(403);throw new InvalidArgumentException('Refresh this page and try again.');}
+        if(!$auth->allowSettingsChange((int)$admin['id']))throw new InvalidArgumentException($auth->lastError);
         if((int)($_SESSION['security_reauth_at']??0)<time()-600) {
             if(!$auth->verifyCurrentPassword((int)$admin['id'],$_POST['password']??null))throw new InvalidArgumentException($auth->lastError?:'Verify your current password to save email settings.');
             $_SESSION['security_reauth_at']=time();

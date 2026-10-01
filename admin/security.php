@@ -72,7 +72,7 @@ $filterIp = ClientIp::normalize($_GET['ip'] ?? '');
 $filterRule = secText($_GET['rule'] ?? '');
 $filterOutcome = secText($_GET['outcome'] ?? '');
 $outcomes = ['login_success','login_failed','throttled','blocked','observed','reauth_success','reauth_failed',
-    'password_changed','rule_changed','rules_reset','block_added','unblocked','counter_cleared','activated','deactivated'];
+    'password_changed','settings_changed','rule_changed','rules_reset','block_added','unblocked','counter_cleared','activated','deactivated'];
 $page = max(1,min(2000,(int)secText($_GET['page'] ?? '1')));
 if ($store && $healthy) {
     try {
@@ -112,6 +112,9 @@ if ($store && $healthy) {
         .security-rule {display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(90px,1fr)) auto;gap:1rem;align-items:end}
         .security-rule label {font-size:.85rem}
         .security-shell .form-text {margin-bottom:0}
+        [data-theme="dark"] .security-shell .nav-link:not(.active) {color:#9ec5fe}
+        [data-theme="dark"] .security-shell .btn-outline-primary {color:#9ec5fe;border-color:#9ec5fe}
+        [data-theme="dark"] .security-shell .btn-outline-primary:hover {color:#fff;background:#0d6efd}
         @media(max-width:991px){.security-rule{grid-template-columns:1fr 1fr}.security-rule-title{grid-column:1/-1}}
         @media(max-width:420px){.security-rule{grid-template-columns:1fr}.security-shell .nav{gap:.25rem}.security-shell .nav-link{padding:.5rem .65rem}}
     </style>
@@ -142,6 +145,22 @@ if ($store && $healthy) {
                 <div class="col-6 col-xl-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-2"><?= $label ?></p><p class="h2 mb-0"><?= number_format($summary[$key]) ?></p></div></div></div>
             <?php endforeach; ?>
         </div>
+        <section class="card mb-4"><div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div><h2 class="h5">Admin account protection</h2><p class="text-muted mb-0">Separate limits protect sign-in, password verification, and settings changes.</p></div>
+                <a href="?tab=rules" class="btn btn-outline-primary btn-sm">Manage limits</a>
+            </div>
+            <div class="row g-3">
+                <?php foreach (['login_pair','login_ip','login_account','reauth_account','settings_account','settings_ip'] as $ruleId): $r = $rules[$ruleId]; ?>
+                    <div class="col-md-6 col-xl-4"><div class="border rounded p-3 h-100">
+                        <h3 class="h6"><?= secHtml($r['label']) ?></h3>
+                        <p class="mb-1">Burst of <?= (int)$r['capacity'] ?> attempts · refills over <?= number_format($r['seconds']/60, 1) ?> minutes</p>
+                        <span class="badge <?= $active && $r['mode']==='enforce'?'bg-success':'bg-warning text-dark' ?>"><?= $active && $r['mode']==='enforce'?'Enforced':'Observation only' ?></span>
+                    </div></div>
+                <?php endforeach; ?>
+            </div>
+            <p class="small text-muted mt-3 mb-0">Site and email settings share their limits across sessions. If an action is limited, wait for the displayed retry time. Existing admin sessions can still review activity and clear restrictions.</p>
+        </div></section>
         <div class="row g-4">
             <div class="col-lg-7"><section class="card h-100"><div class="card-body p-4">
                 <h2 class="h5 mb-3">Visitor IP detection</h2>
@@ -156,7 +175,7 @@ if ($store && $healthy) {
             </div></section></div>
             <div class="col-lg-5"><section class="card h-100"><div class="card-body p-4">
                 <h2 class="h5">Protected actions</h2>
-                <p>Sign-in, public submissions, shipping, coupons, new payment attempts, and data collection have separate budgets.</p>
+                <p>Sign-in, password verification, admin settings, public submissions, shipping, coupons, new payment attempts, and data collection have separate budgets.</p>
                 <p>Browsing and search-engine crawling remain available. Payment completion and recovery have their own limits and are excluded from manual blocks.</p>
                 <a href="?tab=rules" class="btn btn-outline-primary">Review limits</a>
             </div></section></div>

@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace FAS\Payments;
 
+require_once __DIR__.'/../shipping/ShippingOrder.php';
+
 /** One immutable FAS order and one idempotent PayPal order per payment attempt. */
 final class ApplePayService
 {
@@ -143,7 +145,7 @@ final class ApplePayService
         }
         ApplePayContext::money($total);
         $now = time();
-        $this->transaction(function () use ($id, $owner, $hash, $request, $items, $subtotal, $shipping, $discount, $total, $rate, $now) {
+        $this->transaction(function () use ($id, $owner, $hash, $request, $items, $subtotal, $shipping, $discount, $total, $rate, $quote, $now) {
             // Per-session abuse limit; deployment should also rate-limit this endpoint at the proxy.
             $count = $this->run('SELECT COUNT(*) FROM applepay_attempts WHERE owner_hash = ? AND created_at > ?',
                 [$owner, $now - 3600])->fetchColumn();
@@ -164,6 +166,7 @@ final class ApplePayService
                     [$orderId, $item['product_id'], $item['product_name'], $item['product_sku'], $item['quantity'],
                     $item['unit_cents'] / 100, $item['unit_cents'] * $item['quantity'] / 100]);
             }
+            \FAS\Shipping\ShippingOrder::record($this->db, $orderId, $request['shipping_quote'], $quote, $rate);
             $amount = static fn(int $n): array => ['currency_code' => 'USD', 'value' => ApplePayContext::money($n)];
             $breakdown = ['item_total' => $amount($subtotal), 'shipping' => $amount($shipping), 'tax_total' => $amount(0)];
             if ($discount > 0) {

@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Order.php';
+require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -28,6 +29,7 @@ if (!$order) {
 }
 
 $items = $orderModel->getItems($orderId);
+$shippingSelection = \FAS\Shipping\ShippingOrder::find($db, (int)$orderId);
 $shippingAddress = json_decode($order['shipping_address'], true);
 $billingAddress = json_decode($order['billing_address'], true);
 
@@ -239,6 +241,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <?php echo htmlspecialchars($shippingAddress['zip'] ?? ''); ?><br>
                             <?php echo htmlspecialchars($shippingAddress['country'] ?? ''); ?>
                         </address>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if ($shippingSelection): ?>
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="mb-3">Selected Shipping</h5>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="text-muted small">Carrier and service</div>
+                                <strong><?php echo htmlspecialchars($shippingSelection['courier_name'] . ' — ' . $shippingSelection['service_name']); ?></strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="text-muted small">Quoted shipping</div>
+                                <strong>$<?php echo number_format($shippingSelection['quoted_cents'] / 100, 2); ?></strong>
+                            </div>
+                            <?php if (!empty($shippingSelection['packages'])): ?>
+                                <div class="col-12">
+                                    <div class="text-muted small mb-1">Quoted parcels</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <?php foreach ($shippingSelection['packages'] as $index => $parcel): ?>
+                                            <span class="badge text-bg-light border fw-normal">
+                                                #<?php echo $index + 1; ?>:
+                                                <?php echo htmlspecialchars((string)$parcel['weight']); ?> lb,
+                                                <?php echo htmlspecialchars((string)$parcel['length']); ?> ×
+                                                <?php echo htmlspecialchars((string)$parcel['width']); ?> ×
+                                                <?php echo htmlspecialchars((string)$parcel['height']); ?> in
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>

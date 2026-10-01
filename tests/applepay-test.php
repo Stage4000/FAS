@@ -44,12 +44,13 @@ function fixture(): array {
     $db=getenv('FAS_APPLEPAY_TEST_BRIDGE')?new BridgePDO():new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $db->exec(file_get_contents(__DIR__.'/fixtures/applepay-schema.sql'));
     $db->exec(file_get_contents(__DIR__.'/../database/applepay.sql'));
+    \FAS\Shipping\ShippingOrder::install($db);
     $pp=new FakePayPal();
     $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live');
     $in=['items'=>[['product_id'=>'1','quantity'=>2]],'email'=>'test@example.invalid','first_name'=>'Test','last_name'=>'Buyer',
         'address'=>['address1'=>'100 Test Road','address2'=>'','city'=>'Test City','state'=>'CA','zip'=>'90001','country'=>'US'],
         'shipping_quote'=>str_repeat('c',32),'shipping_index'=>0,'expected_total'=>'25.00'];
-    $q=['cart'=>C::cart($in['items']),'address'=>C::address($in['address']), 'rates'=>[['total_charge'=>5.00,'courier_name'=>'Test','service_name'=>'Ground']], 'expires'=>time()+600];
+    $q=['cart'=>C::cart($in['items']),'address'=>C::address($in['address']), 'rates'=>[['total_charge'=>5.00,'courier_id'=>123,'courier_name'=>'Test','service_name'=>'Ground','provider'=>'easyship']], 'expires'=>time()+600];
     return [$s,$pp,$db,$in,$q,bin2hex(random_bytes(16)),hash('sha256','testowner')];
 }
 function value(PDO $db,string $sql) { return $db->query($sql)->fetchColumn(); }
@@ -68,7 +69,31 @@ scenario('success is bound, idempotent, and uses catalog prices',function(){
     $p->approve($r['paypal_order_id']);$paid=$s->capture($id,$owner);check($paid['state']==='paid','completed');
     $s->capture($id,$owner);$s->status($id,$owner);check($p->captureCalls===1,'one capture');check((int)value($db,'SELECT quantity FROM products WHERE id=1')===8,'stock once');
     check(value($db,'SELECT payment_status FROM orders')==='completed','paid stored');check(value($db,'SELECT payment_method FROM orders')==='applepay','wallet identity');
+    check(value($db,'SELECT provider FROM order_shipping')==='easyship','selected shipping provider stored');
+    check(value($db,'SELECT courier_id FROM order_shipping')==='123','legacy numeric courier identifier is preserved');
     check($p->captureKeys[0]==='apx-'.$id,'stable capture key');
+});
+scenario('direct carrier selection and packing are kept before payment',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    $q['rates'][0]=['total_charge'=>5.00,'courier_id'=>'direct_usps_USPS_GROUND_ADVANTAGE',
+        'courier_name'=>'USPS','service_name'=>'Ground Advantage','provider'=>'usps',
+        'service_code'=>'USPS_GROUND_ADVANTAGE','rate_basis'=>'commercial'];
+    $q['shipment']=['origin'=>['zip'=>'66614','state'=>'KS'],
+        'packages'=>[['weight'=>1.0,'length'=>10.0,'width'=>10.0,'height'=>10.0]]];
+    $s->create($id,$owner,$in,$q);
+    $shipping=\FAS\Shipping\ShippingOrder::find($db,(int)value($db,'SELECT id FROM orders'));
+    check($shipping['provider']==='usps' && $shipping['service_code']==='USPS_GROUND_ADVANTAGE',
+        'wallet order records selected direct service');
+    check(count($shipping['packages'])===1 && (float)$shipping['packages'][0]['weight']===1.0,
+        'wallet order records measured parcel');
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    $q['rates'][0]['provider']='usps';
+    $q['rates'][0]['courier_id']='direct_usps_USPS_GROUND_ADVANTAGE';
+    $db->exec('DROP TABLE order_shipping');
+    try { $s->create($id,$owner,$in,$q); throw new RuntimeException('Expected storage failure'); }
+    catch (RuntimeException $e) { check($e->getMessage()!=='Expected storage failure','missing direct storage blocks order'); }
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
+        'missing direct storage never starts PayPal or leaves an order');
 });
 scenario('coupon and sale price are calculated server-side',function(){
     [$s,$p,$db,$in,$q,$id,$owner]=fixture();$in['items']=[['product_id'=>2,'quantity'=>1]];$q['cart']=C::cart($in['items']);$in['coupon_code']='SAVE';$in['expected_total']='18.00';

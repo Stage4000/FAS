@@ -132,6 +132,22 @@ class AdminAuth
         return (bool)$ok;
     }
 
+    /** Shared by site and email settings; callers authorize and validate CSRF first. */
+    public function allowSettingsChange(int $adminId): bool
+    {
+        $this->lastError = '';
+        $limit = fas_security_check([
+            'settings_account'=>(string)$adminId,
+            'settings_ip'=>fas_security_ip()['ip'],
+        ], false, true);
+        if (!$limit['allowed']) {
+            fas_security_headers($limit);
+            $this->lastError = fas_security_message($limit);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Create initial admin user
      */

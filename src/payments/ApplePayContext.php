@@ -162,19 +162,20 @@ final class ApplePayContext
         return $cart;
     }
 
-    /** Called ONLY with the rates actually computed by shipping-rates.php. */
-    public static function rememberShipping(array $input, array $rates): ?string
+    /** Called ONLY with the rates actually computed by shipping-rates.php. Shared by checkout and Apple Pay. */
+    public static function rememberShipping(array $input, array $rates, ?array $shipment = null): ?string
     {
         try {
-            if (!self::allowed() || !$rates) {
+            if (!$rates) {
                 return null;
             }
+            self::startSession();
             $now = time();
             $quotes = $_SESSION['fas_applepay_quotes'] ?? [];
             $quotes = array_filter($quotes, static fn($q) => is_array($q) && ($q['expires'] ?? 0) > $now);
             // A malformed Apple Pay quote must not break the ordinary shipping response.
             $quote = ['cart' => self::cart($input['items']), 'address' => self::address($input['address']),
-                'rates' => array_values($rates), 'expires' => $now + self::QUOTE_TTL];
+                'rates' => array_values($rates), 'shipment' => $shipment, 'expires' => $now + self::QUOTE_TTL];
             foreach ($quote['rates'] as $rate) {
                 self::catalogCents($rate['total_charge'] ?? null);
             }
@@ -184,16 +185,17 @@ final class ApplePayContext
             header('Cache-Control: private, no-store');
             return $key;
         } catch (\Throwable $e) {
-            error_log('Apple Pay shipping quote could not be saved.');
+            error_log('Checkout shipping quote could not be saved.');
             return null;
         }
     }
 
     public static function shipping(string $key): array
     {
+        self::startSession();
         $quote = $_SESSION['fas_applepay_quotes'][$key] ?? null;
         if (!is_array($quote) || ($quote['expires'] ?? 0) < time()) {
-            throw new CheckoutProblem('shipping_expired', 'Please calculate shipping again before using Apple Pay.');
+            throw new CheckoutProblem('shipping_expired', 'Please calculate shipping again before paying.');
         }
         return $quote;
     }
