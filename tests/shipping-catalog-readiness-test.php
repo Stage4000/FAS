@@ -71,14 +71,30 @@ $db->exec('DELETE FROM products WHERE id=2;
     INSERT INTO products VALUES(5,NULL,71,10,8,6,1,1,1)');
 $report=ShippingCatalogReadiness::report($db);
 catalogCheck($report['issues']['measurements']===1
-    && $report['issues']['size']===1 && $report['issues']['usps_weight']===1,
-    'Missing measurements, oversize parcels and USPS weight exceptions are separated');
+    && $report['issues']['size']===1 && $report['issues']['usps_weight']===1
+    && $report['issues']['usps_size']===1,
+    'Missing measurements, oversize parcels and USPS-only exceptions are separated');
 catalogCheck($report['example_product_ids']['measurements']===[3]
     && $report['example_product_ids']['size']===[4]
-    && $report['example_product_ids']['usps_weight']===[5],
+    && $report['example_product_ids']['usps_weight']===[5]
+    && $report['example_product_ids']['usps_size']===[4],
     'Gap examples identify products without disclosing addresses or customer data');
 catalogCheck(strpos(json_encode($report,JSON_THROW_ON_ERROR),'Fixture Road')===false,
     'Readiness output omits origin street addresses');
+$db->exec('DELETE FROM products WHERE id IN (3,4,5);
+    INSERT INTO products VALUES(6,NULL,1,100,12,10,1,1,1)');
+$report=ShippingCatalogReadiness::report($db);
+catalogCheck($report['data_complete_for_direct_quotes'] && $report['issues']['size']===0
+    && $report['issues']['usps_size']===1
+    && $report['example_product_ids']['usps_size']===[6],
+    'UPS-compatible packed product above USPS size limits is reported separately');
+$readiness=ShippingReadiness::report(require __DIR__.'/../src/config/shipping.example.php',
+    ['direct_order_storage'=>true,'cache'=>['healthy'=>true],'catalog'=>$report]);
+catalogCheck(in_array('plan products over USPS weight or size limits',
+        $readiness['carriers']['usps']['configuration_blockers'],true)
+    && !in_array('plan products over USPS weight or size limits',
+        $readiness['carriers']['ups']['configuration_blockers'],true),
+    'USPS-only size exception blocks USPS readiness without blocking UPS');
 file_put_contents(__DIR__.'/../audit/shipping-catalog-readiness-local.json',json_encode([
     'date'=>gmdate('c'),'scope'=>'synthetic saleable inventory and warehouse origins; read-only scan',
     'checks'=>count($checks),'passed'=>$checks,'live_carrier_calls'=>0,'production_verified'=>false

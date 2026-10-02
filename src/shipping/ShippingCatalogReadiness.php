@@ -10,8 +10,9 @@ final class ShippingCatalogReadiness
     {
         $empty=['schema_initialized'=>false,'saleable_products'=>0,'complete_measurements'=>0,
             'assigned_origin'=>0,'default_origin'=>0,'distinct_origin_addresses'=>0,
-            'issues'=>['measurements'=>0,'size'=>0,'origin'=>0,'usps_weight'=>0],
-            'example_product_ids'=>['measurements'=>[],'size'=>[],'origin'=>[],'usps_weight'=>[]],
+            'issues'=>['measurements'=>0,'size'=>0,'origin'=>0,'usps_weight'=>0,'usps_size'=>0],
+            'example_product_ids'=>['measurements'=>[],'size'=>[],'origin'=>[],
+                'usps_weight'=>[],'usps_size'=>[]],
             'potential_mixed_origin_carts'=>false,'data_complete_for_direct_quotes'=>false];
         if (!$db) return $empty;
         $tables=$db->query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('products','warehouses')")
@@ -55,6 +56,7 @@ final class ShippingCatalogReadiness
                     self::issue($report,'size',$id);
                 }
                 if ((float)$product['weight']>70) self::issue($report,'usps_weight',$id);
+                if ($edges[0]+2*($edges[1]+$edges[2])>130) self::issue($report,'usps_size',$id);
             }
             $assigned=(int)($product['warehouse_id'] ?? 0);
             $warehouse=$assigned>0 ? ($warehouses[$assigned] ?? null)

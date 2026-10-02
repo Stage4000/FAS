@@ -66,10 +66,12 @@ final class ShippingShipment
                 if ($parcel[$key]<=0) throw new \RuntimeException('Invalid packed measurements.');
             }
             // Preserve all measured edges; no invented combined box or combined weight.
-            $edges=[$parcel['length'],$parcel['width'],$parcel['height']]; rsort($edges);
+            $edges=[$parcel['length'],$parcel['width'],$parcel['height']]; rsort($edges,SORT_NUMERIC);
             if ($edges[0]>108 || $edges[0]+2*($edges[1]+$edges[2])>165) {
                 throw new \RuntimeException('Parcel requires a separate shipping arrangement.');
             }
+            // USPS expects length and width to be the longest and second-longest edges.
+            [$parcel['length'],$parcel['width'],$parcel['height']]=$edges;
             for($unit=0;$unit<$quantity;$unit++) $packages[]=$parcel;
         }
         return ['origin'=>$origin,'destination'=>$address,'packages'=>$packages,'estimate'=>$estimate,

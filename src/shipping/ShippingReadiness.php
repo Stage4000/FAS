@@ -53,6 +53,10 @@ final class ShippingReadiness
                 if ($catalog['potential_mixed_origin_carts'] ?? false) {
                     $blockers[]='plan mixed-origin carts before full direct rollout';
                 }
+                if ($name==='usps' && (($issues['usps_weight'] ?? 0)>0
+                    || ($issues['usps_size'] ?? 0)>0)) {
+                    $blockers[]='plan products over USPS weight or size limits';
+                }
             }
             if (!$carrier['enabled']) $blockers[]='carrier disabled';
             if (!ShippingConfig::ready(array_replace($carrier,['enabled'=>true]),$name,false)) $blockers[]='credentials incomplete';

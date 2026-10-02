@@ -24,17 +24,18 @@ try {
         $authCalls++;
         return ['status'=>200,'data'=>['access_token'=>'synthetic-oauth-token','expires_in'=>3600]];
     });
-    $uspsCalls=0;
+    $uspsCalls=0; $paymentCalls=0; $expectedAccount='1234567890';
     $uuid='12345678-1234-4123-8123-123456789abc';
     $uspsHttp=new CarrierLabelHttp(microtime(true)+20,
-        static function($url,$headers,$body,$timeout,$limit) use (&$uspsCalls,$uuid) {
+        static function($url,$headers,$body,$timeout,$limit) use (&$uspsCalls,&$paymentCalls,&$expectedAccount,$uuid) {
             $uspsCalls++;
             if (str_ends_with($url,'/payment-authorization')) {
+                $paymentCalls++;
                 $payment=json_decode($body,true);
                 clientCheck(count($payment['roles'] ?? [])===2
                     && $payment['roles'][0]['roleName']==='PAYER'
                     && $payment['roles'][1]['roleName']==='LABEL_OWNER'
-                    && $payment['roles'][0]['accountNumber']==='1234567890',
+                    && $payment['roles'][0]['accountNumber']===$expectedAccount,
                     'USPS payment authorization includes payer and label owner EPS roles');
                 return ['status'=>200,'content_type'=>'application/json',
                     'body'=>'{"paymentAuthorizationToken":"synthetic-payment-token"}'];
@@ -63,6 +64,22 @@ try {
         $uuid,1,$authorization);
     clientCheck($result['billed_cents']===975 && $result['packages'][0]['format']==='pdf'
         && $uspsCalls===2,'USPS label reply is parsed without a second purchase POST');
+    $secondCache=new ShippingCache($path);
+    $secondClient=new CarrierLabelClient('usps',$usps,$secondCache,$authHttp,$uspsHttp);
+    clientCheck($secondClient->authorize()['payment_token']==='synthetic-payment-token'
+        && $paymentCalls===1 && $authCalls===1,
+        'A second private SQLite connection reuses valid USPS payment authorization');
+    $changedAccount=$usps; $changedAccount['eps_account_number']='1234567891';
+    $expectedAccount='1234567891';
+    $changedClient=new CarrierLabelClient('usps',$changedAccount,$cache,$authHttp,$uspsHttp);
+    clientCheck($changedClient->authorize()['payment_token']==='synthetic-payment-token'
+        && $paymentCalls===2,
+        'Changing the USPS payment account requests a distinct authorization token');
+    $expectedAccount='1234567890';
+    $cache->database()->exec("UPDATE shipping_cache SET expires=0 WHERE cache_key LIKE 'usps-payment-token:%'");
+    clientCheck($client->authorize()['payment_token']==='synthetic-payment-token'
+        && $paymentCalls===3,
+        'Expired USPS payment authorization is refreshed before another label action');
     $disabled=$usps; $disabled['label_purchasing_enabled']=false;
     clientReject(static fn()=>(new CarrierLabelClient('usps',$disabled,$cache,$authHttp,$uspsHttp))->authorize(),
         'Disabled USPS label purchases make no carrier request');
@@ -116,7 +133,8 @@ try {
         'label_purchases'=>0,'production_verified'=>false],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL);
     echo 'PASS '.count($checks).' label-client assertions; no live carrier calls or purchases.'.PHP_EOL;
 } finally {
-    unset($failedClient,$upsClient,$client,$cache,$authHttp,$uspsHttp,$upsHttp,$failedHttp);
+    unset($failedClient,$upsClient,$changedClient,$secondClient,$secondCache,$client,$cache,
+        $authHttp,$uspsHttp,$upsHttp,$failedHttp);
     gc_collect_cycles();
     if (is_file($path)) unlink($path);
     if (is_dir($dir)) rmdir($dir);

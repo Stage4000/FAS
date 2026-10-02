@@ -1,11 +1,13 @@
 {
-    "date": "2026-10-02T20:47:59+00:00",
+    "date": "2026-10-02T22:26:09+00:00",
     "scope": "synthetic orders and mocked carrier calls",
-    "checks": 17,
+    "checks": 19,
     "passed": [
         "Viewer cannot reserve a label operation",
         "Administrator must confirm the exact saved USPS parcel charge",
         "Failed price confirmation makes no carrier purchase call",
+        "USPS purchase refuses a pricing tier changed after checkout",
+        "Changed USPS pricing creates no purchase call or private reservation",
         "One USPS label POST becomes a durable ready operation with actual charge",
         "Repeated administrator submission cannot purchase a second USPS label",
         "Uncertain UPS carrier response requires reconciliation",

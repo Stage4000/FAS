@@ -10,6 +10,7 @@ final class CarrierLabelClient
 {
     private string $name;
     private array $config;
+    private ShippingCache $cache;
     private CarrierRates $oauth;
     private CarrierLabelHttp $http;
 
@@ -19,6 +20,7 @@ final class CarrierLabelClient
         if (!in_array($name,['usps','ups'],true)) throw new \InvalidArgumentException('Unknown direct carrier.');
         $this->name=$name;
         $this->config=$config;
+        $this->cache=$cache;
         $this->oauth=new CarrierRates($name,$config,$cache,$authHttp);
         $this->http=$labelHttp;
     }
@@ -153,6 +155,15 @@ final class CarrierLabelClient
             }
             $fields[$key]=$value;
         }
+        $cacheKey='usps-payment-token:'.hash('sha256',json_encode([
+            $this->config['environment'],$this->config['gateway'] ?? 'apis',
+            $this->config['client_id'],$this->config['client_secret'],$fields,
+        ],JSON_THROW_ON_ERROR));
+        $saved=$this->cache->get($cacheKey);
+        if (is_string($saved['token'] ?? null)
+            && preg_match('/\A[A-Za-z0-9._~+\/=-]{1,16000}\z/D',$saved['token'])) {
+            return $saved['token'];
+        }
         $role=['CRID'=>$fields['crid'],'MID'=>$fields['mid'],
             'manifestMID'=>$fields['manifest_mid'],'accountType'=>'EPS',
             'accountNumber'=>$fields['eps_account_number']];
@@ -166,7 +177,10 @@ final class CarrierLabelClient
         }
         $data=json_decode($response['body'],true,32);
         if (!is_array($data)) throw new \RuntimeException('USPS payment authorization unavailable.');
-        return self::token($data['paymentAuthorizationToken'] ?? null);
+        $token=self::token($data['paymentAuthorizationToken'] ?? null);
+        // USPS states payment authorization tokens last eight hours; renew an hour early.
+        $this->cache->put($cacheKey,['token'=>$token],7*3600);
+        return $token;
     }
 
     private static function token($value): string

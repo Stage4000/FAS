@@ -96,6 +96,14 @@ try {
         'Administrator must confirm the exact saved USPS parcel charge');
     serviceCheck($purchaseCalls['usps']===0,
         'Failed price confirmation makes no carrier purchase call');
+    $changedConfig=$config;
+    $changedConfig['carriers']['usps']['price_type']='COMMERCIAL';
+    $changedService=new ShippingLabelService($orders,$cache,$changedConfig,$factory);
+    serviceReject(static fn()=>$changedService->purchase(10,0,1,900,$date),
+        'USPS purchase refuses a pricing tier changed after checkout');
+    serviceCheck($purchaseCalls['usps']===0
+        && (new ShippingLabelOperations($cache->database()))->find(10,0)===null,
+        'Changed USPS pricing creates no purchase call or private reservation');
     $ready=$service->purchase(10,0,1,900,$date);
     serviceCheck($ready['state']==='ready' && $ready['billed_cents']===975
         && $purchaseCalls['usps']===1,
@@ -144,7 +152,7 @@ try {
         'label_purchases'=>0,'production_verified'=>false],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL);
     echo 'PASS '.count($checks).' label-service assertions; no live carrier calls or purchases.'.PHP_EOL;
 } finally {
-    unset($handoffLedger,$labels,$service,$factory,$cache,$orders);
+    unset($handoffLedger,$labels,$changedService,$service,$factory,$cache,$orders);
     gc_collect_cycles();
     if (is_file($path)) unlink($path);
     if (is_dir($dir)) rmdir($dir);

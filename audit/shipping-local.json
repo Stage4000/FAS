@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-02T21:52:05+00:00",
+    "date": "2026-10-02T23:15:14+00:00",
     "scope": "synthetic fixtures and mocked HTTP only",
-    "checks": 58,
+    "checks": 63,
     "passed": [
         "USPS and UPS return compatible, supported USD rates only",
         "USPS prices include each separately packed unit and fees",
@@ -22,6 +22,7 @@
         "Changed destination misses quote cache but reuses tokens",
         "Cache does not store customer addresses or client secrets",
         "OAuth token is stored only in private cache",
+        "Direct quotes send the longest measured edge as USPS length and the next as width",
         "Postal estimate never sends a fabricated street address to direct carriers",
         "Measured package dimensions are preserved before carrier-specific rounding",
         "Missing origin cannot become a hardcoded address",
@@ -51,6 +52,10 @@
         "Expired global request budget makes no network call",
         "UPS is not offered for a detected PO box",
         "USPS refuses parcels over its supported weight before requesting rates",
+        "USPS refuses parcels above 130 inches length and girth before requesting rates",
+        "One oversized parcel prevents all USPS carrier calls for a multi-parcel shipment",
+        "A parcel above USPS size limits still receives UPS rates without a USPS request",
+        "USPS requests and accepts only Ground Advantage from 109 through 130 inches length and girth",
         "Multi-parcel USPS quote requires the same eligible service for every parcel",
         "Missing and nonnumeric carrier prices cannot become free checkout rates",
         "Malformed or zero paid rates are rejected",

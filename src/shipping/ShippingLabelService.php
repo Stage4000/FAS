@@ -43,6 +43,10 @@ final class ShippingLabelService
             'shipper_phone'=>$this->config['shipper_phone'] ?? ''];
         $carrier=$this->config['carriers'][$provider] ?? null;
         if (!is_array($carrier)) throw new \RuntimeException('Carrier label configuration is unavailable.');
+        if ($provider==='usps' && ($shipping['fulfillment_options'][$packageIndex]['price_type'] ?? null)
+            !==($carrier['price_type'] ?? null)) {
+            throw new \RuntimeException('USPS pricing tier changed after checkout. Review the saved quote and carrier settings.');
+        }
         $payload=$provider==='usps'
             ? CarrierLabelPayloads::usps($data['order'],$shipping,$packageIndex,$fulfillment,$mailingDate)
             : CarrierLabelPayloads::ups($data['order'],$shipping,$fulfillment,(string)($carrier['account_number'] ?? ''));

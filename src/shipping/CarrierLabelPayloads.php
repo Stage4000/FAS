@@ -19,17 +19,25 @@ final class CarrierLabelPayloads
             || !in_array($shipping['service_code'] ?? '',['USPS_GROUND_ADVANTAGE','PRIORITY_MAIL','PRIORITY_MAIL_EXPRESS'],true)
             || !in_array($option['rate_indicator'] ?? '',['SP','DR'],true)
             || !in_array($option['processing_category'] ?? '',['MACHINABLE','NONSTANDARD'],true)
-            || ($option['destination_entry_facility_type'] ?? '')!=='NONE') {
+            || ($option['destination_entry_facility_type'] ?? '')!=='NONE'
+            || !in_array($option['price_type'] ?? '',['RETAIL','COMMERCIAL'],true)
+            || !is_int($option['quoted_cents'] ?? null) || $option['quoted_cents']<1) {
             throw new \RuntimeException('Saved USPS parcel options need review.');
         }
         $to=self::uspsAddress(self::destination($order));
         $to+=self::recipient($order);
         $from=self::uspsAddress(self::origin($shipping));
         $from['firm']=self::shipperName($fulfillment);
+        $dimensions=self::dimensions($parcel);
+        $lengthGirth=$dimensions[0]+2*($dimensions[1]+$dimensions[2]);
+        if (self::measurement($parcel,'weight')>70
+            || $lengthGirth>($shipping['service_code']==='USPS_GROUND_ADVANTAGE' ? 130 : 108)) {
+            throw new \RuntimeException('Saved USPS parcel exceeds the selected service limits.');
+        }
         $description=['mailClass'=>$shipping['service_code'],'rateIndicator'=>$option['rate_indicator'],
             'weightUOM'=>'lb','weight'=>self::measurement($parcel,'weight'),
-            'dimensionsUOM'=>'in','length'=>self::measurement($parcel,'length'),
-            'width'=>self::measurement($parcel,'width'),'height'=>self::measurement($parcel,'height'),
+            'dimensionsUOM'=>'in','length'=>$dimensions[0],
+            'width'=>$dimensions[1],'height'=>$dimensions[2],
             'processingCategory'=>$option['processing_category'],'mailingDate'=>$mailingDate,
             'extraServices'=>[],'destinationEntryFacilityType'=>'NONE'];
         return ['imageInfo'=>['imageType'=>'PDF','labelType'=>'4X6LABEL','receiptOption'=>'NONE',
@@ -63,11 +71,12 @@ final class CarrierLabelPayloads
         }
         $packages=[];
         foreach ($shipping['packages'] as $parcel) {
+            $dimensions=self::dimensions($parcel);
             $packages[]=['Packaging'=>['Code'=>'02'],
                 'Dimensions'=>['UnitOfMeasurement'=>['Code'=>'IN'],
-                    'Length'=>(string)ceil(self::measurement($parcel,'length')),
-                    'Width'=>(string)ceil(self::measurement($parcel,'width')),
-                    'Height'=>(string)ceil(self::measurement($parcel,'height'))],
+                    'Length'=>(string)ceil($dimensions[0]),
+                    'Width'=>(string)ceil($dimensions[1]),
+                    'Height'=>(string)ceil($dimensions[2])],
                 'PackageWeight'=>['UnitOfMeasurement'=>['Code'=>'LBS'],
                     'Weight'=>(string)self::measurement($parcel,'weight')]];
         }
@@ -179,6 +188,17 @@ final class CarrierLabelPayloads
             throw new \RuntimeException('Saved parcel measurements need review.');
         }
         return (float)$value;
+    }
+
+    private static function dimensions(array $parcel): array
+    {
+        $edges=[self::measurement($parcel,'length'),self::measurement($parcel,'width'),
+            self::measurement($parcel,'height')];
+        rsort($edges,SORT_NUMERIC);
+        if ($edges[0]>108 || $edges[0]+2*($edges[1]+$edges[2])>165) {
+            throw new \RuntimeException('Saved parcel exceeds direct shipping size limits.');
+        }
+        return $edges;
     }
 
     private static function date(string $date): void

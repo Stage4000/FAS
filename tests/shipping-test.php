@@ -90,6 +90,13 @@ $cacheContents=file_get_contents($config['cache_path']);
 shippingCheck(strpos($cacheContents,'200 Synthetic Street')===false && strpos($cacheContents,'synthetic-secret')===false,'Cache does not store customer addresses or client secrets');
 shippingCheck(strpos($cacheContents,'fixture-token')!==false,'OAuth token is stored only in private cache');
 $plan=ShippingShipment::build($items,$address,$warehouse,$config);
+$reordered=$items; $reordered[0]['length']=4.2; $reordered[0]['width']=12.2;
+$reordered[0]['height']=8.1;
+$orderedPlan=ShippingShipment::build($reordered,$address,$warehouse,$config);
+shippingCheck($orderedPlan['packages'][0]['length']===12.2
+    && $orderedPlan['packages'][0]['width']===8.1
+    && $orderedPlan['packages'][0]['height']===4.2,
+    'Direct quotes send the longest measured edge as USPS length and the next as width');
 $estimate=ShippingShipment::build($items,$address+['_estimate'=>true],$warehouse,$config);
 shippingCheck($estimate['destination']['address1']==='' && $estimate['estimate'],'Postal estimate never sends a fabricated street address to direct carriers');
 shippingCheck($plan['packages'][0]['length']===12.2,'Measured package dimensions are preserved before carrier-specific rounding');
@@ -167,6 +174,42 @@ shippingCheck($adapter->rates($box)===[],'UPS is not offered for a detected PO b
 $heavy=$plan; $heavy['packages'][0]['weight']=71;
 $adapter=new CarrierRates('usps',$config['carriers']['usps'],$cache,new CarrierHttp(microtime(true)+18,static function(){throw new RuntimeException('Must not call');}));
 shippingCheck($adapter->rates($heavy)===[],'USPS refuses parcels over its supported weight before requesting rates');
+$tooLarge=$plan; $tooLarge['packages'][0]['length']=100;
+$tooLarge['packages'][0]['width']=10; $tooLarge['packages'][0]['height']=10;
+$adapter=new CarrierRates('usps',$config['carriers']['usps'],$cache,new CarrierHttp(microtime(true)+18,
+    static function(){throw new RuntimeException('Oversized USPS parcel must not call carrier');}));
+shippingCheck($adapter->rates($tooLarge)===[],
+    'USPS refuses parcels above 130 inches length and girth before requesting rates');
+$lastParcelTooLarge=$plan;
+$lastParcelTooLarge['packages'][1]=$tooLarge['packages'][0];
+shippingCheck($adapter->rates($lastParcelTooLarge)===[],
+    'One oversized parcel prevents all USPS carrier calls for a multi-parcel shipment');
+$upsOnlyItems=$items; $upsOnlyItems[0]['quantity']=1;
+$upsOnlyItems[0]['length']=100; $upsOnlyItems[0]['width']=12; $upsOnlyItems[0]['height']=10;
+$beforeCalls=count($calls);
+$upsOnlyRates=(new ShippingRateService($config,$legacy,'carrierFixture'))
+    ->getShippingRates($upsOnlyItems,$address,$warehouse);
+shippingCheck(count($upsOnlyRates)===2
+    && count(array_filter($upsOnlyRates,static fn($rate)=>$rate['provider']==='ups'))===2
+    && count(array_filter(array_slice($calls,$beforeCalls),
+        static fn($call)=>str_contains($call['url'],'prices/v3')))===0,
+    'A parcel above USPS size limits still receives UPS rates without a USPS request');
+$groundOnly=$plan; $groundOnly['packages'][0]['length']=80;
+$groundOnly['packages'][0]['width']=8; $groundOnly['packages'][0]['height']=7;
+$groundOnly['packages']=[$groundOnly['packages'][0]];
+$sizeConfig=$config['carriers']['usps']; $sizeConfig['client_id']='ground-only-size';
+$requestedClasses=null;
+$adapter=new CarrierRates('usps',$sizeConfig,$cache,new CarrierHttp(microtime(true)+18,
+    static function($url,$headers,$body,$timeout) use (&$requestedClasses) {
+        if (strpos($url,'token')!==false) return carrierFixture($url,$headers,$body,$timeout);
+        $requestedClasses=json_decode($body,true)['mailClasses'];
+        return ['status'=>200,'data'=>['rateOptions'=>[
+            uspsOption('USPS_GROUND_ADVANTAGE',9.75),uspsOption('PRIORITY_MAIL',12.5)]]];
+    }));
+$sizeRates=$adapter->rates($groundOnly);
+shippingCheck($requestedClasses===['USPS_GROUND_ADVANTAGE']
+    && count($sizeRates)===1 && $sizeRates[0]['service_code']==='USPS_GROUND_ADVANTAGE',
+    'USPS requests and accepts only Ground Advantage from 109 through 130 inches length and girth');
 $mixedPlan=$plan; $mixedPlan['packages'][1]['weight']=3;
 $uspsConfig=$config['carriers']['usps']; $uspsConfig['client_id']='intersection-client';
 $adapter=new CarrierRates('usps',$uspsConfig,$cache,new CarrierHttp(microtime(true)+18,static function($url,$headers,$body,$timeout) {

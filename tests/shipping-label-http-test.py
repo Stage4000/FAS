@@ -109,6 +109,7 @@ try:
     check(status==200 and 'no-store' in headers.get('Cache-Control','')
           and 'Shipping Readiness' in readiness and 'Saleable products scanned' in readiness
           and 'Easyship' in readiness and 'separate account tests' in readiness
+          and 'Over the USPS 130 in length and girth limit' in readiness
           and 'Manage products' in readiness and 'Manage warehouses' in readiness,
           'Private readiness page reports local mode and catalog state without claiming carrier acceptance')
     check('Fulfillment storage' in readiness and 'Label operations' in readiness
@@ -141,6 +142,23 @@ try:
         "'client_id'=>'synthetic','client_secret'=>'synthetic']]];",encoding='utf-8')
     check('synthetic' not in request('/admin/shipping-readiness.php')[2],
           'Carrier readiness never renders configured credential values')
+    check('Purchase label' in request(path)[2],
+          'Matching saved USPS pricing tier offers an administrator purchase form')
+    shippingConfig.write_text("<?php return ['shipper_name'=>'Fixture Sender','carriers'=>['usps'=>"
+        "['enabled'=>true,'label_purchasing_enabled'=>true,'environment'=>'sandbox',"
+        "'client_id'=>'synthetic','client_secret'=>'synthetic','price_type'=>'COMMERCIAL']]];",
+        encoding='utf-8')
+    changedTierPage=request(path)[2]
+    check('USPS pricing settings changed since checkout' in changedTierPage
+          and 'Purchase label' not in changedTierPage,
+          'A changed USPS pricing tier disables the purchase form and explains the hold')
+    request(path,{'csrf_token':csrf,**post})
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_label_operations').fetchone()[0]==0,
+              'A forged purchase POST after a pricing change creates no carrier operation')
+    shippingConfig.write_text("<?php return ['shipper_name'=>'Fixture Sender','carriers'=>['usps'=>"
+        "['enabled'=>true,'label_purchasing_enabled'=>true,'environment'=>'sandbox',"
+        "'client_id'=>'synthetic','client_secret'=>'synthetic']]];",encoding='utf-8')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         now=int(time.time())
         db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,operator_id,created_at,updated_at) VALUES(10,0,'usps','USPS_GROUND_ADVANTAGE',1,'synthetic-reserved','9b71aa67-f7e8-4c72-9c75-3c79f4630506','reserved',2,?,?)",[now,now])
@@ -511,6 +529,18 @@ if (new URLSearchParams(location.search).has('recovery')) {
 } else sessionStorage.removeItem('fas_paypal_recovery_v1');
 location.replace('/checkout.php');
 </script>''',encoding='utf-8')
+        # A separate paid order lets browser QA inspect the pricing-tier hold without
+        # disturbing the uncertain label and cancellation fixtures above.
+        with sqlite3.connect(DB) as db:
+            db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) "
+                       "VALUES(14,'FAS-14','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123460')",[address])
+            db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) "
+                       "VALUES(14,'usps','direct_usps_USPS_GROUND_ADVANTAGE','USPS_GROUND_ADVANTAGE','USPS','Ground Advantage',900,'USD','fixture-tier',?,?,?,?)",
+                       [int(time.time())+600,origin,packages,options])
+        shippingConfig.write_text("<?php return ['shipper_name'=>'Fixture Sender','carriers'=>['usps'=>"
+            "['enabled'=>true,'label_purchasing_enabled'=>true,'environment'=>'sandbox',"
+            "'client_id'=>'synthetic','client_secret'=>'synthetic','price_type'=>'COMMERCIAL']]];",
+            encoding='utf-8')
         print(json.dumps({'origin':ORIGIN,'fixture':str(BASE),'username':'browser-fixture',
             'password':PASSWORD}),flush=True)
         while True: time.sleep(1)

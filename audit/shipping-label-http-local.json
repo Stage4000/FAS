@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-02T22:05:56Z",
+  "date": "2026-10-02T23:06:27Z",
   "scope": "isolated synthetic administrator and paid orders; purchase and cancellation disabled",
-  "checks": 93,
+  "checks": 96,
   "passed": [
     "Anonymous label page redirects to sign-in",
     "Anonymous shipment review queue redirects to sign-in",
@@ -19,6 +19,9 @@
     "Valid CSRF cannot purchase while carrier configuration is disabled",
     "Disabled label page creates no shipment operation",
     "Carrier readiness never renders configured credential values",
+    "Matching saved USPS pricing tier offers an administrator purchase form",
+    "A changed USPS pricing tier disables the purchase form and explains the hold",
+    "A forged purchase POST after a pricing change creates no carrier operation",
     "Recent reservation stays with the original administrator",
     "Aged unsent reservation offers an explicit takeover control",
     "Missing handoff migration keeps the label purchase form disabled",

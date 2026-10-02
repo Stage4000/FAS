@@ -53,7 +53,8 @@ try {
 $catalog=$readiness['catalog'] ?? [];
 $issueLabels=['measurements'=>'Packed measurements missing or invalid',
     'size'=>'Parcel exceeds direct size limits','origin'=>'Usable ship-from address missing',
-    'usps_weight'=>'Over the USPS 70 lb parcel limit'];
+    'usps_weight'=>'Over the USPS 70 lb parcel limit',
+    'usps_size'=>'Over the USPS 130 in length and girth limit'];
 $modeLabel=['easyship'=>'Easyship','direct_with_fallback'=>'Direct with Easyship fallback',
     'direct'=>'Direct only'][$readiness['current_mode'] ?? ''] ?? 'Unavailable';
 ?>

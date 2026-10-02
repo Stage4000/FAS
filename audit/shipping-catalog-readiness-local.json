@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-02T21:52:05+00:00",
+    "date": "2026-10-02T23:15:14+00:00",
     "scope": "synthetic saleable inventory and warehouse origins; read-only scan",
-    "checks": 15,
+    "checks": 17,
     "passed": [
         "Missing catalog schema reports unavailable without creating tables",
         "An incomplete legacy catalog schema reports unavailable without failing the CLI",
@@ -15,9 +15,11 @@
         "Carrier readiness separates valid multi-origin inventory from missing parcel data",
         "Explicit inactive assignment never falls back to the default",
         "Inactive assigned origin appears in a bounded product-ID list",
-        "Missing measurements, oversize parcels and USPS weight exceptions are separated",
+        "Missing measurements, oversize parcels and USPS-only exceptions are separated",
         "Gap examples identify products without disclosing addresses or customer data",
-        "Readiness output omits origin street addresses"
+        "Readiness output omits origin street addresses",
+        "UPS-compatible packed product above USPS size limits is reported separately",
+        "USPS-only size exception blocks USPS readiness without blocking UPS"
     ],
     "live_carrier_calls": 0,
     "production_verified": false

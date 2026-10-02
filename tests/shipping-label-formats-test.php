@@ -42,6 +42,13 @@ checkLabel($usps['packageDescription']['weight']===2.0
 checkLabel($usps['toAddress']['ZIPCode']==='90210' && $usps['toAddress']['ZIPPlus4']==='1234'
     && $usps['toAddress']['firstName']==='Alex' && $usps['fromAddress']['firm']==='Flip and Strip',
     'USPS label uses paid order destination and verified origin identity');
+$unordered=$shipping; $unordered['packages'][1]['length']=5;
+$unordered['packages'][1]['width']=10; $unordered['packages'][1]['height']=7;
+$orderedUsps=CarrierLabelPayloads::usps($order,$unordered,1,$fulfillment,$date);
+checkLabel($orderedUsps['packageDescription']['length']===10.0
+    && $orderedUsps['packageDescription']['width']===7.0
+    && $orderedUsps['packageDescription']['height']===5.0,
+    'USPS label canonicalizes the measured edges of an older saved parcel');
 rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$shipping,2,$fulfillment,$date),
     'USPS cannot request a parcel beyond the saved selection');
 $unpaid=$order; $unpaid['payment_status']='pending';
@@ -50,6 +57,25 @@ rejectLabel(static fn()=>CarrierLabelPayloads::usps($unpaid,$shipping,0,$fulfill
 $missing=$shipping; $missing['fulfillment_options']=[];
 rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$missing,0,$fulfillment,$date),
     'USPS refuses orders missing saved pricing options');
+$wrongTier=$shipping; $wrongTier['fulfillment_options'][0]['price_type']='CONTRACT';
+rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$wrongTier,0,$fulfillment,$date),
+    'USPS refuses a saved pricing tier that checkout does not support');
+$invalidPrice=$shipping; $invalidPrice['fulfillment_options'][0]['quoted_cents']=0;
+rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$invalidPrice,0,$fulfillment,$date),
+    'USPS refuses an invalid saved parcel quote before purchase');
+$largeGround=$shipping; $largeGround['packages'][0]=['weight'=>1,'length'=>100,'width'=>10,'height'=>5];
+checkLabel(CarrierLabelPayloads::usps($order,$largeGround,0,$fulfillment,$date)
+    ['packageDescription']['length']===100.0,
+    'USPS Ground Advantage accepts the 130-inch length and girth boundary');
+$largePriority=$largeGround; $largePriority['service_code']='PRIORITY_MAIL';
+rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$largePriority,0,$fulfillment,$date),
+    'USPS Priority Mail rejects a saved parcel beyond 108 inches length and girth');
+$tooLargeGround=$largeGround; $tooLargeGround['packages'][0]['height']=6;
+rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$tooLargeGround,0,$fulfillment,$date),
+    'USPS Ground Advantage rejects a saved parcel beyond 130 inches length and girth');
+$overweight=$shipping; $overweight['packages'][0]['weight']=71;
+rejectLabel(static fn()=>CarrierLabelPayloads::usps($order,$overweight,0,$fulfillment,$date),
+    'USPS refuses an overweight saved parcel before label purchase');
 $changed=$order; $changed['shipping_address']='{}';
 rejectLabel(static fn()=>CarrierLabelPayloads::usps($changed,$shipping,0,$fulfillment,$date),
     'USPS refuses incomplete saved delivery addresses');
@@ -68,6 +94,12 @@ checkLabel($shipment['ShipTo']['Address']['PostalCode']==='902101234'
 checkLabel($shipment['Shipper']['ShipperNumber']==='ABC123'
     && $shipment['PaymentInformation']['ShipmentCharge']['BillShipper']['AccountNumber']==='ABC123',
     'UPS bills the configured shipper account');
+$unorderedUps=$unordered; $unorderedUps['provider']='ups'; $unorderedUps['service_code']='03';
+$orderedUps=CarrierLabelPayloads::ups($order,$unorderedUps,$fulfillment,'ABC123');
+checkLabel($orderedUps['ShipmentRequest']['Shipment']['Package'][1]['Dimensions']['Length']==='10'
+    && $orderedUps['ShipmentRequest']['Shipment']['Package'][1]['Dimensions']['Width']==='7'
+    && $orderedUps['ShipmentRequest']['Shipment']['Package'][1]['Dimensions']['Height']==='5',
+    'UPS label uses the same ordered measured edges for an older saved parcel');
 $early=$upsShipping; $early['service_code']='14';
 rejectLabel(static fn()=>CarrierLabelPayloads::ups($order,$early,$fulfillment,'ABC123'),
     'UPS Early requires a customer phone');
@@ -78,6 +110,9 @@ $longLine=$order; $address=json_decode($order['shipping_address'],true);
 $address['address1']=str_repeat('X',36); $longLine['shipping_address']=json_encode($address);
 rejectLabel(static fn()=>CarrierLabelPayloads::ups($longLine,$upsShipping,$fulfillment,'ABC123'),
     'UPS rejects an overlong street line before shipment creation');
+$oversizeUps=$upsShipping; $oversizeUps['packages'][0]=['weight'=>1,'length'=>100,'width'=>20,'height'=>15];
+rejectLabel(static fn()=>CarrierLabelPayloads::ups($order,$oversizeUps,$fulfillment,'ABC123'),
+    'UPS label preflight refuses a saved parcel above direct size limits');
 
 $boundary='fixture-boundary';
 $metadata=json_encode(['trackingNumber'=>'9400111899223847199999','postage'=>9.75]);

@@ -127,7 +127,15 @@ final class CarrierRates
     {
         if ($this->name!=='usps' && preg_match('/\bP(?:OST)?\.?\s*O(?:FFICE)?\.?\s*BOX\b/i',
                 $shipment['destination']['address1'].' '.$shipment['destination']['address2'])) return [];
-        $key='quote:'.$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
+        if ($this->name==='usps') {
+            // Check the complete shipment before cache reuse, OAuth or per-parcel rate calls.
+            foreach ($shipment['packages'] as $parcel) {
+                if ($parcel['weight']>70
+                    || $parcel['length']+2*($parcel['width']+$parcel['height'])>130) return [];
+            }
+        }
+        // v2 prevents pre-limit cached USPS Priority or oversized options from resurfacing.
+        $key='quote:v2:'.$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
         $cached=$this->cache->get($key);
         if ($cached!==null) return $cached;
         $rates=$this->name==='usps'?$this->usps($shipment):$this->ups($shipment);
@@ -139,10 +147,11 @@ final class CarrierRates
     {
         $common=null; $byParcel=[];
         foreach ($shipment['packages'] as $parcel) {
-            if ($parcel['weight']>70) return [];
+            $lengthGirth=$parcel['length']+2*($parcel['width']+$parcel['height']);
+            $mailClasses=$lengthGirth>108 ? ['USPS_GROUND_ADVANTAGE'] : array_keys(self::SERVICES['usps']);
             $payload=$parcel+['originZIPCode'=>substr($shipment['origin']['zip'],0,5),
                 'destinationZIPCode'=>substr($shipment['destination']['zip'],0,5),
-                'mailClasses'=>array_keys(self::SERVICES['usps']),'priceType'=>$this->config['price_type'],
+                'mailClasses'=>$mailClasses,'priceType'=>$this->config['price_type'],
                 'mailingDate'=>$shipment['ship_date']];
             // Repeated identical packed units need one lookup, but are charged per unit.
             $parcelKey=hash('sha256',json_encode($payload,JSON_THROW_ON_ERROR));
@@ -154,7 +163,8 @@ final class CarrierRates
                     if (count($lines)!==1) continue;
                     $line=$lines[0]; $code=$line['mailClass'] ?? '';
                     // No flat-rate packaging, destination-entry discounts, cubic tiers or restricted mail classes.
-                    if (!in_array($line['rateIndicator'] ?? '',['SP','DR'],true)
+                    if (!in_array($code,$mailClasses,true)
+                        || !in_array($line['rateIndicator'] ?? '',['SP','DR'],true)
                         || ($line['destinationEntryFacilityType'] ?? '')!=='NONE'
                         || !in_array($line['processingCategory'] ?? '',['MACHINABLE','NONSTANDARD'],true)
                         || ($line['priceType'] ?? '')!==$this->config['price_type']) continue;

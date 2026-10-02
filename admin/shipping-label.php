@@ -73,10 +73,14 @@ if ($scopes<1 || $scopes>10) {
     $reprintEnabled=false;
 }
 $prices=[];
+$priceTierMatches=[];
 for ($index=0;$index<$scopes;$index++) {
     $prices[$index]=$provider==='usps'
         ? ($shipping['fulfillment_options'][$index]['quoted_cents'] ?? null)
         : ($shipping['carrier_quote_cents'] ?? $shipping['quoted_cents'] ?? null);
+    $priceTierMatches[$index]=$provider!=='usps'
+        || (in_array($shipping['fulfillment_options'][$index]['price_type'] ?? '', ['RETAIL','COMMERCIAL'],true)
+            && ($shipping['fulfillment_options'][$index]['price_type'] ?? null)===($carrier['price_type'] ?? null));
 }
 if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     fas_security_body();
@@ -112,7 +116,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
             || ($_POST['confirm_charge'] ?? '')!=='yes') {
             throw new InvalidArgumentException('Select a parcel and confirm the carrier charge.');
         }
-        if (!$purchaseEnabled || !is_int($prices[$index])) {
+        if (!$purchaseEnabled || !is_int($prices[$index]) || !$priceTierMatches[$index]) {
             throw new RuntimeException('Carrier label purchasing is not ready.');
         }
         $confirmed=filter_var($_POST['confirmed_cents'] ?? null,FILTER_VALIDATE_INT);
@@ -207,10 +211,11 @@ for ($index=0;$index<$scopes;$index++) {
         $cancelState=$cancelRows[$index]['state'] ?? null;
         $pieces=$provider==='ups' ? count($savedPackages) : 1;
         $price=$prices[$index] ?? null;
-        $canPurchase=$purchaseEnabled && !$operation && is_int($price)
+        $canPurchase=$purchaseEnabled && !$operation && is_int($price) && $priceTierMatches[$index]
             && $order['payment_status']==='completed' && $order['order_status']==='processing';
         if ($purchaseEnabled && $operation && $state==='reserved') {
-            $canPurchase=is_int($price) && ((int)$operation['operator_id']===(int)$admin['id']
+            $canPurchase=is_int($price) && $priceTierMatches[$index]
+                && ((int)$operation['operator_id']===(int)$admin['id']
                 || ShippingLabelOperations::handoffEligible($operation,(int)$admin['id']));
         }
     ?>
@@ -219,7 +224,8 @@ for ($index=0;$index<$scopes;$index++) {
                 <h2 class="h5 mb-1"><?php echo $provider==='usps'?'Parcel '.($index+1):'UPS shipment'; ?></h2>
                 <span class="badge <?php echo $state==='ready'?'text-bg-success':($state==='review'||$state==='submitted'?'text-bg-warning':'text-bg-secondary'); ?>"><?php echo shippingLabelHtml(ucfirst($state)); ?></span>
             </div>
-            <p class="text-muted small mb-2"><?php echo (int)$pieces; ?> <?php echo $pieces===1?'package':'packages'; ?><?php if (is_int($price)): ?> · Quoted $<?php echo number_format($price/100,2); ?><?php endif; ?></p>
+            <p class="text-muted small mb-2"><?php echo (int)$pieces; ?> <?php echo $pieces===1?'package':'packages'; ?><?php if (is_int($price)): ?> · Quoted $<?php echo number_format($price/100,2); ?><?php endif; ?><?php if ($provider==='usps' && in_array($shipping['fulfillment_options'][$index]['price_type'] ?? '',['RETAIL','COMMERCIAL'],true)): ?> · <?php echo shippingLabelHtml(ucfirst(strtolower($shipping['fulfillment_options'][$index]['price_type']))); ?> price<?php endif; ?></p>
+            <?php if (!$priceTierMatches[$index] && (!$operation || $state==='reserved')): ?><p class="alert alert-warning py-2">USPS pricing settings changed since checkout. Review the saved quote and carrier account before buying this label.</p><?php endif; ?>
             <ul class="small text-muted ps-3 mb-3">
             <?php foreach ($savedPackages as $pieceIndex=>$parcel): ?>
                 <?php if ($provider==='usps' && $pieceIndex!==$index) continue; ?>
