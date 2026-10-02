@@ -40,7 +40,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="container my-5">
 <h1 class="mb-4 fw-bold">Checkout</h1>
 
-<div class="checkout-guidance-card alert border shadow-sm mb-4">
+<div id="checkout-guidance-card" class="checkout-guidance-card alert border shadow-sm mb-4">
 <div class="d-flex gap-3">
 <i class="fas fa-shield-alt text-danger fs-3 mt-1"></i>
 <div>
@@ -57,7 +57,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="row">
         <!-- Checkout Form -->
-        <div class="col-lg-8">
+        <div id="checkout-form-column" class="col-lg-8">
             <form id="checkout-form" data-address-autofill>
                 <!-- Customer Information -->
                 <div class="card border-0 shadow-sm mb-4">
@@ -142,9 +142,10 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         
         <!-- Order Summary -->
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 100px; z-index: 100;">
+        <div id="checkout-payment-column" class="col-lg-4">
+            <div id="checkout-summary-card" class="card border-0 shadow-sm sticky-top" style="top: 100px; z-index: 100;">
                 <div class="card-body p-4">
+                    <div id="checkout-summary-regular">
                     <h4 class="mb-4">Order Summary</h4>
                     
                     <!-- Cart Items -->
@@ -196,6 +197,11 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="checkout-summary-note alert border small mb-3">
                             Shipping, discounts, and item totals update here before the payment window opens. Review this total before approving payment.
                         </div>
+                    </div>
+                    <div id="checkout-pending-summary" hidden style="display:none">
+                        <h4 class="h5 mb-3">Payment awaiting confirmation</h4>
+                        <p>Your cart is saved. Confirm the earlier payment using the PayPal reference below before starting another checkout.</p>
+                    </div>
 
                     <!-- One payment section; keep provider-rendered controls intact. -->
                     <section aria-labelledby="checkout-payment-title" style="width:100%;max-width:750px;margin:0 auto">
@@ -238,7 +244,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 <?php endif; ?>
 
-<script src="/public/js/order-recovery.js?v=20260930-1"></script>
+<script src="/public/js/order-recovery.js?v=<?php echo (int)filemtime(__DIR__.'/public/js/order-recovery.js'); ?>"></script>
 <script type="text/javascript">
 let selectedShippingRate = null;
 let applePayShippingQuoteId = null;

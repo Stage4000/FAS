@@ -172,8 +172,26 @@ try:
           'Readiness flags a missing USPS reprint migration')
     with sqlite3.connect(BASE/'shipping.sqlite') as db:
         db.execute('ALTER TABLE hidden_reprints RENAME TO shipping_label_reprints')
+    check(shippingHealth['label_resolution_storage']['initialized']
+          and shippingReadiness['readiness']['label_resolution_storage_configured'],
+          'Readiness confirms private carrier-evidence label review storage')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_label_resolutions RENAME TO hidden_label_resolutions')
+    incomplete=json.loads(subprocess.check_output(
+        ['php','-d','disable_functions=mail,curl_exec,curl_multi_exec',
+         str(SITE/'scripts/shipping-maintenance.php'),'readiness'],env=env,text=True))
+    check(not incomplete['label_resolution_storage']['initialized']
+          and not incomplete['readiness']['label_resolution_storage_configured']
+          and not incomplete['readiness']['fulfillment_storage_configured'],
+          'Readiness flags a missing original-label review migration')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_label_resolutions RENAME TO shipping_label_resolutions')
     check(shippingHealth["tracking"]=={"initialized":True,"packages":0,"with_status":0,"last_attempt_failed":0},
           "CLI initialization and health include private tracking status storage")
+    check(shippingReadiness['readiness']['cancellation_storage_configured']
+          and shippingReadiness['readiness']['tracking_storage_configured']
+          and shippingReadiness['readiness']['notifications']['storage_initialized'],
+          'Readiness separates cancellation, tracking and email storage from carrier activation')
     check(trackingRefresh["tracking_refresh"]["enabled_carriers"]==[]
           and trackingRefresh["tracking_refresh"]["selected"]==0,
           "Disabled tracking refresh makes no carrier request")

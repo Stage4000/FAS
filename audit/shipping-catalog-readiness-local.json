@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-02T19:27:41+00:00",
+    "date": "2026-10-02T21:52:05+00:00",
     "scope": "synthetic saleable inventory and warehouse origins; read-only scan",
-    "checks": 14,
+    "checks": 15,
     "passed": [
         "Missing catalog schema reports unavailable without creating tables",
         "An incomplete legacy catalog schema reports unavailable without failing the CLI",
@@ -12,6 +12,7 @@
         "Missing default warehouse is a direct-shipping data gap",
         "Multiple active defaults are rejected for an unassigned product",
         "Different active origin addresses are reported as a mixed-cart rollout gap",
+        "Carrier readiness separates valid multi-origin inventory from missing parcel data",
         "Explicit inactive assignment never falls back to the default",
         "Inactive assigned origin appears in a bounded product-ID list",
         "Missing measurements, oversize parcels and USPS weight exceptions are separated",

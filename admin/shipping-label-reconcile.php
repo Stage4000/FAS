@@ -17,7 +17,15 @@ $auth=new AdminAuth();
 $admin=$auth->requireActiveAdmin();
 header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
-function labelReviewHtml($value): string { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
+function labelReviewHtml($value): string {
+    return htmlspecialchars(is_scalar($value) ? (string)$value : '',ENT_QUOTES,'UTF-8');
+}
+function labelReviewAddress(array $address): string {
+    return implode(', ',array_filter([
+        $address['address1'] ?? '',$address['address2'] ?? '',$address['city'] ?? '',
+        $address['state'] ?? '',$address['zip'] ?? '',$address['country'] ?? '',
+    ],static fn($part)=>is_string($part) && $part!==''));
+}
 
 $orderId=filter_var($_GET['id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
 $packageIndex=filter_var($_GET['package'] ?? null,FILTER_VALIDATE_INT,
@@ -31,6 +39,9 @@ $shipping=$order ? ShippingOrder::find($db,(int)$orderId) : null;
 if (!$order || !$shipping || !in_array($shipping['provider'],['usps','ups'],true)) {
     http_response_code(404); exit('Direct carrier order not found.');
 }
+$destination=json_decode((string)($order['shipping_address'] ?? ''),true);
+$destination=is_array($destination) ? $destination : [];
+$origin=is_array($shipping['origin'] ?? null) ? $shipping['origin'] : [];
 $error=''; $operations=null; $operation=null; $resolution=null; $reprint=null; $cancel=null;
 try {
     $config=ShippingConfig::load();
@@ -77,6 +88,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
                 throw new DomainException('This shipment is not ready for carrier reconciliation.');
             }
             if (!$auth->verifyCurrentPassword((int)$admin['id'],$_POST['password'] ?? null)) {
+                http_response_code(403);
                 throw new InvalidArgumentException($auth->lastError ?: 'Password could not be verified.');
             }
             $amount=$_POST['billed_amount'] ?? null;
@@ -90,7 +102,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
             $tracking=$_POST['tracking'] ?? null;
             $uploads=$_FILES['labels'] ?? null;
             if (!is_array($tracking) || !is_array($uploads)
-                || !isset($uploads['tmp_name'],$uploads['error'],$uploads['size'])
+                || !is_array($uploads['tmp_name'] ?? null)
+                || !is_array($uploads['error'] ?? null)
+                || !is_array($uploads['size'] ?? null)
                 || count($tracking)!==$pieces || count($uploads['tmp_name'])!==$pieces) {
                 throw new InvalidArgumentException('Provide a tracking number and original label file for every package.');
             }
@@ -158,6 +172,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
                 <dt class="col-sm-4">Scope</dt><dd class="col-sm-8"><?= $operation['provider']==='usps'?'Parcel '.($packageIndex+1):'UPS shipment' ?> · <?= $pieces ?> <?= $pieces===1?'package':'packages' ?></dd>
                 <dt class="col-sm-4">Status</dt><dd class="col-sm-8"><?= labelReviewHtml(ucfirst($operation['state'])) ?></dd>
                 <dt class="col-sm-4">Carrier environment</dt><dd class="col-sm-8"><?= labelReviewHtml($operation['carrier_environment'] ?: 'Unknown') ?></dd>
+                <dt class="col-sm-4">Ship from</dt><dd class="col-sm-8 text-break"><?= labelReviewHtml(labelReviewAddress($origin)) ?></dd>
+                <dt class="col-sm-4">Ship to</dt><dd class="col-sm-8 text-break"><?= labelReviewHtml(labelReviewAddress($destination)) ?></dd>
                 <?php if ($operation['submitted_at']): ?><dt class="col-sm-4">Original request</dt><dd class="col-sm-8"><?= Timezone::timestampElement(new DateTimeImmutable('@'.(int)$operation['submitted_at'])) ?></dd><?php endif; ?>
                 <?php if ($operation['provider']==='usps'): ?><dt class="col-sm-4">USPS request reference</dt><dd class="col-sm-8 text-break"><code><?= labelReviewHtml($operation['idempotency_key']) ?></code></dd><?php endif; ?>
             </dl>

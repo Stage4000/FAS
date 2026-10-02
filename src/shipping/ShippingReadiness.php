@@ -14,9 +14,13 @@ final class ShippingReadiness
         $result=['external_services_checked'=>false,'production_acceptance_verified'=>false,
             'current_mode'=>$config['mode'],'storage_configured'=>$storage,
             'fulfillment_storage_configured'=>($health['label_storage']['initialized'] ?? false)===true
-                && ($health['reservation_handoff_storage']['initialized'] ?? false)===true,
+                && ($health['reservation_handoff_storage']['initialized'] ?? false)===true
+                && ($health['label_resolution_storage']['initialized'] ?? false)===true,
             'reprint_storage_configured'=>($health['label_reprint_storage']['initialized'] ?? false)===true,
             'label_resolution_storage_configured'=>($health['label_resolution_storage']['initialized'] ?? false)===true,
+            'cancellation_storage_configured'=>($health['label_cancellation_storage']['initialized'] ?? false)===true
+                && ($health['cancellation_review_storage']['initialized'] ?? false)===true,
+            'tracking_storage_configured'=>($health['tracking_storage']['initialized'] ?? false)===true,
             'parcel_data_marked_verified'=>$config['parcel_data_verified'],
             'catalog'=>$health['catalog'] ?? ['schema_initialized'=>false,
                 'data_complete_for_direct_quotes'=>false],
@@ -35,8 +39,20 @@ final class ShippingReadiness
             if ($config['mode']==='easyship') $blockers[]='Easyship remains the selected provider';
             if (!$storage) $blockers[]='initialize private cache and migrated direct order storage';
             if (!$config['parcel_data_verified']) $blockers[]='verify packed parcel data';
-            if (!($result['catalog']['data_complete_for_direct_quotes'] ?? false)) {
-                $blockers[]='resolve saleable catalog measurement and origin gaps';
+            $catalog=$result['catalog'];
+            if (!($catalog['schema_initialized'] ?? false)) {
+                $blockers[]='initialize the saleable inventory schema';
+            } elseif (($catalog['saleable_products'] ?? 0)<1) {
+                $blockers[]='scan at least one saleable product';
+            } else {
+                $issues=$catalog['issues'] ?? [];
+                if (($issues['measurements'] ?? 0)>0 || ($issues['size'] ?? 0)>0
+                    || ($issues['origin'] ?? 0)>0) {
+                    $blockers[]='resolve saleable catalog measurement, size and origin gaps';
+                }
+                if ($catalog['potential_mixed_origin_carts'] ?? false) {
+                    $blockers[]='plan mixed-origin carts before full direct rollout';
+                }
             }
             if (!$carrier['enabled']) $blockers[]='carrier disabled';
             if (!ShippingConfig::ready(array_replace($carrier,['enabled'=>true]),$name,false)) $blockers[]='credentials incomplete';

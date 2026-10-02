@@ -27,6 +27,27 @@
     function render() {
         const root = document.getElementById('order-recovery');
         if (!root) return;
+        const summary = document.getElementById('checkout-summary-regular');
+        const pendingSummary = document.getElementById('checkout-pending-summary');
+        const instructions = document.getElementById('paypal-instructions');
+        const paymentTitle = document.getElementById('checkout-payment-title');
+        const guidance = document.getElementById('checkout-guidance-card');
+        const formColumn = document.getElementById('checkout-form-column');
+        const paymentColumn = document.getElementById('checkout-payment-column');
+        if (guidance) guidance.style.display = reference ? 'none' : '';
+        if (formColumn) formColumn.style.display = reference ? 'none' : '';
+        if (paymentColumn) {
+            paymentColumn.style.width = reference ? '100%' : '';
+            paymentColumn.style.maxWidth = reference ? '750px' : '';
+            paymentColumn.style.margin = reference ? '0 auto' : '';
+        }
+        if (summary) summary.style.display = reference ? 'none' : '';
+        if (pendingSummary) {
+            pendingSummary.hidden = !reference;
+            pendingSummary.style.display = reference ? '' : 'none';
+        }
+        if (instructions) instructions.style.display = reference ? 'none' : '';
+        if (paymentTitle) paymentTitle.textContent = reference ? 'Payment confirmation' : 'Choose how to pay';
         root.hidden = !reference;
         if (!reference) return;
         ['checkout-form','paypal-button-container','applepay-payment'].forEach(id => {
@@ -59,7 +80,15 @@
             return true;
         },
         begin(paypalId, transactionId, orderId) {
-            if (!reference) reference = {paypal_order_id: String(paypalId), paypal_transaction_id: String(transactionId), order_id: Number(orderId), source: source()};
+            const order = String(paypalId);
+            const capture = typeof transactionId === 'string' ? transactionId : '';
+            const localId = Number(orderId);
+            if (!reference) reference = {paypal_order_id: order, paypal_transaction_id: capture,
+                order_id: localId, source: source()};
+            else if (reference.paypal_order_id === order && reference.order_id === localId
+                && !reference.paypal_transaction_id && capture) {
+                reference.paypal_transaction_id = capture;
+            }
             persist(); render();
         },
         wait(response) {

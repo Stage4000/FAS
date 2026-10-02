@@ -3,7 +3,8 @@
 $currentPage = basename($_SERVER['PHP_SELF']);
 if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
 $compactQualitySidebar = in_array($currentPage, ['product-quality.php', 'order-details.php',
-    'shipping-label.php', 'shipping-label-cancel.php', 'shipping-operations.php', 'shipping-notification.php'], true);
+    'shipping-label.php', 'shipping-label-reconcile.php', 'shipping-label-cancel.php',
+    'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php'], true);
 $ajaxPage = basename($_SERVER['PHP_SELF']);
 $ajaxEnabled = in_array($ajaxPage, [
     'error-monitor.php', 'products.php', 'orders.php', 'order-details.php',
@@ -11,7 +12,7 @@ $ajaxEnabled = in_array($ajaxPage, [
     'homepage-categories.php', 'settings.php', 'password.php', 'security.php',
     'growth.php', 'product-content.php', 'product-quality.php', 'stale-inventory.php',
     'ebay-sync-health.php', 'analytics.php', 'administrators.php',
-    'shipping-operations.php', 'merchant-feed-health.php',
+    'shipping-operations.php', 'shipping-readiness.php', 'merchant-feed-health.php',
 ], true);
 $ajaxUrl = '';
 if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($action)) {
@@ -81,11 +82,14 @@ if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($acti
 <a href="stale-inventory.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'stale-inventory.php' ? 'active' : ''; ?>">
 <i class="fas fa-fire me-2"></i>Stale Inventory
 </a>
-        <a href="orders.php" class="list-group-item list-group-item-action <?php echo in_array($currentPage, ['orders.php', 'order-details.php', 'shipping-label.php', 'shipping-label-cancel.php'], true) ? 'active' : ''; ?>">
+        <a href="orders.php" class="list-group-item list-group-item-action <?php echo in_array($currentPage, ['orders.php', 'order-details.php', 'shipping-label.php', 'shipping-label-reconcile.php', 'shipping-label-cancel.php'], true) ? 'active' : ''; ?>">
             <i class="fas fa-shopping-cart me-2"></i>Orders
         </a>
         <a href="shipping-operations.php" class="list-group-item list-group-item-action <?php echo in_array($currentPage, ['shipping-operations.php','shipping-notification.php'],true) ? 'active' : ''; ?>">
             <i class="fas fa-truck me-2"></i>Shipping Review
+        </a>
+        <a href="shipping-readiness.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'shipping-readiness.php' ? 'active' : ''; ?>">
+            <i class="fas fa-clipboard-check me-2"></i>Shipping Readiness
         </a>
     <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">
         <i class="fas fa-warehouse me-2"></i>Warehouses

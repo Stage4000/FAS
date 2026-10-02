@@ -78,5 +78,58 @@ async function runCompletion(status, body) {
     fallback();
     check(/temporarily unavailable/.test(offline.innerHTML) && !/Demo Mode|onclick=/.test(offline.innerHTML),
         'Missing PayPal SDK shows an unavailable state without a simulated payment button');
+
+    const recoverySource = fs.readFileSync(require('node:path').join(__dirname, '..',
+        'public/js/order-recovery.js'), 'utf8');
+    const saved = new Map(), nodes = {};
+    const message = {textContent:''}, button = {disabled:false,addEventListener(){}};
+    const root = {hidden:true,querySelector:selector=>selector==='button'?button:message};
+    const recoveryContext = {
+        window:{getCheckoutMode:()=> 'cart',getCheckoutItems:()=>[{id:7,quantity:1}]},
+        document:{getElementById:id=>id==='order-recovery'?root:(nodes[id] ||= {inert:false,style:{},hidden:true}),
+            addEventListener(){}},
+        sessionStorage:{getItem:key=>saved.get(key)||null,setItem:(key,value)=>saved.set(key,value),
+            removeItem:key=>saved.delete(key)},
+        setTimeout:()=>1,clearTimeout:()=>{},Date,JSON,Number,String,Math,alert:()=>{}
+    };
+    vm.runInNewContext(recoverySource,recoveryContext);
+    const recovery = recoveryContext.window.FASOrderRecovery;
+    recovery.begin('PAYPAL123456','',42);
+    check(JSON.parse(saved.get('fas_paypal_recovery_v1')).paypal_transaction_id==='',
+        'Approved PayPal order is saved before browser capture returns');
+    recovery.begin('PAYPAL123456','CAPTURE123456',42);
+    check(JSON.parse(saved.get('fas_paypal_recovery_v1')).paypal_transaction_id==='CAPTURE123456',
+        'Known capture reference is added to the same pending payment');
+    recovery.begin('OTHERPAYPAL','OTHER-CAPTURE',43);
+    check(JSON.parse(saved.get('fas_paypal_recovery_v1')).paypal_order_id==='PAYPAL123456'
+        && JSON.parse(saved.get('fas_paypal_recovery_v1')).paypal_transaction_id==='CAPTURE123456',
+        'A different payment cannot replace the pending recovery reference');
+    check(recovery.pending() && root.hidden===false && nodes['checkout-form'].inert
+        && nodes['checkout-summary-regular'].style.display==='none'
+        && nodes['checkout-pending-summary'].hidden===false
+        && nodes['checkout-form-column'].style.display==='none'
+        && nodes['checkout-payment-column'].style.width==='100%',
+        'Pending payment hides stale totals and inactive form while showing recovery full width');
+    recovery.wait({headers:{get:()=> '12'}});
+    check(button.disabled && /Try again in/.test(message.textContent),
+        'Recovery notice honors the server retry interval without starting another payment');
+    const reloadedNodes = {};
+    const reloadedMessage = {textContent:''};
+    const reloadedButton = {disabled:false,addEventListener(){}};
+    const reloadedRoot = {hidden:true,querySelector:selector=>selector==='button'?reloadedButton:reloadedMessage};
+    let ready;
+    const reloadContext = {
+        ...recoveryContext,
+        window:{getCheckoutMode:()=> 'cart',getCheckoutItems:()=>[{id:7,quantity:1}]},
+        document:{getElementById:id=>id==='order-recovery'?reloadedRoot:(reloadedNodes[id] ||= {inert:false,style:{},hidden:true}),
+            addEventListener:(event,handler)=>{if(event==='DOMContentLoaded') ready=handler;}}
+    };
+    vm.runInNewContext(recoverySource,reloadContext);
+    ready();
+    check(reloadContext.window.FASOrderRecovery.pending() && !reloadedRoot.hidden
+        && reloadedNodes['checkout-form'].inert && reloadedButton.disabled
+        && reloadedMessage.textContent.includes('PAYPAL123456')
+        && reloadedNodes['checkout-summary-regular'].style.display==='none',
+        'Reload restores the same payment reference and delay without showing stale totals');
     console.log(`PASS ${assertions} PayPal client recovery assertions; no browser charge.`);
 })().catch(error=>{console.error(error);process.exitCode=1;});

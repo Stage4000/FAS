@@ -2,8 +2,9 @@
 declare(strict_types=1);
 require_once __DIR__.'/../src/shipping/ShippingCatalogReadiness.php';
 require_once __DIR__.'/../src/shipping/ShippingRateService.php';
+require_once __DIR__.'/../src/shipping/ShippingReadiness.php';
 
-use FAS\Shipping\{ShippingCatalogReadiness,ShippingRateService};
+use FAS\Shipping\{ShippingCatalogReadiness,ShippingRateService,ShippingReadiness};
 
 $checks=[];
 function catalogCheck(bool $ok,string $message): void {
@@ -51,6 +52,13 @@ $report=ShippingCatalogReadiness::report($db);
 catalogCheck($report['assigned_origin']===1 && $report['potential_mixed_origin_carts']
     && !$report['data_complete_for_direct_quotes'],
     'Different active origin addresses are reported as a mixed-cart rollout gap');
+$readiness=ShippingReadiness::report(require __DIR__.'/../src/config/shipping.example.php',
+    ['direct_order_storage'=>true,'cache'=>['healthy'=>true],'catalog'=>$report]);
+catalogCheck(in_array('plan mixed-origin carts before full direct rollout',
+        $readiness['carriers']['usps']['configuration_blockers'],true)
+    && !in_array('resolve saleable catalog measurement, size and origin gaps',
+        $readiness['carriers']['usps']['configuration_blockers'],true),
+    'Carrier readiness separates valid multi-origin inventory from missing parcel data');
 $db->exec('UPDATE warehouses SET is_active=0 WHERE id=2');
 catalogCheck(ShippingRateService::originForProduct($db,2)===null,
     'Explicit inactive assignment never falls back to the default');

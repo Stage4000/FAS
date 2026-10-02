@@ -35,11 +35,14 @@ with sqlite3.connect(DB) as db:
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(10,'FAS-10','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123456')",[address])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(11,'FAS-11','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123457')",[address])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(12,'FAS-12','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123458')",[address])
+    db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(13,'FAS-13','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123459')",[address])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(10,'usps','direct_usps_USPS_GROUND_ADVANTAGE','USPS_GROUND_ADVANTAGE','USPS','Ground Advantage',900,'USD','fixture-hash',?,?,?,?)",
         [int(time.time())+600,origin,packages,options])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(11,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups',?,?,?,NULL)",
         [int(time.time())+600,origin,packages])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(12,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups-12',?,?,?,NULL)",
+        [int(time.time())+600,origin,packages])
+    db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(13,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups-13',?,?,?,NULL)",
         [int(time.time())+600,origin,packages])
 env={k:v for k,v in os.environ.items() if not k.startswith('FAS_')}
 env['FAS_SECURITY_DB_PATH']=str(BASE/'private/security.sqlite')
@@ -63,6 +66,19 @@ def request(path,data=None,who=owner):
     try: r=who.open(urllib.request.Request(ORIGIN+path,data=data),timeout=15)
     except urllib.error.HTTPError as e: r=e
     with r: return r.status,dict(r.headers),r.read().decode()
+def upload(path,fields,filename,content,who=owner):
+    boundary='fas-synthetic-label-boundary'
+    data=bytearray()
+    for key,value in fields.items():
+        data.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
+    data.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="labels[0]"; filename="{filename}"\r\nContent-Type: image/gif\r\n\r\n'.encode())
+    data.extend(content)
+    data.extend(f'\r\n--{boundary}--\r\n'.encode())
+    req=urllib.request.Request(ORIGIN+path,data=bytes(data),
+        headers={'Content-Type':f'multipart/form-data; boundary={boundary}'})
+    try: r=who.open(req,timeout=15)
+    except urllib.error.HTTPError as e: r=e
+    with r: return r.status,dict(r.headers),r.read().decode()
 def check(ok,message):
     if not ok: raise AssertionError(message)
     checks.append(message)
@@ -75,6 +91,8 @@ try:
     check(request(path,who=anonymous)[0]==302,'Anonymous label page redirects to sign-in')
     check(request('/admin/shipping-operations.php',who=anonymous)[0]==302,
           'Anonymous shipment review queue redirects to sign-in')
+    check(request('/admin/shipping-readiness.php',who=anonymous)[0]==302,
+          'Anonymous carrier readiness page redirects to sign-in')
     loginPage=request('/admin/login.php')[2]
     csrf=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)[1]
     login=request('/admin/login.php',{'csrf_token':csrf,'username':'shipping-fixture','password':PASSWORD})
@@ -87,6 +105,25 @@ try:
     status,headers,queue=request('/admin/shipping-operations.php')
     check(status==200 and 'no-store' in headers.get('Cache-Control','') and 'No carrier label outcomes need review' in queue,
           'Active administrator sees an empty private shipment review queue')
+    status,headers,readiness=request('/admin/shipping-readiness.php')
+    check(status==200 and 'no-store' in headers.get('Cache-Control','')
+          and 'Shipping Readiness' in readiness and 'Saleable products scanned' in readiness
+          and 'Easyship' in readiness and 'separate account tests' in readiness
+          and 'Manage products' in readiness and 'Manage warehouses' in readiness,
+          'Private readiness page reports local mode and catalog state without claiming carrier acceptance')
+    check('Fulfillment storage' in readiness and 'Label operations' in readiness
+          and 'Cancellation review' in readiness and 'Tracking status' in readiness
+          and 'Tracking emails' in readiness and readiness.count('Installed')>=5,
+          'Readiness distinguishes installed fulfillment records from carrier activation')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_cache RENAME TO hidden_shipping_cache')
+    unavailable=request('/admin/shipping-readiness.php')[2]
+    check('Private shipping storage is unavailable' in unavailable and 'Needs setup' in unavailable,
+          'Readiness reports missing private storage instead of a healthy zero')
+    check('Fulfillment storage' in unavailable and 'Installed' not in unavailable,
+          'Unavailable private database cannot report installed fulfillment records')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_shipping_cache RENAME TO shipping_cache')
     check('Review shipping labels' in request('/admin/order-details.php?id=10')[2],
           'Order page links to carrier label review')
     post={'package_index':'0','confirmed_cents':'900','confirm_charge':'yes',
@@ -102,6 +139,8 @@ try:
     shippingConfig.write_text("<?php return ['shipper_name'=>'Fixture Sender','carriers'=>['usps'=>"
         "['enabled'=>true,'label_purchasing_enabled'=>true,'environment'=>'sandbox',"
         "'client_id'=>'synthetic','client_secret'=>'synthetic']]];",encoding='utf-8')
+    check('synthetic' not in request('/admin/shipping-readiness.php')[2],
+          'Carrier readiness never renders configured credential values')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         now=int(time.time())
         db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,operator_id,created_at,updated_at) VALUES(10,0,'usps','USPS_GROUND_ADVANTAGE',1,'synthetic-reserved','9b71aa67-f7e8-4c72-9c75-3c79f4630506','reserved',2,?,?)",[now,now])
@@ -286,16 +325,24 @@ try:
     missing=request('/admin/shipping-operations.php')[2]
     check('Tracking status is unavailable' in missing and 'No tracking follow-ups are currently due' not in missing,
           'Unavailable tracking storage does not masquerade as a healthy empty queue')
+    readinessMissing=request('/admin/shipping-readiness.php')[2]
+    check(re.search(r'Tracking status</span>\s*<span[^>]*>Needs setup',readinessMissing) is not None,
+          'Readiness page identifies the missing tracking table')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE hidden_tracking_fixture RENAME TO shipping_tracking')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE shipping_notification_resolutions RENAME TO hidden_resolution_fixture')
     missing=request('/admin/shipping-operations.php')[2]
     check('Tracking email status is unavailable' in missing and 'No tracking email outcomes need review' not in missing,
           'Missing notification migration is reported instead of an empty healthy queue')
+    readinessMissing=request('/admin/shipping-readiness.php')[2]
+    check(re.search(r'Tracking emails</span>\s*<span[^>]*>Needs setup',readinessMissing) is not None,
+          'Readiness page identifies incomplete notification storage')
     blocked=request(f'/admin/shipping-notification.php?id={staleId}')
     check(blocked[0]==503 and 'Record outcome</button>' not in blocked[2],
           'Uninitialized reconciliation storage suppresses the mutation form')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE hidden_resolution_fixture RENAME TO shipping_notification_resolutions')
     with sqlite3.connect(DB) as db: db.execute('UPDATE admin_users SET is_active=0 WHERE id=1')
+    check(request('/admin/shipping-readiness.php')[0] in (302,403),
+          'Deactivated administrator cannot inspect carrier readiness')
     check(request(f'/admin/shipping-notification.php?id={staleId}',valid)[0] in (302,403),
           'Deactivated administrator cannot use an existing session to resolve email')
     with sqlite3.connect(DB) as db: db.execute('UPDATE admin_users SET is_active=1 WHERE id=1')
@@ -346,6 +393,71 @@ try:
     # Leave another synthetic uncertain cancellation for optional browser interaction.
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         db.execute("INSERT INTO shipping_label_cancellations(operation_id,state,operator_id,created_at,submitted_at,updated_at) VALUES(?,'review',1,?,?,?)",[op2,now,now-1800,now])
+    fixtureCode=("require $argv[1].'/src/shipping/ShippingCache.php';"
+        "require $argv[1].'/src/shipping/ShippingLabelOperations.php';"
+        "$db=new PDO('sqlite:'.$argv[2]);"
+        "$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);"
+        "$cache=new FAS\\Shipping\\ShippingCache($argv[3]);"
+        "$ledger=new FAS\\Shipping\\ShippingLabelOperations($cache->database());"
+        "$ledger->reserve($db,13,0,1);"
+        "$ledger->markSubmitted($db,13,0,1,'sandbox');"
+        "$ledger->markReview(13,0);"
+        "$cache->database()->exec('UPDATE shipping_label_operations SET submitted_at='.(time()-1800).' WHERE order_id=13');")
+    subprocess.check_call(['php','-r',fixtureCode,str(SITE),str(DB),str(BASE/'private/shipping.sqlite')],
+        env=env,stdout=subprocess.DEVNULL)
+    loginPage=request('/admin/login.php')[2]
+    reviewerCsrf=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)[1]
+    check(request('/admin/login.php',{'csrf_token':reviewerCsrf,'username':'browser-fixture',
+          'password':PASSWORD})[0]==302,'Fresh synthetic administrator opens label review')
+    labelReview='/admin/shipping-label-reconcile.php?id=13&package=0'
+    check(request(labelReview,who=anonymous)[0]==302,
+          'Anonymous original-label reconciliation redirects to sign-in')
+    reviewPage=request(labelReview)
+    check(reviewPage[0]==200 and 'Record original carrier labels' in reviewPage[2]
+          and 'original carrier transaction' in reviewPage[2].lower()
+          and '200 Synthetic Street' in reviewPage[2]
+          and '100 Fixture Road' in reviewPage[2],
+          'Aged uncertain UPS shipment offers a guarded original-label review')
+    check('Record verified carrier label' in request('/admin/shipping-label.php?id=13')[2],
+          'Uncertain shipment links to carrier-evidence review')
+    reviewFields={'csrf_token':reviewerCsrf,'expected_state':'review','evidence_reference':'UPS-ORIGINAL-13',
+        'billed_amount':'10.25','tracking[0]':'1Z1234567890123460',
+        'password':PASSWORD,'confirm_evidence':'yes'}
+    check(request(labelReview,{**reviewFields,'csrf_token':''})[0]==403,
+          'Original-label review requires CSRF')
+    check(request(labelReview,{**reviewFields,'password':'wrong'})[0]==403,
+          'Original-label review requires the current administrator password')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_label_resolutions').fetchone()[0]==0,
+              'Denied original-label reviews leave no audit or carrier label')
+        db.execute('ALTER TABLE shipping_label_resolutions RENAME TO hidden_label_resolutions')
+    missing=request(labelReview)
+    check('Record original carrier labels' not in missing[2],
+          'Missing original-label review migration suppresses the upload form')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_label_resolutions RENAME TO shipping_label_resolutions')
+    invalid=upload(labelReview,reviewFields,'not-a-label.gif',b'<html>invalid</html>')
+    check(invalid[0]==422,'Uploaded carrier label must pass original image validation')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_label_resolutions').fetchone()[0]==0
+              and db.execute("SELECT state FROM shipping_label_operations WHERE order_id=13").fetchone()[0]=='review',
+              'Rejected original-label upload leaves the shipment and audit unchanged')
+    original=b'GIF89asynthetic-original-carrier-label'
+    saved=upload(labelReview,reviewFields,'original.gif',original)
+    check(saved[0]==303,'Verified original carrier label redirects after saving'
+          + (f' (HTTP {saved[0]}: {saved[2][:200]})' if saved[0]!=303 else ''))
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        op13=db.execute('SELECT id,state,billed_cents FROM shipping_label_operations WHERE order_id=13').fetchone()
+        audit=db.execute('SELECT actor_id,evidence_reference FROM shipping_label_resolutions WHERE operation_id=?',[op13[0]]).fetchone()
+        label=db.execute('SELECT tracking_number,label_image FROM shipping_label_packages WHERE operation_id=?',[op13[0]]).fetchone()
+        check(op13[1:] == ('ready',1025) and audit==(3,'UPS-ORIGINAL-13')
+              and label==('1Z1234567890123460',original),
+              'Verified original label, charge and reviewer evidence save together')
+    check('UPS-ORIGINAL-13' in request(labelReview)[2]
+          and 'Record original carrier labels' not in request(labelReview)[2],
+          'Completed label review shows immutable evidence without a second form')
+    check(upload(labelReview,reviewFields,'original.gif',original)[0]==422,
+          'Repeated original-label review cannot overwrite the saved shipment')
     report={'date':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
         'scope':'isolated synthetic administrator and paid orders; purchase and cancellation disabled',
         'checks':len(checks),'passed':checks,'live_carrier_calls':0,'label_purchases':0,
@@ -353,6 +465,52 @@ try:
     (ROOT/'audit/shipping-label-http-local.json').write_text(json.dumps(report,indent=2)+'\n')
     print(f'PASS {len(checks)} shipping label HTTP checks. No carrier calls, purchases or cancellations.',flush=True)
     if '--serve' in sys.argv:
+        shutil.copy2(ROOT/'checkout.php',SITE/'checkout.php')
+        shutil.copytree(ROOT/'api',SITE/'api',ignore=shutil.ignore_patterns('*.db','*.sqlite','*.log'))
+        # This mock exists only in the disposable browser fixture; PHP cannot reach PayPal or carriers.
+        (SITE/'src/integrations/PayPalAPI.php').write_text('''<?php
+namespace FAS\\Integrations;
+class PayPalAPI {
+    public function getOrderDetails($id) {
+        $path=__DIR__.'/../../../paypal-response.json';
+        return is_file($path) ? json_decode(file_get_contents($path),true) : ['error'=>'fixture unavailable'];
+    }
+}
+''',encoding='utf-8')
+        with sqlite3.connect(DB) as db:
+            db.execute("INSERT INTO products(id,name,sku,price,quantity,is_active,show_on_website,image_url) "
+                       "VALUES(1,'Synthetic checkout part','CHECKOUT-1',20,10,1,1,'/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg')")
+            db.execute("INSERT INTO orders(id,order_number,customer_email,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status) "
+                       "VALUES(42,'FAS-42','buyer@example.invalid',?,20,9,29,'pending','pending')",[address])
+            db.execute("INSERT INTO order_items(order_id,product_id,product_name,product_sku,quantity,unit_price,total_price) "
+                       "VALUES(42,1,'Synthetic checkout part','CHECKOUT-1',1,20,20)")
+            db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) "
+                       "VALUES(42,'usps','direct_usps_USPS_GROUND_ADVANTAGE','USPS_GROUND_ADVANTAGE','USPS','Ground Advantage',900,'USD','fixture-browser',?,?,?,?)",
+                       [int(time.time())+600,origin,packages,options])
+        provider={'id':'PAYPAL424242','status':'COMPLETED','intent':'CAPTURE','purchase_units':[{
+            'invoice_id':'FAS-42','custom_id':'FAS-CHECKOUT-42',
+            'payee':{'merchant_id':'FIXTUREMERCHANT'},'amount':{'currency_code':'USD','value':'29.00'},
+            'shipping':{'address':{'address_line_1':'200 Synthetic Street','address_line_2':'',
+                'admin_area_2':'Test City','admin_area_1':'CA','postal_code':'90210','country_code':'US'}},
+            'payments':{'captures':[{'id':'CAPTURE424242','status':'COMPLETED',
+                'amount':{'currency_code':'USD','value':'29.00'},'final_capture':True}]}
+        }]}
+        (BASE/'paypal-response.json').write_text(json.dumps({'success':True,'data':provider}),encoding='utf-8')
+        (SITE/'checkout-seed.html').write_text('''<!doctype html><title>Checkout fixture</title>
+<script>
+localStorage.setItem('flipandstrip_cart', JSON.stringify([{
+    id:1,name:'Synthetic checkout part',sku:'CHECKOUT-1',price:20,quantity:1,
+    image:'/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg'
+}]));
+if (new URLSearchParams(location.search).has('recovery')) {
+    sessionStorage.setItem('fas_paypal_recovery_v1', JSON.stringify({
+        paypal_order_id:'PAYPAL424242',paypal_transaction_id:'CAPTURE424242',
+        order_id:42,source:JSON.stringify(['cart',[['1',1]]]),
+        retry_at:new URLSearchParams(location.search).has('ready') ? Date.now()-1 : Date.now()+12000
+    }));
+} else sessionStorage.removeItem('fas_paypal_recovery_v1');
+location.replace('/checkout.php');
+</script>''',encoding='utf-8')
         print(json.dumps({'origin':ORIGIN,'fixture':str(BASE),'username':'browser-fixture',
             'password':PASSWORD}),flush=True)
         while True: time.sleep(1)

@@ -93,11 +93,13 @@ try {
         $result['label_cancellations']=$cancelTable
             ? (new \FAS\Shipping\ShippingLabelCancellations($cache->database()))->health()
             : ['initialized'=>false];
+        $result['label_cancellation_storage']=['initialized'=>(bool)$cancelTable];
         $result['cancellation_review_storage']=['initialized'=>(bool)$cache->database()->query(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_cancellation_resolutions'")->fetchColumn()];
         $result['tracking']=$trackingTable
             ? (new \FAS\Shipping\ShippingTracking($cache->database()))->health()
             : ['initialized'=>false];
+        $result['tracking_storage']=['initialized'=>(bool)$trackingTable];
         $notifications=$notificationTable && $orderDb!==null
             ? new \FAS\Shipping\ShippingNotifications($cache->database(),$orderDb,$config) : null;
         $result['notifications']=$notifications ? $notifications->health() : ['initialized'=>false];

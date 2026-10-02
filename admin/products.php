@@ -522,6 +522,7 @@ if ($action === 'list') {
                     </div>
 
                     <div class="row g-3 mt-2 d-none bulk-action-fields" data-bulk-fields="fix_shipping">
+                        <div class="col-12"><p class="small text-muted mb-0">Enter the measured packed parcel for one unit, including the box and packing material. Apply one set of values only to products that truly ship in the same package.</p></div>
                         <div class="col-md-2">
                             <label class="form-label small fw-semibold">Weight</label>
                             <input type="number" class="form-control" name="bulk_weight" min="0" step="0.01" placeholder="lb">
@@ -745,6 +746,9 @@ if ($action === 'list') {
                                     </div>
                                 </div>
 
+                                <div class="alert alert-info small mb-3" role="note">
+                                    Enter the measured packed parcel for one unit, including its box and packing material. Direct carrier rates currently assume one parcel per unit.
+                                </div>
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="mb-3">
@@ -765,7 +769,7 @@ if ($action === 'list') {
                                             <label class="form-label">Weight (lbs) <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="weight" step="0.01"
                                                    value="<?php echo $product && $product['weight'] ? $product['weight'] : ''; ?>" required>
-                                            <small class="text-muted">Required for shipping calculations</small>
+                                            <small class="text-muted">Packed parcel weight</small>
                                         </div>
                                     </div>
                                 </div>
@@ -777,7 +781,7 @@ if ($action === 'list') {
                                             <input type="number" class="form-control" name="length" step="0.01"
                                                    value="<?php echo $product && $product['length'] ? $product['length'] : ''; ?>"
                                                    placeholder="Package length" required>
-                                            <small class="text-muted">Required for shipping calculations</small>
+                                            <small class="text-muted">Packed parcel length</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -786,7 +790,7 @@ if ($action === 'list') {
                                             <input type="number" class="form-control" name="width" step="0.01"
                                                    value="<?php echo $product && $product['width'] ? $product['width'] : ''; ?>"
                                                    placeholder="Package width" required>
-                                            <small class="text-muted">Required for shipping calculations</small>
+                                            <small class="text-muted">Packed parcel width</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -795,7 +799,7 @@ if ($action === 'list') {
                                             <input type="number" class="form-control" name="height" step="0.01"
                                                    value="<?php echo $product && $product['height'] ? $product['height'] : ''; ?>"
                                                    placeholder="Package height" required>
-                                            <small class="text-muted">Required for shipping calculations</small>
+                                            <small class="text-muted">Packed parcel height</small>
                                         </div>
                                     </div>
                                 </div>

@@ -93,6 +93,7 @@ try {
             <p class="mb-0 opacity-75">Labels, tracking and customer updates that need attention</p></div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-light" href="shipping-operations.php" data-admin-refresh><i class="fas fa-rotate me-1" aria-hidden="true"></i>Refresh status</a>
+            <a class="btn btn-outline-light" href="shipping-readiness.php">Shipping Readiness</a>
             <a class="btn btn-outline-secondary" href="orders.php">View orders</a>
         </div>
     </div>

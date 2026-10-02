@@ -123,6 +123,15 @@ try {
     reprintReject(static fn()=>$service->reprint(21,0,1),
         'A failed reprint cannot be resent automatically');
     reprintCheck($reprintCalls===2,'Repeated review makes no third carrier request');
+    $manual=['shipment_id'=>'9400111899223847199998','billed_cents'=>980,
+        'packages'=>[['tracking_number'=>'9400111899223847199998','format'=>'pdf',
+            'label'=>"%PDF-1.4\nverified-original"]]];
+    $ledger->reconcileReady($orders,21,0,1,'review',$manual,'USPS-CASE-21',true);
+    reprintCheck($ledger->find(21,0)['state']==='ready'
+        && $ledger->reprint(21,0)['state']==='review'
+        && $ledger->resolution(21,0)['evidence_reference']==='USPS-CASE-21'
+        && $reprintCalls===2,
+        'Carrier-verified original label resolves a failed reprint without another request');
     $cache->database()->prepare('UPDATE shipping_label_operations SET mailing_date=? WHERE order_id=22')
         ->execute([gmdate('Y-m-d',time()-86400)]);
     reprintReject(static fn()=>$service->reprint(22,0,1),
@@ -140,6 +149,8 @@ try {
         ->execute([$cancelId,time(),time()]);
     reprintReject(static fn()=>$service->reprint(22,0,1),
         'A cancellation request prevents recovering the original label for use');
+    reprintReject(static fn()=>$ledger->reconcileReady($orders,22,0,1,'review',$manual,'USPS-CASE-22',true),
+        'A cancellation request also prevents manual original-label confirmation');
     reprintCheck($ledger->reprint(22,0)===null && $reprintCalls===2,
         'Denied carrier-environment and cancellation cases claim no reprint or carrier call');
     $addOrder->execute([23,$address]);

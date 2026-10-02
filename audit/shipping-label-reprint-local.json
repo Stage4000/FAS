@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-02T20:28:58+00:00",
+    "date": "2026-10-02T20:47:59+00:00",
     "scope": "synthetic uncertain USPS orders and mocked reprint transport",
-    "checks": 22,
+    "checks": 24,
     "passed": [
         "Synthetic USPS purchase was marked submitted without a carrier call",
         "Synthetic USPS purchase was marked submitted without a carrier call",
@@ -17,10 +17,12 @@
         "Failed reprint retains original review and durable one-attempt state",
         "A failed reprint cannot be resent automatically",
         "Repeated review makes no third carrier request",
+        "Carrier-verified original label resolves a failed reprint without another request",
         "Past mailing date blocks a USPS reprint",
         "Expired mailing date makes no carrier call",
         "Saved production label cannot be reprinted with sandbox credentials",
         "A cancellation request prevents recovering the original label for use",
+        "A cancellation request also prevents manual original-label confirmation",
         "Denied carrier-environment and cancellation cases claim no reprint or carrier call",
         "Failed recovered-label write rolls back its entire confirmation",
         "Failed recovered-label persistence keeps the original review and no partial label",
