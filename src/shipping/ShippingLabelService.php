@@ -51,7 +51,8 @@ final class ShippingLabelService
         if ($operation['state']!=='reserved') return self::summary($operation);
         $client=$this->client($provider,$carrier);
         $authorization=$client->authorize();
-        if (!$this->operations->markSubmitted($this->ordersDb,$orderId,$packageIndex,$operatorId,$carrier['environment'])) {
+        if (!$this->operations->markSubmitted($this->ordersDb,$orderId,$packageIndex,$operatorId,
+            $carrier['environment'],$provider==='usps' ? $mailingDate : null)) {
             return self::summary($this->operations->find($orderId,$packageIndex));
         }
         try {
@@ -63,6 +64,31 @@ final class ShippingLabelService
             try { $this->operations->markReview($orderId,$packageIndex); }
             catch (\Throwable $ignored) { /* Preserve the original error; never retry the POST. */ }
             throw new \RuntimeException('Carrier label outcome needs reconciliation.',0,$e);
+        }
+    }
+
+    public function reprint(int $orderId,int $packageIndex,int $operatorId): array
+    {
+        $operation=$this->operations->find($orderId,$packageIndex);
+        if (!$operation || !ShippingLabelOperations::reprintEligible($operation)) {
+            throw new \RuntimeException('USPS reprint is unavailable.');
+        }
+        $carrier=$this->config['carriers']['usps'] ?? null;
+        if (!is_array($carrier) || ($carrier['environment'] ?? null)!==$operation['carrier_environment']) {
+            throw new \RuntimeException('Saved carrier environment needs review.');
+        }
+        $client=$this->client('usps',$carrier);
+        $authorization=$client->authorizeReprint();
+        $claimed=$this->operations->markReprintSubmitted($this->ordersDb,$orderId,$packageIndex,
+            $operatorId,$carrier['environment']);
+        try {
+            $confirmation=$client->reprint($claimed['idempotency_key'],$authorization);
+            $this->operations->recordReprintReady($orderId,$packageIndex,$confirmation);
+            return self::summary($this->operations->find($orderId,$packageIndex));
+        } catch (\Throwable $e) {
+            try { $this->operations->markReprintReview($orderId,$packageIndex); }
+            catch (\Throwable $ignored) { /* One reprint was claimed; never reissue it automatically. */ }
+            throw new \RuntimeException('USPS reprint outcome needs reconciliation.',0,$e);
         }
     }
 

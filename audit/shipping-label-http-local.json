@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-02T19:41:36Z",
+  "date": "2026-10-02T20:34:24Z",
   "scope": "isolated synthetic administrator and paid orders; purchase and cancellation disabled",
-  "checks": 63,
+  "checks": 70,
   "passed": [
     "Anonymous label page redirects to sign-in",
     "Anonymous shipment review queue redirects to sign-in",
@@ -15,6 +15,13 @@
     "Disabled label page creates no shipment operation",
     "Recent reservation stays with the original administrator",
     "Aged unsent reservation offers an explicit takeover control",
+    "Missing handoff migration keeps the label purchase form disabled",
+    "Aged uncertain USPS purchase exposes the guarded original-label reprint form",
+    "Canceled uncertain label does not offer the reprint action",
+    "Missing private reprint migration suppresses the carrier recovery form",
+    "USPS reprint requires CSRF",
+    "USPS reprint requires current administrator password",
+    "Denied reprints create no one-attempt record or carrier call",
     "Uncertain shipment is visible in the administrator review queue",
     "Uncertain shipment has no repeat purchase control",
     "Anonymous label cancellation page redirects to sign-in",

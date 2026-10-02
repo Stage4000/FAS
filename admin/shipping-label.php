@@ -35,12 +35,16 @@ $error=''; $notice=$_SESSION['shipping_label_notice'] ?? '';
 unset($_SESSION['shipping_label_notice']);
 $config=null; $cache=null; $operations=null; $cancellations=null; $trackingStore=null;
 $handoffStorage=false;
+$reprintStorage=false;
+$resolutionStorage=false;
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']!=='') {
         $cache=new ShippingCache($config['cache_path']);
         $operations=new ShippingLabelOperations($cache->database());
         $handoffStorage=(bool)$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_handoffs'")->fetchColumn();
+        $reprintStorage=(bool)$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_reprints'")->fetchColumn();
+        $resolutionStorage=(bool)$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_resolutions'")->fetchColumn();
         $cancellations=new ShippingLabelCancellations($cache->database());
         $trackingTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_tracking'")->fetchColumn();
         if ($trackingTable) $trackingStore=new ShippingTracking($cache->database());
@@ -55,12 +59,19 @@ $purchaseEnabled=$operations && $handoffStorage && $carrier
     && (($carrier['environment'] ?? '')==='sandbox' || ($carrier['production_verified'] ?? false)===true)
     && !empty($config['shipper_name'])
     && ($provider==='usps' || (!empty($config['shipper_phone']) && !empty($carrier['account_number'])));
+$reprintEnabled=$provider==='usps' && $operations && $reprintStorage && $carrier
+    && ($carrier['enabled'] ?? false)===true && ($carrier['label_reprint_enabled'] ?? false)===true
+    && !empty($carrier['client_id']) && !empty($carrier['client_secret'])
+    && (($carrier['environment'] ?? '')==='sandbox' || ($carrier['production_verified'] ?? false)===true);
 $savedPackages=is_array($shipping['packages'] ?? null) ? $shipping['packages'] : [];
 $destination=json_decode((string)($order['shipping_address'] ?? ''),true);
 $destination=is_array($destination) ? $destination : [];
 $origin=is_array($shipping['origin'] ?? null) ? $shipping['origin'] : [];
 $scopes=$provider==='usps' ? count($savedPackages) : 1;
-if ($scopes<1 || $scopes>10) $purchaseEnabled=false;
+if ($scopes<1 || $scopes>10) {
+    $purchaseEnabled=false;
+    $reprintEnabled=false;
+}
 $prices=[];
 for ($index=0;$index<$scopes;$index++) {
     $prices[$index]=$provider==='usps'
@@ -76,6 +87,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
         }
         $index=filter_var($_POST['package_index'] ?? null,FILTER_VALIDATE_INT,
             ['options'=>['min_range'=>0,'max_range'=>9]]);
+        $action=$_POST['action'] ?? 'purchase';
+        if ($action==='reprint') {
+            if ($index===false || !array_key_exists($index,$prices)
+                || !$reprintEnabled || ($_POST['confirm_reprint'] ?? '')!=='yes') {
+                throw new InvalidArgumentException('Review the USPS parcel and confirm the reprint request.');
+            }
+            $operation=$operations->find((int)$orderId,$index);
+            if (!$operation || !ShippingLabelOperations::reprintEligible($operation)
+                || $operations->reprint((int)$orderId,$index)) {
+                throw new DomainException('USPS reprint is unavailable or already attempted.');
+            }
+            if (!$auth->verifyCurrentPassword((int)$admin['id'],$_POST['password'] ?? null)) {
+                throw new InvalidArgumentException($auth->lastError ?: 'Password could not be verified.');
+            }
+            $result=(new ShippingLabelService($db,$cache,$config))->reprint((int)$orderId,$index,(int)$admin['id']);
+            $_SESSION['shipping_label_notice']=$result['state']==='ready'
+                ? 'USPS label recovered. Download and verify it before shipping.'
+                : 'USPS reprint needs reconciliation. Do not send another request.';
+            header('Location: shipping-label.php?id='.(int)$orderId,true,303); exit;
+        }
+        if ($action!=='purchase') throw new InvalidArgumentException('Unknown shipment action.');
         if ($index===false || !array_key_exists($index,$prices)
             || ($_POST['confirm_charge'] ?? '')!=='yes') {
             throw new InvalidArgumentException('Select a parcel and confirm the carrier charge.');
@@ -101,17 +133,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     catch (Throwable $e) {
         $index=isset($index) && is_int($index) ? $index : 0;
         $record=$operations ? $operations->find((int)$orderId,$index) : null;
-        $error=$record && in_array($record['state'],['submitted','review','ready'],true)
+        $error=($action ?? '')==='reprint'
+            ? 'USPS reprint needs review. Check the carrier account; do not send another request.'
+            : ($record && in_array($record['state'],['submitted','review','ready'],true)
             ? 'The carrier outcome needs review. Do not purchase this shipment again.'
-            : 'The label could not be prepared. Check the order and carrier account settings.';
+            : 'The label could not be prepared. Check the order and carrier account settings.');
     }
 }
 $rows=[];
+$reprintRows=[];
+$resolutionRows=[];
 $cancelRows=[];
 $trackingRows=[];
 $handoffRows=[];
 for ($index=0;$index<$scopes;$index++) {
     $rows[$index]=$operations ? $operations->find((int)$orderId,$index) : null;
+    $reprintRows[$index]=$operations && $reprintStorage ? $operations->reprint((int)$orderId,$index) : null;
+    $resolutionRows[$index]=$operations && $resolutionStorage ? $operations->resolution((int)$orderId,$index) : null;
     $handoffRows[$index]=$operations && $handoffStorage ? $operations->handoffs((int)$orderId,$index) : [];
     $cancelRows[$index]=$cancellations ? $cancellations->find((int)$orderId,$index) : null;
     $trackingRows[$index]=[];
@@ -147,8 +185,10 @@ for ($index=0;$index<$scopes;$index++) {
     </div>
     <?php if ($notice): ?><div class="alert alert-success" role="status"><?php echo shippingLabelHtml($notice); ?></div><?php endif; ?>
     <?php if ($error): ?><div class="alert alert-danger" role="alert"><?php echo shippingLabelHtml($error); ?></div><?php endif; ?>
-    <?php if (!$purchaseEnabled): ?>
+    <?php if (!$purchaseEnabled && !$reprintEnabled): ?>
         <div class="alert alert-warning" role="status">Carrier label purchasing is unavailable for this order. Review the carrier account, shipper details, and private storage before proceeding.</div>
+    <?php elseif (!$purchaseEnabled): ?>
+        <div class="alert alert-info" role="status">New label purchases are disabled. Eligible uncertain USPS labels can be recovered below.</div>
     <?php endif; ?>
     <div class="card border-0 shadow-sm mb-4"><div class="card-body">
         <h2 class="h5">Saved shipping choice</h2>
@@ -189,6 +229,7 @@ for ($index=0;$index<$scopes;$index++) {
             <?php if ($state==='ready'): ?>
                 <p class="mb-2">Tracking: <strong><?php echo shippingLabelHtml($operation['tracking_number']); ?></strong></p>
                 <?php if ($operation['billed_cents']!==null): ?><p class="mb-3">Carrier charged $<?php echo number_format((int)$operation['billed_cents']/100,2); ?></p><?php endif; ?>
+                <?php if ($resolutionRows[$index]): ?><p class="small text-muted">Original label confirmed from carrier evidence. <a href="shipping-label-reconcile.php?id=<?php echo (int)$orderId; ?>&amp;package=<?php echo $index; ?>">View review record</a>.</p><?php endif; ?>
                 <?php if ($cancelState): ?><p class="alert alert-warning py-2">Cancellation: <?php echo shippingLabelHtml(str_replace('_',' ',$cancelState)); ?>. This label is unavailable after a carrier cancellation request.</p><?php endif; ?>
                 <?php if (!$cancelState && $trackingRows[$index]): ?>
                     <div class="border rounded p-3 mb-3">
@@ -214,12 +255,32 @@ for ($index=0;$index<$scopes;$index++) {
                     <a class="btn btn-outline-secondary btn-sm" href="shipping-label-cancel.php?id=<?php echo (int)$orderId; ?>&amp;package=<?php echo $index; ?>">Review cancellation</a>
                 </div>
             <?php elseif ($state==='review'||$state==='submitted'): ?>
-                <p class="mb-0">The carrier outcome is uncertain. Reconcile this shipment before any further purchase.</p>
+                <p class="mb-2">The carrier outcome is uncertain. Reconcile this shipment before any further purchase.</p>
+                <?php if ($resolutionStorage): ?><a class="btn btn-outline-secondary btn-sm mb-3" href="shipping-label-reconcile.php?id=<?php echo (int)$orderId; ?>&amp;package=<?php echo $index; ?>">Record verified carrier label</a><?php endif; ?>
+                <?php if ($reprintRows[$index]): ?>
+                    <p class="small text-muted mb-0">USPS reprint: <?php echo shippingLabelHtml(str_replace('_',' ',$reprintRows[$index]['state'])); ?>. Check the carrier account; this request cannot be sent again automatically.</p>
+                <?php elseif ($reprintEnabled && !$cancelRows[$index]
+                    && $operation['carrier_environment']===$carrier['environment']
+                    && ShippingLabelOperations::reprintEligible($operation)
+                    && $order['payment_status']==='completed' && $order['order_status']==='processing'): ?>
+                    <form method="post" class="border-top mt-3 pt-3">
+                        <?php echo CSRF::tokenField(); ?>
+                        <input type="hidden" name="action" value="reprint">
+                        <input type="hidden" name="package_index" value="<?php echo $index; ?>">
+                        <p class="small text-muted">Request the original USPS label image using its saved purchase key. This does not submit another label purchase. The request is recorded before it is sent.</p>
+                        <div class="mb-3"><label class="form-label" for="reprint-password-<?php echo $index; ?>">Current password</label>
+                            <input class="form-control" type="password" id="reprint-password-<?php echo $index; ?>" name="password" autocomplete="current-password" required></div>
+                        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="reprint-confirm-<?php echo $index; ?>" name="confirm_reprint" value="yes" required>
+                            <label class="form-check-label" for="reprint-confirm-<?php echo $index; ?>">I checked the original purchase and authorize one USPS reprint request.</label></div>
+                        <button class="btn btn-outline-primary" type="submit">Request original USPS label</button>
+                    </form>
+                <?php endif; ?>
             <?php elseif ($state==='reserved' && !$canPurchase && (int)$operation['operator_id']!==(int)$admin['id']): ?>
                 <p class="text-muted mb-0">Another administrator is preparing this shipment. If it remains reserved, you can take over after <?php echo Timezone::timestampElement(new DateTimeImmutable('@'.((int)$operation['updated_at']+ShippingLabelOperations::HANDOFF_DELAY_SECONDS))); ?>. No carrier purchase has been sent.</p>
             <?php elseif ($canPurchase): ?>
                 <form method="post" class="mt-3">
                     <?php echo CSRF::tokenField(); ?>
+                    <input type="hidden" name="action" value="purchase">
                     <input type="hidden" name="package_index" value="<?php echo $index; ?>">
                     <input type="hidden" name="confirmed_cents" value="<?php echo $price; ?>">
                     <?php if ($provider==='usps'): ?>

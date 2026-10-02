@@ -1,0 +1,32 @@
+{
+    "date": "2026-10-02T20:28:58+00:00",
+    "scope": "synthetic uncertain USPS orders and mocked reprint transport",
+    "checks": 22,
+    "passed": [
+        "Synthetic USPS purchase was marked submitted without a carrier call",
+        "Synthetic USPS purchase was marked submitted without a carrier call",
+        "Synthetic USPS purchase was marked submitted without a carrier call",
+        "Aged uncertain USPS operation within mailing date is eligible for one reprint",
+        "Recent uncertain purchase cannot be reprinted while the original request may still finish",
+        "Viewer cannot claim a USPS reprint",
+        "Recovered label cannot be saved without a claimed reprint",
+        "Original USPS key reprints once without another label purchase",
+        "Reprinted USPS image and billed postage persist in private storage",
+        "Completed reprint cannot run again",
+        "Ambiguous reprint response requires reconciliation",
+        "Failed reprint retains original review and durable one-attempt state",
+        "A failed reprint cannot be resent automatically",
+        "Repeated review makes no third carrier request",
+        "Past mailing date blocks a USPS reprint",
+        "Expired mailing date makes no carrier call",
+        "Saved production label cannot be reprinted with sandbox credentials",
+        "A cancellation request prevents recovering the original label for use",
+        "Denied carrier-environment and cancellation cases claim no reprint or carrier call",
+        "Failed recovered-label write rolls back its entire confirmation",
+        "Failed recovered-label persistence keeps the original review and no partial label",
+        "A reprint already in review cannot be silently finalized or resent"
+    ],
+    "live_carrier_calls": 0,
+    "label_purchases": 0,
+    "production_verified": false
+}

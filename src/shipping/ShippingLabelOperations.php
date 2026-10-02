@@ -26,6 +26,7 @@ final class ShippingLabelOperations
             operator_id INTEGER NOT NULL,
             created_at INTEGER NOT NULL,
             submitted_at INTEGER,
+            mailing_date TEXT,
             updated_at INTEGER NOT NULL,
             UNIQUE(order_id,package_index)
         )");
@@ -39,6 +40,9 @@ final class ShippingLabelOperations
             $privateDb->exec("ALTER TABLE shipping_label_operations ADD COLUMN carrier_environment TEXT
                 CHECK(carrier_environment IN ('sandbox','production'))");
         }
+        if (!in_array('mailing_date',$columns,true)) {
+            $privateDb->exec('ALTER TABLE shipping_label_operations ADD COLUMN mailing_date TEXT');
+        }
         $privateDb->exec('CREATE INDEX IF NOT EXISTS shipping_label_state ON shipping_label_operations(state,updated_at)');
         $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_handoffs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +52,20 @@ final class ShippingLabelOperations
             transferred_at INTEGER NOT NULL
         )");
         $privateDb->exec('CREATE INDEX IF NOT EXISTS shipping_label_handoff_operation ON shipping_label_handoffs(operation_id,id)');
+        $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_reprints (
+            operation_id INTEGER PRIMARY KEY REFERENCES shipping_label_operations(id),
+            state TEXT NOT NULL CHECK(state IN ('submitted','ready','review')),
+            operator_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )");
+        $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_resolutions (
+            operation_id INTEGER PRIMARY KEY REFERENCES shipping_label_operations(id),
+            previous_state TEXT NOT NULL CHECK(previous_state IN ('submitted','review')),
+            evidence_reference TEXT NOT NULL,
+            actor_id INTEGER NOT NULL,
+            resolved_at INTEGER NOT NULL
+        )");
         $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_packages (
             operation_id INTEGER NOT NULL REFERENCES shipping_label_operations(id),
             shipment_package_index INTEGER NOT NULL,
@@ -131,10 +149,16 @@ final class ShippingLabelOperations
     }
 
     /** Returns false if already sent. USPS's named key does not make its label POST idempotent. */
-    public function markSubmitted(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId,?string $environment=null): bool
+    public function markSubmitted(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId,
+        ?string $environment=null,?string $mailingDate=null): bool
     {
         if ($environment!==null && !in_array($environment,['sandbox','production'],true)) {
             throw new \InvalidArgumentException('Invalid label environment.');
+        }
+        if ($mailingDate!==null && (!preg_match('/\A\d{4}-\d{2}-\d{2}\z/D',$mailingDate)
+            || !checkdate((int)substr($mailingDate,5,2),(int)substr($mailingDate,8,2),
+                (int)substr($mailingDate,0,4)))) {
+            throw new \InvalidArgumentException('Invalid mailing date.');
         }
         self::requireAdmin($ordersDb,$operatorId);
         $scope=self::scope($ordersDb,$orderId,$packageIndex);
@@ -144,21 +168,154 @@ final class ShippingLabelOperations
             throw new \RuntimeException('Fulfillment scope is missing or changed.');
         }
         $now=time();
-        $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='submitted',submitted_at=?,updated_at=?,carrier_environment=?
+        $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='submitted',submitted_at=?,updated_at=?,carrier_environment=?,mailing_date=?
             WHERE order_id=? AND package_index=? AND state='reserved' AND fingerprint=? AND operator_id=?");
-        $stmt->execute([$now,$now,$environment,$orderId,$packageIndex,$scope['fingerprint'],$operatorId]);
+        $stmt->execute([$now,$now,$environment,$mailingDate,$orderId,$packageIndex,$scope['fingerprint'],$operatorId]);
         return $stmt->rowCount()===1;
+    }
+
+    public static function reprintEligible(array $operation,?int $now=null): bool
+    {
+        $now=$now ?? time();
+        return ($operation['provider'] ?? null)==='usps'
+            && in_array($operation['state'] ?? null,['submitted','review'],true)
+            && (int)($operation['expected_packages'] ?? 0)===1
+            && (int)($operation['submitted_at'] ?? 0)>0
+            && (int)$operation['submitted_at']<=$now-900
+            && is_string($operation['mailing_date'] ?? null)
+            && preg_match('/\A\d{4}-\d{2}-\d{2}\z/D',$operation['mailing_date'])===1
+            && $operation['mailing_date']>=gmdate('Y-m-d',$now)
+            && in_array($operation['carrier_environment'] ?? null,['sandbox','production'],true);
+    }
+
+    /** Claim the one allowed USPS reprint request without authorizing another purchase. */
+    public function markReprintSubmitted(\PDO $ordersDb,int $orderId,int $packageIndex,
+        int $operatorId,string $environment): array
+    {
+        self::requireAdmin($ordersDb,$operatorId);
+        $scope=self::scope($ordersDb,$orderId,$packageIndex);
+        $this->db->exec('BEGIN IMMEDIATE');
+        try {
+            $operation=$this->find($orderId,$packageIndex);
+            if (!$operation || !self::reprintEligible($operation)
+                || $operation['carrier_environment']!==$environment
+                || !hash_equals($operation['fingerprint'],$scope['fingerprint'])
+                || $this->reprint($orderId,$packageIndex)) {
+                throw new \RuntimeException('USPS reprint is unavailable or already attempted.');
+            }
+            $cancel=$this->db->prepare('SELECT 1 FROM shipping_label_cancellations WHERE operation_id=?');
+            $cancel->execute([(int)$operation['id']]);
+            if ($cancel->fetchColumn()) throw new \RuntimeException('Canceled labels cannot be reprinted.');
+            $now=time();
+            $stmt=$this->db->prepare("INSERT INTO shipping_label_reprints
+                (operation_id,state,operator_id,created_at,updated_at) VALUES (?,'submitted',?,?,?)");
+            $stmt->execute([(int)$operation['id'],$operatorId,$now,$now]);
+            $this->db->exec('COMMIT');
+            return $operation;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            throw $e;
+        }
+    }
+
+    public function reprint(int $orderId,int $packageIndex): ?array
+    {
+        $stmt=$this->db->prepare('SELECT r.* FROM shipping_label_reprints r
+            JOIN shipping_label_operations o ON o.id=r.operation_id
+            WHERE o.order_id=? AND o.package_index=?');
+        $stmt->execute([$orderId,$packageIndex]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function markReprintReview(int $orderId,int $packageIndex): void
+    {
+        $this->db->exec('BEGIN IMMEDIATE');
+        try {
+            $operation=$this->find($orderId,$packageIndex);
+            if (!$operation || !in_array($operation['state'],['submitted','review'],true)) {
+                throw new \RuntimeException('USPS reprint needs reconciliation.');
+            }
+            $now=time();
+            $stmt=$this->db->prepare("UPDATE shipping_label_reprints SET state='review',updated_at=?
+                WHERE operation_id=? AND state='submitted'");
+            $stmt->execute([$now,(int)$operation['id']]);
+            if ($stmt->rowCount()!==1) throw new \RuntimeException('USPS reprint needs reconciliation.');
+            $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='review',updated_at=?
+                WHERE id=? AND state IN ('submitted','review')");
+            $stmt->execute([$now,(int)$operation['id']]);
+            $this->db->exec('COMMIT');
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            throw $e;
+        }
     }
 
     /** Persist a fully parsed carrier response atomically; failed writes leave it submitted. */
     public function recordReady(int $orderId,int $packageIndex,array $confirmation): void
     {
+        $this->persistConfirmation($orderId,$packageIndex,$confirmation,false);
+    }
+
+    public function recordReprintReady(int $orderId,int $packageIndex,array $confirmation): void
+    {
+        $this->persistConfirmation($orderId,$packageIndex,$confirmation,true);
+    }
+
+    /** Save a label independently confirmed in the carrier account, without another carrier request. */
+    public function reconcileReady(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId,
+        string $expectedState,array $confirmation,string $evidenceReference,bool $verified): void
+    {
+        self::requireAdmin($ordersDb,$operatorId);
+        if (!$verified || !in_array($expectedState,['submitted','review'],true)
+            || !preg_match('/\A[A-Za-z0-9][A-Za-z0-9._\/-]{0,99}\z/D',$evidenceReference)) {
+            throw new \InvalidArgumentException('Confirm the carrier evidence and enter its reference.');
+        }
+        $scope=self::scope($ordersDb,$orderId,$packageIndex);
+        $this->persistConfirmation($orderId,$packageIndex,$confirmation,false,
+            ['scope'=>$scope,'actor_id'=>$operatorId,'expected_state'=>$expectedState,
+                'evidence_reference'=>$evidenceReference]);
+    }
+
+    public function resolution(int $orderId,int $packageIndex): ?array
+    {
+        $stmt=$this->db->prepare('SELECT r.* FROM shipping_label_resolutions r
+            JOIN shipping_label_operations o ON o.id=r.operation_id
+            WHERE o.order_id=? AND o.package_index=?');
+        $stmt->execute([$orderId,$packageIndex]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    private function persistConfirmation(int $orderId,int $packageIndex,array $confirmation,
+        bool $reprint,?array $manual=null): void
+    {
         $this->db->exec('BEGIN IMMEDIATE');
         try {
             $operation=$this->find($orderId,$packageIndex);
-            if (!$operation || $operation['state']!=='submitted'
+            $reprintTable=$this->db->query("SELECT 1 FROM sqlite_master
+                WHERE type='table' AND name='shipping_label_reprints'")->fetchColumn();
+            $reprintRow=$operation && $reprintTable ? $this->reprint($orderId,$packageIndex) : null;
+            if (!$operation || ($manual!==null
+                    ? (!in_array($operation['state'],['submitted','review'],true)
+                        || $operation['state']!==$manual['expected_state']
+                        || !hash_equals($operation['fingerprint'],$manual['scope']['fingerprint'])
+                        || (int)($operation['submitted_at'] ?? 0)>time()-self::HANDOFF_DELAY_SECONDS
+                        || (int)($operation['submitted_at'] ?? 0)<1
+                        || ($reprintRow && $reprintRow['state']==='submitted'
+                            && (int)$reprintRow['created_at']>time()-self::HANDOFF_DELAY_SECONDS))
+                    : ($reprint
+                        ? (!in_array($operation['state'],['submitted','review'],true)
+                            || $operation['provider']!=='usps' || ($reprintRow['state'] ?? null)!=='submitted')
+                        : ($operation['state']!=='submitted' || $reprintRow!==null)))
                 || (int)$operation['expected_packages']<1 || (int)$operation['expected_packages']>10) {
                 throw new \RuntimeException('Shipment confirmation needs reconciliation.');
+            }
+            if ($manual!==null) {
+                $cancel=$this->db->prepare('SELECT 1 FROM shipping_label_cancellations WHERE operation_id=?');
+                $cancel->execute([(int)$operation['id']]);
+                if ($cancel->fetchColumn()) throw new \RuntimeException('Canceled labels cannot be reconciled as ready.');
+                if ($this->resolution($orderId,$packageIndex)) {
+                    throw new \RuntimeException('Carrier label was already reconciled.');
+                }
             }
             $shipmentId=$confirmation['shipment_id'] ?? null;
             $billedCents=$confirmation['billed_cents'] ?? null;
@@ -201,10 +358,29 @@ final class ShippingLabelOperations
             if ($packages[0]['tracking_number']!==$shipmentId) {
                 throw new \InvalidArgumentException('Carrier shipment and package references disagree.');
             }
+            $now=time();
+            $stateCheck=$reprint || $manual!==null ? "state IN ('submitted','review')" : "state='submitted'";
             $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='ready',shipment_id=?,
-                tracking_number=?,billed_cents=?,updated_at=? WHERE id=? AND state='submitted'");
-            $stmt->execute([$shipmentId,$shipmentId,$billedCents,time(),(int)$operation['id']]);
+                tracking_number=?,billed_cents=?,updated_at=? WHERE id=? AND $stateCheck");
+            $stmt->execute([$shipmentId,$shipmentId,$billedCents,$now,(int)$operation['id']]);
             if ($stmt->rowCount()!==1) throw new \RuntimeException('Shipment confirmation needs reconciliation.');
+            if ($reprint) {
+                $stmt=$this->db->prepare("UPDATE shipping_label_reprints SET state='ready',updated_at=?
+                    WHERE operation_id=? AND state='submitted'");
+                $stmt->execute([$now,(int)$operation['id']]);
+                if ($stmt->rowCount()!==1) throw new \RuntimeException('USPS reprint needs reconciliation.');
+            }
+            if ($manual!==null) {
+                $stmt=$this->db->prepare('INSERT INTO shipping_label_resolutions
+                    (operation_id,previous_state,evidence_reference,actor_id,resolved_at) VALUES (?,?,?,?,?)');
+                $stmt->execute([(int)$operation['id'],$operation['state'],
+                    $manual['evidence_reference'],$manual['actor_id'],$now]);
+                if ($reprintRow && $reprintRow['state']==='submitted') {
+                    $stmt=$this->db->prepare("UPDATE shipping_label_reprints SET state='review',updated_at=?
+                        WHERE operation_id=? AND state='submitted'");
+                    $stmt->execute([$now,(int)$operation['id']]);
+                }
+            }
             $this->db->exec('COMMIT');
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
@@ -219,7 +395,9 @@ final class ShippingLabelOperations
         self::requireAdmin($ordersDb,$operatorId);
         $stmt=$this->db->prepare("SELECT p.tracking_number,p.label_format,p.label_sha256,p.label_image
             FROM shipping_label_operations o JOIN shipping_label_packages p ON p.operation_id=o.id
-            WHERE o.order_id=? AND o.package_index=? AND o.state='ready' AND p.shipment_package_index=?");
+            LEFT JOIN shipping_label_cancellations c ON c.operation_id=o.id
+            WHERE o.order_id=? AND o.package_index=? AND o.state='ready'
+                AND c.operation_id IS NULL AND p.shipment_package_index=?");
         $stmt->execute([$orderId,$packageIndex,$shipmentPackageIndex]);
         $row=$stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$row || !is_string($row['label_image'])

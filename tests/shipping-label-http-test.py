@@ -117,6 +117,14 @@ try:
           and 'No carrier purchase has been sent' not in aged,
           'Aged unsent reservation offers an explicit takeover control')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_label_handoffs RENAME TO hidden_handoffs')
+    missing=request(path)[2]
+    check('Carrier label purchasing is unavailable' in missing
+          and 'Take over and purchase label' not in missing,
+          'Missing handoff migration keeps the label purchase form disabled')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_handoffs RENAME TO shipping_label_handoffs')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         db.execute('DELETE FROM shipping_label_operations WHERE order_id=10')
     shippingConfig.unlink()
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
@@ -133,6 +141,42 @@ try:
         db.execute("INSERT INTO shipping_label_packages(operation_id,shipment_package_index,tracking_number,label_format,label_sha256,label_image) VALUES(?,0,?,'gif',?,?)",[op2,tracking2,hashlib.sha256(image).hexdigest(),image])
         db.execute("INSERT INTO shipping_tracking(tracking_number,provider,status_code,status_text,checked_at,attempted_at,next_attempt_at,last_result) VALUES(?,'ups','IT','On the way',?,?,?,'ok')",
             [tracking2,now,now,now+1800])
+        db.execute("UPDATE shipping_label_operations SET submitted_at=?,mailing_date=?,carrier_environment='sandbox' WHERE order_id=10",
+            [now-1800,time.strftime('%Y-%m-%d',time.gmtime(now+86400))])
+    shippingConfig.write_text("<?php return ['carriers'=>['usps'=>"
+        "['enabled'=>true,'label_reprint_enabled'=>true,'environment'=>'sandbox',"
+        "'client_id'=>'synthetic','client_secret'=>'synthetic']]];",encoding='utf-8')
+    reprintPage=request(path)[2]
+    check('Request original USPS label' in reprintPage
+          and 'This does not submit another label purchase' in reprintPage
+          and 'New label purchases are disabled' in reprintPage
+          and 'Carrier label purchasing is unavailable' not in reprintPage,
+          'Aged uncertain USPS purchase exposes the guarded original-label reprint form')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        opId=db.execute('SELECT id FROM shipping_label_operations WHERE order_id=10').fetchone()[0]
+        now=int(time.time())
+        db.execute("INSERT INTO shipping_label_cancellations"
+                   "(operation_id,state,operator_id,created_at,updated_at)"
+                   " VALUES (?,'reserved',1,?,?)",[opId,now,now])
+    check('Request original USPS label' not in request(path)[2],
+          'Canceled uncertain label does not offer the reprint action')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('DELETE FROM shipping_label_cancellations WHERE operation_id=?',[opId])
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_label_reprints RENAME TO hidden_reprints')
+    check('Request original USPS label' not in request(path)[2],
+          'Missing private reprint migration suppresses the carrier recovery form')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_reprints RENAME TO shipping_label_reprints')
+    reprintPost={'action':'reprint','package_index':'0','confirm_reprint':'yes','password':PASSWORD}
+    check(request(path,reprintPost)[0]==403,'USPS reprint requires CSRF')
+    wrong=request(path,{'csrf_token':csrf,**reprintPost,'password':'wrong'})
+    check(wrong[0]==200 and 'password' in wrong[2].lower(),
+          'USPS reprint requires current administrator password')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_label_reprints').fetchone()[0]==0,
+              'Denied reprints create no one-attempt record or carrier call')
+    shippingConfig.unlink()
     queue=request('/admin/shipping-operations.php')[2]
     check('FAS-10' in queue and 'Review order' in queue and 'Label needs reconciliation' in queue,
           'Uncertain shipment is visible in the administrator review queue')

@@ -34,6 +34,12 @@ final class CarrierLabelClient
         return $this->authorizeFor('label_cancellation_enabled');
     }
 
+    public function authorizeReprint(): array
+    {
+        if ($this->name!=='usps') throw new \RuntimeException('Carrier reprint is unavailable.');
+        return $this->authorizeFor('label_reprint_enabled');
+    }
+
     private function authorizeFor(string $switch): array
     {
         if (($this->config['enabled'] ?? false)!==true
@@ -114,6 +120,27 @@ final class CarrierLabelClient
         $data=json_decode($response['body'],true,64);
         if (!is_array($data)) throw new \RuntimeException('UPS label outcome needs reconciliation.');
         return CarrierLabelResponses::ups($data,$expectedPackages);
+    }
+
+    /** The caller must durably claim this one reprint before the request. No label purchase POST. */
+    public function reprint(string $carrierReference,array $authorization): array
+    {
+        if ($this->name!=='usps'
+            || !preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/D',$carrierReference)) {
+            throw new \InvalidArgumentException('Invalid USPS reprint reference.');
+        }
+        $access=self::token($authorization['access_token'] ?? null);
+        $payment=self::token($authorization['payment_token'] ?? null);
+        $payload=['imageInfo'=>['imageType'=>'PDF','labelType'=>'4X6LABEL',
+            'suppressPostage'=>false,'suppressMailDate'=>false]];
+        $response=$this->http->post($this->oauth->baseUrl().'/labels/v3/label-reprint',[
+            'Authorization: Bearer '.$access,'Content-Type: application/json',
+            'X-Payment-Authorization-Token: '.$payment,'X-Idempotency-Key: '.$carrierReference,
+        ],json_encode($payload,JSON_THROW_ON_ERROR));
+        if ($response['status']<200 || $response['status']>=300) {
+            throw new \RuntimeException('USPS reprint outcome needs reconciliation.');
+        }
+        return CarrierLabelResponses::usps($response['content_type'],$response['body']);
     }
 
     private function paymentToken(string $access): string

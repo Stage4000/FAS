@@ -25,6 +25,7 @@ return [
         'usps' => [
             'enabled' => false, 'environment' => 'sandbox', 'production_verified' => false,
             'label_purchasing_enabled' => false,
+            'label_reprint_enabled' => false,
             'label_cancellation_enabled' => false,
             'tracking_enabled' => false,
             'client_id' => getenv('FAS_USPS_CLIENT_ID') ?: '',

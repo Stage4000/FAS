@@ -30,10 +30,10 @@ final class CarrierLabelHttp
     {
         $parts=parse_url($url);
         $paths=[
-            'apis.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label'],
-            'apis-tem.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label'],
-            'api.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label'],
-            'api-cat.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label'],
+            'apis.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label','/labels/v3/label-reprint'],
+            'apis-tem.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label','/labels/v3/label-reprint'],
+            'api.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label','/labels/v3/label-reprint'],
+            'api-cat.usps.com'=>['/payments/v3/payment-authorization','/labels/v3/label','/labels/v3/label-reprint'],
             'onlinetools.ups.com'=>['/api/shipments/v2409/ship'],
             'wwwcie.ups.com'=>['/api/shipments/v2409/ship'],
         ];

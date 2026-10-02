@@ -76,6 +76,8 @@ try {
         $labelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_operations'")->fetchColumn();
         $packageTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_packages'")->fetchColumn();
         $handoffTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_handoffs'")->fetchColumn();
+        $reprintTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_reprints'")->fetchColumn();
+        $resolutionTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_resolutions'")->fetchColumn();
         $cancelTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_cancellations'")->fetchColumn();
         $trackingTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_tracking'")->fetchColumn();
         $notificationTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_notifications'")->fetchColumn();
@@ -86,6 +88,8 @@ try {
             ? ['initialized'=>true,'packages'=>(int)$cache->database()->query('SELECT COUNT(*) FROM shipping_label_packages')->fetchColumn()]
             : ['initialized'=>false];
         $result['reservation_handoff_storage']=['initialized'=>(bool)$handoffTable];
+        $result['label_reprint_storage']=['initialized'=>(bool)$reprintTable];
+        $result['label_resolution_storage']=['initialized'=>(bool)$resolutionTable];
         $result['label_cancellations']=$cancelTable
             ? (new \FAS\Shipping\ShippingLabelCancellations($cache->database()))->health()
             : ['initialized'=>false];

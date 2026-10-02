@@ -15,6 +15,8 @@ final class ShippingReadiness
             'current_mode'=>$config['mode'],'storage_configured'=>$storage,
             'fulfillment_storage_configured'=>($health['label_storage']['initialized'] ?? false)===true
                 && ($health['reservation_handoff_storage']['initialized'] ?? false)===true,
+            'reprint_storage_configured'=>($health['label_reprint_storage']['initialized'] ?? false)===true,
+            'label_resolution_storage_configured'=>($health['label_resolution_storage']['initialized'] ?? false)===true,
             'parcel_data_marked_verified'=>$config['parcel_data_verified'],
             'catalog'=>$health['catalog'] ?? ['schema_initialized'=>false,
                 'data_complete_for_direct_quotes'=>false],
@@ -43,6 +45,7 @@ final class ShippingReadiness
             $result['carriers'][$name]=['checkout_configuration_ready'=>$blockers===[],
                 'configuration_blockers'=>$blockers,
                 'label_purchasing_enabled'=>$carrier['label_purchasing_enabled'],
+                'label_reprint_enabled'=>$name==='usps' && ($carrier['label_reprint_enabled'] ?? false)===true,
                 'label_cancellation_enabled'=>$carrier['label_cancellation_enabled'],
                 'tracking_enabled'=>$carrier['tracking_enabled']];
         }

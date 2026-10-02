@@ -70,7 +70,8 @@ final class ShippingConfig
             }
         }
         if (!in_array($config['carriers']['usps']['gateway'] ?? '', ['apis','api'], true)
-            || !in_array($config['carriers']['usps']['price_type'] ?? '', ['RETAIL','COMMERCIAL'], true)) {
+            || !in_array($config['carriers']['usps']['price_type'] ?? '', ['RETAIL','COMMERCIAL'], true)
+            || !is_bool($config['carriers']['usps']['label_reprint_enabled'] ?? null)) {
             throw new \RuntimeException('Invalid USPS pricing configuration.');
         }
         return $config;

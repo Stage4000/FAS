@@ -134,6 +134,14 @@ try {
         WHERE operation_id=".(int)$ups['id']." AND shipment_package_index=1");
     refuses(static fn()=>$labels->label($orders,11,0,1,1),
         'A corrupted private label fails its content digest check');
+    $restore=$cache->database()->prepare('UPDATE shipping_label_packages SET label_image=?
+        WHERE operation_id=? AND shipment_package_index=1');
+    $restore->execute(['GIF89a'.'synthetic-two',(int)$ups['id']]);
+    $cache->database()->prepare("INSERT INTO shipping_label_cancellations
+        (operation_id,state,operator_id,created_at,updated_at) VALUES (?,'reserved',1,?,?)")
+        ->execute([(int)$ups['id'],time(),time()]);
+    refuses(static fn()=>$anotherWorker->label($orders,11,0,1,1),
+        'Private label retrieval refuses any shipment with a cancellation request');
     $stmt=$orders->prepare("INSERT INTO orders VALUES(12,'completed','processing','FAS-12',
         'Jordan Buyer','5555551234',?,'CAPTURE345678')");
     $stmt->execute([$address]);
@@ -169,6 +177,40 @@ try {
     claim($labels->reserve($orders,12,0,1)['state']==='review'
         && (int)$labels->find(12,0)['operator_id']===3,
         'Uncertain carrier purchase keeps its owner and cannot be handed off as unsent');
+    $verified=$upsConfirmation;
+    $verified['shipment_id']='1Z1234567890123458';
+    $verified['packages'][0]['tracking_number']='1Z1234567890123458';
+    $verified['packages'][1]['tracking_number']='1Z1234567890123459';
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'review',$verified,'UPS-CASE-12',true),
+        'Recent uncertain purchase cannot be manually finalized while carrier request may still run');
+    $cache->database()->prepare('UPDATE shipping_label_operations SET submitted_at=? WHERE id=?')
+        ->execute([time()-901,(int)$reserved['id']]);
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,2,'review',$verified,'UPS-CASE-12',true),
+        'Viewer cannot reconcile a carrier label');
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'review',$verified,'UPS-CASE-12',false),
+        'Carrier evidence confirmation is required');
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'submitted',$verified,'UPS-CASE-12',true),
+        'Stale operation state cannot be reconciled');
+    $missing=$verified; array_pop($missing['packages']);
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'review',$missing,'UPS-CASE-12',true),
+        'Manual UPS confirmation needs every original package label');
+    $cache->database()->exec("CREATE TRIGGER fail_resolution BEFORE INSERT ON shipping_label_resolutions
+        BEGIN SELECT RAISE(ABORT,'synthetic audit failure'); END");
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'review',$verified,'UPS-CASE-12',true),
+        'Failed review audit rolls back label and charge persistence');
+    claim($labels->find(12,0)['state']==='review'
+        && $labels->resolution(12,0)===null
+        && (int)$cache->database()->query('SELECT COUNT(*) FROM shipping_label_packages WHERE operation_id='.(int)$reserved['id'])->fetchColumn()===0,
+        'Audit failure leaves no partial manual labels');
+    $cache->database()->exec('DROP TRIGGER fail_resolution');
+    $labels->reconcileReady($orders,12,0,1,'review',$verified,'UPS-CASE-12',true);
+    claim($labels->find(12,0)['state']==='ready'
+        && $labels->find(12,0)['billed_cents']===2025
+        && $labels->resolution(12,0)['evidence_reference']==='UPS-CASE-12'
+        && $anotherWorker->label($orders,12,0,1,1)['tracking_number']==='1Z1234567890123459',
+        'Verified original UPS labels and charge persist with an administrator audit record');
+    refuses(static fn()=>$labels->reconcileReady($orders,12,0,1,'review',$verified,'UPS-CASE-12',true),
+        'Manual reconciliation cannot overwrite the confirmed original shipment');
     $legacy=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $legacy->exec("CREATE TABLE orders(id INTEGER PRIMARY KEY);
         INSERT INTO orders VALUES(99);
@@ -206,7 +248,7 @@ try {
     ],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL);
     echo 'PASS '.count($checks).' private label-operation assertions; no carrier calls or purchases.'.PHP_EOL;
 } finally {
-    unset($anotherWorker,$labels,$cache);
+    unset($restore,$anotherWorker,$labels,$cache);
     if (is_file($path)) unlink($path);
     if (is_dir($dir)) rmdir($dir);
 }

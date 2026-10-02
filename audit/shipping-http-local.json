@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-02T19:38:51.593290+00:00",
+  "date": "2026-10-02T20:29:00.868729+00:00",
   "scope": "local synthetic inventory; mocked carrier transport",
-  "checks": 77,
+  "checks": 80,
   "passed": [
     "CLI initialization installs the disabled notification queue",
     "Disabled notification commands work with mail and carrier transports unavailable",
@@ -11,6 +11,9 @@
     "CLI initialization and health include the private fulfillment operation ledger",
     "CLI health confirms private per-package label storage without revealing label content",
     "Readiness confirms audited reserved-label handoffs and fulfillment storage",
+    "Readiness flags missing handoff migration before label purchases",
+    "Readiness confirms private USPS reprint recovery storage",
+    "Readiness flags a missing USPS reprint migration",
     "CLI initialization and health include private tracking status storage",
     "Disabled tracking refresh makes no carrier request",
     "Checkout returns normalized direct USPS and UPS rates",

@@ -149,6 +149,29 @@ try:
     check(shippingHealth['reservation_handoff_storage']['initialized']
           and shippingReadiness['readiness']['fulfillment_storage_configured'],
           'Readiness confirms audited reserved-label handoffs and fulfillment storage')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_label_handoffs RENAME TO hidden_handoffs')
+    incomplete=json.loads(subprocess.check_output(
+        ['php','-d','disable_functions=mail,curl_exec,curl_multi_exec',
+         str(SITE/'scripts/shipping-maintenance.php'),'readiness'],env=env,text=True))
+    check(not incomplete['reservation_handoff_storage']['initialized']
+          and not incomplete['readiness']['fulfillment_storage_configured'],
+          'Readiness flags missing handoff migration before label purchases')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_handoffs RENAME TO shipping_label_handoffs')
+    check(shippingHealth['label_reprint_storage']['initialized']
+          and shippingReadiness['readiness']['reprint_storage_configured'],
+          'Readiness confirms private USPS reprint recovery storage')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE shipping_label_reprints RENAME TO hidden_reprints')
+    incomplete=json.loads(subprocess.check_output(
+        ['php','-d','disable_functions=mail,curl_exec,curl_multi_exec',
+         str(SITE/'scripts/shipping-maintenance.php'),'readiness'],env=env,text=True))
+    check(not incomplete['label_reprint_storage']['initialized']
+          and not incomplete['readiness']['reprint_storage_configured'],
+          'Readiness flags a missing USPS reprint migration')
+    with sqlite3.connect(BASE/'shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_reprints RENAME TO shipping_label_reprints')
     check(shippingHealth["tracking"]=={"initialized":True,"packages":0,"with_status":0,"last_attempt_failed":0},
           "CLI initialization and health include private tracking status storage")
     check(trackingRefresh["tracking_refresh"]["enabled_carriers"]==[]
