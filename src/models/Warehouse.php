@@ -135,29 +135,30 @@ class Warehouse
      */
     public function create($data)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO warehouses (
-                name, code, address_line1, address_line2, city, state, 
-                postal_code, country_code, phone, email, is_active, is_default
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $stmt->execute([
-            $data['name'],
-            $data['code'],
-            $data['address_line1'],
-            $data['address_line2'] ?? null,
-            $data['city'],
-            $data['state'],
-            $data['postal_code'],
-            $data['country_code'] ?? 'US',
-            $data['phone'] ?? null,
-            $data['email'] ?? null,
-            $data['is_active'] ?? 1,
-            $data['is_default'] ?? 0
-        ]);
-        
-        return $this->db->lastInsertId();
+        if (!empty($data['is_default']) && empty($data['is_active'])) {
+            throw new \RuntimeException('A default warehouse must be active.');
+        }
+        $insert = function () use ($data) {
+            $stmt = $this->db->prepare("
+                INSERT INTO warehouses (
+                    name, code, address_line1, address_line2, city, state,
+                    postal_code, country_code, phone, email, is_active, is_default
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $data['name'], $data['code'], $data['address_line1'],
+                $data['address_line2'] ?? null, $data['city'], $data['state'],
+                $data['postal_code'], $data['country_code'] ?? 'US',
+                $data['phone'] ?? null, $data['email'] ?? null,
+                $data['is_active'] ?? 1, $data['is_default'] ?? 0,
+            ]);
+            return $this->db->lastInsertId();
+        };
+        if (empty($data['is_default'])) return $insert();
+        return $this->withWriteLock(function () use ($insert) {
+            $this->db->exec('UPDATE warehouses SET is_default = 0 WHERE is_default = 1');
+            return $insert();
+        });
     }
     
     /**
@@ -186,11 +187,21 @@ class Warehouse
         
         $fields[] = "updated_at = datetime('now')";
         $values[] = $id;
-        
-        $sql = "UPDATE warehouses SET " . implode(', ', $fields) . " WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-        
-        return $stmt->execute($values);
+
+        return $this->withWriteLock(function () use ($id, $data, $fields, $values) {
+            $existing = $this->getById($id);
+            if (!$existing) return false;
+            if (!empty($existing['is_default']) && empty($data['is_default'])) {
+                throw new \RuntimeException('Choose another default warehouse before unsetting this one.');
+            }
+            if (!empty($data['is_default'])) {
+                if (empty($data['is_active'])) throw new \RuntimeException('A default warehouse must be active.');
+                $this->db->exec('UPDATE warehouses SET is_default = 0 WHERE is_default = 1');
+            }
+            $sql = "UPDATE warehouses SET " . implode(', ', $fields) . " WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($values);
+        });
     }
     
     /**
@@ -198,19 +209,15 @@ class Warehouse
      */
     public function delete($id)
     {
-        // Don't allow deleting the default warehouse
-        $warehouse = $this->getById($id);
-        if ($warehouse && $warehouse['is_default']) {
-            throw new \Exception('Cannot delete default warehouse');
-        }
-        
-        // Set products' warehouse_id to NULL
-        $stmt = $this->db->prepare("UPDATE products SET warehouse_id = NULL WHERE warehouse_id = ?");
-        $stmt->execute([$id]);
-        
-        // Delete warehouse
-        $stmt = $this->db->prepare("DELETE FROM warehouses WHERE id = ?");
-        return $stmt->execute([$id]);
+        return $this->withWriteLock(function () use ($id) {
+            $warehouse = $this->getById($id);
+            if (!$warehouse) return false;
+            if ($warehouse['is_default']) throw new \RuntimeException('Cannot delete default warehouse');
+            $stmt = $this->db->prepare('UPDATE products SET warehouse_id = NULL WHERE warehouse_id = ?');
+            $stmt->execute([$id]);
+            $stmt = $this->db->prepare('DELETE FROM warehouses WHERE id = ?');
+            return $stmt->execute([$id]);
+        });
     }
     
     /**
@@ -218,11 +225,25 @@ class Warehouse
      */
     public function setAsDefault($id)
     {
-        // Remove default from all warehouses
-        $this->db->exec("UPDATE warehouses SET is_default = 0");
-        
-        // Set this warehouse as default
-        $stmt = $this->db->prepare("UPDATE warehouses SET is_default = 1, is_active = 1 WHERE id = ?");
-        return $stmt->execute([$id]);
+        return $this->withWriteLock(function () use ($id) {
+            if (!$this->getById($id)) return false;
+            $this->db->exec('UPDATE warehouses SET is_default = 0 WHERE is_default = 1');
+            $stmt = $this->db->prepare('UPDATE warehouses SET is_default = 1, is_active = 1 WHERE id = ?');
+            return $stmt->execute([$id]);
+        });
+    }
+
+    private function withWriteLock(callable $write)
+    {
+        // SQLite serializes these origin changes before the current default is read.
+        $this->db->exec('BEGIN IMMEDIATE');
+        try {
+            $result = $write();
+            $this->db->exec('COMMIT');
+            return $result;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            throw $e;
+        }
     }
 }

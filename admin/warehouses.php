@@ -2,12 +2,15 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 $auth = new AdminAuth();
-$auth->requireLogin();
+$auth->requireActiveAdmin();
+header('Cache-Control: private, no-store');
 
 use FAS\Config\Database;
 use FAS\Models\Warehouse;
+use FAS\Utils\CSRF;
 
 $db = Database::getInstance()->getConnection();
 $warehouseModel = new Warehouse($db);
@@ -19,7 +22,11 @@ $warehouseId = $_GET['id'] ?? null;
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
+    fas_security_body();
+    if (!CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        $error = 'Refresh the page and try again.';
+    } elseif (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'create':
             case 'update':
@@ -217,15 +224,17 @@ if ($action === 'list') {
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <?php if (!$wh['is_default']): ?>
-                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Set this warehouse as default?');">
-                                                        <input type="hidden" name="action" value="set_default">
+                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Set this warehouse as default?');">
+                                                         <?php echo CSRF::tokenField(); ?>
+                                                         <input type="hidden" name="action" value="set_default">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">
                                                         <button type="submit" class="btn btn-outline-secondary" title="Set as Default">
                                                             <i class="far fa-star"></i>
                                                         </button>
                                                     </form>
-                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this warehouse? Products assigned to it will be set to no warehouse.');">
-                                                        <input type="hidden" name="action" value="delete">
+                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this warehouse? Products assigned to it will be set to no warehouse.');">
+                                                         <?php echo CSRF::tokenField(); ?>
+                                                         <input type="hidden" name="action" value="delete">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">
                                                         <button type="submit" class="btn btn-outline-danger">
                                                             <i class="fas fa-trash"></i>
@@ -253,7 +262,8 @@ if ($action === 'list') {
                 <h5 class="mb-0"><?php echo $action === 'create' ? 'Add New' : 'Edit'; ?> Warehouse</h5>
             </div>
             <div class="card-body">
-                <form method="POST">
+                 <form method="POST">
+                     <?php echo CSRF::tokenField(); ?>
                     <input type="hidden" name="action" value="<?php echo $action === 'create' ? 'create' : 'update'; ?>">
                     <?php if ($action === 'edit'): ?>
                         <input type="hidden" name="warehouse_id" value="<?php echo $warehouse['id']; ?>">
@@ -351,8 +361,7 @@ if ($action === 'list') {
                     
                     <div class="alert alert-info">
                         <i class="fas fa-circle-info me-2"></i>
-                        <strong>Note:</strong> City and state are required by EasyShip for accurate shipping rate calculations. 
-                        Products without an assigned warehouse will use the default warehouse for shipping calculations.
+                         <strong>Note:</strong> Direct carrier rates require one active default ship-from warehouse with a complete US street address, city, state, and ZIP code. Products without an assigned warehouse use that default location.
                     </div>
                     
                     <div class="mt-4">

@@ -97,6 +97,61 @@ try:
     csrf=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)[1]
     login=request('/admin/login.php',{'csrf_token':csrf,'username':'shipping-fixture','password':PASSWORD})
     check(login[0]==302,'Synthetic active administrator signs in')
+    warehousePath='/admin/warehouses.php'
+    check(request(warehousePath,who=anonymous)[0]==302,
+          'Anonymous visitors cannot open warehouse origins')
+    warehousePage=request(warehousePath+'?action=create')
+    check(warehousePage[0]==200 and 'name="csrf_token"' in warehousePage[2]
+          and 'one active default ship-from warehouse' in warehousePage[2],
+          'Origin form has CSRF protection and direct-carrier guidance')
+    firstWarehouse={'action':'create','name':'First fixture origin','code':'FIXTURE-1',
+        'address_line1':'100 Fixture Road','city':'Test City','state':'KS',
+        'postal_code':'66614','country_code':'US','is_active':'1','is_default':'1'}
+    check(request(warehousePath,firstWarehouse)[0]==403,
+          'Creating a ship-from origin requires CSRF')
+    with sqlite3.connect(DB) as db:
+        check(db.execute('SELECT COUNT(*) FROM warehouses').fetchone()[0]==0,
+              'Rejected origin request cannot change the warehouse table')
+    check('Warehouse created successfully' in request(warehousePath,{'csrf_token':csrf,**firstWarehouse})[2],
+          'Administrator can create the first default origin')
+    secondWarehouse={**firstWarehouse,'name':'Second fixture origin','code':'FIXTURE-2',
+        'address_line1':'200 Fixture Road'}
+    check('Warehouse created successfully' in request(warehousePath,{'csrf_token':csrf,**secondWarehouse})[2],
+          'Administrator can replace the default origin while creating a warehouse')
+    with sqlite3.connect(DB) as db:
+        defaults=db.execute('SELECT code FROM warehouses WHERE is_default=1').fetchall()
+        check(defaults==[('FIXTURE-2',)],
+              'Creating a new default leaves exactly one ship-from origin')
+    duplicate={**secondWarehouse,'name':'Duplicate code origin'}
+    check('Error:' in request(warehousePath,{'csrf_token':csrf,**duplicate})[2],
+          'Failed default creation reports its database error')
+    with sqlite3.connect(DB) as db:
+        check(db.execute('SELECT code FROM warehouses WHERE is_default=1').fetchall()==[('FIXTURE-2',)],
+              'Failed origin creation rolls back the previous default')
+    check('Failed to set default warehouse' in request(warehousePath,
+          {'csrf_token':csrf,'action':'set_default','warehouse_id':'99999'})[2],
+          'Unknown warehouse cannot be selected as the ship-from origin')
+    with sqlite3.connect(DB) as db:
+        check(db.execute('SELECT code FROM warehouses WHERE is_default=1').fetchall()==[('FIXTURE-2',)],
+              'Unknown default selection preserves the existing origin')
+    check('Default warehouse updated successfully' in request(warehousePath,
+          {'csrf_token':csrf,'action':'set_default','warehouse_id':'1'})[2],
+          'Administrator can switch to an existing default origin')
+    with sqlite3.connect(DB) as db:
+        check(db.execute('SELECT code FROM warehouses WHERE is_default=1').fetchall()==[('FIXTURE-1',)],
+              'Switching origin keeps one active default')
+    updateWarehouse={**firstWarehouse,'action':'update','warehouse_id':'1'}
+    check('A default warehouse must be active' in request(warehousePath,
+          {'csrf_token':csrf,**{k:v for k,v in updateWarehouse.items() if k!='is_active'}})[2],
+          'Default origin cannot be deactivated through its edit form')
+    check('Choose another default warehouse' in request(warehousePath,
+          {'csrf_token':csrf,**{k:v for k,v in updateWarehouse.items() if k!='is_default'}})[2],
+          'Default origin cannot be silently unset through its edit form')
+    with sqlite3.connect(DB) as db:
+        check(db.execute('SELECT code,is_active FROM warehouses WHERE is_default=1').fetchall()==[('FIXTURE-1',1)],
+              'Rejected origin edits preserve the active default')
+    check(request(warehousePath,{'action':'delete','warehouse_id':'2'})[0]==403,
+          'Deleting a ship-from origin requires CSRF')
     status,headers,page=request(path)
     check(status==200 and 'no-store' in headers.get('Cache-Control','') and 'Shipping Labels' in page,
           'Private label page renders for active administrator')
@@ -359,6 +414,8 @@ try:
           'Uninitialized reconciliation storage suppresses the mutation form')
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE hidden_resolution_fixture RENAME TO shipping_notification_resolutions')
     with sqlite3.connect(DB) as db: db.execute('UPDATE admin_users SET is_active=0 WHERE id=1')
+    check(request('/admin/warehouses.php')[0] in (302,403),
+          'Deactivated administrator cannot manage ship-from origins')
     check(request('/admin/shipping-readiness.php')[0] in (302,403),
           'Deactivated administrator cannot inspect carrier readiness')
     check(request(f'/admin/shipping-notification.php?id={staleId}',valid)[0] in (302,403),
