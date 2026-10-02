@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-01T22:40:18+00:00",
+    "date": "2026-10-02T19:39:14+00:00",
     "scope": "synthetic orders and mocked carrier calls",
-    "checks": 8,
+    "checks": 17,
     "passed": [
         "Viewer cannot reserve a label operation",
         "Administrator must confirm the exact saved USPS parcel charge",
@@ -10,6 +10,15 @@
         "Repeated administrator submission cannot purchase a second USPS label",
         "Uncertain UPS carrier response requires reconciliation",
         "A failed UPS response stays in review without repeating the shipment POST",
+        "A free-shipping order still requires a positive confirmed carrier charge",
+        "Free customer shipping does not prevent a separately priced USPS label",
+        "Mixed-cart UPS label cannot use the smaller customer shipping charge",
+        "Wrong mixed-cart carrier confirmation does not call UPS",
+        "Wrong carrier confirmation cannot claim an aged reservation",
+        "Price validation leaves reservation ownership and audit unchanged",
+        "Verified new administrator can claim the aged reservation and attempt one carrier request",
+        "Handoff preserves one UPS request and an uncertain outcome cannot be purchased again",
+        "Label environment is recorded before purchase and survives carrier confirmation",
         "Confirmed USPS label remains available to an active administrator"
     ],
     "live_carrier_calls": 0,

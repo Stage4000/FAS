@@ -42,7 +42,7 @@ final class ShippingTrackingService
             try {
                 $carrier=$this->config['carriers'][$provider];
                 $client=$this->client($provider,$carrier);
-                $this->tracking->save($number,$client->track($number));
+                $this->tracking->save($number,$client->track($number),$carrier['environment']);
                 $result['updated']++;
             } catch (\Throwable $e) {
                 $delay=$e instanceof CarrierTrackingUnavailable ? $e->retryAfter : 900;

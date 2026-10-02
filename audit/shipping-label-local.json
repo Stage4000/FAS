@@ -1,7 +1,7 @@
 {
-    "date": "2026-10-01T22:35:59+00:00",
+    "date": "2026-10-02T19:37:14+00:00",
     "scope": "local private SQLite and synthetic orders",
-    "assertions": 33,
+    "assertions": 41,
     "passed": [
         "Paid USPS package receives one durable UUID operation",
         "Another PHP worker reuses the same operation and carrier key",
@@ -33,6 +33,14 @@
         "Failed label persistence leaves a submitted operation with no partial labels",
         "UPS confirmation atomically retains both package labels and actual charge",
         "A corrupted private label fails its content digest check",
+        "Another administrator cannot take over a recent reservation",
+        "Only a different administrator can take over an aged unsent reservation",
+        "Failed handoff audit rolls back the operator transfer",
+        "Reservation ownership remains unchanged after failed handoff audit",
+        "Aged unsent reservation transfers with its original carrier key and audit record",
+        "Former operator cannot submit the transferred carrier purchase",
+        "New operator alone can submit, and submitted purchases cannot be transferred",
+        "Uncertain carrier purchase keeps its owner and cannot be handed off as unsent",
         "Existing order-shipping table gains USPS label options additively",
         "Paid order retains the chosen rate ingredients for each USPS parcel",
         "Existing private ledger gains package-count and image storage additively"

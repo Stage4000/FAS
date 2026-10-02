@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/auth.php';
 require_once __DIR__.'/../src/utils/CSRF.php';
+require_once __DIR__.'/../src/utils/Timezone.php';
 require_once __DIR__.'/../src/shipping/ShippingConfig.php';
 require_once __DIR__.'/../src/shipping/ShippingCache.php';
 require_once __DIR__.'/../src/shipping/ShippingOrder.php';
@@ -12,6 +13,7 @@ require_once __DIR__.'/../src/shipping/ShippingLabelService.php';
 
 use FAS\Config\Database;
 use FAS\Utils\CSRF;
+use FAS\Utils\Timezone;
 use FAS\Shipping\{ShippingConfig,ShippingCache,ShippingOrder,ShippingLabelOperations,ShippingLabelCancellations,ShippingTracking,ShippingLabelService};
 
 $auth=new AdminAuth();
@@ -32,11 +34,13 @@ if (!$order || !$shipping || !in_array($shipping['provider'],['usps','ups'],true
 $error=''; $notice=$_SESSION['shipping_label_notice'] ?? '';
 unset($_SESSION['shipping_label_notice']);
 $config=null; $cache=null; $operations=null; $cancellations=null; $trackingStore=null;
+$handoffStorage=false;
 try {
     $config=ShippingConfig::load();
     if ($config['cache_path']!=='') {
         $cache=new ShippingCache($config['cache_path']);
         $operations=new ShippingLabelOperations($cache->database());
+        $handoffStorage=(bool)$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_label_handoffs'")->fetchColumn();
         $cancellations=new ShippingLabelCancellations($cache->database());
         $trackingTable=$cache->database()->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='shipping_tracking'")->fetchColumn();
         if ($trackingTable) $trackingStore=new ShippingTracking($cache->database());
@@ -44,7 +48,7 @@ try {
 } catch (Throwable $e) { $error='Private shipping storage is unavailable. Ask an administrator to run the shipping health check.'; }
 $provider=$shipping['provider'];
 $carrier=$config['carriers'][$provider] ?? [];
-$purchaseEnabled=$operations && $carrier
+$purchaseEnabled=$operations && $handoffStorage && $carrier
     && ($carrier['enabled'] ?? false)===true
     && ($carrier['label_purchasing_enabled'] ?? false)===true
     && !empty($carrier['client_id']) && !empty($carrier['client_secret'])
@@ -61,7 +65,7 @@ $prices=[];
 for ($index=0;$index<$scopes;$index++) {
     $prices[$index]=$provider==='usps'
         ? ($shipping['fulfillment_options'][$index]['quoted_cents'] ?? null)
-        : ($shipping['quoted_cents'] ?? null);
+        : ($shipping['carrier_quote_cents'] ?? $shipping['quoted_cents'] ?? null);
 }
 if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
     fas_security_body();
@@ -93,7 +97,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
             ? 'Carrier label confirmed. Download and verify every package label before shipping.'
             : 'This shipment needs reconciliation. Do not submit another purchase.';
         header('Location: shipping-label.php?id='.(int)$orderId,true,303); exit;
-    } catch (InvalidArgumentException $e) { $error=$e->getMessage(); }
+    } catch (InvalidArgumentException|DomainException $e) { $error=$e->getMessage(); }
     catch (Throwable $e) {
         $index=isset($index) && is_int($index) ? $index : 0;
         $record=$operations ? $operations->find((int)$orderId,$index) : null;
@@ -105,8 +109,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
 $rows=[];
 $cancelRows=[];
 $trackingRows=[];
+$handoffRows=[];
 for ($index=0;$index<$scopes;$index++) {
     $rows[$index]=$operations ? $operations->find((int)$orderId,$index) : null;
+    $handoffRows[$index]=$operations && $handoffStorage ? $operations->handoffs((int)$orderId,$index) : [];
     $cancelRows[$index]=$cancellations ? $cancellations->find((int)$orderId,$index) : null;
     $trackingRows[$index]=[];
     if ($rows[$index] && $rows[$index]['state']==='ready' && $cache) {
@@ -149,6 +155,7 @@ for ($index=0;$index<$scopes;$index++) {
         <div class="row g-3">
             <div class="col-sm-6"><span class="text-muted d-block small">Service</span><strong><?php echo shippingLabelHtml($shipping['courier_name'].' — '.$shipping['service_name']); ?></strong></div>
             <div class="col-sm-6"><span class="text-muted d-block small">Customer shipping quote</span><strong>$<?php echo number_format((int)$shipping['quoted_cents']/100,2); ?></strong></div>
+            <div class="col-sm-6"><span class="text-muted d-block small">Carrier estimate</span><strong>$<?php echo number_format((int)($shipping['carrier_quote_cents'] ?? $shipping['quoted_cents'])/100,2); ?></strong></div>
             <div class="col-sm-6"><span class="text-muted d-block small">Ship from</span><strong><?php echo shippingLabelHtml(implode(', ',array_filter([$origin['address1'] ?? '',$origin['address2'] ?? '',$origin['city'] ?? '',$origin['state'] ?? '',$origin['zip'] ?? ''],static fn($part)=>is_string($part) && $part!==''))); ?></strong></div>
             <div class="col-sm-6"><span class="text-muted d-block small">Ship to</span><strong><?php echo shippingLabelHtml(implode(', ',array_filter([$destination['address1'] ?? '',$destination['address2'] ?? '',$destination['city'] ?? '',$destination['state'] ?? '',$destination['zip'] ?? ''],static fn($part)=>is_string($part) && $part!==''))); ?></strong></div>
         </div>
@@ -162,7 +169,10 @@ for ($index=0;$index<$scopes;$index++) {
         $price=$prices[$index] ?? null;
         $canPurchase=$purchaseEnabled && !$operation && is_int($price)
             && $order['payment_status']==='completed' && $order['order_status']==='processing';
-        if ($purchaseEnabled && $operation && $state==='reserved') $canPurchase=is_int($price);
+        if ($purchaseEnabled && $operation && $state==='reserved') {
+            $canPurchase=is_int($price) && ((int)$operation['operator_id']===(int)$admin['id']
+                || ShippingLabelOperations::handoffEligible($operation,(int)$admin['id']));
+        }
     ?>
         <div class="col-12 col-lg-6"><section class="card border-0 shadow-sm h-100"><div class="card-body">
             <div class="d-flex justify-content-between align-items-start gap-2">
@@ -205,6 +215,8 @@ for ($index=0;$index<$scopes;$index++) {
                 </div>
             <?php elseif ($state==='review'||$state==='submitted'): ?>
                 <p class="mb-0">The carrier outcome is uncertain. Reconcile this shipment before any further purchase.</p>
+            <?php elseif ($state==='reserved' && !$canPurchase && (int)$operation['operator_id']!==(int)$admin['id']): ?>
+                <p class="text-muted mb-0">Another administrator is preparing this shipment. If it remains reserved, you can take over after <?php echo Timezone::timestampElement(new DateTimeImmutable('@'.((int)$operation['updated_at']+ShippingLabelOperations::HANDOFF_DELAY_SECONDS))); ?>. No carrier purchase has been sent.</p>
             <?php elseif ($canPurchase): ?>
                 <form method="post" class="mt-3">
                     <?php echo CSRF::tokenField(); ?>
@@ -218,9 +230,12 @@ for ($index=0;$index<$scopes;$index++) {
                         <input class="form-control" type="password" id="password-<?php echo $index; ?>" name="password" autocomplete="current-password" required></div>
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="confirm-<?php echo $index; ?>" name="confirm_charge" value="yes" required>
                         <label class="form-check-label" for="confirm-<?php echo $index; ?>">I reviewed this shipment and authorize a carrier label purchase. The final carrier charge may differ from $<?php echo number_format($price/100,2); ?>.</label></div>
-                    <button class="btn btn-primary" type="submit">Purchase label<?php echo $pieces>1?'s':''; ?></button>
+                    <button class="btn btn-primary" type="submit"><?php echo $state==='reserved' && (int)$operation['operator_id']!==(int)$admin['id'] ? 'Take over and purchase label'.($pieces>1?'s':'') : 'Purchase label'.($pieces>1?'s':''); ?></button>
                 </form>
             <?php else: ?><p class="text-muted mb-0">A label cannot be purchased for this order yet.</p><?php endif; ?>
+            <?php if ($handoffRows[$index]): ?>
+                <p class="small text-muted border-top pt-2 mt-3 mb-0">Reservation handoffs: <?php echo count($handoffRows[$index]); ?> recorded. Latest <?php echo Timezone::timestampElement(new DateTimeImmutable('@'.(int)$handoffRows[$index][0]['transferred_at'])); ?>.</p>
+            <?php endif; ?>
         </div></section></div>
     <?php endforeach; ?>
     </div>

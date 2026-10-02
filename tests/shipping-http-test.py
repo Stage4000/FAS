@@ -45,7 +45,8 @@ env["FAS_SECURITY_DB_PATH"]=str(BASE/"security.sqlite")
 env["FAS_SHIPPING_CACHE_PATH"]=str(BASE/"shipping.sqlite")
 (SITE/"src/config/shipping.php").write_text("""<?php
 $c=require __DIR__.'/shipping.example.php';
-$c['mode']=is_file(__DIR__.'/../../../fallback')?'direct_with_fallback':'direct';
+$c['mode']=is_file(__DIR__.'/../../../legacy-mode')?'easyship':
+    (is_file(__DIR__.'/../../../fallback')?'direct_with_fallback':'direct');
 $c['parcel_data_verified']=true;
 foreach($c['carriers'] as &$p) {
     $p['enabled']=true; $p['environment']='production'; $p['production_verified']=true;
@@ -56,7 +57,7 @@ return $c;
 # Change only the construction seam in the isolated copy; production has no mock switch.
 factory=SITE/"src/shipping/ShippingRateService.php"
 factory.write_text(factory.read_text().replace(
-    "return new self(null,null,null,", "return new self(null,'shippingFixtureLegacy','shippingFixtureTransport',"))
+    "return new self($config,null,null,", "return new self($config,'shippingFixtureLegacy','shippingFixtureTransport',"))
 bootstrap=BASE/"mock.php"
 bootstrap.write_text("""<?php
 function shippingFixtureTransport($url,$headers,$body,$timeout) {
@@ -90,6 +91,14 @@ shippingHealth=json.loads(subprocess.check_output(
     ["php",str(SITE/"scripts/shipping-maintenance.php"),"health"],env=env,text=True))
 trackingRefresh=json.loads(subprocess.check_output(
     ["php",str(SITE/"scripts/shipping-maintenance.php"),"refresh-tracking"],env=env,text=True))
+notificationPrepare=json.loads(subprocess.check_output(
+    ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"prepare-notifications"],env=env,text=True))
+notificationSend=json.loads(subprocess.check_output(
+    ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"send-notifications","--deliver"],env=env,text=True))
+notificationGuard=subprocess.run(
+    ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"send-notifications"],env=env,text=True,capture_output=True)
+shippingReadiness=json.loads(subprocess.check_output(
+    ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"readiness"],env=env,text=True))
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"activate","--verified"],env=env,stdout=subprocess.DEVNULL)
 with socket.socket() as s:
@@ -119,10 +128,27 @@ def calls():
 address={"address1":"200 Synthetic Street","address2":"","city":"Test City","state":"CA","zip":"90210","country":"US"}
 cart={"items":[{"id":1,"quantity":1}],"address":address}
 try:
+    check(shippingHealth['notifications']['initialized'] and not shippingHealth['notifications']['enabled'],
+          'CLI initialization installs the disabled notification queue')
+    check(notificationPrepare['notification_preparation']['queued']==0
+          and notificationSend['notification_delivery']['accepted']==0,
+          'Disabled notification commands work with mail and carrier transports unavailable')
+    check(notificationGuard.returncode==1 and '--deliver' in notificationGuard.stderr,
+          'Notification delivery requires an explicit command flag before accessing storage')
+    check(not shippingReadiness['readiness']['external_services_checked']
+          and not shippingReadiness['readiness']['production_acceptance_verified'],
+          'Readiness reports configuration without claiming external carrier acceptance')
+    check(shippingReadiness['catalog']['schema_initialized']
+          and shippingReadiness['catalog']['saleable_products']==2
+          and shippingReadiness['readiness']['catalog']['data_complete_for_direct_quotes'],
+          'Readiness scans saleable packed products and their configured origin')
     check(shippingHealth["label_operations"]=={"reserved":0,"submitted":0,"ready":0,"review":0},
           "CLI initialization and health include the private fulfillment operation ledger")
     check(shippingHealth["label_storage"]=={"initialized":True,"packages":0},
           "CLI health confirms private per-package label storage without revealing label content")
+    check(shippingHealth['reservation_handoff_storage']['initialized']
+          and shippingReadiness['readiness']['fulfillment_storage_configured'],
+          'Readiness confirms audited reserved-label handoffs and fulfillment storage')
     check(shippingHealth["tracking"]=={"initialized":True,"packages":0,"with_status":0,"last_attempt_failed":0},
           "CLI initialization and health include private tracking status storage")
     check(trackingRefresh["tracking_refresh"]["enabled_carriers"]==[]
@@ -139,7 +165,10 @@ try:
     check(isinstance(quote,str) and len(quote)==32,"Direct rates obtain an Apple Pay server-owned quote")
     cookie=headers["Set-Cookie"].split(";",1)[0]
     stored=request("/quote-inspect.php?key="+quote,cookie=cookie)[2]
-    check(stored["rates"]==body["rates"] and stored["cart"]=={"1":1},"Wallet quote stores the exact carrier rates and cart")
+    publicStored=[{k:v for k,v in rate.items() if k not in ("carrier_quote_cents","parcel_services")}
+                  for rate in stored["rates"]]
+    check(publicStored==body["rates"] and stored["cart"]=={"1":1},
+          "Wallet quote keeps private label prices and options while returning the selected public rates")
     check(stored["address"]["zip"]=="90210","Wallet quote remains bound to the destination")
     check(body["shipping_quote"]==quote and len(stored["shipment"]["packages"])==1,
           "Classic checkout shares the server-owned quote and packed parcel snapshot")
@@ -172,7 +201,7 @@ try:
     check(row[0]=="usps" and row[1]==body["rates"][0]["courier_id"] and row[3]==900
           and row[4]!=quote and json.loads(row[6])[0]["weight"]==1 and count==1,
           "Order records selected carrier, service, price and measured parcel without storing quote secret")
-    check(json.loads(row[7])==body["rates"][0]["parcel_services"]
+    check(json.loads(row[7])==stored["rates"][0]["parcel_services"]
           and json.loads(row[7])[0]["quoted_cents"]==900,
           "USPS order stores the exact quoted rate ingredients for its label")
     check(item==("Synthetic test part","TEST-1",100.0),
@@ -184,12 +213,68 @@ try:
     check(estimate[0]==200 and estimate[2]["success"] and estimate[2]["lowest_rate"]["total_charge"]==9,"Pre-checkout estimator uses the same rate providers")
     lastUps=[c for c in calls() if "/rating/" in c["url"]][-1]
     check("AddressLine" not in lastUps["payload"]["RateRequest"]["Shipment"]["ShipTo"]["Address"],"Postal estimate omits fabricated street lines in UPS request")
-    before=len(calls())
     free={"items":[{"id":2,"quantity":1}],"address":address}
-    freeResult=request("/api/shipping-rates.php",free)[2]
-    check(freeResult["success"] and freeResult["rates"][0]["total_charge"]==0 and len(calls())==before,"All-free carts bypass external shipping providers")
-    mixed=request("/api/shipping-rates.php",{"items":[{"id":1,"quantity":1},{"id":2,"quantity":2}],"address":address})[2]
-    check(mixed["success"] and mixed["rates"][0]["total_charge"]==9 and mixed["free_shipping"]["item_count"]==2,"Mixed carts rate only paid-shipping items")
+    freeResponse=request("/api/shipping-rates.php",free)
+    freeResult=freeResponse[2]
+    check(freeResult["success"] and len(freeResult["rates"])==2
+          and all(rate["total_charge"]==0 for rate in freeResult["rates"]),
+          "All-free direct carts retain a zero customer charge while obtaining a carrier service")
+    freeCookie=freeResponse[1]["Set-Cookie"].split(";",1)[0]
+    freeStored=request("/quote-inspect.php?key="+freeResult["shipping_quote"],cookie=freeCookie)[2]
+    check(freeStored["rates"][0]["carrier_quote_cents"]==900
+          and len(freeStored["shipment"]["packages"])==1
+          and "carrier_quote_cents" not in freeResult["rates"][0],
+          "Free direct quote keeps its private carrier cost and packed parcel in the server session")
+    freeOrder={**order,"items":[{"product_id":2,"quantity":1,"unit_price":20}],"subtotal":20,
+               "shipping_cost":0,"total_amount":20,"shipping_quote":freeResult["shipping_quote"]}
+    freeCreated=request("/api/process-order.php",freeOrder,cookie=freeCookie)
+    check(freeCreated[0]==200 and freeCreated[2]["success"],
+          "A free-shipping direct service creates a pending order without a customer shipping charge")
+    with sqlite3.connect(dbfile) as db:
+        freeRow=db.execute("SELECT provider,quoted_cents,carrier_quote_cents,packages_json,fulfillment_json "
+                           "FROM order_shipping WHERE order_id=?",(freeCreated[2]["order_id"],)).fetchone()
+    check(freeRow[0]=="usps" and freeRow[1:3]==(0,900)
+          and len(json.loads(freeRow[3]))==len(json.loads(freeRow[4]))==1,
+          "Free order saves an actionable direct label quote separately from the customer charge")
+    freeEstimate=request("/api/shipping-estimate.php",
+                         {"items":free["items"],"address":{"city":"Test City","state":"CA","zip":"90210"}})[2]
+    check(freeEstimate["success"] and freeEstimate["lowest_rate"]["total_charge"]==0,
+          "Free pre-checkout estimate is offered only after a direct carrier can rate the parcel")
+    (BASE/"legacy-mode").touch()
+    legacyBefore=len(calls())
+    legacyFree=request("/api/shipping-rates.php",free)[2]
+    check(legacyFree["success"] and legacyFree["rates"][0]["courier_id"]=="free_shipping"
+          and len(calls())==legacyBefore,
+          "Easyship mode preserves the existing all-free checkout without direct carrier calls")
+    (BASE/"legacy-mode").unlink()
+    mixedCart={"items":[{"id":1,"quantity":1},{"id":2,"quantity":2}],"address":address}
+    mixedResponse=request("/api/shipping-rates.php",mixedCart)
+    mixed=mixedResponse[2]
+    check(mixed["success"] and mixed["rates"][0]["total_charge"]==9
+          and mixed["free_shipping"]["item_count"]==2,
+          "Mixed carts charge only paid-shipping items")
+    mixedCookie=mixedResponse[1]["Set-Cookie"].split(";",1)[0]
+    mixedStored=request("/quote-inspect.php?key="+mixed["shipping_quote"],cookie=mixedCookie)[2]
+    check(mixedStored["rates"][0]["carrier_quote_cents"]==2700
+          and len(mixedStored["shipment"]["packages"])==3
+          and len(mixedStored["rates"][0]["parcel_services"])==3,
+          "Mixed direct quote includes every packed item in its carrier estimate and label options")
+    mixedOrder={**order,"items":[{"product_id":1,"quantity":1,"unit_price":100},
+                                 {"product_id":2,"quantity":2,"unit_price":20}],
+                "subtotal":140,"shipping_cost":9,"total_amount":149,"shipping_quote":mixed["shipping_quote"]}
+    mixedCreated=request("/api/process-order.php",mixedOrder,cookie=mixedCookie)
+    check(mixedCreated[0]==200 and mixedCreated[2]["success"],
+          "Mixed direct cart creates a pending order with the customer shipping charge intact")
+    with sqlite3.connect(dbfile) as db:
+        mixedRow=db.execute("SELECT provider,quoted_cents,carrier_quote_cents,packages_json,fulfillment_json "
+                            "FROM order_shipping WHERE order_id=?",(mixedCreated[2]["order_id"],)).fetchone()
+    check(mixedRow[0]=="usps" and mixedRow[1:3]==(900,2700)
+          and len(json.loads(mixedRow[3]))==len(json.loads(mixedRow[4]))==3,
+          "Mixed order stores a full-cart label scope without charging the customer for free items")
+    mixedEstimate=request("/api/shipping-estimate.php",
+                          {"items":mixedCart["items"],"address":{"city":"Test City","state":"CA","zip":"90210"}})[2]
+    check(mixedEstimate["success"] and mixedEstimate["lowest_rate"]["total_charge"]==9,
+          "Mixed pre-checkout estimate checks that a full-cart direct service exists")
     for route in ["shipping-rates.php","shipping-estimate.php"]:
         check(request("/api/"+route,{**cart,"items":[{"id":1,"quantity":0}]})[0]==400,"Invalid quantity rejected before carrier work: "+route)
         check(request("/api/"+route,{**cart,"items":cart["items"]*101})[0]==400,"Cart expansion bounded before carrier work: "+route)
@@ -223,10 +308,13 @@ try:
     (BASE/"fallback").unlink()
     unavailable=request("/api/shipping-rates.php",changed)[2]
     check(unavailable["success"] is False and "rates" not in unavailable,"Direct-only carrier outage never invents a free quote")
+    unavailableFree=request("/api/shipping-rates.php",{**free,"address":changed["address"]})
+    check(unavailableFree[0]==503 and unavailableFree[2]["success"] is False,
+          "Direct-only carrier outage does not create an unfulfillable free-shipping quote")
     with sqlite3.connect(dbfile) as db:
         pending=db.execute("SELECT COUNT(*) FROM orders WHERE payment_status='pending'").fetchone()[0]
         captured=db.execute("SELECT COUNT(*) FROM orders WHERE payment_status='completed'").fetchone()[0]
-    check(pending==2 and captured==0,"Quote and order tests do not capture payments or buy labels")
+    check(pending==4 and captured==0,"Quote and order tests do not capture payments or buy labels")
     with sqlite3.connect(dbfile) as db:
         local=db.execute("SELECT order_number,total_amount FROM orders WHERE id=?",(created[2]["order_id"],)).fetchone()
         originalStock=db.execute("SELECT quantity FROM products WHERE id=1").fetchone()[0]
@@ -303,12 +391,45 @@ try:
           "Captured funds are recorded for administrator review without a second stock deduction")
     check(request("/api/process-order.php",reviewRequest)[0]==409,
           "Review orders cannot be converted to checkout success by retrying")
+    with sqlite3.connect(dbfile) as db:
+        db.execute("ALTER TABLE order_shipping RENAME COLUMN carrier_quote_cents TO old_carrier_quote_cents")
+    unmigrated=json.loads(subprocess.check_output(
+        ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",
+         str(SITE/"scripts/shipping-maintenance.php"),"readiness"],env=env,text=True))
+    check(unmigrated['order_shipping_storage'] and not unmigrated['direct_order_storage']
+          and not unmigrated['readiness']['storage_configured'],
+          "Readiness distinguishes a historical order table from migrated direct-order storage")
+    check(request("/api/shipping-rates.php",cart)[0]==503,
+          "Direct checkout refuses rates before the additive order migration")
+    (BASE/"fallback").touch()
+    unmigratedFallback=request("/api/shipping-rates.php",cart)[2]
+    check(unmigratedFallback['success'] and unmigratedFallback['rates'][0]['provider']=='easyship',
+          "Fallback mode keeps Easyship checkout available before the order migration")
+    (BASE/"fallback").unlink()
+    with sqlite3.connect(dbfile) as db:
+        db.execute("ALTER TABLE order_shipping RENAME COLUMN old_carrier_quote_cents TO carrier_quote_cents")
     # Existing shared shipping rate-limit contract remains enforced.
     code="require $argv[1]; $s=\\FAS\\Security\\SecurityStore::open(); $s->saveRule('shipping',1,3600,'enforce','127.0.0.1',1);"
     subprocess.check_call(["php","-r",code,str(ROOT/"src/security/SecurityStore.php")],env=env)
     request("/api/shipping-estimate.php",{})
     limited=request("/api/shipping-rates.php",{})
     check(limited[0]==429 and int(limited[1]["Retry-After"])>0,"Shipping endpoints retain their shared rate limit and Retry-After")
+    # Readiness must not bootstrap missing deployment databases or print credential values.
+    (SITE/"src/config/config.php").write_text("""<?php
+$c=require __DIR__.'/config.example.php';
+$c['database']['path']=dirname(__DIR__,2).'/missing-inventory/no.sqlite';
+return $c;
+""")
+    readinessEnv={**env,"FAS_SHIPPING_CACHE_PATH":str(BASE/"missing-cache.sqlite")}
+    missingRaw=subprocess.check_output(
+        ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"readiness"],
+        env=readinessEnv,text=True)
+    missing=json.loads(missingRaw)
+    check(not missing['order_shipping_storage'] and not missing['cache']['healthy']
+          and not (SITE/'missing-inventory').exists() and not (BASE/'missing-cache.sqlite').exists(),
+          'Readiness reports missing storage without creating database files or directories')
+    check('fixture-secret' not in missingRaw and 'fixture-client' not in missingRaw,
+          'Readiness output contains no carrier credential values')
     report={"date":datetime.now(timezone.utc).isoformat(),"scope":"local synthetic inventory; mocked carrier transport",
         "checks":len(checks),"passed":checks,"live_carrier_calls":0,"production_verified":False}
     (ROOT/"audit/shipping-http-local.json").write_text(json.dumps(report,indent=2)+"\n")

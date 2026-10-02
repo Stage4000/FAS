@@ -20,6 +20,11 @@ final class ShippingTracking
             last_result TEXT NOT NULL DEFAULT 'pending' CHECK(last_result IN ('pending','ok','error'))
         )");
         $db->exec('CREATE INDEX IF NOT EXISTS shipping_tracking_due ON shipping_tracking(next_attempt_at)');
+        $columns=array_column($db->query('PRAGMA table_info(shipping_tracking)')->fetchAll(\PDO::FETCH_ASSOC),'name');
+        if (!in_array('carrier_environment',$columns,true)) {
+            $db->exec("ALTER TABLE shipping_tracking ADD COLUMN carrier_environment TEXT
+                CHECK(carrier_environment IN ('sandbox','production'))");
+        }
     }
 
     public function __construct(\PDO $privateDb)
@@ -77,8 +82,11 @@ final class ShippingTracking
         }
     }
 
-    public function save(string $tracking,array $status): void
+    public function save(string $tracking,array $status,?string $environment=null): void
     {
+        if ($environment!==null && !in_array($environment,['sandbox','production'],true)) {
+            throw new \InvalidArgumentException('Invalid tracking environment.');
+        }
         $text=$status['status_text'] ?? null;
         $code=$status['status_code'] ?? null;
         if (!is_string($text) || $text==='' || strlen($text)>160
@@ -87,9 +95,9 @@ final class ShippingTracking
         }
         $now=time();
         $stmt=$this->db->prepare("UPDATE shipping_tracking SET status_text=?,status_code=?,
-            checked_at=?,next_attempt_at=?,last_result='ok'
+            checked_at=?,next_attempt_at=?,carrier_environment=?,last_result='ok'
             WHERE tracking_number=? AND last_result='pending'");
-        $stmt->execute([$text,$code,$now,$now+1800,$tracking]);
+        $stmt->execute([$text,$code,$now,$now+1800,$environment,$tracking]);
         if ($stmt->rowCount()!==1) throw new \RuntimeException('Tracking status could not be saved.');
     }
 

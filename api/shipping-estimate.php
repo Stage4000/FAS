@@ -12,6 +12,7 @@ require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
+require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
 
 use FAS\Config\Database;
 use FAS\Shipping\ShippingRateService;
@@ -98,6 +99,13 @@ function fasShippingEstimateLowestRate(array $rates): ?array
     return $rates[0];
 }
 
+function fasShippingEstimatePublicRates(array $rates): array
+{
+    foreach ($rates as &$rate) unset($rate['carrier_quote_cents'],$rate['parcel_services']);
+    unset($rate);
+    return $rates;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     fasShippingEstimateError(405, 'Method not allowed');
 }
@@ -118,6 +126,13 @@ if ($address['city'] === '' || $address['zip'] === '' || $address['state'] === '
 
 try {
     $db = Database::getInstance()->getConnection();
+    $effectiveConfig=\FAS\Shipping\ShippingConfig::load();
+    if ($effectiveConfig['mode']!=='easyship' && !\FAS\Shipping\ShippingOrder::directReady($db)) {
+        if ($effectiveConfig['mode']==='direct') {
+            fasShippingEstimateError(503,'Shipping is temporarily unavailable. Please try again.');
+        }
+        $effectiveConfig['mode']='easyship';
+    }
     $productModel = new Product($db);
     $settings = ShippingRules::getFreeShippingSettings();
     $destinationIsContinentalUs = ShippingRules::isContinentalUsAddress($address);
@@ -188,6 +203,18 @@ try {
     ];
 
     if (empty($ratedItems)) {
+        $directConfig=$effectiveConfig;
+        $selectedMode=$directConfig['mode'];
+        if ($selectedMode!=='easyship') {
+            $directConfig['mode']='direct';
+            $warehouseModel=new Warehouse($db);
+            $warehouse=$warehouseModel->getForCartItems($freeItems);
+            $shipping=ShippingRateService::forDatabase($db,$directConfig);
+            $carrierRates=$shipping->getShippingRates($freeItems,$address+['_estimate'=>true],$warehouse ?: null);
+            if (!$carrierRates && $selectedMode==='direct') {
+                fasShippingEstimateError(503,'Shipping is temporarily unavailable for this destination.');
+            }
+        }
         $freeRate = [
             'courier_id' => 'free_shipping',
             'courier_name' => 'Flip and Strip',
@@ -218,8 +245,27 @@ try {
 
     $warehouseModel = new Warehouse($db);
     $warehouse = $warehouseModel->getForCartItems($ratedItems);
-    $shipping = ShippingRateService::forDatabase($db);
+    $shippingConfig=$effectiveConfig;
+    $deadline=$freeItems ? microtime(true)+$shippingConfig['request_budget_seconds'] : null;
+    $shipping = ShippingRateService::forDatabase($db,$shippingConfig,$deadline);
 $rates = $shipping->getShippingRates($ratedItems, $address + ['_estimate'=>true], $warehouse ?: null);
+if ($freeItems && $rates && in_array($rates[0]['provider'] ?? '',['usps','ups'],true)) {
+    $directConfig=$shippingConfig;
+    $fallbackMode=$directConfig['mode'];
+    $directConfig['mode']='direct';
+    $allItems=array_merge($ratedItems,$freeItems);
+    $allWarehouse=$warehouseModel->getForCartItems($allItems);
+    $fullShipping=ShippingRateService::forDatabase($db,$directConfig,$deadline);
+    $fullRates=$fullShipping->getShippingRates($allItems,$address+['_estimate'=>true],$allWarehouse ?: null,10);
+    $fullIds=[];
+    foreach ($fullRates ?? [] as $fullRate) $fullIds[$fullRate['courier_id']]=true;
+    $rates=array_values(array_filter($rates,static fn($rate)=>isset($fullIds[$rate['courier_id']])));
+    if (!$rates && $fallbackMode==='direct_with_fallback') {
+        $directConfig['mode']='easyship';
+        $legacy=ShippingRateService::forDatabase($db,$directConfig);
+        $rates=$legacy->getShippingRates($ratedItems,$address+['_estimate'=>true],$warehouse ?: null);
+    }
+}
 
 if ($rates === null || empty($rates)) {
     $monitor = new ErrorMonitor($db);
@@ -249,6 +295,7 @@ if ($rates === null || empty($rates)) {
         exit;
     }
 
+    $publicRates=fasShippingEstimatePublicRates($rates);
     echo json_encode([
         'success' => true,
         'estimate' => true,
@@ -259,8 +306,8 @@ if ($rates === null || empty($rates)) {
             'country' => $address['country'],
         ],
         'free_shipping' => $freeShippingSummary,
-        'rates' => $rates,
-        'lowest_rate' => fasShippingEstimateLowestRate($rates),
+        'rates' => $publicRates,
+        'lowest_rate' => fasShippingEstimateLowestRate($publicRates),
         'message' => $freeQuantity > 0
             ? 'Some selected items qualify for free shipping; rates shown apply to the remaining items.'
             : 'Estimated shipping rate returned.',

@@ -4,11 +4,11 @@ Implementation candidate prepared September 18, 2026 against `Stage4000/FAS` mai
 
 Apple Pay defaults to disabled. These source changes do not deploy themselves, overwrite the production configuration, migrate a database, or make a payment. Google Pay is not included.
 
-## Important finding before public rollout
+## Payment verification follow-up
 
-The reviewed legacy `api/process-order.php` accepts browser-provided totals and payment IDs and can mark a standard PayPal order completed without retrieving and verifying that payment from PayPal. This is an existing security issue, not an Apple Pay requirement. Treat remediation as a priority before considering the whole checkout secure.
+The September 18 review found that legacy `api/process-order.php` accepted browser-provided totals and payment IDs without retrieving and verifying the PayPal payment. The October 1 shipping/checkout work implements server-owned pricing and PayPal capture verification locally, including order binding and replay checks. See `audit/SHIPPING.md` for current synthetic test evidence and outstanding sandbox/deployment acceptance.
 
-This candidate gives Apple Pay a separate, server-verified order/capture path and adds a guard preventing Apple Pay orders from being finalized through the legacy endpoint. **It does not repair the legacy standard PayPal flow.** It is not a full checkout security audit or a production-readiness certification.
+The original Apple Pay candidate supplies a separate server-verified order/capture path and prevents Apple Pay orders from being finalized through the standard endpoint. Deploy the later shared checkout and PayPal verification changes together. Neither local implementation nor simulated payments certify production checkout readiness.
 
 ## Scope
 
@@ -112,7 +112,7 @@ Verify the following on the actual checkout:
 
 Apple Pay account enablement and domain verification were reported complete. Their live readiness and the server's actual hostname remain deployment checks. This bundle does not replace or modify the existing domain association file.
 
-After these checks and resolution of the legacy payment-verification issue, public visibility can be enabled by changing only `'admin_only' => false`. The code refuses public Apple Pay activation when the shared PayPal mode is not live.
+After these checks and sandbox/deployed acceptance of the locally implemented PayPal verification fix, public visibility can be enabled by changing only `'admin_only' => false`. The code refuses public Apple Pay activation when the shared PayPal mode is not live.
 
 ## Recovery and operational follow-through
 

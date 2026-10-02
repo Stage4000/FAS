@@ -20,6 +20,7 @@ final class ShippingOrder
             courier_name TEXT NOT NULL,
             service_name TEXT NOT NULL,
             quoted_cents INTEGER NOT NULL,
+            carrier_quote_cents INTEGER,
             currency TEXT NOT NULL DEFAULT \'USD\',
             rate_basis TEXT,
             quote_hash TEXT NOT NULL,
@@ -32,6 +33,9 @@ final class ShippingOrder
         if (!self::hasFulfillmentColumn($db)) {
             $db->exec('ALTER TABLE order_shipping ADD COLUMN fulfillment_json TEXT');
         }
+        if (!self::hasColumn($db,'carrier_quote_cents')) {
+            $db->exec('ALTER TABLE order_shipping ADD COLUMN carrier_quote_cents INTEGER');
+        }
         $db->exec('CREATE INDEX IF NOT EXISTS idx_order_shipping_provider ON order_shipping(provider)');
     }
 
@@ -39,6 +43,12 @@ final class ShippingOrder
     {
         $stmt=$db->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='order_shipping'");
         return (bool)$stmt->fetchColumn();
+    }
+
+    public static function directReady(\PDO $db): bool
+    {
+        return self::installed($db) && self::hasColumn($db,'fulfillment_json')
+            && self::hasColumn($db,'carrier_quote_cents');
     }
 
     public static function find(\PDO $db,int $orderId): ?array
@@ -98,12 +108,22 @@ final class ShippingOrder
             if (in_array($provider,['easyship','free'],true)) return;
             throw new \RuntimeException('Direct shipping order storage is not initialized.');
         }
+        $hasCarrierQuote=self::hasColumn($db,'carrier_quote_cents');
+        if (in_array($provider,['usps','ups'],true) && !$hasCarrierQuote) {
+            throw new \RuntimeException('Direct shipping order storage needs migration.');
+        }
         $shipment=$quote['shipment'] ?? null;
         if (in_array($provider,['usps','ups'],true)
             && (!is_array($shipment) || empty($shipment['origin']) || empty($shipment['packages']))) {
             throw new \RuntimeException('Direct shipping parcel snapshot is missing.');
         }
         $fulfillment=null;
+        $customerCents=ApplePayContext::catalogCents($rate['total_charge'] ?? null);
+        $carrierCents=$rate['carrier_quote_cents'] ?? $customerCents;
+        if (in_array($provider,['usps','ups'],true)
+            && (!is_int($carrierCents) || $carrierCents<1 || $carrierCents>10000000)) {
+            throw new \RuntimeException('Invalid direct carrier quote.');
+        }
         if ($provider==='usps') {
             if (!self::hasFulfillmentColumn($db)) throw new \RuntimeException('USPS fulfillment storage is not initialized.');
             $options=$rate['parcel_services'] ?? null;
@@ -123,7 +143,7 @@ final class ShippingOrder
                 }
                 $sum+=$option['quoted_cents'];
             }
-            if ($sum!==ApplePayContext::catalogCents($rate['total_charge'] ?? null)) {
+            if ($sum!==$carrierCents) {
                 throw new \RuntimeException('USPS parcel charges do not match the selected rate.');
             }
             $fulfillment=json_encode($options,JSON_THROW_ON_ERROR);
@@ -133,20 +153,25 @@ final class ShippingOrder
                 || preg_match('/[\x00-\x1f\x7f]/',$value)) throw new \RuntimeException('Invalid shipping rate metadata.');
             return $value;
         };
-        $stmt=$db->prepare('INSERT INTO order_shipping
-            (order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,
-             rate_basis,quote_hash,quote_expires_at,origin_json,packages_json)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $courierId=$rate['courier_id'] ?? null;
         if (is_int($courierId)) $courierId=(string)$courierId;
-        $stmt->execute([$orderId,$provider,$short($courierId,128),
+        $values=[$orderId,$provider,$short($courierId,128),
             isset($rate['service_code']) ? $short($rate['service_code'],80) : null,
             $short($rate['courier_name'] ?? null,128),$short($rate['service_name'] ?? null,128),
-            ApplePayContext::catalogCents($rate['total_charge'] ?? null),'USD',
+            $customerCents,'USD',
             isset($rate['rate_basis']) ? $short($rate['rate_basis'],40) : null,
             hash('sha256',$key),(int)$quote['expires'],
             $shipment===null ? null : json_encode($shipment['origin'] ?? null,JSON_THROW_ON_ERROR),
-            $shipment===null ? null : json_encode($shipment['packages'] ?? null,JSON_THROW_ON_ERROR)]);
+            $shipment===null ? null : json_encode($shipment['packages'] ?? null,JSON_THROW_ON_ERROR)];
+        $columns=['order_id','provider','courier_id','service_code','courier_name','service_name',
+            'quoted_cents','currency','rate_basis','quote_hash','quote_expires_at','origin_json','packages_json'];
+        if ($hasCarrierQuote) {
+            array_splice($columns,7,0,['carrier_quote_cents']);
+            array_splice($values,7,0,[in_array($provider,['usps','ups'],true) ? $carrierCents : null]);
+        }
+        $stmt=$db->prepare('INSERT INTO order_shipping ('.implode(',',$columns).') VALUES ('
+            .implode(',',array_fill(0,count($values),'?')).')');
+        $stmt->execute($values);
         if ($fulfillment!==null) {
             $stmt=$db->prepare('UPDATE order_shipping SET fulfillment_json=? WHERE order_id=?');
             $stmt->execute([$fulfillment,$orderId]);
@@ -155,8 +180,13 @@ final class ShippingOrder
 
     private static function hasFulfillmentColumn(\PDO $db): bool
     {
+        return self::hasColumn($db,'fulfillment_json');
+    }
+
+    private static function hasColumn(\PDO $db,string $name): bool
+    {
         foreach ($db->query('PRAGMA table_info(order_shipping)') as $column) {
-            if ($column['name']==='fulfillment_json') return true;
+            if ($column['name']===$name) return true;
         }
         return false;
     }

@@ -1,0 +1,22 @@
+{
+    "date": "2026-10-02T19:03:19+00:00",
+    "scope": "synthetic private shipping records; read-only operational monitoring",
+    "checks": 12,
+    "passed": [
+        "Only recent confirmed uncancelled packages enter monitoring",
+        "Attention reasons have separate exact counts",
+        "Failed poll is surfaced even when an earlier successful status exists",
+        "A successful status becomes stale at 24 hours",
+        "Missing first update receives a 30-minute grace period",
+        "Interrupted poll receives a 15-minute grace period",
+        "New label with no poll is not immediately flagged",
+        "Cancelled, old and unconfirmed labels cannot inflate the follow-up queue",
+        "Most recent successful check remains visible after later failures",
+        "Bounded rows show oldest follow-ups without truncating aggregate counts",
+        "Monitoring makes no database writes",
+        "Oversized monitor queries are rejected"
+    ],
+    "live_carrier_calls": 0,
+    "customer_emails_sent": 0,
+    "production_verified": false
+}

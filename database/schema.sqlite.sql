@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS order_shipping (
     courier_name TEXT NOT NULL,
     service_name TEXT NOT NULL,
     quoted_cents INTEGER NOT NULL,
+    carrier_quote_cents INTEGER,
     currency TEXT NOT NULL DEFAULT 'USD',
     rate_basis TEXT,
     quote_hash TEXT NOT NULL,

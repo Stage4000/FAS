@@ -24,7 +24,7 @@ Updated 2026-09-30. Implementation and local verification are separate from prod
 
 | Priority | Improvement | Reason and measurement |
 | --- | --- | --- |
-| 1 | Resolve the separately documented legacy PayPal server-side verification defect. | Recovery must not be mistaken for proof of payment. Complete provider verification and replay tests before expanding checkout traffic. See docs/apple-pay.md. |
+| 1 | Deploy and verify the locally implemented PayPal server-side verification fix. | Server-owned pricing, capture verification and replay checks now have synthetic coverage. Complete sandbox and deployed checkout/recovery acceptance before expanding traffic. See SHIPPING.md. |
 | 1 | Make shipping and total cost easier to understand before payment. | The cart already has an estimator. Verify real rates, delivery wording, coupon behavior, and mobile usability; measure cart → shipping quote → payment completion. Do not introduce a free-shipping promise without margin and destination rules. |
 | 1 | Improve high-intent product listings. | Use accurate fitment, part numbers, condition notes, defects, included components, and clear photos. Prioritize listings receiving views without cart additions, using the existing Product Quality and Analytics pages. Do not infer compatibility from a title alone. |
 | 2 | Turn confirmed subscribers into a relevant new-arrivals audience. | Signup capture is implemented; a campaign composer, provider integration, and scheduled newsletters are still future work. Start with useful inventory updates matched to interests, after collecting those preferences. Existing saved-search leads are not automatically newsletter subscribers. |

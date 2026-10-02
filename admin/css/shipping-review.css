@@ -1,0 +1,29 @@
+/* Keep entry animation and wide tracking references inside the viewport. */
+.navbar { animation: none; }
+.shipping-review, .notification-review { overflow-wrap: anywhere; }
+.notification-review { max-width: 1000px; }
+.shipping-review .row > *, .notification-review .row > * { min-width: 0; }
+.shipping-review .table-responsive { max-width: 100%; }
+
+button[data-bs-target="#qualitySidebar"],
+.shipping-review .btn-outline-primary,
+.notification-review .btn-outline-primary {
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+}
+.shipping-review .admin-hero .btn-outline-secondary {
+    color: var(--admin-hero-text);
+    border-color: currentColor;
+}
+.shipping-review .btn-outline-primary:hover,
+.notification-review .btn-outline-primary:hover,
+.shipping-review .btn-outline-primary:focus-visible,
+.notification-review .btn-outline-primary:focus-visible {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: #fff;
+}
+.shipping-review .admin-hero .btn-outline-secondary:hover {
+    background: var(--admin-card-bg);
+    color: var(--admin-text);
+}

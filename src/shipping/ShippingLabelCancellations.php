@@ -103,6 +103,56 @@ final class ShippingLabelCancellations
         return $states;
     }
 
+    /** Record independently verified carrier evidence; never authorize another carrier request. */
+    public function reconcile(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId,
+        string $expectedState,string $outcome,string $tracking,string $reference,bool $verified): void
+    {
+        self::requireAdmin($ordersDb,$operatorId);
+        if (!$verified || !in_array($outcome,['cancelled','refund_pending'],true)
+            || !preg_match('/\A[A-Za-z0-9][A-Za-z0-9._\/-]{0,99}\z/D',$reference)) {
+            throw new \InvalidArgumentException('Confirm the carrier evidence and enter its case or confirmation reference.');
+        }
+        $this->db->exec('BEGIN IMMEDIATE');
+        try {
+            $record=$this->find($orderId,$packageIndex);
+            if (!$record || $record['state']!==$expectedState || !self::canReconcile($record)
+                || $outcome===$record['state']) {
+                throw new \DomainException('Cancellation has changed or is not eligible for reconciliation.');
+            }
+            if (!hash_equals((string)$record['tracking_number'],$tracking)
+                || ($outcome==='refund_pending' && $record['provider']!=='usps')) {
+                throw new \InvalidArgumentException('Check the tracking number and carrier outcome.');
+            }
+            $now=time();
+            $audit=$this->db->prepare('INSERT INTO shipping_cancellation_resolutions
+                (operation_id,previous_state,outcome,previous_reference,evidence_reference,actor_id,resolved_at) VALUES (?,?,?,?,?,?,?)');
+            $audit->execute([(int)$record['operation_id'],$record['state'],$outcome,$record['carrier_reference'],$reference,$operatorId,$now]);
+            $update=$this->db->prepare('UPDATE shipping_label_cancellations SET state=?,carrier_reference=?,updated_at=?
+                WHERE operation_id=? AND state=?');
+            $update->execute([$outcome,$reference,$now,(int)$record['operation_id'],$expectedState]);
+            if ($update->rowCount()!==1) throw new \DomainException('Cancellation changed during review.');
+            $this->db->exec('COMMIT');
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            throw $e;
+        }
+    }
+
+    public static function canReconcile(array $record): bool
+    {
+        return in_array($record['state'],['review','refund_pending'],true)
+            || ($record['state']==='submitted' && (int)($record['submitted_at'] ?? 0)>0
+                && (int)$record['submitted_at']<=time()-900);
+    }
+
+    public function history(int $operationId): array
+    {
+        $stmt=$this->db->prepare('SELECT previous_state,outcome,previous_reference,evidence_reference,actor_id,resolved_at
+            FROM shipping_cancellation_resolutions WHERE operation_id=? ORDER BY id DESC');
+        $stmt->execute([$operationId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     /** Read-only queue for carrier void/refund results that need follow-up. */
     public function attention(int $limit=100): array
     {

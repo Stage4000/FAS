@@ -29,15 +29,13 @@ final class ShippingLabelService
         string $mailingDate): array
     {
         if ($confirmedCents<1) throw new \InvalidArgumentException('Confirm the selected shipping price.');
-        $operation=$this->operations->reserve($this->ordersDb,$orderId,$packageIndex,$operatorId);
-        if ($operation['state']!=='reserved') return self::summary($operation);
         $data=$this->orderData($orderId);
         $shipping=$data['shipping'];
-        $provider=$operation['provider'];
-        if ($shipping['provider']!==$provider) throw new \RuntimeException('Saved carrier changed.');
+        $provider=$shipping['provider'];
+        if (!in_array($provider,['usps','ups'],true)) throw new \RuntimeException('Saved carrier changed.');
         $quote=$provider==='usps'
             ? ($shipping['fulfillment_options'][$packageIndex]['quoted_cents'] ?? null)
-            : ($shipping['quoted_cents'] ?? null);
+            : ($shipping['carrier_quote_cents'] ?? $shipping['quoted_cents'] ?? null);
         if (!is_int($quote) || $quote!==$confirmedCents) {
             throw new \InvalidArgumentException('The saved shipping price changed. Review the order again.');
         }
@@ -48,9 +46,12 @@ final class ShippingLabelService
         $payload=$provider==='usps'
             ? CarrierLabelPayloads::usps($data['order'],$shipping,$packageIndex,$fulfillment,$mailingDate)
             : CarrierLabelPayloads::ups($data['order'],$shipping,$fulfillment,(string)($carrier['account_number'] ?? ''));
+        $operation=$this->operations->reserve($this->ordersDb,$orderId,$packageIndex,$operatorId);
+        if ($operation['provider']!==$provider) throw new \RuntimeException('Saved carrier changed.');
+        if ($operation['state']!=='reserved') return self::summary($operation);
         $client=$this->client($provider,$carrier);
         $authorization=$client->authorize();
-        if (!$this->operations->markSubmitted($this->ordersDb,$orderId,$packageIndex,$operatorId)) {
+        if (!$this->operations->markSubmitted($this->ordersDb,$orderId,$packageIndex,$operatorId,$carrier['environment'])) {
             return self::summary($this->operations->find($orderId,$packageIndex));
         }
         try {

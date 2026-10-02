@@ -11,6 +11,7 @@ require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 require_once __DIR__ . '/../src/payments/ApplePayContext.php';
+require_once __DIR__ . '/../src/shipping/ShippingOrder.php';
 
 use FAS\Config\Database;
 use FAS\Shipping\ShippingRateService;
@@ -68,6 +69,13 @@ function fasShippingCatalogItem(array $item, array $product): array
     ];
 }
 
+function fasShippingPublicRates(array $rates): array
+{
+    foreach ($rates as &$rate) unset($rate['carrier_quote_cents'],$rate['parcel_services']);
+    unset($rate);
+    return $rates;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     fasShippingRatesError(405, 'Method not allowed');
 }
@@ -95,6 +103,13 @@ foreach ($requiredAddressFields as $field) {
 
 try {
     $db = Database::getInstance()->getConnection();
+    $effectiveConfig=\FAS\Shipping\ShippingConfig::load();
+    if ($effectiveConfig['mode']!=='easyship' && !\FAS\Shipping\ShippingOrder::directReady($db)) {
+        if ($effectiveConfig['mode']==='direct') {
+            fasShippingRatesError(503,'Shipping is temporarily unavailable. Please try again.');
+        }
+        $effectiveConfig['mode']='easyship';
+    }
     $productModel = new Product($db);
     $settings = ShippingRules::getFreeShippingSettings();
     $destinationIsContinentalUs = ShippingRules::isContinentalUsAddress($input['address']);
@@ -154,23 +169,82 @@ try {
     ];
 
     if (empty($ratedItems)) {
-        $freeRate = ShippingRules::freeShippingRate($freeShippingSummary);
-        $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, [$freeRate]);
+        $directConfig=$effectiveConfig;
+        $selectedMode=$directConfig['mode'];
+        $rates=[]; $snapshot=null;
+        if ($selectedMode!=='easyship') {
+            $directConfig['mode']='direct';
+            $warehouseModel=new Warehouse($db);
+            $warehouse=$warehouseModel->getForCartItems($freeItems);
+            $shipping=ShippingRateService::forDatabase($db,$directConfig);
+            $carrierRates=$shipping->getShippingRates($freeItems,$input['address'],$warehouse ?: null);
+            foreach ($carrierRates ?? [] as $rate) {
+                if (!in_array($rate['provider'] ?? '',['usps','ups'],true)) continue;
+                $carrierCents=\FAS\Shipping\CarrierRates::cents($rate['total_charge'] ?? null);
+                if ($carrierCents===null) continue;
+                $rate['carrier_quote_cents']=$carrierCents;
+                $rate['total_charge']=0.0;
+                $rate['service_name']='Free Shipping ('.$rate['service_name'].')';
+                $rate['is_free_shipping']=true;
+                $rate['free_shipping_item_count']=$freeQuantity;
+                $rates[]=$rate;
+            }
+            $snapshot=$shipping->shipmentSnapshot();
+        }
+        if (!$rates && $selectedMode==='direct') {
+            fasShippingRatesError(503,'Shipping is temporarily unavailable. Please try again.');
+        }
+        if (!$rates) $rates=[ShippingRules::freeShippingRate($freeShippingSummary)];
+        $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, $rates, $snapshot);
         if ($quoteId === null) fasShippingRatesError(503, 'Shipping checkout is temporarily unavailable. Please try again.');
         echo json_encode([
             'success' => true,
             'free_shipping' => $freeShippingSummary,
             'shipping_quote' => $quoteId,
             'applepay_shipping_quote' => $quoteId,
-            'rates' => [$freeRate],
+            'rates' => fasShippingPublicRates($rates),
         ]);
         exit;
     }
 
     $warehouseModel = new Warehouse($db);
     $warehouse = $warehouseModel->getForCartItems($ratedItems);
-    $shipping = ShippingRateService::forDatabase($db);
+    $shippingConfig=$effectiveConfig;
+    $deadline=$freeItems ? microtime(true)+$shippingConfig['request_budget_seconds'] : null;
+    $shipping = ShippingRateService::forDatabase($db,$shippingConfig,$deadline);
     $rates = $shipping->getShippingRates($ratedItems, $input['address'], $warehouse ?: null);
+    $snapshot=$shipping->shipmentSnapshot();
+    if ($freeItems && $rates && in_array($rates[0]['provider'] ?? '',['usps','ups'],true)) {
+        // Customer pricing excludes free-shipping items; the label must cover the entire physical cart.
+        $directConfig=$shippingConfig;
+        $fallbackMode=$directConfig['mode'];
+        $directConfig['mode']='direct';
+        $allItems=array_merge($ratedItems,$freeItems);
+        $allWarehouse=$warehouseModel->getForCartItems($allItems);
+        $fullShipping=ShippingRateService::forDatabase($db,$directConfig,$deadline);
+        $fullRates=$fullShipping->getShippingRates($allItems,$input['address'],$allWarehouse ?: null,10);
+        $byService=[];
+        foreach ($fullRates ?? [] as $rate) $byService[$rate['courier_id']]=$rate;
+        $paired=[];
+        foreach ($rates as $customerRate) {
+            $fullRate=$byService[$customerRate['courier_id']] ?? null;
+            if (!$fullRate || ($fullRate['provider'] ?? null)!==$customerRate['provider']) continue;
+            $carrierCents=\FAS\Shipping\CarrierRates::cents($fullRate['total_charge'] ?? null);
+            if ($carrierCents===null) continue;
+            $customerRate['carrier_quote_cents']=$carrierCents;
+            if ($customerRate['provider']==='usps') {
+                $customerRate['parcel_services']=$fullRate['parcel_services'] ?? [];
+            }
+            $paired[]=$customerRate;
+        }
+        $rates=$paired;
+        $snapshot=$paired ? $fullShipping->shipmentSnapshot() : null;
+        if (!$rates && $fallbackMode==='direct_with_fallback') {
+            $directConfig['mode']='easyship';
+            $legacy=ShippingRateService::forDatabase($db,$directConfig);
+            $rates=$legacy->getShippingRates($ratedItems,$input['address'],$warehouse ?: null);
+        }
+    }
 
     if ($rates === null) {
         $monitor = new ErrorMonitor($db);
@@ -190,14 +264,14 @@ try {
         fasShippingRatesError(200, 'No shipping rates available for this destination. Please contact support.');
     }
 
-    $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, $rates, $shipping->shipmentSnapshot());
+    $quoteId = \FAS\Payments\ApplePayContext::rememberShipping($input, $rates, $snapshot);
     if ($quoteId === null) fasShippingRatesError(503, 'Shipping checkout is temporarily unavailable. Please try again.');
     echo json_encode([
         'success' => true,
         'free_shipping' => $freeShippingSummary,
         'shipping_quote' => $quoteId,
         'applepay_shipping_quote' => $quoteId,
-        'rates' => $rates,
+        'rates' => fasShippingPublicRates($rates),
     ]);
 } catch (Throwable $e) {
     error_log('Shipping rates API error: ' . $e->getMessage());

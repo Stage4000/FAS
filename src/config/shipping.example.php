@@ -10,6 +10,14 @@ return [
     'max_packages' => 10,
     'request_budget_seconds' => 18,
     'quote_ttl_seconds' => 180,
+    // Transactional tracking emails only. Enable after controlled delivery verification.
+    'notifications' => [
+        'enabled' => false,
+        'delivery_verified' => false,
+        'not_before' => 0, // Unix activation time; older labels are never mailed automatically.
+        'from_email' => getenv('FAS_SHIPPING_FROM_EMAIL') ?: '',
+        'reply_to' => getenv('FAS_SHIPPING_REPLY_TO') ?: '',
+    ],
     // Label purchasing stays off until sandbox acceptance and admin workflow verification.
     'shipper_name' => getenv('FAS_SHIPPER_NAME') ?: '',
     'shipper_phone' => getenv('FAS_SHIPPER_PHONE') ?: '',

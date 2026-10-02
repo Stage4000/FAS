@@ -32,6 +32,18 @@ final class ShippingConfig
             throw new \RuntimeException('Invalid packing policy.');
         }
         if (!is_string($config['cache_path'] ?? null)) throw new \RuntimeException('Invalid shipping cache path.');
+        $mail=$config['notifications'] ?? [];
+        if (!is_bool($mail['enabled'] ?? null) || !is_bool($mail['delivery_verified'] ?? null)
+            || !is_int($mail['not_before'] ?? null) || $mail['not_before']<0) {
+            throw new \RuntimeException('Invalid shipping notification settings.');
+        }
+        foreach (['from_email','reply_to'] as $key) {
+            $value=$mail[$key] ?? null;
+            if (!is_string($value) || strlen($value)>254 || preg_match('/[\x00-\x20\x7f]/',$value)
+                || ($value!=='' && !filter_var($value,FILTER_VALIDATE_EMAIL))) {
+                throw new \RuntimeException('Invalid shipping notification address.');
+            }
+        }
         foreach (['shipper_name'=>35,'shipper_phone'=>30] as $key=>$max) {
             $value=$config[$key] ?? null;
             if (!is_string($value) || strlen($value)>$max || preg_match('/[\x00-\x1f\x7f]/',$value)) {

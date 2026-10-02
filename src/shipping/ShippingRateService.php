@@ -12,31 +12,42 @@ final class ShippingRateService
     private $legacy;
     private $transport;
     private $originResolver;
+    private ?float $deadline;
     private array $diagnostics=[];
     private ?array $shipmentSnapshot=null;
 
-    public function __construct(?array $config=null,?callable $legacy=null,?callable $transport=null,?callable $originResolver=null)
+    public function __construct(?array $config=null,?callable $legacy=null,?callable $transport=null,
+        ?callable $originResolver=null,?float $deadline=null)
     {
         $this->config=$config===null?ShippingConfig::load():ShippingConfig::validate($config);
         $this->legacy=$legacy ?? static function($items,$address,$warehouse) {
             require_once __DIR__.'/../integrations/EasyShipAPI.php';
             return (new \FAS\Integrations\EasyShipAPI())->getShippingRates($items,$address,$warehouse);
         };
-        $this->transport=$transport; $this->originResolver=$originResolver;
+        $this->transport=$transport; $this->originResolver=$originResolver; $this->deadline=$deadline;
     }
 
-    public static function forDatabase(\PDO $db): self
+    public static function forDatabase(\PDO $db,?array $config=null,?float $deadline=null): self
     {
-        require_once __DIR__.'/../models/Warehouse.php';
-        $warehouses=new \FAS\Models\Warehouse($db);
-        return new self(null,null,null,static function($id) use ($db,$warehouses) {
-            $stmt=$db->prepare('SELECT warehouse_id FROM products WHERE id=?');
-            $stmt->execute([$id]);
-            $product=$stmt->fetch(\PDO::FETCH_ASSOC);
-            if (!$product) return null;
-            // An explicitly assigned but unavailable origin must not become a different warehouse.
-            return empty($product['warehouse_id']) ? $warehouses->getDefault() : $warehouses->getById($product['warehouse_id']);
-        });
+        return new self($config,null,null,static fn($id)=>self::originForProduct($db,(int)$id),$deadline);
+    }
+
+    /** Direct quotes require an explicit, unique active default for unassigned products. */
+    public static function originForProduct(\PDO $db,int $productId): ?array
+    {
+        if ($productId<1) return null;
+        $stmt=$db->prepare('SELECT warehouse_id FROM products WHERE id=?');
+        $stmt->execute([$productId]);
+        $product=$stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$product) return null;
+        if (!empty($product['warehouse_id'])) {
+            $stmt=$db->prepare('SELECT * FROM warehouses WHERE id=? AND is_active=1');
+            $stmt->execute([(int)$product['warehouse_id']]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        }
+        $defaults=$db->query('SELECT * FROM warehouses WHERE is_default=1 AND is_active=1 ORDER BY id LIMIT 2')
+            ->fetchAll(\PDO::FETCH_ASSOC);
+        return count($defaults)===1 ? $defaults[0] : null;
     }
 
     private function legacy(array $items,array $address,?array $warehouse): ?array
@@ -56,7 +67,7 @@ final class ShippingRateService
         }
     }
 
-    public function getShippingRates(array $items,array $address,?array $warehouse=null): ?array
+    public function getShippingRates(array $items,array $address,?array $warehouse=null,int $limit=5): ?array
     {
         $this->diagnostics=[];
         $this->shipmentSnapshot=null;
@@ -65,7 +76,8 @@ final class ShippingRateService
         try {
             $shipment=ShippingShipment::build($items,$address,$warehouse,$this->config,$this->originResolver);
             $cache=new ShippingCache($this->config['cache_path']);
-            $http=new CarrierHttp(microtime(true)+$this->config['request_budget_seconds'],$this->transport);
+            $http=new CarrierHttp(min($this->deadline ?? INF,
+                microtime(true)+$this->config['request_budget_seconds']),$this->transport);
             foreach (['usps','ups'] as $name) {
                 $carrier=$this->config['carriers'][$name];
                 if (!ShippingConfig::ready($carrier,$name,true)) {
@@ -90,7 +102,7 @@ final class ShippingRateService
         $this->shipmentSnapshot=['origin'=>$shipment['origin'],'packages'=>$shipment['packages']];
         $rates=array_values($rates);
         usort($rates,static fn($a,$b)=>($a['total_charge']<=>$b['total_charge']) ?: strcmp($a['courier_id'],$b['courier_id']));
-        return array_slice($rates,0,5);
+        return array_slice($rates,0,max(1,min(10,$limit)));
     }
 
     public function diagnostics(): array { return $this->diagnostics; }

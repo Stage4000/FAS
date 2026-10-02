@@ -263,6 +263,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                                 <div class="text-muted small">Quoted shipping</div>
                                 <strong>$<?php echo number_format($shippingSelection['quoted_cents'] / 100, 2); ?></strong>
                             </div>
+                            <?php if (in_array($shippingSelection['provider'], ['usps', 'ups'], true)): ?>
+                                <div class="col-sm-6">
+                                    <div class="text-muted small">Carrier estimate</div>
+                                    <strong>$<?php echo number_format(($shippingSelection['carrier_quote_cents'] ?? $shippingSelection['quoted_cents']) / 100, 2); ?></strong>
+                                </div>
+                            <?php endif; ?>
                             <?php if (!empty($shippingSelection['packages'])): ?>
                                 <div class="col-12">
                                     <div class="text-muted small mb-1">Quoted parcels</div>

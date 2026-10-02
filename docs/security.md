@@ -57,7 +57,7 @@ Location and Cloudflare bot headers are accepted only when the immediate connect
 - Legacy completion acquires SQLite's writer lock and rechecks completion inside the transaction before changing stock. Concurrent retries therefore cannot deduct the same order twice; provider verification remains a separate issue.
 - Analytics honors cooldowns and caps its queue without feeding expected throttling into the error collector.
 
-The existing legacy PayPal verification defect documented in docs/apple-pay.md remains unresolved. Rate limiting and recovery UI do not verify those payments.
+The legacy PayPal verification defect now has a local implementation and synthetic regression coverage through the shared checkout pricing and PayPal order verifier. Sandbox and deployed payment acceptance remain outstanding; rate limiting and recovery UI alone do not verify those payments. See audit/SHIPPING.md for current evidence.
 
 ## Validation status — 2026-09-30
 

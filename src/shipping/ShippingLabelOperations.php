@@ -5,6 +5,7 @@ namespace FAS\Shipping;
 /** One private, durable operation per direct-carrier shipment scope. No carrier calls here. */
 final class ShippingLabelOperations
 {
+    public const HANDOFF_DELAY_SECONDS=900;
     private \PDO $db;
 
     public static function install(\PDO $privateDb): void
@@ -33,7 +34,20 @@ final class ShippingLabelOperations
             // Existing operations cannot be finalized without reconciling their parcel count.
             $privateDb->exec('ALTER TABLE shipping_label_operations ADD COLUMN expected_packages INTEGER NOT NULL DEFAULT 0');
         }
+        if (!in_array('carrier_environment',$columns,true)) {
+            // Legacy and unknown environments cannot produce customer notifications.
+            $privateDb->exec("ALTER TABLE shipping_label_operations ADD COLUMN carrier_environment TEXT
+                CHECK(carrier_environment IN ('sandbox','production'))");
+        }
         $privateDb->exec('CREATE INDEX IF NOT EXISTS shipping_label_state ON shipping_label_operations(state,updated_at)');
+        $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_handoffs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operation_id INTEGER NOT NULL REFERENCES shipping_label_operations(id),
+            previous_operator_id INTEGER NOT NULL,
+            new_operator_id INTEGER NOT NULL,
+            transferred_at INTEGER NOT NULL
+        )");
+        $privateDb->exec('CREATE INDEX IF NOT EXISTS shipping_label_handoff_operation ON shipping_label_handoffs(operation_id,id)');
         $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_label_packages (
             operation_id INTEGER NOT NULL REFERENCES shipping_label_operations(id),
             shipment_package_index INTEGER NOT NULL,
@@ -51,6 +65,17 @@ final class ShippingLabelOperations
             created_at INTEGER NOT NULL,
             submitted_at INTEGER,
             updated_at INTEGER NOT NULL
+        )");
+        $privateDb->exec("CREATE TABLE IF NOT EXISTS shipping_cancellation_resolutions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operation_id INTEGER NOT NULL REFERENCES shipping_label_cancellations(operation_id),
+            previous_state TEXT NOT NULL CHECK(previous_state IN ('submitted','review','refund_pending')),
+            outcome TEXT NOT NULL CHECK(outcome IN ('cancelled','refund_pending')),
+            previous_reference TEXT,
+            evidence_reference TEXT NOT NULL,
+            actor_id INTEGER NOT NULL,
+            resolved_at INTEGER NOT NULL,
+            UNIQUE(operation_id,previous_state)
         )");
     }
 
@@ -74,6 +99,19 @@ final class ShippingLabelOperations
                 if (!hash_equals($existing['fingerprint'],$scope['fingerprint'])) {
                     throw new \RuntimeException('The paid order changed after label preparation. Review it before continuing.');
                 }
+                if ($existing['state']==='reserved' && (int)$existing['operator_id']!==$operatorId) {
+                    if (!self::handoffEligible($existing,$operatorId,$now=time())) {
+                        throw new \DomainException('Another administrator is preparing this shipment. Try again after the reservation waiting period.');
+                    }
+                    $update=$this->db->prepare("UPDATE shipping_label_operations SET operator_id=?,updated_at=?
+                        WHERE id=? AND state='reserved' AND operator_id=?");
+                    $update->execute([$operatorId,$now,(int)$existing['id'],(int)$existing['operator_id']]);
+                    if ($update->rowCount()!==1) throw new \RuntimeException('Shipment reservation changed.');
+                    $audit=$this->db->prepare('INSERT INTO shipping_label_handoffs
+                        (operation_id,previous_operator_id,new_operator_id,transferred_at) VALUES (?,?,?,?)');
+                    $audit->execute([(int)$existing['id'],(int)$existing['operator_id'],$operatorId,$now]);
+                    $existing=$this->find($orderId,$packageIndex);
+                }
                 $this->db->exec('COMMIT');
                 return $existing;
             }
@@ -93,8 +131,11 @@ final class ShippingLabelOperations
     }
 
     /** Returns false if already sent. USPS's named key does not make its label POST idempotent. */
-    public function markSubmitted(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId): bool
+    public function markSubmitted(\PDO $ordersDb,int $orderId,int $packageIndex,int $operatorId,?string $environment=null): bool
     {
+        if ($environment!==null && !in_array($environment,['sandbox','production'],true)) {
+            throw new \InvalidArgumentException('Invalid label environment.');
+        }
         self::requireAdmin($ordersDb,$operatorId);
         $scope=self::scope($ordersDb,$orderId,$packageIndex);
         $record=$this->find($orderId,$packageIndex);
@@ -103,9 +144,9 @@ final class ShippingLabelOperations
             throw new \RuntimeException('Fulfillment scope is missing or changed.');
         }
         $now=time();
-        $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='submitted',submitted_at=?,updated_at=?
-            WHERE order_id=? AND package_index=? AND state='reserved' AND fingerprint=?");
-        $stmt->execute([$now,$now,$orderId,$packageIndex,$scope['fingerprint']]);
+        $stmt=$this->db->prepare("UPDATE shipping_label_operations SET state='submitted',submitted_at=?,updated_at=?,carrier_environment=?
+            WHERE order_id=? AND package_index=? AND state='reserved' AND fingerprint=? AND operator_id=?");
+        $stmt->execute([$now,$now,$environment,$orderId,$packageIndex,$scope['fingerprint'],$operatorId]);
         return $stmt->rowCount()===1;
     }
 
@@ -204,6 +245,23 @@ final class ShippingLabelOperations
         return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
+    public static function handoffEligible(array $operation,int $operatorId,?int $now=null): bool
+    {
+        return $operatorId>0 && ($operation['state'] ?? null)==='reserved'
+            && (int)($operation['operator_id'] ?? 0)!==$operatorId
+            && (int)($operation['updated_at'] ?? 0)>0
+            && (int)$operation['updated_at']<=($now ?? time())-self::HANDOFF_DELAY_SECONDS;
+    }
+
+    public function handoffs(int $orderId,int $packageIndex): array
+    {
+        $stmt=$this->db->prepare('SELECT h.previous_operator_id,h.new_operator_id,h.transferred_at
+            FROM shipping_label_handoffs h JOIN shipping_label_operations o ON o.id=h.operation_id
+            WHERE o.order_id=? AND o.package_index=? ORDER BY h.id DESC LIMIT 10');
+        $stmt->execute([$orderId,$packageIndex]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public function health(): array
     {
         $states=['reserved'=>0,'submitted'=>0,'ready'=>0,'review'=>0];
@@ -227,10 +285,13 @@ final class ShippingLabelOperations
 
     private static function scope(\PDO $ordersDb,int $orderId,int $packageIndex): array
     {
+        $columns=array_column($ordersDb->query('PRAGMA table_info(order_shipping)')->fetchAll(\PDO::FETCH_ASSOC),'name');
+        $carrierQuote=in_array('carrier_quote_cents',$columns,true)
+            ? 's.carrier_quote_cents' : 'NULL AS carrier_quote_cents';
         $stmt=$ordersDb->prepare('SELECT o.payment_status,o.order_status,o.order_number,o.customer_name,
             o.customer_phone,o.shipping_address,o.paypal_transaction_id,
-            s.provider,s.service_code,s.quote_hash,s.origin_json,s.packages_json,s.fulfillment_json
-            FROM orders o JOIN order_shipping s ON s.order_id=o.id WHERE o.id=?');
+            s.provider,s.service_code,s.quote_hash,s.origin_json,s.packages_json,s.fulfillment_json,
+            '.$carrierQuote.' FROM orders o JOIN order_shipping s ON s.order_id=o.id WHERE o.id=?');
         $stmt->execute([$orderId]);
         $row=$stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$row || $row['payment_status']!=='completed' || $row['order_status']!=='processing'

@@ -30,6 +30,8 @@ options=json.dumps([{'rate_indicator':'SP','processing_category':'MACHINABLE',
 with sqlite3.connect(DB) as db:
     db.executescript((ROOT/'database/schema.sqlite.sql').read_text(encoding='utf-8'))
     db.execute("INSERT INTO admin_users(id,username,email,full_name,password_hash) VALUES(1,'shipping-fixture','shipping@example.invalid','Shipping Fixture',?)",[hashed])
+    db.execute("INSERT INTO admin_users(id,username,email,full_name,password_hash) VALUES(2,'cancellation-fixture','cancellation@example.invalid','Cancellation Fixture',?)",[hashed])
+    db.execute("INSERT INTO admin_users(id,username,email,full_name,password_hash) VALUES(3,'browser-fixture','browser@example.invalid','Browser Fixture',?)",[hashed])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(10,'FAS-10','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123456')",[address])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(11,'FAS-11','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123457')",[address])
     db.execute("INSERT INTO orders(id,order_number,customer_email,customer_name,customer_phone,shipping_address,subtotal,shipping_cost,total_amount,payment_status,order_status,paypal_transaction_id) VALUES(12,'FAS-12','buyer@example.invalid','Alex Buyer','5555551234',?,20,9,29,'completed','processing','CAPTURE123458')",[address])
@@ -96,6 +98,27 @@ try:
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         operations=db.execute('SELECT COUNT(*) FROM shipping_label_operations').fetchone()[0]
     check(operations==0,'Disabled label page creates no shipment operation')
+    shippingConfig=SITE/'src/config/shipping.php'
+    shippingConfig.write_text("<?php return ['shipper_name'=>'Fixture Sender','carriers'=>['usps'=>"
+        "['enabled'=>true,'label_purchasing_enabled'=>true,'environment'=>'sandbox',"
+        "'client_id'=>'synthetic','client_secret'=>'synthetic']]];",encoding='utf-8')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        now=int(time.time())
+        db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,operator_id,created_at,updated_at) VALUES(10,0,'usps','USPS_GROUND_ADVANTAGE',1,'synthetic-reserved','9b71aa67-f7e8-4c72-9c75-3c79f4630506','reserved',2,?,?)",[now,now])
+    recent=request(path)[2]
+    check('Another administrator is preparing this shipment' in recent
+          and 'Take over and purchase label' not in recent,
+          'Recent reservation stays with the original administrator')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('UPDATE shipping_label_operations SET updated_at=? WHERE order_id=10',
+                   [int(time.time())-901])
+    aged=request(path)[2]
+    check('Take over and purchase label' in aged
+          and 'No carrier purchase has been sent' not in aged,
+          'Aged unsent reservation offers an explicit takeover control')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('DELETE FROM shipping_label_operations WHERE order_id=10')
+    shippingConfig.unlink()
     with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
         now=int(time.time())
         db.execute("INSERT INTO shipping_label_operations(order_id,package_index,provider,service_code,expected_packages,fingerprint,idempotency_key,state,operator_id,created_at,submitted_at,updated_at) VALUES(10,0,'usps','USPS_GROUND_ADVANTAGE',1,'synthetic-fingerprint','9b71aa67-f7e8-4c72-9c75-3c79f4630506','review',1,?,?,?)",[now,now,now])
@@ -159,6 +182,126 @@ try:
     with sqlite3.connect(DB) as db:
         tracking=db.execute('SELECT tracking_number FROM orders WHERE id=10').fetchone()[0]
     check(tracking is None,'Rejected tracking mutation leaves order unchanged')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute("UPDATE shipping_tracking SET last_result='error' WHERE tracking_number=?",[tracking2])
+        reviewId=db.execute("INSERT INTO shipping_notifications(order_id,digest,state,created_at,attempted_at) VALUES(11,'review-fixture','review',?,?)",[now-3600,now-1800]).lastrowid
+        recentId=db.execute("INSERT INTO shipping_notifications(order_id,digest,state,created_at,attempted_at) VALUES(12,'recent-fixture','submitted',?,?)",[now,now]).lastrowid
+        staleId=db.execute("INSERT INTO shipping_notifications(order_id,digest,state,created_at,attempted_at) VALUES(12,'stale-fixture','submitted',?,?)",[now-3600,now-1800]).lastrowid
+    queue=request('/admin/shipping-operations.php')[2]
+    check('Last check failed' in queue and tracking2 in queue and 'Tracking follow-ups' in queue,
+          'Failed uncancelled package appears in the tracking follow-up table')
+    check('Customer tracking emails' in queue and 'Tracking emails off' in queue
+          and 'Transport outcome uncertain' in queue and 'Send did not finish' in queue,
+          'Email monitoring distinguishes disabled sending and uncertain or stalled outcomes')
+    reviewPath=f'/admin/shipping-notification.php?id={reviewId}'
+    check(request(reviewPath,who=anonymous)[0]==302,'Anonymous email review redirects to sign-in')
+    status,headers,reviewPage=request(reviewPath)
+    check(status==200 and 'no-store' in headers.get('Cache-Control','') and 'Record verified outcome' in reviewPage
+          and 'buyer@example.invalid' not in reviewPage,
+          'Private email review displays operational references without recipient details')
+    check(request('/admin/shipping-notification.php?id=999999')[0]==404
+          and request('/admin/shipping-notification.php?id[]=1')[0]==404,
+          'Missing and malformed notification references return not found')
+    valid={'csrf_token':csrf,'action':'resolve','outcome':'accepted','confirm_logs':'yes','password':PASSWORD}
+    check(request(reviewPath,{k:v for k,v in valid.items() if k!='csrf_token'})[0]==403,
+          'Email reconciliation rejects missing CSRF')
+    check(request(reviewPath,{**valid,'password':'wrong'})[0]==403,'Email reconciliation verifies the current password')
+    check(request(reviewPath,{**valid,'confirm_logs':''})[0]==422,'Email reconciliation requires transport-log confirmation')
+    check(request(reviewPath,{**valid,'outcome':'resend'})[0]==422,'Email reconciliation cannot request a resend')
+    check(request(f'/admin/shipping-notification.php?id={recentId}',valid)[0]==409,
+          'A recent in-flight send cannot be reconciled by a stale POST')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_notification_resolutions').fetchone()[0]==0,
+              'Rejected reconciliation requests create no audit or outcome changes')
+    result=request(reviewPath,valid)
+    check(result[0]==303 and result[1]['Location']==f'shipping-notification.php?id={reviewId}',
+          'Verified reconciliation redirects to the private recorded outcome')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        outcome=db.execute('SELECT state FROM shipping_notifications WHERE id=?',[reviewId]).fetchone()[0]
+        record=db.execute('SELECT previous_state,outcome,actor_id,source FROM shipping_notification_resolutions WHERE notification_id=?',[reviewId]).fetchone()
+    check(outcome=='accepted' and record==('review','accepted',1,'admin'),
+          'Outcome and named administrator audit are saved together')
+    check('Outcome recorded. No email was resent.' in request(reviewPath)[2]
+          and 'Record outcome</button>' not in request(reviewPath)[2],
+          'Resolved notification shows history instead of another mutation control')
+    history=request('/admin/shipping-operations.php')[2]
+    check('Recent email reviews' in history and f'shipping-notification.php?id={reviewId}' in history,
+          'Resolved email remains discoverable through recent review history')
+    check(request(reviewPath,{**valid,'outcome':'suppressed'})[0]==409,
+          'Repeated or competing resolutions cannot rewrite a completed outcome')
+    with sqlite3.connect(DB) as db: db.execute("UPDATE admin_users SET role='viewer' WHERE id=1")
+    check(request(f'/admin/shipping-notification.php?id={staleId}',valid)[0] in (302,403),
+          'Demoted administrator cannot reconcile a notification')
+    with sqlite3.connect(DB) as db: db.execute("UPDATE admin_users SET role='admin' WHERE id=1")
+    # Refresh the session after the role-change access test if the auth layer expired it.
+    loginPage=request('/admin/login.php')[2]
+    match=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)
+    if match: request('/admin/login.php',{'csrf_token':match[1],'username':'shipping-fixture','password':PASSWORD})
+    # Missing optional storage must be shown as unavailable, never as a zero count.
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE shipping_tracking RENAME TO hidden_tracking_fixture')
+    missing=request('/admin/shipping-operations.php')[2]
+    check('Tracking status is unavailable' in missing and 'No tracking follow-ups are currently due' not in missing,
+          'Unavailable tracking storage does not masquerade as a healthy empty queue')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE hidden_tracking_fixture RENAME TO shipping_tracking')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE shipping_notification_resolutions RENAME TO hidden_resolution_fixture')
+    missing=request('/admin/shipping-operations.php')[2]
+    check('Tracking email status is unavailable' in missing and 'No tracking email outcomes need review' not in missing,
+          'Missing notification migration is reported instead of an empty healthy queue')
+    blocked=request(f'/admin/shipping-notification.php?id={staleId}')
+    check(blocked[0]==503 and 'Record outcome</button>' not in blocked[2],
+          'Uninitialized reconciliation storage suppresses the mutation form')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db: db.execute('ALTER TABLE hidden_resolution_fixture RENAME TO shipping_notification_resolutions')
+    with sqlite3.connect(DB) as db: db.execute('UPDATE admin_users SET is_active=0 WHERE id=1')
+    check(request(f'/admin/shipping-notification.php?id={staleId}',valid)[0] in (302,403),
+          'Deactivated administrator cannot use an existing session to resolve email')
+    with sqlite3.connect(DB) as db: db.execute('UPDATE admin_users SET is_active=1 WHERE id=1')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT state FROM shipping_notifications WHERE id=?',[staleId]).fetchone()[0]=='submitted',
+              'Denied account access preserves the unresolved email state')
+    # Separate synthetic operator keeps the independent flow inside the real per-account rate limit.
+    loginPage=request('/admin/login.php')[2]
+    match=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)
+    if match: request('/admin/login.php',{'csrf_token':match[1],'username':'cancellation-fixture','password':PASSWORD})
+    cancelPage=request(cancelPath)[2]
+    csrf=re.search(r'name="csrf_token" value="([^"]+)"',cancelPage)[1]
+    check('Record carrier outcome</button>' in cancelPage,
+          'Uncertain cancellation offers evidence review while carrier sending remains disabled')
+    cancelReview={'csrf_token':csrf,'action':'reconcile','expected_state':'review','outcome':'cancelled',
+        'verified_tracking':'1Z1234567890123456','evidence_reference':'CASE-HTTP-123',
+        'confirm_evidence':'yes','password':PASSWORD}
+    def reviewRequest(data):
+        return request(cancelPath,data)
+    check(request(cancelPath,{**cancelReview,'csrf_token':''})[0]==403,'Carrier evidence review requires CSRF')
+    check(request(cancelPath,{**cancelReview,'confirm_evidence':''})[0]==422,'Carrier review requires explicit evidence confirmation')
+    check(reviewRequest({**cancelReview,'password':'wrong'})[0]==403,'Carrier review requires current administrator password')
+    check(reviewRequest({**cancelReview,'verified_tracking':'1Z1234567890123459'})[0]==422,
+          'Carrier review rejects evidence for a different tracking number')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT COUNT(*) FROM shipping_cancellation_resolutions').fetchone()[0]==0,
+              'Rejected carrier reviews leave no history')
+        db.execute('ALTER TABLE shipping_cancellation_resolutions RENAME TO hidden_cancellation_reviews')
+    missing=request(cancelPath)
+    check(missing[0]==503 and 'Record carrier outcome</button>' not in missing[2],
+          'Missing carrier review migration suppresses the form')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute('ALTER TABLE hidden_cancellation_reviews RENAME TO shipping_cancellation_resolutions')
+    resolved=reviewRequest(cancelReview)
+    check(resolved[0]==303,'Verified carrier outcome redirects after saving')
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        check(db.execute('SELECT state FROM shipping_label_cancellations WHERE operation_id=?',[op]).fetchone()[0]=='cancelled'
+              and db.execute('SELECT actor_id,evidence_reference FROM shipping_cancellation_resolutions WHERE operation_id=?',[op]).fetchone()==(2,'CASE-HTTP-123'),
+              'Carrier outcome and reviewer evidence are saved together')
+    saved=request(cancelPath)[2]
+    check('Carrier review history' in saved and 'CASE-HTTP-123' in saved and 'Record carrier outcome</button>' not in saved,
+          'Confirmed cancellation displays permanent history without another action')
+    check(reviewRequest(cancelReview)[0]==409,'Repeated carrier review cannot overwrite outcome')
+    check(request('/admin/shipping-label-download.php?id=11&package=0&piece=0')[0]==404,
+          'Reconciled cancellation keeps label downloads blocked')
+    check('Review request' not in request('/admin/shipping-operations.php')[2],
+          'Confirmed cancellation leaves the follow-up queue')
+    # Leave another synthetic uncertain cancellation for optional browser interaction.
+    with sqlite3.connect(BASE/'private/shipping.sqlite') as db:
+        db.execute("INSERT INTO shipping_label_cancellations(operation_id,state,operator_id,created_at,submitted_at,updated_at) VALUES(?,'review',1,?,?,?)",[op2,now,now-1800,now])
     report={'date':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
         'scope':'isolated synthetic administrator and paid orders; purchase and cancellation disabled',
         'checks':len(checks),'passed':checks,'live_carrier_calls':0,'label_purchases':0,
@@ -166,7 +309,7 @@ try:
     (ROOT/'audit/shipping-label-http-local.json').write_text(json.dumps(report,indent=2)+'\n')
     print(f'PASS {len(checks)} shipping label HTTP checks. No carrier calls, purchases or cancellations.',flush=True)
     if '--serve' in sys.argv:
-        print(json.dumps({'origin':ORIGIN,'fixture':str(BASE),'username':'shipping-fixture',
+        print(json.dumps({'origin':ORIGIN,'fixture':str(BASE),'username':'browser-fixture',
             'password':PASSWORD}),flush=True)
         while True: time.sleep(1)
 finally:

@@ -30,6 +30,7 @@ try {
     $orders->exec("CREATE TABLE admin_users(id INTEGER PRIMARY KEY,role TEXT,is_active INTEGER);
         INSERT INTO admin_users VALUES(1,'admin',1);
         INSERT INTO admin_users VALUES(2,'viewer',1);
+        INSERT INTO admin_users VALUES(3,'admin',1);
         CREATE TABLE orders(id INTEGER PRIMARY KEY,payment_status TEXT,order_status TEXT,
             order_number TEXT,customer_name TEXT,customer_phone TEXT,
             shipping_address TEXT,paypal_transaction_id TEXT);
@@ -133,6 +134,41 @@ try {
         WHERE operation_id=".(int)$ups['id']." AND shipment_package_index=1");
     refuses(static fn()=>$labels->label($orders,11,0,1,1),
         'A corrupted private label fails its content digest check');
+    $stmt=$orders->prepare("INSERT INTO orders VALUES(12,'completed','processing','FAS-12',
+        'Jordan Buyer','5555551234',?,'CAPTURE345678')");
+    $stmt->execute([$address]);
+    $stmt=$orders->prepare("INSERT INTO order_shipping VALUES(12,'ups','03','handoff-quote',?,?,NULL)");
+    $stmt->execute([$origin,$parcels]);
+    $reserved=$labels->reserve($orders,12,0,1);
+    refuses(static fn()=>$anotherWorker->reserve($orders,12,0,3),
+        'Another administrator cannot take over a recent reservation');
+    $oldTime=time()-ShippingLabelOperations::HANDOFF_DELAY_SECONDS-1;
+    $cache->database()->prepare('UPDATE shipping_label_operations SET updated_at=? WHERE id=?')
+        ->execute([$oldTime,(int)$reserved['id']]);
+    claim(ShippingLabelOperations::handoffEligible($labels->find(12,0),3)
+        && !ShippingLabelOperations::handoffEligible($labels->find(12,0),1),
+        'Only a different administrator can take over an aged unsent reservation');
+    $cache->database()->exec("CREATE TRIGGER fail_handoff_audit BEFORE INSERT ON shipping_label_handoffs
+        BEGIN SELECT RAISE(ABORT,'synthetic audit failure'); END");
+    refuses(static fn()=>$anotherWorker->reserve($orders,12,0,3),
+        'Failed handoff audit rolls back the operator transfer');
+    claim((int)$labels->find(12,0)['operator_id']===1,
+        'Reservation ownership remains unchanged after failed handoff audit');
+    $cache->database()->exec('DROP TRIGGER fail_handoff_audit');
+    $transferred=$anotherWorker->reserve($orders,12,0,3);
+    claim((int)$transferred['operator_id']===3 && $transferred['id']===$reserved['id']
+        && $transferred['idempotency_key']===$reserved['idempotency_key']
+        && count($labels->handoffs(12,0))===1,
+        'Aged unsent reservation transfers with its original carrier key and audit record');
+    refuses(static fn()=>$labels->markSubmitted($orders,12,0,1),
+        'Former operator cannot submit the transferred carrier purchase');
+    claim($anotherWorker->markSubmitted($orders,12,0,3)
+        && !ShippingLabelOperations::handoffEligible($labels->find(12,0),1),
+        'New operator alone can submit, and submitted purchases cannot be transferred');
+    $labels->markReview(12,0);
+    claim($labels->reserve($orders,12,0,1)['state']==='review'
+        && (int)$labels->find(12,0)['operator_id']===3,
+        'Uncertain carrier purchase keeps its owner and cannot be handed off as unsent');
     $legacy=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $legacy->exec("CREATE TABLE orders(id INTEGER PRIMARY KEY);
         INSERT INTO orders VALUES(99);
