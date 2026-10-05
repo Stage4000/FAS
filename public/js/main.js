@@ -242,7 +242,6 @@ function setupImageGallery() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     setupImageGallery();
-    setupSearch();
     
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -257,27 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-// Search functionality
-function setupSearch() {
-    const searchInput = document.getElementById('product-search');
-    const searchForm = document.getElementById('search-form');
-    
-    if (searchInput && searchForm) {
-        // Remove auto-search on input to avoid conflicts with form submission
-        // Users can now type and press Enter or click the Search button
-        searchForm.addEventListener('submit', (e) => {
-            const query = searchInput.value.trim();
-            if (query.length === 0) {
-                e.preventDefault();
-                // If empty search, reload without search param
-                const form = e.target;
-                const action = form.action;
-                window.location.href = action;
-            }
-        });
-    }
-}
 
 // Debounce helper
 function debounce(func, wait) {

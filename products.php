@@ -732,6 +732,7 @@ document.addEventListener('submit', async event => {
 function attachCategoryHandlers() {
     document.querySelectorAll('.category-link').forEach(link => {
         link.addEventListener('click', function(e) {
+            if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
             e.preventDefault();
 
             // Build URL parameters
@@ -751,21 +752,16 @@ function attachCategoryHandlers() {
             const cat3 = this.dataset.cat3;
             const collection = this.dataset.collection;
 
-        if (collection) {
-        const cleanHref = this.getAttribute('href');
-        if (cleanHref && cleanHref !== '#') {
-        window.location.href = cleanHref;
-        return;
-        }
-        params.set('collection', collection);
-        params.delete('search');
-        params.delete('manufacturer');
-        params.delete('model');
-        } else {
-        if (cat1) params.set('cat1', cat1);
-        if (cat2) params.set('cat2', cat2);
-        if (cat3) params.set('cat3', cat3);
-        }
+            if (collection) {
+                params.set('collection', collection);
+                params.delete('search');
+                params.delete('manufacturer');
+                params.delete('model');
+            } else {
+                if (cat1) params.set('cat1', cat1);
+                if (cat2) params.set('cat2', cat2);
+                if (cat3) params.set('cat3', cat3);
+            }
 
             // Update browser URL without refresh
             const newUrl = fasCatalogNavigationUrl(params);
