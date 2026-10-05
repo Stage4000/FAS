@@ -25,9 +25,16 @@
     notice.setAttribute('aria-live', 'polite');
     notice.setAttribute('aria-atomic', 'true');
     document.body.append(notice);
+    let dismissTimer = null;
 
-    function announce(message, error = false, login = false) {
+    function clearNotice() {
+        if (dismissTimer !== null) window.clearTimeout(dismissTimer);
+        dismissTimer = null;
         notice.replaceChildren();
+    }
+
+    function announce(message, error = false, login = false, pending = false) {
+        clearNotice();
         const alert = document.createElement('div');
         alert.className = `alert alert-${error ? 'danger' : 'success'} admin-ajax-notice shadow mb-0`;
         alert.setAttribute('role', error ? 'alert' : 'status');
@@ -45,9 +52,14 @@
         close.type = 'button';
         close.className = 'btn-close';
         close.setAttribute('aria-label', 'Dismiss notification');
-        close.addEventListener('click', () => notice.replaceChildren());
+        close.addEventListener('click', clearNotice);
         alert.append(close);
         notice.append(alert);
+        if (!pending) {
+            dismissTimer = window.setTimeout(() => {
+                if (notice.contains(alert)) clearNotice();
+            }, error ? 8000 : 5000);
+        }
     }
 
     function samePage(url) {
@@ -108,7 +120,7 @@
         // Prevent edits and competing actions until this response has been applied.
         root.inert = true;
         buttons.forEach(el => { el.disabled = true; });
-        announce(isPost ? 'Saving changes…' : 'Loading…');
+        announce(isPost ? 'Saving changes…' : 'Loading…', false, false, true);
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 90000);
         try {

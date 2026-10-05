@@ -22,7 +22,9 @@
     border: 0;
     border-bottom: 3px solid #21864e;
     border-radius: 0;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.68);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     color: #182230;
     overflow-wrap: anywhere;
     pointer-events: auto;
@@ -48,7 +50,7 @@
 }
 .admin-ajax-notice .alert-link { color: inherit !important; }
 [data-theme="dark"] .admin-notification-host .alert.admin-ajax-notice {
-    background: #20252b;
+    background: rgba(32, 37, 43, 0.68);
     color: #f2f4f7;
     border-color: #6ce9a6;
 }
