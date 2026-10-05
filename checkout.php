@@ -122,6 +122,10 @@ require_once __DIR__ . '/includes/header.php';
                         <button type="button" class="btn btn-danger col-12" id="calculate-shipping-btn">
                             <i class="bi bi-calculator"></i> Calculate Shipping
                         </button>
+                        <div id="saved-checkout-details" class="small mt-2" hidden>
+                            Details saved on this browser.
+                            <button type="button" class="btn btn-link btn-sm text-danger p-0 ms-1 align-baseline" id="forget-checkout-details">Forget saved details</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -263,6 +267,11 @@ let appliedCoupon = null; // Store applied coupon data
 let pendingOrderResult = null; // Store DB order result for PayPal completion
 const buyNowStorageKey = 'flipandstrip_buy_now';
 const buyNowMaxAgeMs = 2 * 60 * 60 * 1000;
+const checkoutDetailsStorageKey = 'fas_checkout_details_v1';
+const checkoutDetailsForgottenKey = 'fas_checkout_details_forgotten';
+const checkoutCustomerFields = ['first_name', 'last_name', 'email', 'phone'];
+const checkoutShippingFields = ['address1', 'address2', 'city', 'state', 'zip'];
+let submittedShippingDetails = null;
 const checkoutUrlParams = new URLSearchParams(window.location.search);
 // The site changes this attribute for both the toggle and system preference.
 new MutationObserver(() => document.dispatchEvent(new Event('fas:checkout-theme-change')))
@@ -282,6 +291,73 @@ function safeJsonParse(value) {
     } catch (error) {
         return null;
     }
+}
+
+function showSavedCheckoutDetails(show) {
+    const notice = document.getElementById('saved-checkout-details');
+    if (notice) notice.hidden = !show;
+}
+
+function restoreCheckoutDetails() {
+    const form = document.getElementById('checkout-form');
+    if (!form) return;
+
+    let saved = null;
+    try {
+        saved = safeJsonParse(localStorage.getItem(checkoutDetailsStorageKey));
+    } catch (error) {
+        return;
+    }
+    if (!saved || saved.version !== 1 || !saved.fields || typeof saved.fields !== 'object') return;
+
+    const fieldsToRestore = buyNowShippingEstimate?.address
+        ? checkoutCustomerFields
+        : [...checkoutCustomerFields, ...checkoutShippingFields];
+    fieldsToRestore.forEach(name => {
+        const field = form.elements[name];
+        const value = saved.fields[name];
+        if (field && !field.value.trim() && typeof value === 'string') {
+            field.value = value.slice(0, 255);
+        }
+    });
+    showSavedCheckoutDetails(true);
+}
+
+function saveCheckoutDetails() {
+    if (!submittedShippingDetails) return;
+    const form = document.getElementById('checkout-form');
+    if (!form) return;
+
+    const fields = { ...submittedShippingDetails };
+    checkoutCustomerFields.forEach(name => {
+        fields[name] = form.elements[name].value.trim().slice(0, 255);
+    });
+    try {
+        localStorage.setItem(checkoutDetailsStorageKey, JSON.stringify({ version: 1, fields }));
+        localStorage.removeItem(checkoutDetailsForgottenKey);
+        showSavedCheckoutDetails(true);
+    } catch (error) {
+        // Checkout must work when browser storage is disabled.
+    }
+}
+
+function forgetCheckoutDetails() {
+    submittedShippingDetails = null;
+    try {
+        localStorage.removeItem(checkoutDetailsStorageKey);
+        localStorage.removeItem('fas_shipping_address');
+        localStorage.setItem(checkoutDetailsForgottenKey, '1');
+    } catch (error) {
+        // Clearing the current form still works when storage is unavailable.
+    }
+
+    const form = document.getElementById('checkout-form');
+    [...checkoutCustomerFields, ...checkoutShippingFields].forEach(name => {
+        form.elements[name].value = '';
+    });
+    showSavedCheckoutDetails(false);
+    invalidateShippingSelection();
+    form.elements.first_name.focus();
 }
 
 function normalizeCheckoutItem(item) {
@@ -589,6 +665,8 @@ async function validateCartItems() {
 document.addEventListener('DOMContentLoaded', async function() {
     buyNowCheckoutItem = loadBuyNowCheckoutItem();
     applyBuyNowShippingEstimate();
+    restoreCheckoutDetails();
+    document.getElementById('forget-checkout-details').addEventListener('click', forgetCheckoutDetails);
 
     if (window.FASOrderRecovery?.pending()) {
         window.FASOrderRecovery.render();
@@ -621,6 +699,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const onCheckoutChange = (event) => {
             if (['address1', 'address2', 'city', 'state', 'zip'].includes(event.target.name)) {
                 invalidateShippingSelection();
+            }
+            if (checkoutCustomerFields.includes(event.target.name)) {
+                saveCheckoutDetails();
             }
             updatePaymentButtonState();
         };
@@ -916,6 +997,10 @@ async function calculateShipping() {
                 applePayShippingQuoteId = data.shipping_quote || data.applepay_shipping_quote || null;
                 applePayShippingQuoteSnapshot = { address, items };
                 displayShippingOptions(data.rates, data.free_shipping || null);
+                if (Array.isArray(data.rates) && data.rates.length > 0) {
+                    submittedShippingDetails = Object.fromEntries(checkoutShippingFields.map(name => [name, String(address[name] || '').trim().slice(0, 255)]));
+                    saveCheckoutDetails();
+                }
                 trackCheckoutEvent('shipping_rates_returned', {
                     rates_count: data.rates.length,
                     lowest_rate: data.rates.length ? Math.min(...data.rates.map(rate => Number(rate.total_charge || 0))) : 0,

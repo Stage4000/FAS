@@ -3,6 +3,7 @@
     'use strict';
 
     const storageKey = 'fas_shipping_address';
+    const checkoutDetailsForgottenKey = 'fas_checkout_details_forgotten';
     const endpoint = '/api/address-autofill.php';
     const savedAddressTtlMs = 30 * 24 * 60 * 60 * 1000;
     let isApplyingAddress = false;
@@ -91,9 +92,20 @@
     function addressForms() {
         const forms = Array.from(document.querySelectorAll('[data-address-autofill], [data-shipping-estimator], #checkout-form'));
         return forms.filter((form, index) => {
+            if (form.id === 'checkout-form' && checkoutDetailsForgotten()) {
+                return false;
+            }
             const fields = findAddressFields(form);
             return forms.indexOf(form) === index && fields.city && fields.state && fields.zip;
         });
+    }
+
+    function checkoutDetailsForgotten() {
+        try {
+            return window.localStorage.getItem(checkoutDetailsForgottenKey) === '1';
+        } catch (error) {
+            return false;
+        }
     }
 
     function setFieldValue(field, value) {
@@ -144,6 +156,9 @@
     }
 
     function saveAddressFromForm(form) {
+        if (form.id === 'checkout-form' && checkoutDetailsForgotten()) {
+            return;
+        }
         const address = collectAddress(form);
         if (address) {
             writeJson(window.localStorage, storageKey, address);
