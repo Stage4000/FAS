@@ -208,33 +208,34 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
 
                     <!-- One payment section; keep provider-rendered controls intact. -->
-                    <section aria-labelledby="checkout-payment-title" style="width:100%;max-width:750px;margin:0 auto">
+                    <section class="checkout-payment-options" aria-labelledby="checkout-payment-title">
                         <h5 id="checkout-payment-title" class="h6 fw-bold mb-3">Choose how to pay</h5>
                         <div id="paypal-instructions" class="alert alert-info mb-3 text-center" role="alert">
                             <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
-                            <strong>Complete the required fields and choose a shipping method to unlock payment options.</strong>
+                            <strong>Complete your details and choose a shipping method to unlock payment options.</strong>
+                            <span class="d-block mt-1">Use a two-letter state and ZIP code when calculating shipping.</span>
                         </div>
                         <div id="order-recovery" class="alert alert-warning" hidden>
                             <p data-recovery-message role="status" aria-live="polite"></p>
                             <button type="button" class="btn btn-outline-dark">Retry order confirmation</button>
                         </div>
                         <?php if ($applePayUiAvailable): ?>
-                        <div id="applepay-payment" style="margin-bottom:14px" hidden>
+                        <div id="applepay-payment" class="checkout-wallet-option" hidden>
                             <!-- Notices stay above the buttons, not between payment choices. -->
                             <p data-applepay-message class="small mt-0 mb-3" role="status" aria-live="polite" hidden></p>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-check hidden>Check payment status</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-stop hidden>Cancel this payment attempt</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-applepay-finish hidden>Finish this same payment</button>
-                            <div data-applepay-button style="width:100%"></div>
+                            <div data-applepay-button class="checkout-wallet-button"></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($googlePayUiAvailable): ?>
-                        <div id="googlepay-payment" class="mb-3" hidden>
+                        <div id="googlepay-payment" class="checkout-wallet-option" hidden>
                             <p data-googlepay-message class="small mb-3" role="status" aria-live="polite" hidden></p>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-check hidden>Check payment status</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-stop hidden>Cancel this payment attempt</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-finish hidden>Finish this same payment</button>
-                            <div data-googlepay-button style="width:100%;min-height:44px"></div>
+                            <div data-googlepay-button class="checkout-wallet-button"></div>
                         </div>
                         <?php endif; ?>
                         <div id="paypal-button-container"></div>
@@ -652,11 +653,11 @@ function setupPayPalButton() {
     paypal.Buttons({
         style: {
             layout: 'vertical',
-            color: 'blue',
+            color: 'white',
             shape: 'rect',
             label: 'pay',
-            height: 44,
-            borderRadius: 4
+            height: 48,
+            borderRadius: 12
         },
         
         // Create order on PayPal

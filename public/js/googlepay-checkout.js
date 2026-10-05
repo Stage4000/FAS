@@ -76,7 +76,7 @@
         googleButton.style.opacity = isReady ? '1' : '0.45';
         googleButton.style.pointerEvents = isReady ? 'auto' : 'none';
         if (!busy && !isReady && eligible) {
-            say('Complete your details and calculate shipping for this address. Use a two-letter state and ZIP code.');
+            say(''); // Shipping guidance is shared above all payment methods.
         } else if (!busy && isReady) {
             say(options.preview ? 'Admin-only preview. This uses your configured PayPal environment; live mode charges real money.' : ''); // The shared payment footer covers this in the ready state.
         }
@@ -334,8 +334,8 @@
             const available = await timeout(client.isReadyToPay({ apiVersion: 2, apiVersionMinor: 0,
                 allowedPaymentMethods: googleConfig.allowedPaymentMethods }), 10000);
             if (!available.result) return;
-            googleButton = client.createButton({ onClick: begin, buttonColor: 'black', buttonType: 'pay',
-                buttonSizeMode: 'fill', buttonRadius: 4,
+            googleButton = client.createButton({ onClick: begin, buttonColor: 'white', buttonType: 'pay',
+                buttonSizeMode: 'fill', buttonRadius: 12,
                 allowedPaymentMethods: googleConfig.allowedPaymentMethods });
             buttonHost.replaceChildren(googleButton);
             eligible = true;

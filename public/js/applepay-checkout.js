@@ -70,7 +70,7 @@
         appleButton.style.opacity = isReady ? '1' : '0.45';
         appleButton.style.pointerEvents = isReady ? 'auto' : 'none';
         if (!busy && !isReady && eligible) {
-            say('Complete your details and calculate shipping for this address. Use a two-letter state and ZIP code.');
+            say(''); // Shipping guidance is shared above all payment methods.
         } else if (!busy && isReady) {
             say(options.preview ? 'Admin-only preview. This uses your configured PayPal environment; live mode charges real money.' : ''); // The shared payment footer covers this in the ready state.
         }
@@ -342,12 +342,12 @@
             }
             eligible = true;
             appleButton = document.createElement('apple-pay-button');
-            appleButton.setAttribute('buttonstyle', 'black');
+            appleButton.setAttribute('buttonstyle', 'white-outline');
             appleButton.setAttribute('type', 'buy');
             appleButton.setAttribute('locale', 'en-US');
             appleButton.style.setProperty('--apple-pay-button-width', '100%');
-            appleButton.style.setProperty('--apple-pay-button-height', '44px');
-            appleButton.style.setProperty('--apple-pay-button-border-radius', '4px');
+            appleButton.style.setProperty('--apple-pay-button-height', '48px');
+            appleButton.style.setProperty('--apple-pay-button-border-radius', '12px');
             appleButton.style.setProperty('--apple-pay-button-box-sizing', 'border-box');
             appleButton.style.display = 'block';
             appleButton.addEventListener('click', begin);
