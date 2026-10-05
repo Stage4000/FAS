@@ -19,6 +19,7 @@ async function fixture({mode='success',saved=null,eligible=true}={}) {
   const selectors=Object.fromEntries(['button','message','check','stop','finish'].map(n=>[`[data-applepay-${n}]`,new Element()]));
   root.querySelector=s=>selectors[s];
   const document=new Element();document.getElementById=id=>({'applepay-payment':root,'checkout-form':form,'paypal-button-container':paypalHost}[id]);
+  document.documentElement={attributes:{'data-theme':'light'},getAttribute(name){return this.attributes[name]||null;},setAttribute(name,value){this.attributes[name]=value;}};
   document.querySelectorAll=()=>[input];document.createElement=()=>new Element();
   const storage=new Map();if(saved)storage.set('fas_applepay_pending_v1',JSON.stringify(saved));
   const state={ready:true,checkout_mode:'cart',items:[{product_id:'1',quantity:2}],first_name:'Test',last_name:'Buyer',email:'test@example.invalid',phone:'',notes:'',coupon_code:'',
@@ -65,6 +66,16 @@ async function test(name,fn){await fn();scenarios++;console.log(`PASS ${name}`);
  });
  await test('cancellation restores inputs and does not create an order',async()=>{
    const f=await fixture();await f.button.fire('click');f.ctx.lastSession.oncancel();assert.equal(f.input.disabled,false);assert.equal(f.paypalHost.inert,false);assert.equal(f.calls.length,0);
+ });
+ await test('theme changes restyle the same official Apple Pay control',async()=>{
+   const f=await fixture();
+   assert.equal(f.button.attributes.buttonstyle,'white-outline');
+   f.ctx.document.documentElement.setAttribute('data-theme','dark');
+   await f.ctx.document.fire('fas:checkout-theme-change');
+   assert.equal(f.button.attributes.buttonstyle,'black');
+   f.ctx.document.documentElement.setAttribute('data-theme','light');
+   await f.ctx.document.fire('fas:checkout-theme-change');
+   assert.equal(f.button.attributes.buttonstyle,'white-outline');
  });
  await test('changed shipping address disables the wallet button',async()=>{
    const f=await fixture();f.state.address.zip='10001';f.ctx.FASApplePay.refresh();assert.equal(f.button.attributes['aria-disabled'],'true');await f.button.fire('click');assert.equal(f.ctx.lastSession,undefined);

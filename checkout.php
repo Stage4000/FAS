@@ -264,6 +264,9 @@ let pendingOrderResult = null; // Store DB order result for PayPal completion
 const buyNowStorageKey = 'flipandstrip_buy_now';
 const buyNowMaxAgeMs = 2 * 60 * 60 * 1000;
 const checkoutUrlParams = new URLSearchParams(window.location.search);
+// The site changes this attribute for both the toggle and system preference.
+new MutationObserver(() => document.dispatchEvent(new Event('fas:checkout-theme-change')))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 let buyNowCheckoutItem = null;
 let buyNowShippingEstimate = null;
 
@@ -521,6 +524,7 @@ function updatePaymentButtonState() {
     }
     window.FASApplePay?.refresh();
     window.FASGooglePay?.refresh();
+    window.FASPayPalTheme?.refresh();
 }
 
 /**
@@ -645,16 +649,26 @@ function setupPayPalButton() {
         return;
     }
     
+    let paymentInProgress = false;
+    let renderedTheme = null;
+    const themeColor = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'black' : 'white';
+    const finishPayment = () => {
+        paymentInProgress = false;
+        // Let the PayPal callback finish before replacing its frame.
+        setTimeout(renderButtons, 0);
+    };
     // Share the same payment handlers across eligible provider-rendered buttons.
     const buttonOptions = {
         style: {
             layout: 'vertical',
-            color: 'black',
+            color: themeColor(),
             shape: 'rect',
             label: 'pay',
             height: 48,
             borderRadius: 12
         },
+
+        onClick: function() { paymentInProgress = true; },
         
         // Create order on PayPal
         createOrder: async function(data, actions) {
@@ -754,6 +768,7 @@ function setupPayPalButton() {
         // Handle payment approval
         onApprove: async function(data, actions) {
             if (!pendingOrderResult || !pendingOrderResult.order_id) {
+                finishPayment();
                 alert('Your order reference could not be recovered. Contact support with PayPal reference ' + data.orderID + ' before making another payment.');
                 return;
             }
@@ -773,11 +788,14 @@ function setupPayPalButton() {
             }, error);
                 window.FASOrderRecovery.render();
                 alert('Your payment needs confirmation. Retry this same order or contact support with your PayPal reference. Do not pay again.');
+            } finally {
+                finishPayment();
             }
         },
         
         // Handle errors
         onError: function(err) {
+            finishPayment();
             console.error('PayPal error:', err);
             logCheckoutError('paypal', 'PayPal checkout button reported an error.', {
                 severity: 'error',
@@ -798,6 +816,7 @@ function setupPayPalButton() {
 
         // Handle cancellation
         onCancel: function(data) {
+            finishPayment();
             if (window.FASOrderRecovery.pending()) {
                 window.FASOrderRecovery.render();
                 return;
@@ -812,19 +831,28 @@ function setupPayPalButton() {
     };
     // Separate hosts let each payment choice share the site's outline without
     // modifying PayPal's protected frame or its branding below the card button.
-    paypal.getFundingSources().forEach(function (fundingSource) {
-        const button = paypal.Buttons({ ...buttonOptions, fundingSource });
-        if (!button.isEligible()) return;
-        const host = document.createElement('div');
-        host.className = 'checkout-paypal-option';
-        container.appendChild(host);
-        button.render(host).catch(function (error) {
-            host.remove();
-            logCheckoutError('paypal', 'PayPal payment option could not render.', {
-                stage: 'paypal_button_render', funding_source: fundingSource
-            }, error);
+    function renderButtons() {
+        const theme = themeColor();
+        if (paymentInProgress || renderedTheme === theme || window.FASOrderRecovery?.pending()) return;
+        renderedTheme = theme;
+        container.replaceChildren();
+        paypal.getFundingSources().forEach(function (fundingSource) {
+            const button = paypal.Buttons({ ...buttonOptions, style: { ...buttonOptions.style, color: theme }, fundingSource });
+            if (!button.isEligible()) return;
+            const host = document.createElement('div');
+            host.className = 'checkout-paypal-option';
+            container.appendChild(host);
+            button.render(host).catch(function (error) {
+                host.remove();
+                logCheckoutError('paypal', 'PayPal payment option could not render.', {
+                    stage: 'paypal_button_render', funding_source: fundingSource
+                }, error);
+            });
         });
-    });
+    }
+    document.addEventListener('fas:checkout-theme-change', renderButtons);
+    window.FASPayPalTheme = { refresh: renderButtons };
+    renderButtons();
 }
 
 async function calculateShipping() {

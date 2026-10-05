@@ -98,11 +98,11 @@ php scripts/applepay-maintenance.php reconcile
 ## Verification and remaining launch work
 
 - Google Pay service suite: 22 scenarios / 125 assertions, including pricing, shipping, ownership, provider identity, 3DS result handling, duplicate capture, stock changes, and response-loss recovery.
-- Google Pay JavaScript: 13 scenarios, including SDK load ordering, cancellation, callback retries, pending capture, reload recovery, and cross-wallet locking.
+- Google Pay JavaScript: 14 scenarios, including SDK load ordering, live theme switching, cancellation, callback retries, pending capture, reload recovery, and cross-wallet locking.
 - Google Pay HTTP: 17 assertions through an isolated PHP server/database; provider transport mocked. Covers CSRF, request method/type/origin, server pricing, session ownership, rollout switch, one capture, and inventory deduction. Also rejects unsigned webhooks.
 - Webhook verification: 10 assertions with mocked PayPal verification responses.
 - Webhook registration: 13 assertions covering creation, reuse, event merging, duplicate detection, and provider errors. Live API registration/read-back and deployed unsigned-event rejection also passed.
-- Existing regressions passed: Apple Pay 19 service scenarios / 110 assertions and 11 client scenarios; PayPal client recovery 14 assertions; checkout pricing 14 assertions; PayPal order verifier 17 assertions. PHP lint and JavaScript syntax checks passed.
+- Existing regressions passed: Apple Pay 19 service scenarios / 110 assertions and 12 client scenarios (including live theme switching); PayPal client recovery 14 assertions; checkout pricing 14 assertions; PayPal order verifier 17 assertions. PHP lint and JavaScript syntax checks passed.
 - Rendered checkout: Playwright at `http://127.0.0.1:8786/checkout.php`, desktop 1440×1000 and mobile 390×844. Browser plugin unavailable; used the Playwright CLI. The real Google SDK rendered its branded button. PayPal eligibility, shipping, API responses, and Google sheet cancellation were mocked in a disposable site with synthetic customer/cart data.
 - Browser checks passed: correct page/title, meaningful content, no error overlay, no application runtime errors, button unlock after shipping, USD 25.00 sheet request, cancellation unlock, address-change invalidation, and no mobile horizontal overflow. Two initial missing fixture images were supplied before the final run.
 

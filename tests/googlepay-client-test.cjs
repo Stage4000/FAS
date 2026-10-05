@@ -19,6 +19,7 @@ async function fixture({mode='success', saved=null, eligible=true, ready=true, e
   const parts=Object.fromEntries(['button','message','check','stop','finish'].map(k=>[k,new Element()]));
   root.querySelector=s=>parts[s.replace('[data-googlepay-','').replace(']','')];
   const document=new Element();
+  document.documentElement={attributes:{'data-theme':'light'},getAttribute(name){return this.attributes[name]||null;},setAttribute(name,value){this.attributes[name]=value;}};
   document.getElementById=id=>({'googlepay-payment':root,'checkout-form':form,'paypal-button-container':paypalHost}[id]);
   document.querySelectorAll=()=>[input];
   const storage=new Map(saved?[['fas_googlepay_pending_v1',JSON.stringify(saved)]]:[]);
@@ -35,7 +36,7 @@ async function fixture({mode='success', saved=null, eligible=true, ready=true, e
   const google={payments:{api:{PaymentsClient:class {
     constructor(options) { this.options=options; }
     async isReadyToPay() { return {result:eligible}; }
-    createButton(options) { const el=new Element();el.addEventListener('click',options.onClick);return el; }
+    createButton(options) { const el=new Element();el.buttonColor=options.buttonColor;el.addEventListener('click',options.onClick);return el; }
     loadPaymentData(request) {
       const sheet={request,options:this.options};sheets.push(sheet);
       return new Promise((resolve,reject)=>{sheet.resolve=resolve;sheet.reject=reject;});
@@ -85,6 +86,23 @@ async function test(name,fn) { await fn();count++;console.log('PASS '+name); }
   await test('Google SDK may load before or after checkout readiness',async()=>{
     const f=await fixture({lateSdk:true});assert(!f.button());f.ctx.google=f.google;
     await f.ctx.onGooglePayLoaded();assert(f.button());const first=f.button();await f.ctx.onGooglePayLoaded();assert.equal(f.button(),first);
+  });
+  await test('theme changes recreate the official button without losing its click handler',async()=>{
+    const f=await fixture();
+    assert.equal(f.button().buttonColor,'white');
+    const initial=f.button();
+    f.ctx.document.documentElement.setAttribute('data-theme','dark');
+    f.ctx.document.fire('fas:checkout-theme-change');
+    assert.notEqual(f.button(),initial);
+    assert.equal(f.button().buttonColor,'black');
+    f.button().fire('click');
+    assert.equal(f.sheets.length,1);
+    f.ctx.document.documentElement.setAttribute('data-theme','light');
+    f.ctx.document.fire('fas:checkout-theme-change');
+    assert.equal(f.button().buttonColor,'black'); // The payment sheet is still open.
+    f.sheets[0].reject({statusCode:'CANCELED'});
+    await tick();
+    assert.equal(f.button().buttonColor,'white');
   });
   await test('cancel before authorization never creates an order and unlocks other payment choices',async()=>{
     const f=await fixture();f.button().fire('click');f.sheets[0].reject({statusCode:'CANCELED'});await tick();

@@ -342,7 +342,7 @@
             }
             eligible = true;
             appleButton = document.createElement('apple-pay-button');
-            appleButton.setAttribute('buttonstyle', 'black');
+            appleButton.setAttribute('buttonstyle', document.documentElement.getAttribute('data-theme') === 'dark' ? 'black' : 'white-outline');
             appleButton.setAttribute('type', 'buy');
             appleButton.setAttribute('locale', 'en-US');
             appleButton.style.setProperty('--apple-pay-button-width', '100%');
@@ -361,6 +361,10 @@
         }
     }
     window.FASApplePay = { refresh, busy: () => busy || !!pending };
+    document.addEventListener('fas:checkout-theme-change', () => {
+        if (appleButton) appleButton.setAttribute('buttonstyle',
+            document.documentElement.getAttribute('data-theme') === 'dark' ? 'black' : 'white-outline');
+    });
     checkButton.addEventListener('click', checkStatus);
     stopButton.addEventListener('click', () => recover('abandon', stopButton));
     finishButton.addEventListener('click', () => recover('capture', finishButton));

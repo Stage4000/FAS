@@ -21,6 +21,8 @@
     let completedResult = null;
     let lastResult = null;
     let paymentsClient;
+    let buttonClient;
+    let buttonColor;
     let checkoutReady = false;
     let initializing = false;
     let storageAvailable = true;
@@ -69,6 +71,7 @@
     }
     function refresh() {
         root.hidden = !eligible && !pending && !options.preview;
+        syncButtonTheme();
         if (!googleButton) return;
         const isReady = eligible && !busy && !window.FASApplePay?.busy?.() && !window.FASOrderRecovery?.pending() && ready(readState());
         googleButton.inert = !isReady;
@@ -232,6 +235,16 @@
         return { transactionState: 'ERROR', error: { intent: 'PAYMENT_AUTHORIZATION',
             reason: 'PAYMENT_DATA_INVALID', message } };
     }
+    function syncButtonTheme() {
+        if (!eligible || !buttonClient || !googleConfig || busy || pending || activeSheet) return;
+        const color = document.documentElement.getAttribute('data-theme') === 'dark' ? 'black' : 'white';
+        if (googleButton && buttonColor === color) return;
+        const button = buttonClient.createButton({ onClick: begin, buttonColor: color, buttonType: 'pay',
+            buttonSizeMode: 'fill', buttonRadius: 12, allowedPaymentMethods: googleConfig.allowedPaymentMethods });
+        googleButton = button;
+        buttonColor = color;
+        buttonHost.replaceChildren(button);
+    }
     function notifyPaid(done) {
         try { options.onPaid(done.result, done.sameSource); }
         catch (_) { say(`Payment received. Order ${done.result.order_number}. Contact the store if the confirmation page does not open.`); }
@@ -334,10 +347,7 @@
             const available = await timeout(client.isReadyToPay({ apiVersion: 2, apiVersionMinor: 0,
                 allowedPaymentMethods: googleConfig.allowedPaymentMethods }), 10000);
             if (!available.result) return;
-            googleButton = client.createButton({ onClick: begin, buttonColor: 'black', buttonType: 'pay',
-                buttonSizeMode: 'fill', buttonRadius: 12,
-                allowedPaymentMethods: googleConfig.allowedPaymentMethods });
-            buttonHost.replaceChildren(googleButton);
+            buttonClient = client;
             eligible = true;
         } catch (_) {
             if (!pending && options.preview) say('Google Pay could not initialize. Check PayPal eligibility and Google Pay production setup.');
@@ -354,6 +364,7 @@
         sessionStorage.removeItem('fas_googlepay_storage_check');
     } catch (_) { storageAvailable = false; }
     window.FASGooglePay = { refresh, busy: () => busy || !!pending, pending: () => !!pending };
+    document.addEventListener('fas:checkout-theme-change', refresh);
     window.onGooglePayLoaded = initializeSdk;
     checkButton.addEventListener('click', checkStatus);
     stopButton.addEventListener('click', () => recover('abandon', stopButton));
