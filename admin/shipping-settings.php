@@ -147,7 +147,7 @@ if ($config) {
                 <?= CSRF::tokenField() ?><input type="hidden" name="action" value="save_easyship">
                 <div class="col-md-6"><label class="form-label" for="easyship-api-key">API key</label><input class="form-control" id="easyship-api-key" name="easyship_api_key" type="password" maxlength="4096" autocomplete="new-password" spellcheck="false" placeholder="<?= $easyship['key_present']?'Saved; leave blank to keep':'Not entered' ?>"></div>
                 <div class="col-md-3"><label class="form-label" for="easyship-platform-name">Platform name</label><input class="form-control" id="easyship-platform-name" name="easyship_platform_name" value="<?= shippingSettingsHtml($easyship['platform_name']) ?>" maxlength="100" required></div>
-                <div class="col-md-3"><label class="form-label" for="easyship-prefix">Order prefix</label><input class="form-control" id="easyship-prefix" name="easyship_prefix" value="<?= shippingSettingsHtml($easyship['prefix']) ?>" maxlength="20" pattern="[A-Za-z0-9_-]+" required></div>
+                <div class="col-md-3"><label class="form-label" for="easyship-prefix">Order prefix</label><input class="form-control" id="easyship-prefix" name="easyship_prefix" value="<?= shippingSettingsHtml($easyship['prefix']) ?>" maxlength="20" pattern="(?:[A-Za-z0-9_]|-)+" required></div>
                 <div class="col-sm-7 col-lg-5"><label class="form-label" for="easyship-password">Current admin password</label><input class="form-control" id="easyship-password" name="password" type="password" autocomplete="current-password" required></div>
                 <div class="col-12"><button class="btn btn-primary" type="submit">Save Easyship settings</button></div>
             </div></form>

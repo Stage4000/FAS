@@ -92,7 +92,7 @@ $coupons = $couponModel->getAll();
             </div>
         <?php endif; ?>
 
-        <div class="card">
+        <div class="card" id="coupon-list">
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -144,7 +144,7 @@ $coupons = $couponModel->getAll();
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                                        <form method="POST" class="d-inline" data-admin-fragments="#coupon-list" onsubmit="return confirm('Are you sure?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $coupon['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">
@@ -170,7 +170,7 @@ $coupons = $couponModel->getAll();
     <div class="modal fade" id="createCouponModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST">
+                <form method="POST" data-admin-fragments="#coupon-list" data-admin-reset-on-success>
                     <input type="hidden" name="action" value="create">
                     <div class="modal-header">
                         <h5 class="modal-title">Create New Coupon</h5>

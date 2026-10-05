@@ -99,7 +99,7 @@ $events = $db->query('SELECT e.*, a.username AS actor, t.username AS target FROM
         <?php if ($verified): ?><p class="text-success mb-0">Identity confirmed. Account changes are unlocked for this session.</p>
         <?php else: ?>
             <p class="text-muted">Confirm your password to add administrators or change their access.</p>
-            <form method="post" data-no-ajax class="row g-3 align-items-end account-form">
+            <form method="post" class="row g-3 align-items-end account-form">
                 <?= CSRF::tokenField() ?><input type="hidden" name="action" value="reauth">
                 <div class="col-md-8"><label class="form-label" for="account-current-password">Your current password</label><input class="form-control" id="account-current-password" name="password" type="password" autocomplete="current-password" required maxlength="4096"></div>
                 <div class="col-md-4"><button class="btn btn-danger" type="submit">Unlock account changes</button></div>
@@ -109,7 +109,7 @@ $events = $db->query('SELECT e.*, a.username AS actor, t.username AS target FROM
     <?php if ($creating || $editing): ?>
     <section class="card mb-4"><div class="card-body p-4">
         <div class="d-flex flex-wrap justify-content-between gap-2"><h2 class="h5"><?= $creating?'Add administrator':'Edit '.accountH($editing['username']) ?></h2><a href="administrators.php">Back to accounts</a></div>
-        <form method="post" data-no-ajax class="account-form">
+        <form method="post" class="account-form">
             <?= CSRF::tokenField() ?><input type="hidden" name="action" value="<?= $creating?'create':'update' ?>">
             <?php if (!$creating): ?><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>"><?php endif; ?>
             <fieldset <?= $verified?'':'disabled' ?>><div class="row g-3 mt-1">
@@ -131,7 +131,7 @@ $events = $db->query('SELECT e.*, a.username AS actor, t.username AS target FROM
                 <hr class="my-4">
                 <details class="account-form mb-4"><summary class="fw-semibold">Reset password</summary>
                     <p class="text-muted mt-3">A password reset signs this administrator out of all existing sessions.</p>
-                    <form method="post" data-no-ajax><?= CSRF::tokenField() ?><input type="hidden" name="action" value="reset_password"><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>">
+                    <form method="post"><?= CSRF::tokenField() ?><input type="hidden" name="action" value="reset_password"><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>">
                         <fieldset <?= $verified?'':'disabled' ?>><div class="row g-3">
                             <div class="col-md-6"><label for="reset-password" class="form-label">New password</label><input id="reset-password" name="new_password" type="password" class="form-control" autocomplete="new-password" minlength="12" maxlength="72" required></div>
                             <div class="col-md-6"><label for="reset-confirm" class="form-label">Confirm new password</label><input id="reset-confirm" name="confirm_password" type="password" class="form-control" autocomplete="new-password" minlength="12" maxlength="72" required></div>
@@ -141,7 +141,7 @@ $events = $db->query('SELECT e.*, a.username AS actor, t.username AS target FROM
                 </details>
                 <h3 class="h6"><?= $editing['is_active']?'Deactivate account':'Reactivate account' ?></h3>
                 <p class="text-muted"><?= $editing['is_active']?'Deactivation removes access from existing sessions and prevents new sign-ins. Account history is retained.':'Reactivation allows this administrator to sign in with their current password. Old sessions remain revoked.' ?></p>
-                <form method="post" data-no-ajax><?= CSRF::tokenField() ?><input type="hidden" name="action" value="<?= $editing['is_active']?'deactivate':'activate' ?>"><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>"><button class="btn btn-outline-danger" type="submit" <?= $verified?'':'disabled' ?>><?= $editing['is_active']?'Deactivate administrator':'Reactivate administrator' ?></button></form>
+                <form method="post"><?= CSRF::tokenField() ?><input type="hidden" name="action" value="<?= $editing['is_active']?'deactivate':'activate' ?>"><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>"><button class="btn btn-outline-danger" type="submit" <?= $verified?'':'disabled' ?>><?= $editing['is_active']?'Deactivate administrator':'Reactivate administrator' ?></button></form>
             <?php endif; ?>
         <?php endif; ?>
     </div></section>

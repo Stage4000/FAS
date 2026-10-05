@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02",
+  "date": "2026-10-05",
   "scope": "Isolated localhost fixture; no production requests or real payments",
   "assertions": 67,
   "passed": [

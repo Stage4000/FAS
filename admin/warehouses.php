@@ -154,7 +154,7 @@ if ($action === 'list') {
     <?php endif; ?>
     
     <?php if ($action === 'list'): ?>
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm" id="warehouse-list">
             <div class="card-header bg-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Warehouses</h5>
@@ -224,7 +224,7 @@ if ($action === 'list') {
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <?php if (!$wh['is_default']): ?>
-                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Set this warehouse as default?');">
+                                                     <form method="POST" class="d-inline" data-admin-fragments="#warehouse-list" onsubmit="return confirm('Set this warehouse as default?');">
                                                          <?php echo CSRF::tokenField(); ?>
                                                          <input type="hidden" name="action" value="set_default">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">
@@ -232,7 +232,7 @@ if ($action === 'list') {
                                                             <i class="far fa-star"></i>
                                                         </button>
                                                     </form>
-                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this warehouse? Products assigned to it will be set to no warehouse.');">
+                                                     <form method="POST" class="d-inline" data-admin-fragments="#warehouse-list" onsubmit="return confirm('Are you sure you want to delete this warehouse? Products assigned to it will be set to no warehouse.');">
                                                          <?php echo CSRF::tokenField(); ?>
                                                          <input type="hidden" name="action" value="delete">
                                                         <input type="hidden" name="warehouse_id" value="<?php echo $wh['id']; ?>">

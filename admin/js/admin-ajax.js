@@ -108,6 +108,9 @@
         if (busy) return false;
         busy = true;
         const isPost = options.method === 'POST';
+        const fragmentSelectors = isPost && submitted?.dataset.adminFragments
+            ? submitted.dataset.adminFragments.split(',').map(selector => selector.trim()).filter(Boolean)
+            : [];
         const scroll = [window.scrollX, window.scrollY];
         const details = Array.from(root.querySelectorAll('details[id][open]')).map(el => el.id);
         const edits = isPost ? dirtyForms(submitted) : [];
@@ -158,7 +161,16 @@
             await closeModals();
             // Page scripts are initialized explicitly, never evaluated from fetched HTML.
             next.querySelectorAll('script').forEach(el => el.remove());
-            root.replaceChildren(...next.childNodes);
+            const fragments = fragmentSelectors.map(selector => ({
+                current: root.querySelector(selector), fresh: next.querySelector(selector)
+            }));
+            const patch = fragments.length > 0 && fragments.every(({ current, fresh }) => current && fresh);
+            if (patch) {
+                fragments.forEach(({ current, fresh }) => current.replaceWith(fresh));
+                if (submitted?.hasAttribute('data-admin-reset-on-success')) submitted.reset();
+            } else {
+                root.replaceChildren(...next.childNodes);
+            }
             root.dataset.adminError = '';
             root.dataset.adminNotice = next.dataset.adminNotice;
             edits.forEach(({ key, form }) => {
@@ -169,6 +181,8 @@
                     original.forEach((el, i) => {
                         const target = fresh[i];
                         if (!target || target.name !== el.name || target.type !== el.type) return;
+                        // Never carry credentials into a newly rendered form.
+                        if (el.type === 'password') return;
                         if (el.type === 'file') target.files = el.files;
                         else if (el.type === 'checkbox' || el.type === 'radio') target.checked = el.checked;
                         else if (el.tagName === 'SELECT') Array.from(target.options).forEach((o, j) => { o.selected = el.options[j]?.selected || false; });
@@ -181,7 +195,7 @@
             if (!pendingHistory && historyMode !== 'none' && finalUrl.href !== location.href) {
                 history[historyMode === 'replace' || isPost ? 'replaceState' : 'pushState']({ adminAjax: page }, '', finalUrl);
             }
-            document.dispatchEvent(new CustomEvent('admin:updated', { detail: { root, page } }));
+            document.dispatchEvent(new CustomEvent(patch ? 'admin:patched' : 'admin:updated', { detail: { root, page } }));
             window.FASTimezone?.convertAll();
             window.AOS?.refreshHard();
             root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => window.bootstrap?.Tooltip.getOrCreateInstance(el));

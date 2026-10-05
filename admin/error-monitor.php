@@ -24,6 +24,7 @@ if (!in_array($days, $allowedDays, true)) {
 }
 
 $allowedAreas = ['', ErrorMonitor::AREA_CHECKOUT, ErrorMonitor::AREA_PAYPAL, ErrorMonitor::AREA_SHIPPING, ErrorMonitor::AREA_EBAY_SYNC, ErrorMonitor::AREA_ANALYTICS, ErrorMonitor::AREA_NOT_FOUND];
+$dashboardAreas = array_filter($allowedAreas, static fn($value) => $value !== '' && $value !== ErrorMonitor::AREA_NOT_FOUND);
 $area = $_GET['area'] ?? '';
 if (!in_array($area, $allowedAreas, true)) {
     $area = '';
@@ -360,7 +361,7 @@ function emFilterUrl(array $updates): string
     <button type="button" class="btn btn-sm btn-outline-primary" id="error-monitor-refresh-button">Refresh results</button>
 </div>
 
-<div class="row g-3 mb-4">
+<div id="error-monitor-summary" class="row g-3 mb-4">
     <div class="col-xl-3 col-md-6">
         <div class="card error-monitor-stat error-monitor-card">
             <div class="card-body d-flex justify-content-between">
@@ -443,8 +444,8 @@ function emFilterUrl(array $updates): string
     </div>
 </div>
 
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
-    <?php foreach (array_filter($allowedAreas) as $areaKey): ?>
+<div id="error-monitor-areas" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
+    <?php foreach ($dashboardAreas as $areaKey): ?>
     <?php
     $areaRow = null;
     foreach ($areaCounts as $countRow) {
@@ -472,7 +473,7 @@ function emFilterUrl(array $updates): string
     <?php endforeach; ?>
 </div>
 
-<div class="card border-0 shadow-sm error-monitor-card">
+<div id="error-monitor-events" class="card border-0 shadow-sm error-monitor-card">
     <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
         <h5 class="mb-0"><i class="fas fa-list text-danger me-2"></i>Recent Error Events</h5>
         <div class="small text-muted">Showing up to 100 events</div>
@@ -562,7 +563,7 @@ function emFilterUrl(array $updates): string
                     </td>
                     <td class="text-end">
                         <?php if (($event['status'] ?? 'open') === 'open'): ?>
-                        <form method="post" class="d-inline">
+                        <form method="post" class="d-inline" data-admin-fragments="#error-monitor-refresh,#error-monitor-summary,#error-monitor-areas,#error-monitor-events">
                             <input type="hidden" name="csrf_token" value="<?php echo emSafe($csrfToken); ?>">
                             <input type="hidden" name="action" value="resolve_event">
                             <input type="hidden" name="event_id" value="<?php echo (int)$event['id']; ?>">
@@ -630,6 +631,9 @@ function emFilterUrl(array $updates): string
 
     rememberView();
     document.addEventListener('admin:updated', event => {
+        if (event.detail.page === 'error-monitor.php') rememberView();
+    });
+    document.addEventListener('admin:patched', event => {
         if (event.detail.page === 'error-monitor.php') rememberView();
     });
     document.addEventListener('visibilitychange', () => {

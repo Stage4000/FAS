@@ -75,6 +75,20 @@ try:
         check(status==200 and body.count('id="admin-content"')==1 and 'js/admin-ajax.js?' in body and 'Fatal error' not in body and '<b>Warning</b>' not in body,'Enhanced page renders with one AJAX root: '+route)
         if route=='shipping-operations.php':
             check('data-admin-error=""' in body,'Shipping storage warning remains refreshable')
+    body=request('/admin/error-monitor.php?status=open')[2]
+    check(all('id="'+part+'"' in body for part in ['error-monitor-refresh','error-monitor-summary','error-monitor-areas','error-monitor-events'])
+          and 'data-admin-fragments="#error-monitor-refresh,#error-monitor-summary,#error-monitor-areas,#error-monitor-events"' in body,
+          'Resolving an error can update only monitor results and counts')
+    for route,list_id in [('banners.php','banner-list'),('coupons.php','coupon-list')]:
+        body=request('/admin/'+route)[2]
+        check('id="'+list_id+'"' in body and 'data-admin-fragments="#'+list_id+'"' in body,
+              'Same-page '+route+' actions target the changed list')
+    body=request('/admin/administrators.php?create=1')[2]
+    check('id="admin-content"' in body and 'data-no-ajax' not in body,
+          'Administrator forms use same-page updates')
+    body=request('/admin/shipping-settings.php')[2]
+    check('id="admin-content"' in body and 'js/admin-ajax.js?' in body,
+          'Shipping settings has same-page form support')
     status,headers,body=request('/admin/dashboard-summary.php')
     summary=json.loads(body)
     check(status==200 and summary['active_products']>=1 and summary['visible_products']>=1,'Signed-in dashboard summary returns current counts')
@@ -110,6 +124,9 @@ try:
     })[2]
     check('data-admin-notice="Warehouse created successfully' in body,'Warehouse create returns updated list')
     check('data-admin-url="warehouses.php?action=list"' in body,'Editor save provides canonical list URL for history')
+    body=request('/admin/warehouses.php?action=list')[2]
+    check('id="warehouse-list"' in body and 'data-admin-fragments="#warehouse-list"' in body,
+          'Warehouse row actions update the list in place')
     # Restore disposable events for browser flows.
     with sqlite3.connect(dbfile) as db: db.execute("UPDATE error_monitor_events SET status='open',resolved_at=NULL")
     passed=True

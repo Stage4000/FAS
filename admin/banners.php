@@ -170,7 +170,7 @@ $textColorOptions = [
             </div>
         <?php endif; ?>
 
-        <div class="card">
+        <div class="card" id="banner-list">
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -255,7 +255,7 @@ $textColorOptions = [
                                                 data-ends_at="<?php echo htmlspecialchars(Timezone::toUserInput($banner['ends_at'] ?? null), ENT_QUOTES); ?>">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form method="POST" class="d-inline" onsubmit="return confirm('Delete this banner?');">
+                                        <form method="POST" class="d-inline" data-admin-fragments="#banner-list" onsubmit="return confirm('Delete this banner?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int) $banner['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">
@@ -281,7 +281,7 @@ $textColorOptions = [
     <div class="modal fade" id="createBannerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST">
+                <form method="POST" data-admin-fragments="#banner-list" data-admin-reset-on-success>
                     <input type="hidden" name="action" value="create">
                     <div class="modal-header">
                         <h5 class="modal-title"><i class="fas fa-bullhorn me-2"></i>Create New Banner</h5>
@@ -303,7 +303,7 @@ $textColorOptions = [
     <div class="modal fade" id="editBannerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST">
+                <form method="POST" data-admin-fragments="#banner-list">
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" id="edit_id">
                     <div class="modal-header">
