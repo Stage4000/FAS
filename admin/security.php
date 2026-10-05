@@ -2,8 +2,10 @@
 declare(strict_types=1);
 require_once __DIR__.'/auth.php';
 require_once __DIR__.'/../src/utils/CSRF.php';
+require_once __DIR__.'/../src/utils/Analytics.php';
 require_once __DIR__.'/../includes/security-traffic.php';
 use FAS\Utils\CSRF;
+use FAS\Utils\Analytics;
 use FAS\Utils\Timezone;
 use FAS\Security\ClientIp;
 use FAS\Security\SecurityStore;
@@ -26,6 +28,14 @@ function secCountryLabel(string $code): string {
         'DE'=>'Germany','FR'=>'France'];
     if (isset($common[$code])) return $common[$code].' ('.$code.')';
     return $code;
+}
+function secIpLocation(array $geo): string {
+    $parts = array_filter([
+        trim((string)($geo['city'] ?? '')),
+        trim((string)(($geo['region'] ?? '') ?: ($geo['region_code'] ?? ''))),
+        trim((string)($geo['country'] ?? '')),
+    ], static function ($part) { return $part !== ''; });
+    return implode(', ', $parts);
 }
 $tabs = ['overview'=>'Overview','rules'=>'Rules','restrictions'=>'Restrictions','activity'=>'Activity'];
 $tab = secText($_GET['tab'] ?? '');
@@ -93,6 +103,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 $verified = (int)($_SESSION['security_reauth_at'] ?? 0) >= time()-600;
 $active = false; $summary = []; $rules = []; $blocks = []; $buckets = []; $events = []; $total = 0;
+$activityLocations = [];
 $traffic = null; $trafficHistory = [];
 $days = (int)secText($_GET['days'] ?? '1'); if (!in_array($days,[1,7,30],true)) $days = 1;
 $filterIp = ClientIp::normalize($_GET['ip'] ?? '');
@@ -118,6 +129,14 @@ if ($store && $healthy) {
             $total = (int)$store->run('SELECT COUNT(*) FROM security_events WHERE '.$whereSql,$params)->fetchColumn();
             $page = min($page,max(1,(int)ceil($total/50)));
             $events = $store->run('SELECT * FROM security_events WHERE '.$whereSql.' ORDER BY id DESC LIMIT 50 OFFSET '.(($page-1)*50),$params)->fetchAll();
+            if ($events) {
+                try {
+                    $siteDb = \FAS\Config\Database::getInstance()->getConnection();
+                    $activityLocations = (new Analytics($siteDb))->storedLocationsForIps(array_column($events, 'ip'));
+                } catch (Throwable $e) {
+                    $activityLocations = [];
+                }
+            }
         }
     } catch (Throwable $e) { $healthy = false; }
 }
@@ -380,7 +399,7 @@ if ($healthy && $tab === 'overview') {
             <div class="table-responsive" tabindex="0" role="region" aria-label="Security activity">
                 <table class="table align-middle"><thead><tr><th>Time</th><th>IP / route</th><th>Rule / outcome</th><th>Count</th><th>Details / actor</th></tr></thead><tbody>
                     <?php if (!$events): ?><tr><td colspan="5" class="text-muted py-4">No activity matches these filters.</td></tr><?php endif; ?>
-                    <?php foreach($events as $e): ?><tr><td><?= secHtml(secTime($e['time'])) ?></td><td><?= secHtml($e['ip']) ?><br><small class="text-muted"><?= secHtml($e['path']) ?></small></td><td><?= secHtml($e['rule']) ?><br><strong><?= secHtml(str_replace('_',' ',$e['outcome'])) ?></strong></td><td><?= (int)$e['count'] ?></td><td><?= secHtml($e['detail']) ?><br><small class="text-muted"><?= $e['actor']?'Admin #'.(int)$e['actor']:'System / visitor' ?></small></td></tr><?php endforeach; ?>
+                    <?php foreach($events as $e): $activityLocation = secIpLocation(['country'=>$e['geo_country'] ?? '', 'region'=>$e['geo_region'] ?? '', 'city'=>$e['geo_city'] ?? '']) ?: secIpLocation($activityLocations[$e['ip']] ?? []); ?><tr><td><?= secHtml(secTime($e['time'])) ?></td><td><?= secHtml($e['ip']) ?><?php if ($activityLocation !== ''): ?><br><small class="text-muted" title="Approximate location derived from the IP address"><?= secHtml($activityLocation) ?></small><?php endif; ?><br><small class="text-muted"><?= secHtml($e['path']) ?></small></td><td><?= secHtml($e['rule']) ?><br><strong><?= secHtml(str_replace('_',' ',$e['outcome'])) ?></strong></td><td><?= (int)$e['count'] ?></td><td><?= secHtml($e['detail']) ?><br><small class="text-muted"><?= $e['actor']?'Admin #'.(int)$e['actor']:'System / visitor' ?></small></td></tr><?php endforeach; ?>
                 </tbody></table>
             </div>
             <nav class="d-flex flex-wrap gap-3 align-items-center mt-3" aria-label="Activity pages">

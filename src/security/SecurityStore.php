@@ -95,9 +95,23 @@ final class SecurityStore
             CREATE TABLE IF NOT EXISTS security_buckets (id TEXT PRIMARY KEY, rule TEXT NOT NULL, ip TEXT NOT NULL, tokens REAL NOT NULL, updated INTEGER NOT NULL, expires INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS security_bucket_expiry ON security_buckets(expires);
             CREATE TABLE IF NOT EXISTS security_blocks (ip TEXT PRIMARY KEY, expires INTEGER NOT NULL, reason TEXT NOT NULL, actor INTEGER NOT NULL);
-            CREATE TABLE IF NOT EXISTS security_events (id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, ip TEXT NOT NULL, rule TEXT NOT NULL, outcome TEXT NOT NULL, path TEXT NOT NULL, actor INTEGER NOT NULL, detail TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1, aggregate_key TEXT UNIQUE);
+            CREATE TABLE IF NOT EXISTS security_events (id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, ip TEXT NOT NULL, rule TEXT NOT NULL, outcome TEXT NOT NULL, path TEXT NOT NULL, actor INTEGER NOT NULL, detail TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1, aggregate_key TEXT UNIQUE, geo_country TEXT, geo_region TEXT, geo_city TEXT);
             CREATE INDEX IF NOT EXISTS security_event_time ON security_events(time);
             CREATE INDEX IF NOT EXISTS security_event_filter ON security_events(outcome,time);");
+        $eventColumns = array_column($db->query('PRAGMA table_info(security_events)')->fetchAll(), 'name');
+        foreach (['geo_country', 'geo_region', 'geo_city'] as $column) {
+            if (!in_array($column, $eventColumns, true)) {
+                try {
+                    $db->exec('ALTER TABLE security_events ADD COLUMN '.$column.' TEXT');
+                } catch (\PDOException $e) {
+                    // Another request may have completed the same migration first.
+                    $updated = array_column($db->query('PRAGMA table_info(security_events)')->fetchAll(), 'name');
+                    if (!in_array($column, $updated, true)) {
+                        throw $e;
+                    }
+                }
+            }
+        }
         $this->run("INSERT OR IGNORE INTO security_meta VALUES ('secret', ?)", [bin2hex(random_bytes(32))]);
         $this->run("INSERT OR IGNORE INTO security_meta VALUES ('active','0')");
         $this->secret = $this->run("SELECT value FROM security_meta WHERE name='secret'")->fetchColumn();
@@ -172,13 +186,23 @@ final class SecurityStore
         $aggregate = in_array($outcome, ['blocked','throttled','observed','login_failed'], true)
             ? hash('sha256', $ip.'|'.$rule.'|'.$outcome.'|'.intdiv($now,60)) : null;
         if ($aggregate && $this->run('UPDATE security_events SET count=count+1 WHERE aggregate_key=?', [$aggregate])->rowCount()) return;
+        $geo = ['', '', ''];
+        $requestIp = ClientIp::resolve($_SERVER);
+        if ($requestIp['source'] === 'Trusted Cloudflare header' && $requestIp['ip'] === ClientIp::normalize($ip)) {
+            $country = strtoupper(trim((string)($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')));
+            $geo = [
+                preg_match('/^[A-Z]{2}$/', $country) && $country !== 'XX' ? $country : '',
+                substr(preg_replace('/[\x00-\x1f\x7f]/', '', trim((string)($_SERVER['HTTP_CF_REGION'] ?? ''))), 0, 100),
+                substr(preg_replace('/[\x00-\x1f\x7f]/', '', trim((string)($_SERVER['HTTP_CF_IPCITY'] ?? ''))), 0, 100),
+            ];
+        }
         // Cap storage even if the maintenance command has not run.
         if ((int)$this->run('SELECT COUNT(*) FROM security_events')->fetchColumn() >= 100000) {
             $this->db->exec('DELETE FROM security_events WHERE id IN (SELECT id FROM security_events ORDER BY id LIMIT 500)');
         }
         $this->run('DELETE FROM security_events WHERE id IN (SELECT id FROM security_events WHERE time<? LIMIT 100)', [$now-2592000]);
-        $this->run('INSERT INTO security_events(time,ip,rule,outcome,path,actor,detail,aggregate_key) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(aggregate_key) DO UPDATE SET count=count+1',
-            [$now,ClientIp::normalize($ip) ?: 'unknown',substr($rule,0,50),$outcome,$path,$actor,substr(preg_replace('/[\x00-\x1f\x7f]/','',$detail),0,200),$aggregate]);
+        $this->run('INSERT INTO security_events(time,ip,rule,outcome,path,actor,detail,aggregate_key,geo_country,geo_region,geo_city) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(aggregate_key) DO UPDATE SET count=count+1',
+            [$now,ClientIp::normalize($ip) ?: 'unknown',substr($rule,0,50),$outcome,$path,$actor,substr(preg_replace('/[\x00-\x1f\x7f]/','',$detail),0,200),$aggregate,$geo[0],$geo[1],$geo[2]]);
     }
 
     public function activate(bool $active, string $ip = '', int $actor = 0, ?bool $expected = null): bool

@@ -5,6 +5,10 @@
 
 namespace FAS\Utils;
 
+require_once __DIR__ . '/Analytics.php';
+
+use FAS\Security\ClientIp;
+
 class ErrorMonitor
 {
     public const AREA_CHECKOUT = 'checkout';
@@ -104,6 +108,22 @@ class ErrorMonitor
             unset($context['metadata']);
 
             $metadata = array_merge($metadata, $this->contextRemainder($context));
+            // Location is server-derived; never accept a browser-supplied location field.
+            unset($metadata['ip_geo']);
+            $requestIp = $this->clientIp();
+            if ($requestIp !== null) {
+                try {
+                    $location = (new Analytics($this->db))->locationForRequest($_SERVER);
+                    if ($location['ip'] === $requestIp && (!isset($context['ip_address']) || $context['ip_address'] === $requestIp)) {
+                        $geo = array_intersect_key($location, array_flip(['country', 'region', 'region_code', 'city', 'source']));
+                        if (($geo['country'] ?? '') !== '' || ($geo['region'] ?? '') !== '' || ($geo['city'] ?? '') !== '') {
+                            $metadata['ip_geo'] = $geo;
+                        }
+                    }
+                } catch (\Throwable $geoError) {
+                    // A location lookup must never prevent the original error from being recorded.
+                }
+            }
 
             $stmt = $this->db->prepare("
                 INSERT INTO error_monitor_events (
@@ -122,7 +142,7 @@ class ErrorMonitor
                 $this->cleanText($context['error_code'] ?? null, 100),
                 $this->cleanText($context['url'] ?? $this->currentUrl(), 1000),
                 $this->cleanText($context['request_method'] ?? ($_SERVER['REQUEST_METHOD'] ?? null), 20),
-                $this->cleanText($context['ip_address'] ?? $this->clientIp(), 64),
+                $this->cleanText($context['ip_address'] ?? $requestIp, 64),
                 $this->cleanText($context['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? null), 500),
                 $this->cleanText($context['session_id'] ?? $this->currentSessionId(), 128),
                 $this->cleanText($context['order_id'] ?? null, 100),
@@ -346,13 +366,8 @@ class ErrorMonitor
 
     private function clientIp(): ?string
     {
-        foreach (['HTTP_CF_CONNECTING_IP', 'REMOTE_ADDR'] as $key) {
-            if (!empty($_SERVER[$key])) {
-                return trim(explode(',', (string)$_SERVER[$key])[0]);
-            }
-        }
-
-        return null;
+        $ip = ClientIp::resolve($_SERVER)['ip'];
+        return $ip === 'unknown' ? null : $ip;
     }
 
     private function currentSessionId(): ?string

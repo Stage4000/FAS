@@ -97,6 +97,20 @@ function emMetadata(array $event): array
     return is_array($metadata) ? $metadata : [];
 }
 
+function emIpLocation(array $metadata): string
+{
+    $geo = $metadata['ip_geo'] ?? null;
+    if (!is_array($geo)) {
+        return '';
+    }
+    $parts = array_filter([
+        trim((string)($geo['city'] ?? '')),
+        trim((string)(($geo['region'] ?? '') ?: ($geo['region_code'] ?? ''))),
+        trim((string)($geo['country'] ?? '')),
+    ], static function ($part) { return $part !== ''; });
+    return implode(', ', $parts);
+}
+
 function emMetaValue(array $metadata, string $key)
 {
     if (array_key_exists($key, $metadata) && $metadata[$key] !== null && $metadata[$key] !== '') {
@@ -482,6 +496,7 @@ function emFilterUrl(array $updates): string
                 <?php foreach ($events as $event): ?>
                 <?php
                 $metadata = emMetadata($event);
+                $ipLocation = emIpLocation($metadata);
                 $sourceLocation = emSourceLocation($event, $metadata);
                 $stack = trim((string)(emMetaValue($metadata, 'stack') ?? ''));
                 $stackPreview = emStackPreview($metadata);
@@ -517,6 +532,7 @@ function emFilterUrl(array $updates): string
                         <?php if (!empty($event['paypal_order_id'])): ?><div>PayPal: <?php echo emSafe($event['paypal_order_id']); ?></div><?php endif; ?>
                         <?php if (!empty($event['product_id'])): ?><div>Product: <?php echo (int)$event['product_id']; ?></div><?php endif; ?>
                         <?php if (!empty($event['ebay_item_id'])): ?><div>eBay: <?php echo emSafe($event['ebay_item_id']); ?></div><?php endif; ?>
+                        <?php if ($ipLocation !== ''): ?><div class="text-muted small" title="Approximate location derived from the IP address"><i class="fas fa-location-dot me-1"></i><?php echo emSafe($ipLocation); ?></div><?php endif; ?>
                         <?php if ($eventUrl !== ''): ?>
                         <div class="text-truncate" style="max-width: 260px;" title="<?php echo emSafe($eventUrl); ?>">
                             <?php if (preg_match('/^https?:\/\//i', $eventUrl)): ?>
@@ -537,6 +553,7 @@ function emFilterUrl(array $updates): string
                                 <?php if (!empty($event['session_id'])): ?><div><span class="text-muted">Session:</span> <?php echo emSafe($event['session_id']); ?></div><?php endif; ?>
                                 <?php if (!empty($event['request_method'])): ?><div><span class="text-muted">Method:</span> <?php echo emSafe($event['request_method']); ?></div><?php endif; ?>
                                 <?php if (!empty($event['ip_address'])): ?><div><span class="text-muted">IP:</span> <?php echo emSafe($event['ip_address']); ?></div><?php endif; ?>
+                                <?php if ($ipLocation !== ''): ?><div><span class="text-muted">Approx. IP location:</span> <?php echo emSafe($ipLocation); ?><?php if (!empty($metadata['ip_geo']['source'])): ?> <small class="text-muted">(<?php echo emSafe($metadata['ip_geo']['source']); ?>)</small><?php endif; ?></div><?php endif; ?>
                                 <?php if (!empty($event['user_agent'])): ?><div><span class="text-muted">User agent:</span> <?php echo emSafe($event['user_agent']); ?></div><?php endif; ?>
                                 <?php if ($stack !== ''): ?><div class="mt-2"><span class="text-muted">Stack:</span><pre><?php echo emSafe($stack); ?></pre></div><?php endif; ?>
                                 <?php if ($detailJson !== '' && $detailJson !== '[]'): ?><div class="mt-2"><span class="text-muted">Metadata:</span><pre><?php echo emSafe($detailJson); ?></pre></div><?php endif; ?>

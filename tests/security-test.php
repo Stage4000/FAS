@@ -86,6 +86,16 @@ expectSecurity(ClientIp::normalize('2001:0DB8:0000::1')==='2001:db8::1','IPv6 ca
 expectSecurity(ClientIp::normalize('::ffff:192.0.2.1')===$ip,'IPv4-mapped canonicalization');
 expectSecurity(ClientIp::resolve(['REMOTE_ADDR'=>$ip,'HTTP_CF_CONNECTING_IP'=>'203.0.113.5','HTTP_X_FORWARDED_FOR'=>'203.0.113.6'])['ip']===$ip,'Forged headers ignored');
 expectSecurity(ClientIp::resolve(['REMOTE_ADDR'=>'173.245.48.1','HTTP_CF_CONNECTING_IP'=>'203.0.113.5'])['ip']==='203.0.113.5','Cloudflare peer trusted');
+$legacyDb = new PDO('sqlite::memory:');
+$legacyDb->exec('CREATE TABLE security_events (id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, ip TEXT NOT NULL, rule TEXT NOT NULL, outcome TEXT NOT NULL, path TEXT NOT NULL, actor INTEGER NOT NULL, detail TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1, aggregate_key TEXT UNIQUE)');
+$geoStore = new SecurityStore($legacyDb);
+$_SERVER = ['REMOTE_ADDR'=>'127.0.0.1','HTTP_CF_CONNECTING_IP'=>'8.8.8.8','HTTP_CF_IPCOUNTRY'=>'US','HTTP_CF_REGION'=>'California','HTTP_CF_IPCITY'=>'Los Angeles'];
+$geoStore->event('127.0.0.1','login','login_failed');
+expectSecurity($geoStore->run("SELECT geo_country FROM security_events WHERE ip='127.0.0.1'")->fetchColumn()==='', 'Legacy security log migration ignores spoofed location headers');
+$_SERVER['REMOTE_ADDR']='173.245.48.1';
+$geoStore->event('8.8.8.8','login','login_failed');
+$geoEvent=$geoStore->run("SELECT geo_country,geo_region,geo_city FROM security_events WHERE ip='8.8.8.8'")->fetch();
+expectSecurity($geoEvent['geo_country']==='US' && $geoEvent['geo_region']==='California' && $geoEvent['geo_city']==='Los Angeles','Trusted edge location saved on security event');
 expectSecurity(ClientIp::resolve(['REMOTE_ADDR'=>'173.245.48.1','HTTP_CF_CONNECTING_IP'=>'240.0.0.1','HTTP_CF_CONNECTING_IPV6'=>'2001:db8::1'])['ip']==='2001:db8::1','Pseudo IPv4 restores original IPv6');
 putenv('FAS_TRUSTED_PROXY_CIDRS=127.0.0.1/32');
 expectSecurity(ClientIp::resolve(['REMOTE_ADDR'=>'127.0.0.1','HTTP_CF_CONNECTING_IP'=>$ip])['ip']===$ip,'Explicit sanitized local proxy trusted');

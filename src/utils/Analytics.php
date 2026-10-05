@@ -162,6 +162,50 @@ class Analytics
         $this->driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
     }
 
+    /** Resolve an operational request from the trusted peer and available IP geo data. */
+    public function locationForRequest(array $server, bool $allowRemoteLookup = false): array
+    {
+        $clientIp = $this->clientIpWithSource($server);
+        if ($clientIp['ip'] === '') {
+            return ['ip' => '', 'ip_source' => $clientIp['source']] + $this->emptyGeo('ip_missing');
+        }
+
+        // This method is also used by the error monitor, which does not initialize analytics tables.
+        $this->createIpGeoCacheTable();
+        $geo = $this->sessionGeo($server, $clientIp, gmdate('Y-m-d H:i:s'), $allowRemoteLookup);
+        return ['ip' => $clientIp['ip'], 'ip_source' => $clientIp['source']] + $geo;
+    }
+
+    /** Use existing analytics visits to annotate security activity without network requests. */
+    public function storedLocationsForIps(array $ips): array
+    {
+        $ips = array_values(array_unique(array_filter(array_map([ClientIp::class, 'normalize'], $ips))));
+        if (!$ips) {
+            return [];
+        }
+
+        $markers = implode(',', array_fill(0, count($ips), '?'));
+        $stmt = $this->db->prepare("SELECT client_ip, cf_country, cf_region, cf_region_code, cf_city, geo_source
+            FROM analytics_sessions WHERE client_ip IN ($markers)
+            AND (cf_country <> '' OR cf_region <> '' OR cf_city <> '')
+            ORDER BY last_seen_at DESC");
+        $stmt->execute($ips);
+        $locations = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $ip = (string)$row['client_ip'];
+            if (!isset($locations[$ip])) {
+                $locations[$ip] = [
+                    'country' => (string)($row['cf_country'] ?? ''),
+                    'region' => (string)($row['cf_region'] ?? ''),
+                    'region_code' => (string)($row['cf_region_code'] ?? ''),
+                    'city' => (string)($row['cf_city'] ?? ''),
+                    'source' => (string)($row['geo_source'] ?? ''),
+                ];
+            }
+        }
+        return $locations;
+    }
+
     public function ensureTables(): void
     {
         if ($this->tablesReady) {
@@ -1399,6 +1443,7 @@ $stages = [
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_started', 'started_at');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_visitor', 'visitor_id');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_country', 'cf_country');
+        $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_client_ip', 'client_ip');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_geo_source', 'geo_source');
         $this->createIndexIfMissing('analytics_sessions', 'idx_analytics_sessions_bot', 'is_potential_bot');
         $this->createIndexIfMissing('analytics_events', 'idx_analytics_events_created', 'created_at');
@@ -2237,7 +2282,7 @@ private function getAbandonedCartSummary(string $since): array
         ];
     }
 
-    private function sessionGeo(array $server, array $clientIp, string $now): array
+    private function sessionGeo(array $server, array $clientIp, string $now, bool $allowRemoteLookup = true): array
     {
         $geo = $this->cloudflareGeo($server, $clientIp);
         $geo['source'] = $this->hasGeoLocation($geo) ? 'cloudflare_headers' : '';
@@ -2246,7 +2291,7 @@ private function getAbandonedCartSummary(string $since): array
             return $geo;
         }
 
-        $ipGeo = $this->ipGeoForClient($clientIp, $now);
+        $ipGeo = $this->ipGeoForClient($clientIp, $now, $allowRemoteLookup);
         if ($this->hasGeoLocation($ipGeo)) {
             $geo = $this->mergeGeo($geo, $ipGeo);
             $geo['source'] = $ipGeo['source'] ?? 'ipwhois_lookup';
@@ -2298,7 +2343,7 @@ private function getAbandonedCartSummary(string $since): array
         ];
     }
 
-    private function ipGeoForClient(array $clientIp, string $now): array
+    private function ipGeoForClient(array $clientIp, string $now, bool $allowRemoteLookup = true): array
     {
         $ip = trim((string) ($clientIp['ip'] ?? ''));
         $source = (string) ($clientIp['source'] ?? '');
@@ -2322,6 +2367,10 @@ private function getAbandonedCartSummary(string $since): array
         $cached = $this->cachedIpGeo($ip, $now);
         if ($cached !== null) {
             return $cached;
+        }
+
+        if (!$allowRemoteLookup) {
+            return $this->emptyGeo('ip_lookup_not_attempted');
         }
 
         $geo = $this->fetchIpGeo($ip);
