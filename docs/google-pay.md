@@ -1,13 +1,13 @@
 # Google Pay through PayPal
 
-Implemented in the local project on October 5, 2026. This is not a deployment or live-payment sign-off.
+Implemented and deployed through SiteCritter's GitHub integration on October 5, 2026. The live PayPal webhook is registered and configured. This is not a live-payment acceptance sign-off.
 
 ## Configuration already present
 
 - The existing `src/config/config.php` client ID matches the client-supplied ID: `AUA08SnQ5VhWMoU0UcEyTlJ_ncBGL_7iuKpTDBxZC-mq4peArRBVGnmjCfcEJ1ha_YNcgq5XnlkJSpSu`.
 - PayPal mode is `live`, currency is `USD`, and the existing server-side credentials successfully authenticated with PayPal's live API on October 5, 2026. The secret was not disclosed. No replacement credentials are needed.
 - The shared wallet attempt schema has been added to the local SQLite database after a consistent backup at `C:\Users\admin\.codex\backups\fas-before-googlepay-20261005-1651.db`. Production schema has not been inspected or changed.
-- No PayPal webhook ID is configured locally. Account eligibility, production domain approval, and live SDK merchant information have not been verified.
+- Live PayPal webhook `3BE437397Y2791737` is configured locally and on the deployed server in the ignored `src/config/paypal-webhook.php`. Account eligibility, production domain approval, and live SDK merchant information have not been verified.
 
 ## Client instructions and information still needed
 
@@ -32,9 +32,9 @@ If PayPal's configuration does not provide the production Google merchant ID, or
 
 [Google's production access instructions](https://developers.google.com/pay/api/web/guides/test-and-deploy/publish-your-integration) explain the profile, domain review, and merchant ID. Confirm any PayPal-managed onboarding requirements with PayPal; do not create a duplicate merchant profile solely because no ID was supplied in the original email.
 
-### 3. Register the webhook automatically (developer operation)
+### 3. Webhook registration completed (developer operation)
 
-The client does not need to configure IPN or retrieve an ID manually. Deploy the updated payment files through SiteCritter's GitHub integration, then run this command from the deployed FAS directory:
+The client does not need to configure IPN or retrieve an ID manually. Registration is complete for the current live app. For a future installation, deploy the updated payment files through SiteCritter's GitHub integration, then run this command from the deployed FAS directory:
 
 ```sh
 php scripts/paypal-webhook-setup.php setup
@@ -44,7 +44,7 @@ This authenticates with the existing app credentials, checks that the deployed l
 
 If running setup on a developer workstation, securely copy its generated `src/config/paypal-webhook.php` to the deployed server afterward. Prefer running on the hosting server so the saved configuration is immediately effective. Do not commit deployment-local configuration. On Windows, if PHP reports a missing certificate issuer, configure `curl.cainfo` with a trusted CA bundle; never disable certificate verification.
 
-Verified before deployment: the live app authenticated and reported zero webhooks. The live handler returned HTTP 200 for an unsigned, non-payment readiness event, indicating the older handler was still deployed. Setup correctly refused registration in that state. The unknown readiness event has no order/payment payload and does not charge or modify an order.
+Verified on October 5, 2026: the live app initially had zero webhooks and the older listener accepted an unsigned readiness event, so setup refused registration. After pulling GitHub main into the Flip and Strip `/httpdocs` directory through Plesk, the listener returned HTTP 401 for that probe. Setup then registered webhook `3BE437397Y2791737`; PayPal's API read-back confirmed the exact URL and all three capture events. The generated configuration was uploaded to `/httpdocs/src/config/paypal-webhook.php`, with Plesk confirming the upload. A final check confirmed one matching subscription and rejection of unsigned events. The readiness event has no order/payment payload and does not charge or modify an order. Actual signed payment-event delivery has not yet been tested.
 
 Manual alternative, if ever needed:
 
@@ -101,8 +101,9 @@ php scripts/applepay-maintenance.php reconcile
 - Google Pay JavaScript: 13 scenarios, including SDK load ordering, cancellation, callback retries, pending capture, reload recovery, and cross-wallet locking.
 - Google Pay HTTP: 17 assertions through an isolated PHP server/database; provider transport mocked. Covers CSRF, request method/type/origin, server pricing, session ownership, rollout switch, one capture, and inventory deduction. Also rejects unsigned webhooks.
 - Webhook verification: 10 assertions with mocked PayPal verification responses.
+- Webhook registration: 13 assertions covering creation, reuse, event merging, duplicate detection, and provider errors. Live API registration/read-back and deployed unsigned-event rejection also passed.
 - Existing regressions passed: Apple Pay 19 service scenarios / 110 assertions and 11 client scenarios; PayPal client recovery 14 assertions; checkout pricing 14 assertions; PayPal order verifier 17 assertions. PHP lint and JavaScript syntax checks passed.
 - Rendered checkout: Playwright at `http://127.0.0.1:8786/checkout.php`, desktop 1440×1000 and mobile 390×844. Browser plugin unavailable; used the Playwright CLI. The real Google SDK rendered its branded button. PayPal eligibility, shipping, API responses, and Google sheet cancellation were mocked in a disposable site with synthetic customer/cart data.
 - Browser checks passed: correct page/title, meaningful content, no error overlay, no application runtime errors, button unlock after shipping, USD 25.00 sheet request, cancellation unlock, address-change invalidation, and no mobile horizontal overflow. Two initial missing fixture images were supplied before the final run.
 
-No real card was charged. Still required: deployment, live account/domain eligibility confirmation, sandbox end-to-end payment including a real 3DS challenge where available, then an authorized small live purchase by a buyer other than the receiving business. Verify receipt in PayPal, local order/stock, cancellation, declined/pending payment, refresh/recovery, and webhook delivery. Local mocks are not proof of production payment acceptance.
+No real card was charged. Still required: production wallet-schema verification (and migration if absent), live account/domain eligibility confirmation, sandbox end-to-end payment including a real 3DS challenge where available, then an authorized small live purchase by a buyer other than the receiving business. Verify receipt in PayPal, local order/stock, cancellation, declined/pending payment, refresh/recovery, and signed webhook delivery. Local mocks and successful webhook registration are not proof of production payment acceptance.
