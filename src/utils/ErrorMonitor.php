@@ -12,6 +12,7 @@ class ErrorMonitor
     public const AREA_SHIPPING = 'shipping';
     public const AREA_EBAY_SYNC = 'ebay_sync';
     public const AREA_ANALYTICS = 'analytics';
+    public const AREA_NOT_FOUND = 'not_found';
 
     private \PDO $db;
 
@@ -133,6 +134,30 @@ class ErrorMonitor
         } catch (\Throwable $e) {
             error_log('ErrorMonitor failed: ' . $e->getMessage() . ' | original: ' . $area . ' - ' . $message);
         }
+    }
+
+    public function recordNotFound(): void
+    {
+        // Apache's local ErrorDocument redirect can change the executing script.
+        // Preserve the missing URL, including its original query string.
+        $uri = $_SERVER['REQUEST_URI'] ?? '/404.php';
+        if (($_SERVER['REDIRECT_STATUS'] ?? '') === '404' && !empty($_SERVER['REDIRECT_URL'])) {
+            $uri = $_SERVER['REDIRECT_URL'];
+            if (!empty($_SERVER['REDIRECT_QUERY_STRING'])) {
+                $uri .= '?' . $_SERVER['REDIRECT_QUERY_STRING'];
+            }
+        }
+
+        $this->record(self::AREA_NOT_FOUND, '404 page not found', [
+            'severity' => 'warning',
+            'source' => 'storefront-not-found.php',
+            'error_code' => '404',
+            'url' => $uri,
+            'metadata' => [
+                'http_status' => 404,
+                'referrer' => $this->cleanText($_SERVER['HTTP_REFERER'] ?? null, 1000),
+            ],
+        ]);
     }
 
     public function recordThrowable(string $area, \Throwable $exception, array $context = []): void
@@ -259,6 +284,7 @@ class ErrorMonitor
             self::AREA_SHIPPING,
             self::AREA_EBAY_SYNC,
             self::AREA_ANALYTICS,
+            self::AREA_NOT_FOUND,
         ];
 
         return in_array($area, $allowed, true) ? $area : 'checkout';

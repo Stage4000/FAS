@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-02T23:21:55.153863+00:00",
+  "date": "2026-10-05T16:37:41.366413+00:00",
   "scope": "local synthetic inventory; mocked carrier transport",
-  "checks": 83,
+  "checks": 89,
   "passed": [
     "CLI initialization installs the disabled notification queue",
     "Disabled notification commands work with mail and carrier transports unavailable",
@@ -33,6 +33,12 @@
     "Non-object checkout JSON is rejected cleanly",
     "Browser cannot lower the catalog unit price",
     "Browser cannot lower the catalog total",
+    "A direct quote cannot start a new order after rollback to Easyship",
+    "Mode-change rejection leaves no pending order",
+    "Disabling USPS invalidates its saved quote before a new order starts",
+    "Carrier-disable rejection leaves no pending order",
+    "A shipping configuration outage refuses new PayPal orders clearly",
+    "Shipping configuration outage leaves no pending order",
     "Valid direct rate creates a pending local order",
     "Order records selected carrier, service, price and measured parcel without storing quote secret",
     "USPS order stores the exact quoted rate ingredients for its label",

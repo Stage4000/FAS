@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../includes/sale-helper.php';
 
 final class ApplePayFactory
 {
-    public static function make(): ApplePayService
+    public static function make(string $wallet = 'applepay'): ApplePayService
     {
         $config = require __DIR__ . '/../config/config.php';
         $db = \FAS\Config\Database::getInstance()->getConnection();
@@ -27,6 +27,6 @@ final class ApplePayFactory
                     throw new CheckoutProblem('invalid_coupon', 'The coupon is no longer valid. Remove it and review your total.');
                 }
                 return ApplePayContext::catalogCents($result['discount']);
-            }, (string)$config['paypal']['mode']);
+            }, (string)$config['paypal']['mode'], null, $wallet);
     }
 }

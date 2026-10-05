@@ -146,6 +146,16 @@ function handlePaymentCompleted($webhookData)
         $existingOrder = $orderModel->getByPayPalOrderId($paypalOrderId);
         
         if ($existingOrder) {
+            if (($existingOrder['payment_method'] ?? '') === 'googlepay') {
+                // Reconcile using the same verified, atomic path as browser recovery.
+                require_once __DIR__ . '/../src/payments/ApplePayFactory.php';
+                $query = $db->prepare('SELECT id FROM applepay_attempts WHERE order_id = ?');
+                $query->execute([$existingOrder['id']]);
+                $attempt = $query->fetchColumn();
+                if (!$attempt) throw new RuntimeException('Google Pay attempt was not found');
+                \FAS\Payments\ApplePayFactory::make('googlepay')->status((string)$attempt, null);
+                return;
+            }
             // Check if already processed to avoid duplicate processing
             if ($existingOrder['payment_status'] === 'completed') {
                 error_log('PayPal webhook: Order #' . $existingOrder['order_number'] . ' already completed, skipping');

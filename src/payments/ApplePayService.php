@@ -13,6 +13,9 @@ final class ApplePayService
     private $couponResolver;
     private string $environment;
     private $securityGate = null;
+    private $shippingConfigResolver;
+    private string $wallet;
+    private string $paymentSource;
 
     public function setSecurityGate(callable $gate): void { $this->securityGate = $gate; }
     private function securityGate(string $kind, string $id): void
@@ -21,13 +24,21 @@ final class ApplePayService
     }
 
     public function __construct(\PDO $db, WalletPayPalGateway $paypal, callable $priceResolver,
-        callable $couponResolver, string $environment)
+        callable $couponResolver, string $environment, ?callable $shippingConfigResolver = null,
+        string $wallet = 'applepay')
     {
+        if (!in_array($wallet, ['applepay', 'googlepay'], true)) {
+            throw new \InvalidArgumentException('Unsupported wallet');
+        }
+        $this->wallet = $wallet;
+        $this->paymentSource = $wallet === 'googlepay' ? 'google_pay' : 'apple_pay';
         $this->db = $db;
         $this->paypal = $paypal;
         $this->priceResolver = $priceResolver;
         $this->couponResolver = $couponResolver;
         $this->environment = $environment;
+        $this->shippingConfigResolver = $shippingConfigResolver
+            ?? static fn(): array => \FAS\Shipping\ShippingConfig::load();
         $db->exec('PRAGMA busy_timeout = 5000');
     }
 
@@ -48,6 +59,10 @@ final class ApplePayService
         }
         if ($a['environment'] !== $this->environment) {
             throw new CheckoutProblem('environment_changed', 'Payment environment changed. Contact support.');
+        }
+        $method = $this->run('SELECT payment_method FROM orders WHERE id = ?', [$a['order_id']])->fetchColumn();
+        if ($method !== $this->wallet) {
+            throw new CheckoutProblem('wallet_mismatch', 'Use the original payment method to recover this order.', 409);
         }
         return $a;
     }
@@ -121,6 +136,13 @@ final class ApplePayService
         if (!is_array($rate)) {
             throw new CheckoutProblem('invalid_shipping', 'Choose a current shipping method.');
         }
+        try {
+            $shippingConfig=($this->shippingConfigResolver)();
+        } catch (\Throwable $e) {
+            throw new CheckoutProblem('shipping_unavailable',
+                'Shipping checkout is temporarily unavailable. Try again later.',503);
+        }
+        \FAS\Shipping\ShippingOrder::assertConfigAllows($rate,$shippingConfig);
         $shipping = ApplePayContext::catalogCents($rate['total_charge'] ?? null);
         $subtotal = 0;
         $items = [];
@@ -153,13 +175,13 @@ final class ApplePayService
                 throw new CheckoutProblem('rate_limited', 'Too many payment attempts. Please contact support.', 429);
             }
             $number = 'FAS-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(4)));
-            $notes = $request['notes'] . "\nApple Pay via PayPal. Shipping: "
+            $notes = $request['notes'] . "\n" . ($this->wallet === 'googlepay' ? 'Google Pay' : 'Apple Pay') . ' via PayPal. Shipping: '
                 . (string)($rate['courier_name'] ?? '') . ' / ' . (string)($rate['service_name'] ?? '');
             $this->run('INSERT INTO orders (order_number,customer_email,customer_name,customer_phone,shipping_address,
                 subtotal,shipping_cost,tax_amount,discount_code,discount_amount,total_amount,payment_method,payment_status,order_status,notes)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$number, $request['email'], $request['name'], $request['phone'],
                 json_encode($request['address'], JSON_THROW_ON_ERROR), $subtotal / 100, $shipping / 100, 0,
-                $request['coupon'] ?: null, $discount / 100, $total / 100, 'applepay', 'pending', 'pending', $notes]);
+                $request['coupon'] ?: null, $discount / 100, $total / 100, $this->wallet, 'pending', 'pending', $notes]);
             $orderId = (int)$this->db->lastInsertId();
             foreach ($items as $item) {
                 $this->run('INSERT INTO order_items (order_id,product_id,product_name,product_sku,quantity,unit_price,total_price) VALUES (?,?,?,?,?,?,?)',
@@ -179,7 +201,7 @@ final class ApplePayService
                 $address['address_line_2'] = $a['address2'];
             }
             $payload = ['intent' => 'CAPTURE', 'purchase_units' => [[
-                'reference_id' => 'default', 'custom_id' => 'FAS-APPLEPAY-' . $id, 'invoice_id' => $number,
+                'reference_id' => 'default', 'custom_id' => 'FAS-' . strtoupper($this->wallet) . '-' . $id, 'invoice_id' => $number,
                 'description' => 'Flip and Strip order ' . $number,
                 'amount' => $amount($total) + ['breakdown' => $breakdown],
                 'shipping' => ['name' => ['full_name' => $request['name']], 'address' => $address],
@@ -227,7 +249,7 @@ final class ApplePayService
     }
 
     /** Verify provider-owned order identity, total, currency, invoice, payee and shipping. */
-    private function verifyOrder(array $a, array $data, bool $requireApple): string
+    private function verifyOrder(array $a, array $data, bool $requireWallet): string
     {
         $p = json_decode($a['payload'], true, 512, JSON_THROW_ON_ERROR)['purchase_units'][0];
         $units = $data['purchase_units'] ?? [];
@@ -239,7 +261,7 @@ final class ApplePayService
             || ApplePayContext::cents($u['amount']['value'] ?? null) !== ApplePayContext::cents($p['amount']['value'])
             || !is_string($merchant) || $merchant === ''
             || (!empty($a['merchant_id']) && !hash_equals($a['merchant_id'], $merchant))
-            || ($requireApple && !isset($data['payment_source']['apple_pay']))) {
+            || ($requireWallet && !isset($data['payment_source'][$this->paymentSource]))) {
             throw new CheckoutProblem('verification_failed', 'Payment verification needs review. Do not pay again; contact support.');
         }
         $clean = static fn($s): string => strtoupper(trim(preg_replace('/\s+/u', ' ', (string)$s)));
@@ -268,6 +290,13 @@ final class ApplePayService
         }
         if (time() - (int)$a['created_at'] > ApplePayContext::ATTEMPT_TTL) {
             throw new CheckoutProblem('attempt_expired', 'This payment needs manual review. Do not pay again; contact support.');
+        }
+        // Read authentication from PayPal, never from a browser assertion of 3DS success.
+        if ($this->wallet === 'googlepay') {
+            $auth = $data['payment_source']['google_pay']['card']['authentication_result'] ?? [];
+            if (isset($auth['liability_shift']) && !in_array($auth['liability_shift'], ['POSSIBLE', 'YES'], true)) {
+                throw new CheckoutProblem('authentication_failed', 'Card authentication was not completed. Cancel this attempt before trying another payment.');
+            }
         }
         // Do not issue a second in-flight capture, even with the same idempotency key.
         if ($a['status'] === 'capturing' && time() - (int)$a['updated_at'] < 45) {
@@ -388,7 +417,7 @@ final class ApplePayService
             }
             $order = $this->run('SELECT * FROM orders WHERE id = ?', [$a['order_id']])->fetch(\PDO::FETCH_ASSOC);
             $expected = json_decode($a['payload'], true, 512, JSON_THROW_ON_ERROR)['purchase_units'][0];
-            if (!$order || $order['payment_method'] !== 'applepay' || $order['payment_status'] !== 'pending'
+            if (!$order || $order['payment_method'] !== $this->wallet || $order['payment_status'] !== 'pending'
                 || ApplePayContext::catalogCents($order['total_amount']) !== ApplePayContext::cents($expected['amount']['value'])) {
                 throw new CheckoutProblem('verification_failed', 'The local order changed and needs payment review. Do not pay again.');
             }
@@ -412,7 +441,7 @@ final class ApplePayService
             }
             $notes = $order['notes'] ?? '';
             if ($review) {
-                $notes .= "\n[APPLE PAY REVIEW REQUIRED] Payment captured; inventory changed. Do not fulfill until reconciled. Capture: " . $captureId;
+                $notes .= "\n[" . ($this->wallet === 'googlepay' ? 'GOOGLE PAY' : 'APPLE PAY') . ' REVIEW REQUIRED] Payment captured; inventory changed. Do not fulfill until reconciled. Capture: ' . $captureId;
             }
             // Even a stock conflict records the captured funds. It never becomes a new payment retry.
             $this->run("UPDATE orders SET payment_status = 'completed', order_status = ?, paypal_order_id = ?, paypal_transaction_id = ?, notes = ?, updated_at = datetime('now') WHERE id = ?",
@@ -428,7 +457,7 @@ final class ApplePayService
         $p = json_decode($a['payload'], true, 512, JSON_THROW_ON_ERROR)['purchase_units'][0];
         return ['ok' => true, 'state' => $state, 'attempt_id' => $a['id'], 'order_id' => (int)$a['order_id'],
             'order_number' => $p['invoice_id'], 'paypal_order_id' => $a['paypal_order_id'],
-            'amount' => $p['amount']['value'], 'currency' => 'USD',
+            'amount' => $p['amount']['value'], 'currency' => 'USD', 'payment_method' => $this->wallet,
             'can_abandon' => $a['capture_requested_at'] === null && !in_array($state, ['paid', 'review'], true)];
     }
 }

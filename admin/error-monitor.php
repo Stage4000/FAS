@@ -23,7 +23,7 @@ if (!in_array($days, $allowedDays, true)) {
     $days = 30;
 }
 
-$allowedAreas = ['', ErrorMonitor::AREA_CHECKOUT, ErrorMonitor::AREA_PAYPAL, ErrorMonitor::AREA_SHIPPING, ErrorMonitor::AREA_EBAY_SYNC, ErrorMonitor::AREA_ANALYTICS];
+$allowedAreas = ['', ErrorMonitor::AREA_CHECKOUT, ErrorMonitor::AREA_PAYPAL, ErrorMonitor::AREA_SHIPPING, ErrorMonitor::AREA_EBAY_SYNC, ErrorMonitor::AREA_ANALYTICS, ErrorMonitor::AREA_NOT_FOUND];
 $area = $_GET['area'] ?? '';
 if (!in_array($area, $allowedAreas, true)) {
     $area = '';
@@ -177,6 +177,7 @@ function emAreaLabel(string $area): string
         'shipping' => 'Shipping',
         'ebay_sync' => 'eBay Sync',
         'analytics' => 'Analytics',
+        'not_found' => '404 Landings',
         default => 'Other',
     };
 }
@@ -189,6 +190,7 @@ function emAreaIcon(string $area): string
         'shipping' => 'fas fa-truck-fast',
         'ebay_sync' => 'fa-brands fa-ebay',
         'analytics' => 'fas fa-chart-line',
+        'not_found' => 'fas fa-magnifying-glass',
         default => 'fas fa-circle-exclamation',
     };
 }
@@ -321,7 +323,7 @@ function emFilterUrl(array $updates): string
         <div>
             <p class="text-uppercase fw-semibold small mb-2 text-muted">Operations</p>
             <h1 class="display-6 fw-bold mb-2"><i class="fas fa-triangle-exclamation me-2"></i>Error Monitor</h1>
-            <p class="mb-0 text-muted">One place for checkout, PayPal, shipping, eBay sync, and analytics failures.</p>
+            <p class="mb-0 text-muted">One place for checkout, PayPal, shipping, eBay sync, analytics failures, and 404 landings.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="ebay-sync-health.php" class="btn btn-light text-danger fw-semibold">
@@ -531,6 +533,7 @@ function emFilterUrl(array $updates): string
                                 <?php if (!empty($event['source'])): ?><div><span class="text-muted">Logger:</span> <?php echo emSafe($event['source']); ?></div><?php endif; ?>
                                 <?php if ($sourceLocation !== ''): ?><div><span class="text-muted">Source:</span> <?php echo emSafe($sourceLocation); ?></div><?php endif; ?>
                                 <?php if (!empty($metadata['page'])): ?><div><span class="text-muted">Page:</span> <?php echo emSafe($metadata['page']); ?></div><?php endif; ?>
+                                <?php if (!empty($metadata['referrer'])): ?><div><span class="text-muted">Referrer:</span> <?php echo emSafe($metadata['referrer']); ?></div><?php endif; ?>
                                 <?php if (!empty($event['session_id'])): ?><div><span class="text-muted">Session:</span> <?php echo emSafe($event['session_id']); ?></div><?php endif; ?>
                                 <?php if (!empty($event['request_method'])): ?><div><span class="text-muted">Method:</span> <?php echo emSafe($event['request_method']); ?></div><?php endif; ?>
                                 <?php if (!empty($event['ip_address'])): ?><div><span class="text-muted">IP:</span> <?php echo emSafe($event['ip_address']); ?></div><?php endif; ?>

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace FAS\Shipping;
 
 require_once __DIR__.'/../payments/ApplePayContext.php';
+require_once __DIR__.'/ShippingConfig.php';
 
 use FAS\Payments\ApplePayContext;
 use FAS\Payments\CheckoutProblem;
@@ -84,6 +85,13 @@ final class ShippingOrder
         if (!is_array($rate)) {
             throw new CheckoutProblem('invalid_shipping','Choose a current shipping method.',400);
         }
+        try {
+            $config=ShippingConfig::load();
+        } catch (\Throwable $e) {
+            throw new CheckoutProblem('shipping_unavailable',
+                'Shipping checkout is temporarily unavailable. Try again later.',503);
+        }
+        self::assertConfigAllows($rate,$config);
         if (($rate['currency'] ?? 'USD') !== 'USD') {
             throw new CheckoutProblem('invalid_shipping','Choose a USD shipping method.',400);
         }
@@ -92,6 +100,24 @@ final class ShippingOrder
             throw new CheckoutProblem('shipping_changed','The shipping amount changed. Calculate shipping again.',409);
         }
         return [$key,$quote,$rate];
+    }
+
+    /** A quote from before a mode or carrier-activation change cannot start a new order. */
+    public static function assertConfigAllows(array $rate,array $config): void
+    {
+        $provider=$rate['provider'] ?? (!empty($rate['is_free_shipping']) ? 'free' : null);
+        $allowed=match ($config['mode'] ?? '') {
+            'easyship'=>['easyship','free'],
+            'direct_with_fallback'=>['easyship','free','usps','ups'],
+            'direct'=>['usps','ups'],
+            default=>[],
+        };
+        if (!in_array($provider,$allowed,true)
+            || (in_array($provider,['usps','ups'],true)
+                && !ShippingConfig::ready($config['carriers'][$provider] ?? [],$provider,true))) {
+            throw new CheckoutProblem('shipping_changed',
+                'Shipping options changed. Calculate shipping again.',409);
+        }
     }
 
     public static function record(\PDO $db,int $orderId,string $key,array $quote,array $rate): void

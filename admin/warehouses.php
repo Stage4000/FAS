@@ -354,7 +354,7 @@ if ($action === 'list') {
                             <input type="checkbox" name="is_default" class="form-check-input" id="is_default" value="1"
                                    <?php echo ($warehouse['is_default'] ?? 0) ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="is_default">
-                                Set as default warehouse (used for new products)
+                                Default ship-from location for products without an assigned warehouse
                             </label>
                         </div>
                     </div>

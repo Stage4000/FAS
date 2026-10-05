@@ -64,7 +64,7 @@
     function refresh() {
         root.hidden = !eligible && !pending && !options.preview;
         if (!appleButton) return;
-        const isReady = eligible && !busy && ready(readState());
+        const isReady = eligible && !busy && !window.FASGooglePay?.busy() && !window.FASOrderRecovery?.pending() && ready(readState());
         appleButton.inert = !isReady;
         appleButton.setAttribute('aria-disabled', isReady ? 'false' : 'true');
         appleButton.style.opacity = isReady ? '1' : '0.45';
@@ -223,7 +223,7 @@
         return fields;
     }
     function begin() {
-        if (window.FASOrderRecovery?.pending()) return;
+        if (window.FASOrderRecovery?.pending() || window.FASGooglePay?.busy()) return;
         const state = JSON.parse(JSON.stringify(readState()));
         if (busy || !eligible || !ready(state)) return;
         const form = document.getElementById('checkout-form');
@@ -285,6 +285,13 @@
                     handleResult(captured);
                 } catch (error) {
                     completeSheet(false);
+                    if (error.code === 'shipping_changed') {
+                        clearPending();
+                        lock(false);
+                        options.onShippingChanged?.();
+                        say('Shipping options changed. Calculate shipping again before paying.');
+                        return;
+                    }
                     showRecovery(error.message || 'Payment could not be confirmed.');
                 }
             };
@@ -352,7 +359,7 @@
             }
         }
     }
-    window.FASApplePay = { refresh };
+    window.FASApplePay = { refresh, busy: () => busy || !!pending };
     checkButton.addEventListener('click', checkStatus);
     stopButton.addEventListener('click', () => recover('abandon', stopButton));
     finishButton.addEventListener('click', () => recover('capture', finishButton));

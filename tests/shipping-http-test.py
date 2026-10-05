@@ -44,6 +44,7 @@ env={k:v for k,v in os.environ.items() if not k.startswith("FAS_")}
 env["FAS_SECURITY_DB_PATH"]=str(BASE/"security.sqlite")
 env["FAS_SHIPPING_CACHE_PATH"]=str(BASE/"shipping.sqlite")
 (SITE/"src/config/shipping.php").write_text("""<?php
+if (is_file(__DIR__.'/../../../invalid-shipping-config')) throw new RuntimeException('Fixture config outage');
 $c=require __DIR__.'/shipping.example.php';
 $c['mode']=is_file(__DIR__.'/../../../legacy-mode')?'easyship':
     (is_file(__DIR__.'/../../../fallback')?'direct_with_fallback':'direct');
@@ -52,6 +53,7 @@ foreach($c['carriers'] as &$p) {
     $p['enabled']=true; $p['environment']='production'; $p['production_verified']=true;
     $p['client_id']='fixture-client'; $p['client_secret']='fixture-secret'; $p['account_number']='TEST01';
 }
+$c['carriers']['usps']['enabled']=!is_file(__DIR__.'/../../../disable-usps');
 return $c;
 """)
 # Change only the construction seam in the isolated copy; production has no mock switch.
@@ -101,6 +103,10 @@ shippingReadiness=json.loads(subprocess.check_output(
     ["php","-d","disable_functions=mail,curl_exec,curl_multi_exec",str(SITE/"scripts/shipping-maintenance.php"),"readiness"],env=env,text=True))
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"init"],env=env,stdout=subprocess.DEVNULL)
 subprocess.check_call(["php",str(ROOT/"scripts/security-maintenance.php"),"activate","--verified"],env=env,stdout=subprocess.DEVNULL)
+# The fixture makes more synthetic order-creation attempts than one shopper should;
+# its payment budget is raised only here so later shipping assertions stay reachable.
+with sqlite3.connect(BASE/'security.sqlite') as db:
+    db.execute("INSERT INTO security_rules(rule,capacity,seconds,mode) VALUES('payment_create',20,600,'enforce')")
 with socket.socket() as s:
     s.bind(("127.0.0.1",0)); port=s.getsockname()[1]
 ORIGIN=f"http://127.0.0.1:{port}"
@@ -231,6 +237,33 @@ try:
           "Browser cannot lower the catalog unit price")
     check(request("/api/process-order.php",{**order,"total_amount":1},cookie=cookie)[0]==409,
           "Browser cannot lower the catalog total")
+    (BASE/'legacy-mode').touch()
+    staleMode=request('/api/process-order.php',order,cookie=cookie)
+    (BASE/'legacy-mode').unlink()
+    check(staleMode[0]==409 and staleMode[2].get('code')=='shipping_changed'
+          and 'Calculate shipping again' in staleMode[2]['error'],
+          'A direct quote cannot start a new order after rollback to Easyship')
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0,
+              'Mode-change rejection leaves no pending order')
+    (BASE/'disable-usps').touch()
+    disabledCarrier=request('/api/process-order.php',order,cookie=cookie)
+    (BASE/'disable-usps').unlink()
+    check(disabledCarrier[0]==409 and disabledCarrier[2].get('code')=='shipping_changed'
+          and 'Calculate shipping again' in disabledCarrier[2]['error'],
+          'Disabling USPS invalidates its saved quote before a new order starts')
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0,
+              'Carrier-disable rejection leaves no pending order')
+    (BASE/'invalid-shipping-config').touch()
+    missingConfig=request('/api/process-order.php',order,cookie=cookie)
+    (BASE/'invalid-shipping-config').unlink()
+    check(missingConfig[0]==503 and missingConfig[2].get('code')=='shipping_unavailable'
+          and 'temporarily unavailable' in missingConfig[2]['error'],
+          'A shipping configuration outage refuses new PayPal orders clearly')
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0,
+              'Shipping configuration outage leaves no pending order')
     created=request("/api/process-order.php",order,cookie=cookie)
     check(created[0]==200 and created[2]["success"],"Valid direct rate creates a pending local order")
     with sqlite3.connect(dbfile) as db:
@@ -336,7 +369,8 @@ try:
     legacyOrder={**order,"shipping_quote":fallback["shipping_quote"],"shipping_cost":15,"total_amount":115}
     legacyCookie=fallbackResponse[1]["Set-Cookie"].split(";",1)[0]
     legacyCreated=request("/api/process-order.php",legacyOrder,cookie=legacyCookie)
-    check(legacyCreated[0]==200 and legacyCreated[2]["success"],"Legacy fallback still creates a pending order")
+    check(legacyCreated[0]==200 and legacyCreated[2]["success"],
+          "Legacy fallback still creates a pending order")
     with sqlite3.connect(dbfile) as db:
         legacyShipping=db.execute("SELECT provider,quoted_cents FROM order_shipping WHERE order_id=?",
                                   (legacyCreated[2]["order_id"],)).fetchone()

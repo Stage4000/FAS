@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-02T23:22:00Z",
+  "date": "2026-10-05T16:37:49Z",
   "scope": "isolated synthetic administrator and paid orders; purchase and cancellation disabled",
-  "checks": 111,
+  "checks": 114,
   "passed": [
     "Anonymous label page redirects to sign-in",
     "Anonymous shipment review queue redirects to sign-in",
@@ -20,6 +20,9 @@
     "Unknown default selection preserves the existing origin",
     "Administrator can switch to an existing default origin",
     "Switching origin keeps one active default",
+    "Default origin cannot be deactivated through its edit form",
+    "Default origin cannot be silently unset through its edit form",
+    "Rejected origin edits preserve the active default",
     "Deleting a ship-from origin requires CSRF",
     "Private label page renders for active administrator",
     "Disabled carrier configuration shows saved quote without purchase control",

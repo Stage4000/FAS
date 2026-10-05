@@ -50,7 +50,7 @@
         if (paymentTitle) paymentTitle.textContent = reference ? 'Payment confirmation' : 'Choose how to pay';
         root.hidden = !reference;
         if (!reference) return;
-        ['checkout-form','paypal-button-container','applepay-payment'].forEach(id => {
+        ['checkout-form','paypal-button-container','applepay-payment','googlepay-payment'].forEach(id => {
             const node = document.getElementById(id);
             if (node) node.inert = true;
         });

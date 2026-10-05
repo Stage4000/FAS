@@ -71,7 +71,7 @@ try {
 } catch (CheckoutProblem $e) {
     http_response_code($e->httpStatus);
     if ($e->reason === 'payment_pending') header('Retry-After: 30');
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['error' => $e->getMessage(), 'code' => $e->reason]);
 } catch (Exception $e) {
     error_log('Order API Error: ' . $e->getMessage());
     try {

@@ -1,3 +1,6 @@
+# Send missing URLs through the storefront landing page and error monitor.
+ErrorDocument 404 /404.php
+
 # Enable Rewrite Engine
 <IfModule mod_rewrite.c>
     RewriteEngine On

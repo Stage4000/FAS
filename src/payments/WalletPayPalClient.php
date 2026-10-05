@@ -38,7 +38,7 @@ final class WalletPayPalClient implements WalletPayPalGateway
         }
         if (!in_array($paypalConfig['mode'] ?? '', ['live', 'sandbox'], true)
             || ($paypalConfig['currency'] ?? 'USD') !== 'USD') {
-            throw new \RuntimeException('Apple Pay requires a valid PayPal mode and USD for this checkout');
+            throw new \RuntimeException('Wallet payments require a valid PayPal mode and USD for this checkout');
         }
         $this->base = $paypalConfig['mode'] === 'live'
             ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';

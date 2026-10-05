@@ -40,13 +40,29 @@ $assertions=0;$scenarios=0;
 function check(bool $pass,string $why): void { global $assertions; $assertions++; if (!$pass) throw new RuntimeException($why); }
 function throws(callable $call,string $reason): void { try { $call(); } catch(CheckoutProblem $e) { check($e->reason===$reason,"Expected $reason, got {$e->reason}");return; } throw new RuntimeException("Expected rejection: $reason"); }
 function scenario(string $name,callable $call): void { global $scenarios; $call(); $scenarios++; echo "PASS $name\n"; }
-function fixture(): array {
+function shippingFixtureConfig(string $mode): array {
+    $config=require __DIR__.'/../src/config/shipping.example.php';
+    $config['mode']=$mode;
+    foreach ($config['carriers'] as &$carrier) {
+        $carrier['enabled']=true;
+        $carrier['environment']='production';
+        $carrier['production_verified']=true;
+        $carrier['client_id']='fixture-client';
+        $carrier['client_secret']='fixture-secret';
+        $carrier['account_number']='FIXTURE1';
+    }
+    unset($carrier);
+    return $config;
+}
+function fixture($shippingConfig='easyship'): array {
     $db=getenv('FAS_APPLEPAY_TEST_BRIDGE')?new BridgePDO():new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     $db->exec(file_get_contents(__DIR__.'/fixtures/applepay-schema.sql'));
     $db->exec(file_get_contents(__DIR__.'/../database/applepay.sql'));
     \FAS\Shipping\ShippingOrder::install($db);
     $pp=new FakePayPal();
-    $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live');
+    $configResolver=is_callable($shippingConfig) ? $shippingConfig
+        : static fn(): array => shippingFixtureConfig($shippingConfig);
+    $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live',$configResolver);
     $in=['items'=>[['product_id'=>'1','quantity'=>2]],'email'=>'test@example.invalid','first_name'=>'Test','last_name'=>'Buyer',
         'address'=>['address1'=>'100 Test Road','address2'=>'','city'=>'Test City','state'=>'CA','zip'=>'90001','country'=>'US'],
         'shipping_quote'=>str_repeat('c',32),'shipping_index'=>0,'expected_total'=>'25.00'];
@@ -74,7 +90,7 @@ scenario('success is bound, idempotent, and uses catalog prices',function(){
     check($p->captureKeys[0]==='apx-'.$id,'stable capture key');
 });
 scenario('direct carrier selection and packing are kept before payment',function(){
-    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture('direct');
     $q['rates'][0]=['total_charge'=>5.00,'courier_id'=>'direct_usps_USPS_GROUND_ADVANTAGE',
         'courier_name'=>'USPS','service_name'=>'Ground Advantage','provider'=>'usps',
         'service_code'=>'USPS_GROUND_ADVANTAGE','rate_basis'=>'commercial',
@@ -91,7 +107,7 @@ scenario('direct carrier selection and packing are kept before payment',function
     check($shipping['fulfillment_options'][0]['quoted_cents']===500
         && $shipping['fulfillment_options'][0]['rate_indicator']==='SP',
         'wallet order retains USPS parcel rate ingredients for its label');
-    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture('direct');
     $q['rates'][0]['provider']='usps';
     $q['rates'][0]['courier_id']='direct_usps_USPS_GROUND_ADVANTAGE';
     $db->exec('DROP TABLE order_shipping');
@@ -99,6 +115,42 @@ scenario('direct carrier selection and packing are kept before payment',function
     catch (RuntimeException $e) { check($e->getMessage()!=='Expected storage failure','missing direct storage blocks order'); }
     check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
         'missing direct storage never starts PayPal or leaves an order');
+});
+scenario('provider mode changes reject stale new wallet quotes but preserve existing attempts',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture('direct');
+    throws(fn()=>$s->create($id,$owner,$in,$q),'shipping_changed');
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
+        'Direct-only mode rejects a saved Easyship quote before creating an order');
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture('easyship');
+    $q['rates'][0]['provider']='usps';
+    throws(fn()=>$s->create($id,$owner,$in,$q),'shipping_changed');
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
+        'Easyship rollback rejects a saved direct-carrier quote before creating an order');
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture('direct_with_fallback');
+    check($s->create($id,$owner,$in,$q)['state']==='created',
+        'Fallback mode still accepts a saved Easyship quote');
+    $mode='easyship';
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture(static function() use (&$mode): array { return shippingFixtureConfig($mode); });
+    $created=$s->create($id,$owner,$in,$q);
+    $mode='direct';
+    $recovered=$s->create($id,$owner,$in,null);
+    check($recovered['paypal_order_id']===$created['paypal_order_id'] && $p->createCalls===1,
+        'Existing payment attempt remains recoverable after provider cutover');
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture(static function(): array {
+        $config=shippingFixtureConfig('direct');
+        $config['carriers']['usps']['enabled']=false;
+        return $config;
+    });
+    $q['rates'][0]['provider']='usps';
+    throws(fn()=>$s->create($id,$owner,$in,$q),'shipping_changed');
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
+        'Disabled direct carrier cannot start a new wallet order from an older quote');
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture(static function(): array {
+        throw new RuntimeException('Synthetic shipping configuration outage');
+    });
+    throws(fn()=>$s->create($id,$owner,$in,$q),'shipping_unavailable');
+    check($p->createCalls===0 && (int)value($db,'SELECT COUNT(*) FROM orders')===0,
+        'Shipping configuration failure leaves no wallet order or provider request');
 });
 scenario('coupon and sale price are calculated server-side',function(){
     [$s,$p,$db,$in,$q,$id,$owner]=fixture();$in['items']=[['product_id'=>2,'quantity'=>1]];$q['cart']=C::cart($in['items']);$in['coupon_code']='SAVE';$in['expected_total']='18.00';

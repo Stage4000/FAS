@@ -59,13 +59,17 @@ try {
         echo "This does NOT validate PayPal onboarding, domain registration, or a wallet transaction.\n";
     } elseif ($command === 'reconcile') {
         require_once __DIR__ . '/../src/payments/ApplePayFactory.php';
-        $service = \FAS\Payments\ApplePayFactory::make();
-        $ids = $db->query("SELECT id FROM applepay_attempts WHERE paypal_order_id IS NOT NULL AND capture_requested_at IS NOT NULL
-            AND status NOT IN ('paid','review','abandoned','rejected') ORDER BY updated_at")->fetchAll(PDO::FETCH_COLUMN);
+        $services = [];
+        // Both wallets share the additive attempt table; route by the immutable local order method.
+        $ids = $db->query("SELECT a.id, o.payment_method FROM applepay_attempts a JOIN orders o ON o.id = a.order_id WHERE a.paypal_order_id IS NOT NULL AND a.capture_requested_at IS NOT NULL
+            AND a.status NOT IN ('paid','review','abandoned','rejected') ORDER BY a.updated_at")->fetchAll(PDO::FETCH_ASSOC);
         $failures = 0;
-        foreach ($ids as $id) {
+        foreach ($ids as $row) {
+            $id = $row['id'];
             try {
                 // status() only GETs PayPal; it cannot initiate a charge.
+                $method = $row['payment_method'];
+                $service = $services[$method] ??= \FAS\Payments\ApplePayFactory::make($method);
                 $r = $service->status($id, null);
                 echo $r['order_number'] . ' ' . $r['state'] . ' attempt=' . $id . "\n";
             } catch (Throwable $e) {

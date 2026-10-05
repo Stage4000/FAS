@@ -15,14 +15,18 @@ if (!file_exists($configFile)) {
 $config = require $configFile;
 $paypalClientId = $config['paypal']['client_id'] ?? '';
 $paypalMode = $config['paypal']['mode'] ?? 'sandbox';
+require_once __DIR__ . '/src/payments/GooglePayContext.php';
+$googlePaySettings = \FAS\Payments\GooglePayContext::settings();
+$googlePayAvailable = \FAS\Payments\GooglePayContext::allowed();
+$googlePayUiAvailable = $googlePayAvailable || isset($_COOKIE[session_name()]);
 
 require_once __DIR__ . '/src/payments/ApplePayContext.php';
 $applePaySettings = \FAS\Payments\ApplePayContext::settings();
 $applePayAvailable = \FAS\Payments\ApplePayContext::allowed($applePaySettings);
 // Keep recovery controls available to existing sessions after the rollout switch is disabled.
 $applePayUiAvailable = $applePayAvailable || isset($_COOKIE[session_name()]);
-$applePayCsrf = $applePayUiAvailable ? \FAS\Payments\ApplePayContext::csrf() : '';
-if (($applePaySettings['enabled'] ?? false) === true || $applePayUiAvailable) {
+$applePayCsrf = ($applePayUiAvailable || $googlePayUiAvailable) ? \FAS\Payments\ApplePayContext::csrf() : '';
+if (($applePaySettings['enabled'] ?? false) === true || $applePayUiAvailable || $googlePayUiAvailable) {
     header('Cache-Control: private, no-store');
 }
 if (session_status() === PHP_SESSION_ACTIVE) {
@@ -224,6 +228,15 @@ require_once __DIR__ . '/includes/header.php';
                             <div data-applepay-button style="width:100%"></div>
                         </div>
                         <?php endif; ?>
+                        <?php if ($googlePayUiAvailable): ?>
+                        <div id="googlepay-payment" class="mb-3" hidden>
+                            <p data-googlepay-message class="small mb-3" role="status" aria-live="polite" hidden></p>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-check hidden>Check payment status</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-stop hidden>Cancel this payment attempt</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mb-2" data-googlepay-finish hidden>Finish this same payment</button>
+                            <div data-googlepay-button style="width:100%;min-height:44px"></div>
+                        </div>
+                        <?php endif; ?>
                         <div id="paypal-button-container"></div>
                         <p class="text-center small text-muted mt-3 mb-0">
                             <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
@@ -236,9 +249,9 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<!-- Load PayPal SDK once; Apple Pay remains off until explicitly enabled. -->
+<!-- Load one PayPal SDK instance for all available payment methods. -->
 <?php if (!empty($paypalClientId) && strpos($paypalClientId, 'YOUR_') !== 0): ?>
-<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars(rawurlencode($paypalClientId), ENT_QUOTES, 'UTF-8'); ?>&amp;currency=USD&amp;components=<?php echo $applePayAvailable ? 'buttons,applepay' : 'buttons'; ?>"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars(rawurlencode($paypalClientId), ENT_QUOTES, 'UTF-8'); ?>&amp;currency=USD&amp;components=buttons<?php echo $applePayAvailable ? ',applepay' : ''; ?><?php echo $googlePayAvailable ? ',googlepay' : ''; ?>"></script>
 <?php if ($applePayAvailable): ?>
 <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
 <?php endif; ?>
@@ -497,7 +510,8 @@ function isFormReadyForPayment() {
 function updatePaymentButtonState() {
     const container = document.getElementById('paypal-button-container');
     const instructions = document.getElementById('paypal-instructions');
-    const isReady = isFormReadyForPayment() && !window.FASOrderRecovery?.pending();
+    const isReady = isFormReadyForPayment() && !window.FASOrderRecovery?.pending()
+        && !window.FASGooglePay?.busy() && !window.FASApplePay?.busy?.();
     
     if (container) {
         container.style.opacity = isReady ? '1' : '0.5';
@@ -509,6 +523,7 @@ function updatePaymentButtonState() {
         instructions.style.display = isReady ? 'none' : 'block';
     }
     window.FASApplePay?.refresh();
+    window.FASGooglePay?.refresh();
 }
 
 /**
@@ -578,6 +593,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.FASOrderRecovery.render();
         return;
     }
+    if (window.FASGooglePay?.pending()) {
+        document.dispatchEvent(new Event('fas:checkout-ready'));
+        return;
+    }
 
     // Validate cart items before proceeding
     const checkoutItemsAreValid = await validateCartItems();
@@ -641,6 +660,9 @@ function setupPayPalButton() {
         
         // Create order on PayPal
         createOrder: async function(data, actions) {
+            if (window.FASGooglePay?.busy() || window.FASApplePay?.busy?.()) {
+                throw new Error('Resolve the current wallet payment before starting another payment.');
+            }
             // Validate form
             const form = document.getElementById('checkout-form');
             if (!form.checkValidity()) {
@@ -1034,6 +1056,7 @@ function updateCheckoutSummary() {
     
     document.getElementById('checkout-total').textContent = `$${total.toFixed(2)}`;
     window.FASApplePay?.refresh();
+    window.FASGooglePay?.refresh();
 }
 
 /**
@@ -1108,6 +1131,11 @@ async function createOrder() {
         if (response.status === 429 || response.status === 503) {
             window.FASOrderRecovery.wait(response);
             alert(data.error || 'Please wait before trying again.');
+            return null;
+        }
+        if (response.status === 409 && data.code === 'shipping_changed') {
+            invalidateShippingSelection();
+            alert(data.error || 'Shipping options changed. Calculate shipping again.');
             return null;
         }
         if (!response.ok) {
@@ -1311,7 +1339,7 @@ function removeCoupon() {
 
 </script>
 
-<?php if ($applePayUiAvailable): ?>
+<?php if ($applePayUiAvailable || $googlePayUiAvailable): ?>
 <script>
 window.FASApplePayOptions = {
     csrf: <?php echo json_encode($applePayCsrf, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1340,9 +1368,10 @@ window.FASApplePayOptions = {
         };
     },
     onUnlock: function () { updatePaymentButtonState(); },
+    onShippingChanged: function () { invalidateShippingSelection(); },
     onPaid: function (result, sameCheckoutSource) {
         try {
-            trackCheckoutEvent('order_completed', { provider: 'paypal_applepay', order_id: result.order_id,
+            trackCheckoutEvent('order_completed', { provider: 'paypal_' + (result.payment_method || 'applepay'), order_id: result.order_id,
                 order_number: result.order_number, paypal_order_id: result.paypal_order_id,
                 total_amount: Number(result.amount), event_value: Number(result.amount) });
         } catch (_) {}
@@ -1353,7 +1382,24 @@ window.FASApplePayOptions = {
     }
 };
 </script>
-<script src="/public/js/applepay-checkout.js?v=20260930-security" defer></script>
+<?php if ($applePayUiAvailable): ?>
+<script src="/public/js/applepay-checkout.js?v=<?php echo (int)filemtime(__DIR__.'/public/js/applepay-checkout.js'); ?>" defer></script>
+<?php endif; ?>
+<?php if ($googlePayUiAvailable): ?>
+<script>
+window.FASGooglePayOptions = {
+    ...window.FASApplePayOptions,
+    enabled: <?php echo $googlePayAvailable ? 'true' : 'false'; ?>,
+    environment: <?php echo json_encode($paypalMode === 'live' ? 'PRODUCTION' : 'TEST'); ?>,
+    merchantId: <?php echo json_encode((string)$googlePaySettings['merchant_id'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+    preview: <?php echo $googlePayAvailable && ($googlePaySettings['admin_only'] ?? true) !== false ? 'true' : 'false'; ?>
+};
+</script>
+<script src="/public/js/googlepay-checkout.js?v=<?php echo (int)filemtime(__DIR__.'/public/js/googlepay-checkout.js'); ?>"></script>
+<?php if ($googlePayAvailable): ?>
+<script async src="https://pay.google.com/gp/p/js/pay.js" onload="onGooglePayLoaded()"></script>
+<?php endif; ?>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

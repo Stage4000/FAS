@@ -24,10 +24,10 @@ async function fixture({mode='success',saved=null,eligible=true}={}) {
   const state={ready:true,checkout_mode:'cart',items:[{product_id:'1',quantity:2}],first_name:'Test',last_name:'Buyer',email:'test@example.invalid',phone:'',notes:'',coupon_code:'',
     address:{address1:'100 Test Road',address2:'',city:'Test City',state:'CA',zip:'90001',country:'US'},shipping_quote:'c'.repeat(32),shipping_index:0,expected_total:'25.00'};
   state.shipping_snapshot={address:{...state.address},items:state.items.map(x=>({...x}))};
-  const calls=[],paid=[],sheets=[];const server={mode,charged:mode==='already_paid'};
+  const calls=[],paid=[],sheets=[],shippingChanges=[];const server={mode,charged:mode==='already_paid'};
   const ctx={document,console,setTimeout,clearTimeout,AbortController,crypto:webcrypto,Uint8Array,isSecureContext:true,addEventListener(){},
     sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
-    FASApplePayOptions:{csrf:'test',sessionFingerprint:'session-A',displayName:'Flip and Strip',preview:true,getState:()=>state,onPaid:(r,same)=>paid.push({r,same}),onUnlock(){}}};
+    FASApplePayOptions:{csrf:'test',sessionFingerprint:'session-A',displayName:'Flip and Strip',preview:true,getState:()=>state,onPaid:(r,same)=>paid.push({r,same}),onShippingChanged(){shippingChanges.push(1);state.shipping_quote='';state.ready=false;},onUnlock(){}}};
   ctx.window=ctx;
   ctx.ApplePaySession=class {
     static STATUS_SUCCESS=0;static STATUS_FAILURE=1;static supportsVersion(){return true}static canMakePayments(){return true}
@@ -37,7 +37,10 @@ async function fixture({mode='success',saved=null,eligible=true}={}) {
   ctx.fetch=async(url,opts)=>{
     const d=JSON.parse(opts.body);calls.push(d);
     let r={ok:true,attempt_id:d.attempt_id,order_number:'FAS-TEST',order_id:1,paypal_order_id:'ORDER1234567',amount:'25.00',currency:'USD',can_abandon:false};
-    if(d.action==='create'){r.state='created';r.can_abandon=true;}
+    if(d.action==='create'){
+      r.state='created';r.can_abandon=true;
+      if(server.mode==='shipping_changed')r={ok:false,code:'shipping_changed',error:'Shipping options changed.'};
+    }
     if(d.action==='capture'){
       server.charged=true;
       r=server.mode==='lost'?{ok:false,code:'payment_uncertain',error:'Mock lost capture response'}:{...r,state:server.mode==='review'?'review':'paid'};
@@ -50,7 +53,7 @@ async function fixture({mode='success',saved=null,eligible=true}={}) {
   await document.fire('fas:checkout-ready');
   const button=selectors['[data-applepay-button]'].children?.[0];
   const authorize=async()=>ctx.lastSession.onpaymentauthorized({payment:{token:{mockOnly:true},billingContact:{}}});
-  return {ctx,root,form,paypalHost,input,selectors,button,state,calls,paid,sheets,storage,authorize,server};
+  return {ctx,root,form,paypalHost,input,selectors,button,state,calls,paid,sheets,shippingChanges,storage,authorize,server};
 }
 let scenarios=0;
 async function test(name,fn){await fn();scenarios++;console.log(`PASS ${name}`);}
@@ -65,6 +68,12 @@ async function test(name,fn){await fn();scenarios++;console.log(`PASS ${name}`);
  });
  await test('changed shipping address disables the wallet button',async()=>{
    const f=await fixture();f.state.address.zip='10001';f.ctx.FASApplePay.refresh();assert.equal(f.button.attributes['aria-disabled'],'true');await f.button.fire('click');assert.equal(f.ctx.lastSession,undefined);
+ });
+ await test('provider switch clears an uncreated wallet attempt and requires new shipping',async()=>{
+   const f=await fixture({mode:'shipping_changed'});await f.button.fire('click');await f.authorize();
+   assert.deepEqual(f.calls.map(c=>c.action),['create']);assert.equal(f.shippingChanges.length,1);
+   assert.equal(f.storage.size,0);assert.equal(f.paypalHost.inert,false);assert.equal(f.state.shipping_quote,'');
+   assert.equal(f.sheets.at(-1),1);assert.match(f.selectors['[data-applepay-message]'].textContent,/Calculate shipping again/);
  });
  await test('lost capture response locks both payment choices; GET status recovers',async()=>{
    const f=await fixture({mode:'lost'});await f.button.fire('click');await f.authorize();assert.equal(f.paid.length,0);assert.equal(f.paypalHost.inert,true);assert.equal(f.selectors['[data-applepay-check]'].hidden,false);

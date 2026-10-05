@@ -4,7 +4,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
 $compactQualitySidebar = in_array($currentPage, ['product-quality.php', 'order-details.php',
     'shipping-label.php', 'shipping-label-reconcile.php', 'shipping-label-cancel.php',
-    'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php'], true);
+    'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php',
+    'warehouses.php'], true);
 $ajaxPage = basename($_SERVER['PHP_SELF']);
 $ajaxEnabled = in_array($ajaxPage, [
     'error-monitor.php', 'products.php', 'orders.php', 'order-details.php',

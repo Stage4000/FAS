@@ -1,9 +1,18 @@
 <?php
+require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
+
 function fasStorefrontNotFound(): void
 {
     http_response_code(404);
     header('X-Robots-Tag: noindex, follow');
     header('Cache-Control: no-store');
+    try {
+        $monitor = new \FAS\Utils\ErrorMonitor(\FAS\Config\Database::getInstance()->getConnection());
+        $monitor->recordNotFound();
+    } catch (\Throwable $e) {
+        error_log('404 landing logging failed: ' . $e->getMessage());
+    }
     $metaTitle = 'Page Not Found | Flip and Strip';
     $metaDescription = 'This page is unavailable. Search the current Flip and Strip inventory or browse all parts.';
     $robotsMeta = 'noindex, follow';
