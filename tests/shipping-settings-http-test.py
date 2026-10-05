@@ -24,9 +24,12 @@ dbfile=SITE/'database/flipandstrip.db'
 with sqlite3.connect(dbfile) as db:
     db.executescript((ROOT/'database/schema.sqlite.sql').read_text(encoding='utf-8'))
     db.execute("INSERT INTO admin_users(id,username,email,full_name,password_hash) VALUES(1,'shipping-admin','shipping@example.invalid','Shipping Admin',?)",[hashed])
+    db.execute("INSERT INTO warehouses(id,name,address_line1,city,state,postal_code,country_code,is_default,is_active) VALUES(1,'Fixture origin','1 Test Way','Los Angeles','CA','90001','US',1,1)")
+    db.execute("INSERT INTO products(name,price,quantity,weight,length,width,height,warehouse_id,is_active,show_on_website) VALUES('Fixture parcel',10,1,2,8,6,4,1,1,1)")
 env={k:v for k,v in os.environ.items() if not k.startswith('FAS_')}
 env['FAS_SECURITY_DB_PATH']=str(private/'security.sqlite')
 env['FAS_SHIPPING_CONFIG_PATH']=str(setting)
+env['FAS_SHIPPING_CACHE_PATH']=str(private/'shipping.sqlite')
 subprocess.check_call(['php',str(SITE/'scripts/security-maintenance.php'),'init'],env=env,stdout=subprocess.DEVNULL)
 subprocess.check_call(['php',str(SITE/'scripts/security-maintenance.php'),'activate','--verified'],env=env,stdout=subprocess.DEVNULL)
 for rule in ['login_pair','login_account','login_ip','reauth_account','reauth_ip','settings_account','settings_ip']:
@@ -68,7 +71,24 @@ try:
     status,headers,page=request(path)
     check(status==200 and 'no-store' in headers.get('Cache-Control','') and 'no-referrer' in headers.get('Referrer-Policy',''),'Credential form has private response headers')
     check('USPS' in page and 'UPS' in page and 'Current admin password' in page,'Both carriers have separate password forms')
+    check('id="shipping-provider-form"' in page and 'id="easyship-settings-form"' in page and
+          'Shipping Readiness</' not in page,'Provider and Easyship controls share Shipping Settings; readiness leaves sidebar')
     token=csrf(page)
+    siteconfig=SITE/'src/config/config.php'
+    easyship={'csrf_token':token,'action':'save_easyship','easyship_api_key':'fixture-easyship-secret',
+              'easyship_platform_name':'Fixture Store','easyship_prefix':'FIX','password':password}
+    check(request(path,{**easyship,'password':'wrong'})[0]==200 and
+          'fixture-easyship-secret' not in siteconfig.read_text(),'Easyship changes require current password')
+    check(request(path,easyship)[0]==303 and 'fixture-easyship-secret' in siteconfig.read_text(),
+          'Easyship settings save from Shipping Settings')
+    page=request(path)[2]
+    check('fixture-easyship-secret' not in page and 'Fixture Store' in page and 'API key saved' in page,
+          'Easyship key is never echoed to admin HTML')
+    check(request('/admin/settings.php')[0]==200 and 'name="easyship_api_key"' not in request('/admin/settings.php')[2],
+          'General Settings links to Shipping Settings without duplicate Easyship inputs')
+    check(request('/admin/settings.php',{'csrf_token':token,'site_name':'Fixture Store'})[0]==200 and
+          'fixture-easyship-secret' in siteconfig.read_text(),
+          'Ordinary site settings save preserves the Easyship API key')
     details={'carrier':'usps','action':'save','client_id':'fixture-usps-id',
         'client_secret':'fixture-usps-secret','crid':'fixture-crid','gateway':'apis',
         'price_type':'RETAIL','password':password}
@@ -94,6 +114,32 @@ try:
     check('fixture-usps-secret' in saved and 'fixture-ups-secret' in saved and
           "'mode' => 'easyship'" in saved and "'enabled' => false" in saved,
           'Both carriers remain stored with Easyship selected and activation disabled')
+    switch={'csrf_token':token,'action':'switch_mode','mode':'direct','password':password,
+            'confirm_packing':'1','confirm_rates':'1'}
+    check(request(path,switch)[0]==200 and "'mode' => 'easyship'" in setting.read_text(),
+          'Direct switch refuses unapproved accounts and uninitialized storage')
+    check(request(path,{'csrf_token':token,'action':'approve_carrier','carrier':'ups','password':password})[0]==200 and
+          "'production_verified' => false" in setting.read_text(),
+          'Carrier approval requires explicit production-test confirmation')
+    check(request(path,{'csrf_token':token,'action':'approve_carrier','carrier':'ups','password':password,
+                        'confirm_account':'1'})[0]==303 and "'production_verified' => true" in setting.read_text(),
+          'Confirmed production account can be approved for rates')
+    check(request(path,{'csrf_token':token,'action':'switch_mode','mode':'direct','password':password})[0]==200 and
+          "'mode' => 'easyship'" in setting.read_text(),
+          'Direct switch requires packed-parcel and rate confirmations')
+    subprocess.check_call(['php',str(SITE/'scripts/shipping-maintenance.php'),'init'],env=env,stdout=subprocess.DEVNULL)
+    check(request(path,switch)[0]==303 and "'mode' => 'direct'" in setting.read_text() and
+          "'parcel_data_verified' => true" in setting.read_text(),
+          'Direct switch activates only after storage, catalog, account and confirmations pass')
+    siteconfig.write_text(siteconfig.read_text().replace('fixture-easyship-secret','YOUR_EASYSHIP_API_KEY'))
+    check(request(path,{'csrf_token':token,'action':'switch_mode','mode':'easyship','password':password})[0]==200 and
+          "'mode' => 'direct'" in setting.read_text(),
+          'Rollback refuses an unconfigured Easyship account')
+    check(request(path,easyship)[0]==303 and 'fixture-easyship-secret' in siteconfig.read_text(),
+          'Easyship key can be restored while Direct Shipping is active')
+    check(request(path,{'csrf_token':token,'action':'switch_mode','mode':'easyship','password':password})[0]==303 and
+          "'mode' => 'easyship'" in setting.read_text(),
+          'Administrator can switch checkout back to Easyship without losing carrier settings')
     check(request(path,{'csrf_token':token,'carrier':'usps','action':'clear','password':password})[0]==200 and
           'fixture-usps-secret' in setting.read_text(),'Clearing requires explicit confirmation')
     check(request(path,{'csrf_token':token,'carrier':'usps','action':'clear',

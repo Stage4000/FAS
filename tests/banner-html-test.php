@@ -27,6 +27,34 @@ bannerCheck(fasBannerHtml('&lt;script&gt;alert(1)&lt;/script&gt;') === '&lt;scri
 bannerCheck(fasBannerHtml('<strong>Open &amp; <em>nested') === '<strong>Open &amp; <em>nested</em></strong>', 'Malformed markup is closed');
 bannerCheck(fasBannerHtml('<a href="/" title="&quot; onclick=&quot;bad">Go</a>') === '<a href="/" title="&quot; onclick=&quot;bad">Go</a>', 'Attribute values cannot escape quotes');
 
+$encoded = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+bannerCheck(fasBannerHtml($encoded) === $message, 'Previously encoded contact links render');
+bannerCheck(fasBannerHtml('Spend < $50 > $10') === 'Spend &lt; $50 &gt; $10', 'Literal comparisons are not mistaken for tags');
+bannerCheck(fasBannerText($encoded) === fasBannerText($message), 'Encoded messages have readable summaries');
+bannerCheck(fasBannerHtml('<A HREF=tel:+14073085294>Call</A>') === '<a href="tel:+14073085294">Call</a>', 'Uppercase tags and unquoted attributes work');
+bannerCheck(fasBannerHtml("<a href='mailto:test@example.com' title='Email > call'>Email</a>") === '<a href="mailto:test@example.com" title="Email &gt; call">Email</a>', 'Single quotes and angle brackets in attributes work');
+bannerCheck(fasBannerHtml('<strong>A<em>B</strong>C') === '<strong>A<em>B</em></strong>C', 'Crossed formatting cannot break surrounding markup');
+bannerCheck(fasBannerHtml('<a href="/one">One<a href="/two">Two</a></a>') === '<a href="/one">One</a><a href="/two">Two</a>', 'Nested anchors are separated');
+foreach ([
+    '<a href="javascript:alert(1)" href="/safe">Go</a>',
+    '<a href="jav&#x61;script:alert(1)">Go</a>',
+    '<a href="&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;alert(1)">Go</a>',
+    '<a href="java&#x09;script:alert(1)">Go</a>',
+] as $unsafe) {
+    bannerCheck(fasBannerHtml($unsafe) === 'Go', 'Unsafe protocols cannot hide in duplicate attributes or entities');
+    bannerCheck(fasBannerHtml(htmlspecialchars($unsafe, ENT_QUOTES, 'UTF-8')) === 'Go', 'Encoded unsafe markup is still filtered');
+}
+bannerCheck(fasBannerHtml('&lt;a href=&quot;/&quot; onclick=&quot;alert(1)&quot;&gt;Go&lt;/a&gt;&lt;script&gt;alert(1)&lt;/script&gt;') === '<a href="/">Go</a>', 'Decoded messages cannot introduce scripts or event handlers');
+bannerCheck(fasBannerHtml('<span style="position:fixed" id="page" onmouseover="alert(1)">Safe</span><!-- comment -->') === '<span>Safe</span>', 'Formatting cannot inject layout, handlers or comments');
+
+// Simulate a host without DOM even when the developer's PHP has it built in.
+// The former fallback escapes these links and fails this regression check.
+$source = file_get_contents(__DIR__ . '/../includes/banner-html.php');
+eval('namespace BannerWithoutDom; function class_exists($name) { return false; } class DOMDocument { public function __construct() { throw new \\RuntimeException("DOM must not be required"); } } ' . substr($source, 5));
+bannerCheck(BannerWithoutDom\fasBannerHtml($message) === $message, 'Contact HTML renders without DOM');
+bannerCheck(BannerWithoutDom\fasBannerHtml($encoded) === $message, 'Encoded contact HTML renders without DOM');
+bannerCheck(BannerWithoutDom\fasBannerHtml('<script>alert(1)</script><a href="javascript:alert(1)">Go</a>') === 'Go', 'Filtering remains active without DOM');
+
 // Verify both persistence paths retain editable HTML without touching site data.
 $db = new PDO('sqlite::memory:');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

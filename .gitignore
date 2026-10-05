@@ -8,6 +8,8 @@ src/config/config.php
 src/config/config.production.php
 src/config/config.local.php
 src/config/shipping.php
+src/config/*.lock
+src/config/config.php.*.tmp
 
 # Admin settings and configurations
 admin/settings.json

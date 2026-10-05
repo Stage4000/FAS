@@ -7,7 +7,7 @@ require_once __DIR__.'/ShippingCache.php';
 require_once __DIR__.'/ShippingOrder.php';
 require_once __DIR__.'/ShippingCatalogReadiness.php';
 
-/** Writes only the deployment-owned shipping configuration, never site settings. */
+/** Serializes administrator writes to private shipping and site settings. */
 final class ShippingSettingsStore
 {
     private const FIELDS = [
@@ -143,6 +143,16 @@ final class ShippingSettingsStore
         return is_string($key) && $key!=='' && $key!=='YOUR_EASYSHIP_API_KEY';
     }
 
+    public static function easyshipDisplay(): array
+    {
+        $config=self::siteConfig();
+        return [
+            'key_present'=>self::easyshipConfigured(),
+            'platform_name'=>(string)($config['easyship']['platform_name'] ?? 'Flip and Strip'),
+            'prefix'=>(string)($config['easyship']['platform_order_number_prefix'] ?? 'FAS'),
+        ];
+    }
+
     public static function saveEasyship(array $submitted): void
     {
         self::updateSite(static function(array $config) use($submitted): array {
@@ -172,7 +182,7 @@ final class ShippingSettingsStore
             $submitted['easyship']=$current['easyship'] ?? [];
             $submitted['sale']=$current['sale'] ?? ($submitted['sale'] ?? []);
             $submitted['shipping']=$current['shipping'] ?? ($submitted['shipping'] ?? []);
-            return $submitted;
+            return array_replace($current,$submitted);
         });
     }
 
@@ -203,9 +213,13 @@ final class ShippingSettingsStore
     private static function updateSite(callable $change): array
     {
         $path=__DIR__.'/../config/config.php';
+        if (is_link($path) || is_link($path.'.shipping-write.lock')) {
+            throw new \RuntimeException('Site settings path is invalid.');
+        }
         $lock=fopen($path.'.shipping-write.lock','c');
         if ($lock===false) throw new \RuntimeException('Site settings are not writable.');
         try {
+            if (!chmod($path.'.shipping-write.lock',0600)) throw new \RuntimeException('Site settings lock is not protected.');
             if (!flock($lock,LOCK_EX)) throw new \RuntimeException('Site settings are busy.');
             $config=$change(self::siteConfig());
             $mode=is_file($path) ? (fileperms($path) & 0777) : 0600;
@@ -267,10 +281,10 @@ final class ShippingSettingsStore
         return strtolower(rtrim(str_replace('\\','/',$path),'/'));
     }
 
-    private static function atomicWrite(string $path,array $config): void
+    private static function atomicWrite(string $path,array $config,int $mode=0600): void
     {
         $temporary=$path.'.'.bin2hex(random_bytes(8)).'.tmp';
-        $content="<?php\n// Private shipping settings. Never serve or commit this file.\nreturn "
+        $content="<?php\n// Generated settings. Never serve or commit this file.\nreturn "
             .var_export($config,true).";\n";
         $oldMask=umask(0077);
         try {
@@ -285,7 +299,7 @@ final class ShippingSettingsStore
                 }
                 if (!fflush($handle)) throw new \RuntimeException('Private shipping settings write failed.');
             } finally { fclose($handle); }
-            if (!chmod($temporary,0600) || !rename($temporary,$path)) {
+            if (!chmod($temporary,$mode) || !rename($temporary,$path)) {
                 throw new \RuntimeException('Private shipping settings could not be saved.');
             }
             clearstatcache(true,$path);

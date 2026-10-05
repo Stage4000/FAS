@@ -19,6 +19,7 @@ ErrorDocument 404 /404.php
     RedirectMatch 404 (?i)^/(audit|tmp|tests)(/|$)
     RedirectMatch 403 ^/\.git
     RedirectMatch 403 ^/src/config/config\.php$
+    RedirectMatch 403 ^/src/config/config\.php\..*$
     RedirectMatch 403 ^/src/config/shipping\.php$
     RedirectMatch 403 ^/database/.*\.db$
     RedirectMatch 403 ^/composer\.(json|lock)$
