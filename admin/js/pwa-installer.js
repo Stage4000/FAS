@@ -70,13 +70,20 @@ window.addEventListener('appinstalled', () => {
   
   // Optional: Show a success message
   const successMsg = document.createElement('div');
-  successMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
-  successMsg.style.zIndex = '9999';
+  successMsg.className = 'alert alert-success admin-ajax-notice shadow';
+  successMsg.setAttribute('role', 'status');
   successMsg.innerHTML = `
     <i class="fas fa-check-circle me-2"></i>Admin app installed successfully!
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   `;
-  document.body.appendChild(successMsg);
+  let notificationHost = document.querySelector('.admin-notification-host');
+  if (!notificationHost) {
+    notificationHost = document.createElement('div');
+    notificationHost.className = 'admin-notification-host';
+    notificationHost.setAttribute('aria-live', 'polite');
+    document.body.appendChild(notificationHost);
+  }
+  notificationHost.appendChild(successMsg);
   
   // Auto-dismiss after 5 seconds, but clear timeout if manually dismissed
   const timeoutId = setTimeout(() => {
@@ -90,6 +97,7 @@ window.addEventListener('appinstalled', () => {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       clearTimeout(timeoutId);
+      successMsg.remove();
     });
   }
 });

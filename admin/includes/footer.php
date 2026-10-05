@@ -103,4 +103,4 @@ safeFetch('/admin/mark-analytics-session.php', {
 
 
 <!-- PWA Installer Script (Admin only) -->
-<script src="/admin/js/pwa-installer.js"></script>
+<script src="/admin/js/pwa-installer.js?v=<?php echo filemtime(__DIR__ . '/../js/pwa-installer.js'); ?>"></script>

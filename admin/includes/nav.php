@@ -23,6 +23,7 @@ if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($acti
     $ajaxUrl = $ajaxPage . '?' . http_build_query($ajaxParams);
 }
 ?>
+<link rel="stylesheet" href="css/admin-notifications.css?v=<?php echo filemtime(__DIR__ . '/../css/admin-notifications.css'); ?>">
 <?php if ($ajaxEnabled): ?>
 <script defer src="js/admin-ajax.js?v=<?php echo filemtime(__DIR__ . '/../js/admin-ajax.js'); ?>"></script>
 <?php endif; ?>
@@ -89,10 +90,7 @@ if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($acti
         <a href="shipping-operations.php" class="list-group-item list-group-item-action <?php echo in_array($currentPage, ['shipping-operations.php','shipping-notification.php'],true) ? 'active' : ''; ?>">
             <i class="fas fa-truck me-2"></i>Shipping Review
         </a>
-        <a href="shipping-readiness.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'shipping-readiness.php' ? 'active' : ''; ?>">
-            <i class="fas fa-clipboard-check me-2"></i>Shipping Readiness
-        </a>
-        <a href="shipping-settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'shipping-settings.php' ? 'active' : ''; ?>">
+        <a href="shipping-settings.php" class="list-group-item list-group-item-action <?php echo in_array($currentPage, ['shipping-settings.php','shipping-readiness.php'], true) ? 'active' : ''; ?>">
             <i class="fas fa-sliders me-2"></i>Shipping Settings
         </a>
     <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">

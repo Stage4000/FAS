@@ -21,8 +21,7 @@
     document.addEventListener('hide.bs.modal', event => closingModals.add(event.target));
     document.addEventListener('hidden.bs.modal', event => closingModals.delete(event.target));
     const notice = document.createElement('div');
-    notice.className = 'position-fixed bottom-0 end-0 p-3';
-    notice.style.cssText = 'z-index:1090;max-width:100%;width:440px;pointer-events:none';
+    notice.className = 'admin-notification-host';
     notice.setAttribute('aria-live', 'polite');
     notice.setAttribute('aria-atomic', 'true');
     document.body.append(notice);
@@ -31,7 +30,6 @@
         notice.replaceChildren();
         const alert = document.createElement('div');
         alert.className = `alert alert-${error ? 'danger' : 'success'} admin-ajax-notice shadow mb-0`;
-        alert.style.pointerEvents = 'auto';
         alert.setAttribute('role', error ? 'alert' : 'status');
         alert.append(document.createTextNode(message));
         if (login) {
@@ -45,7 +43,7 @@
         }
         const close = document.createElement('button');
         close.type = 'button';
-        close.className = 'btn-close ms-2';
+        close.className = 'btn-close';
         close.setAttribute('aria-label', 'Dismiss notification');
         close.addEventListener('click', () => notice.replaceChildren());
         alert.append(close);

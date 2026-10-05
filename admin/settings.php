@@ -62,10 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'mode' => $_POST['paypal_mode'] ?? 'sandbox',
             'currency' => $_POST['paypal_currency'] ?? 'USD'
         ],
-        'easyship' => [
-            'api_key' => $_POST['easyship_api_key'] ?? '',
-            'platform_name' => $_POST['easyship_platform_name'] ?? 'Flip and Strip',
-            'platform_order_number_prefix' => $_POST['easyship_prefix'] ?? 'FAS'
+        'easyship' => $config['easyship'] ?? [
+            'api_key' => '',
+            'platform_name' => 'Flip and Strip',
+            'platform_order_number_prefix' => 'FAS'
         ],
         'tawk' => [
             'enabled' => isset($_POST['tawk_enabled']),
@@ -152,9 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-light">
     <?php include __DIR__ . '/includes/nav.php'; ?>
-                <div class="admin-hero" data-aos="fade-down">
+<div class="admin-hero" data-aos="fade-down">
     <h1 class="display-6 fw-bold"><i class="fas fa-cog me-2"></i>Settings</h1>
 </div>
+<p class="small text-muted mt-3">Manage Easyship, USPS and UPS in <a href="shipping-settings.php">Shipping Settings</a>.</p>
 
                 <?php if ($success): ?>
                     <div class="alert alert-success alert-dismissible fade show">
@@ -279,30 +280,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Currency</label>
                                     <input type="text" class="form-control" name="paypal_currency" value="<?php echo htmlspecialchars($config['paypal']['currency'] ?? 'USD'); ?>">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- EasyShip Settings -->
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-truck me-2"></i>EasyShip Settings</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="small text-muted">USPS and UPS account details are managed separately in <a href="shipping-settings.php">Shipping Settings</a>.</p>
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">API Key</label>
-                                    <input type="text" class="form-control" name="easyship_api_key" value="<?php echo htmlspecialchars($config['easyship']['api_key'] ?? ''); ?>">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Platform Name</label>
-                                    <input type="text" class="form-control" name="easyship_platform_name" value="<?php echo htmlspecialchars($config['easyship']['platform_name'] ?? 'Flip and Strip'); ?>">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Order Number Prefix</label>
-                                    <input type="text" class="form-control" name="easyship_prefix" value="<?php echo htmlspecialchars($config['easyship']['platform_order_number_prefix'] ?? 'FAS'); ?>">
                                 </div>
                             </div>
                         </div>

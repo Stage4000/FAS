@@ -1,0 +1,56 @@
+/* Shared top-of-page notifications; messages wrap independently of dismissal. */
+.admin-notification-host {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top, 0px));
+    left: 2.5vw;
+    z-index: 1090;
+    width: 95vw;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 0px)) - 16px);
+    overflow-y: auto;
+    pointer-events: none;
+}
+
+.admin-notification-host .alert.admin-ajax-notice {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 64px;
+    margin: 0;
+    padding: 20px 72px 20px 20px;
+    padding-right: calc(72px + env(safe-area-inset-right, 0px));
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    border: 0;
+    border-bottom: 3px solid #21864e;
+    border-radius: 0;
+    background: #fff;
+    color: #182230;
+    overflow-wrap: anywhere;
+    pointer-events: auto;
+    animation: none;
+}
+
+.admin-notification-host .alert-danger.admin-ajax-notice { border-color: #b42318; }
+.admin-notification-host .admin-ajax-notice .btn-close {
+    position: absolute;
+    top: 10px;
+    right: max(10px, env(safe-area-inset-right, 0px));
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 14px;
+    opacity: 0.8;
+}
+.admin-notification-host .btn-close:hover { opacity: 1; }
+.admin-notification-host .btn-close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -4px;
+}
+.admin-ajax-notice .alert-link { color: inherit !important; }
+[data-theme="dark"] .admin-notification-host .alert.admin-ajax-notice {
+    background: #20252b;
+    color: #f2f4f7;
+    border-color: #6ce9a6;
+}
+[data-theme="dark"] .admin-notification-host .alert-danger.admin-ajax-notice { border-color: #fda29b; }
+[data-theme="dark"] .admin-notification-host .btn-close { filter: invert(1); }
