@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
 require_once __DIR__ . '/../src/utils/ResponsiveImage.php';
+require_once __DIR__ . '/banner-html.php';
 
 \FAS\Utils\Timezone::apply();
 
@@ -246,9 +247,9 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
 role="alert"
 id="banner-<?php echo (int) $banner['id']; ?>"
 data-analytics-banner="<?php echo (int) $banner['id']; ?>"
-data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
+data-analytics-campaign="<?php echo htmlspecialchars(fasBannerText($banner['message'])); ?>"
 <?php if (!empty($banner['ends_at'])): ?>data-expires="<?php echo htmlspecialchars(\FAS\Utils\Timezone::toUserIso($banner['ends_at']) ?? '', ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
-        <?php echo htmlspecialchars($banner['message']); ?>
+        <span class="banner-message"><?php echo fasBannerHtml($banner['message']); ?></span>
         <?php if (!empty($banner['show_countdown']) && !empty($banner['countdown_end'])): ?>
             &nbsp;<span class="banner-countdown fw-bold"
                         data-end="<?php echo htmlspecialchars(\FAS\Utils\Timezone::toUserIso($banner['countdown_end']) ?? '', ENT_QUOTES, 'UTF-8'); ?>"></span>
@@ -258,7 +259,7 @@ data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
 class="fw-bold text-<?php echo htmlspecialchars($banner['text_color']); ?>"
 data-analytics-banner-link
 data-analytics-banner="<?php echo (int) $banner['id']; ?>"
-data-analytics-campaign="<?php echo htmlspecialchars($banner['message']); ?>"
+data-analytics-campaign="<?php echo htmlspecialchars(fasBannerText($banner['message'])); ?>"
 data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"><?php echo htmlspecialchars($banner['link_text'] ?: 'Learn more'); ?></a>
 <?php endif; ?>
         <?php if ($banner['is_dismissible']): ?>

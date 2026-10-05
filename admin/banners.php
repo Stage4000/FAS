@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Banner.php';
+require_once __DIR__ . '/../includes/banner-html.php';
 
 use FAS\Config\Database;
 use FAS\Models\Banner;
@@ -191,10 +192,10 @@ $textColorOptions = [
                                 <tr>
                                     <td>
                                         <span class="badge bg-<?php echo htmlspecialchars($banner['bg_color']); ?> text-<?php echo htmlspecialchars($banner['text_color']); ?>">
-                                            <?php echo htmlspecialchars(mb_strimwidth($banner['message'], 0, 40, '…')); ?>
+                                            <?php echo htmlspecialchars(mb_strimwidth(fasBannerText($banner['message']), 0, 40, '…')); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo htmlspecialchars($banner['message']); ?></td>
+                                    <td><?php echo fasBannerHtml($banner['message']); ?></td>
                                     <td>
                                         <?php if ($banner['show_countdown'] && $banner['countdown_end']): ?>
                                             <span class="badge bg-info text-dark">
@@ -403,11 +404,12 @@ function renderBannerFormFields(array $colorOptions, array $textColorOptions, st
     ob_start();
     ?>
     <div class="mb-3">
-        <label class="form-label">Message <span class="text-danger">*</span></label>
+        <label class="form-label" for="<?php echo $prefix; ?>message">Message <span class="text-danger">*</span></label>
         <textarea name="message" class="form-control" rows="2" required
-                  id="<?php echo $prefix; ?>message" placeholder="e.g., Free shipping on orders over $50!"><?php
+                  id="<?php echo $prefix; ?>message" aria-describedby="<?php echo $prefix; ?>message_help" placeholder="e.g., Free shipping on orders over $50!"><?php
             /* value populated via JS for edit modal */
         ?></textarea>
+        <small class="text-muted" id="<?php echo $prefix; ?>message_help">Supports links and basic HTML formatting, including &lt;strong&gt;, &lt;em&gt; and &lt;br&gt;. Example: &lt;a href="sms:+14073085294"&gt;Text us&lt;/a&gt;. Use mailto: for email links or tel: for calls.</small>
     </div>
     <div class="row mb-3">
         <div class="col-6">

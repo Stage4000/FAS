@@ -15,6 +15,16 @@
     transform: translateY(-50%);
 }
 
+.banner-message {
+    overflow-wrap: anywhere;
+}
+
+.banner-message a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 .banner-countdown {
     display: inline-block;
     font-variant-numeric: tabular-nums;
