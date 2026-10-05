@@ -73,10 +73,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
             else:
                 raise RuntimeError("Fixture server did not start")
 
-            def request(path, method="GET"):
+            def request(path, method="GET", user_agent="FAS-404-test"):
                 req = urllib.request.Request(f"http://127.0.0.1:{port}" + path,
                     method=method, headers={"Referer": "https://example.invalid/parts?search=seat",
-                                            "User-Agent": "FAS-404-test"})
+                                            "User-Agent": user_agent})
                 try:
                     response = urllib.request.urlopen(req, timeout=15)
                 except urllib.error.HTTPError as error:
@@ -109,6 +109,33 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
             with closing(sqlite3.connect(database)) as db, db:
                 assert db.execute("SELECT COUNT(*) FROM error_monitor_events").fetchone()[0] == 6
 
+            excluded_crawlers = [
+                "Mozilla/5.0 (compatible; Googlebot/2.1; +https://www.google.com/bot.html)",
+                "Mozilla/5.0 (compatible; bingbot/2.0; +https://www.bing.com/bingbot.htm)",
+                "DuckDuckBot/1.1; (+https://duckduckgo.com/duckduckbot.html)",
+                "Mozilla/5.0 (compatible; Yahoo! Slurp)",
+                "Baiduspider/2.0", "YandexBot/3.0", "AhrefsBot/7.0",
+                "AhrefsSiteAudit/6.1", "SemrushBot/7.0", "SiteAuditBot/1.0",
+                "Pinterestbot/1.0", "facebookexternalhit/1.1", "MJ12bot/v1.4",
+            ]
+            for agent in excluded_crawlers:
+                status, _, body = request("/crawler-missing", user_agent=agent)
+                assert status == 404 and "We couldn't find that page" in body, agent
+                with closing(sqlite3.connect(database)) as db, db:
+                    assert db.execute("SELECT COUNT(*) FROM error_monitor_events").fetchone()[0] == 6, agent
+
+            retained_agents = [
+                "GPTBot/1.0", "OAI-SearchBot/1.0", "ChatGPT-User/1.0",
+                "ClaudeBot/1.0", "PerplexityBot/1.0", "CCBot/2.0",
+                "Googlebot/2.1 GPTBot/1.0", "UnknownCrawler/1.0",
+            ]
+            for expected_count, agent in enumerate(retained_agents, 7):
+                status, _, _ = request("/agent-missing", user_agent=agent)
+                assert status == 404, agent
+                with closing(sqlite3.connect(database)) as db, db:
+                    assert db.execute("SELECT COUNT(*) FROM error_monitor_events").fetchone()[0] == expected_count, agent
+                    assert db.execute("SELECT user_agent FROM error_monitor_events ORDER BY id DESC LIMIT 1").fetchone()[0] == agent
+
             # Exercise the existing filter, summary and resolution APIs for the new area.
             verify = site / "verify.php"
             verify.write_text(r"""<?php
@@ -116,10 +143,12 @@ require __DIR__.'/src/config/Database.php';
 require __DIR__.'/src/utils/ErrorMonitor.php';
 $monitor = new FAS\Utils\ErrorMonitor(FAS\Config\Database::getInstance()->getConnection());
 $events = $monitor->getRecentEvents(30, 100, 'not_found', 'open');
-if (count($events) !== 6 || $monitor->getSummary()['open'] !== 6) exit(1);
-if ($monitor->markAreaResolved('not_found') !== 6) exit(2);
-if ($monitor->getSummary()['resolved'] !== 6) exit(3);
+if (count($events) !== 14 || $monitor->getSummary()['open'] !== 14) exit(1);
+if ($monitor->markAreaResolved('not_found') !== 14) exit(2);
+if ($monitor->getSummary()['resolved'] !== 14) exit(3);
 if (count($monitor->getRecentEvents(30, 100, 'checkout')) !== 0) exit(4);
+$monitor->record('shipping', 'Synthetic shipping failure', ['user_agent' => 'Googlebot/2.1']);
+if ($monitor->getSummary()['open'] !== 1 || count($monitor->getRecentEvents(30, 100, 'shipping')) !== 1) exit(5);
 """)
             subprocess.run(["php", str(verify)], env=env, check=True, capture_output=True)
 
@@ -130,7 +159,7 @@ if (count($monitor->getRecentEvents(30, 100, 'checkout')) !== 0) exit(4);
             status, _, body = request("/logging-unavailable")
             assert status == 404 and "We couldn't find that page" in body
             assert "ErrorMonitor failed" not in body
-            print("PASS: 5 GET 404 routes, HEAD, exact event counts/context, 200 exclusion, filtering, resolution and logging failure fallback.")
+            print("PASS: storefront 404s, 13 conventional crawler exclusions, AI and unknown crawler retention, scoped operational logging, and failure fallback.")
             print("Local PHP HTTP fixture only; Apache ErrorDocument behavior simulated, production not tested.")
         finally:
             server.terminate()

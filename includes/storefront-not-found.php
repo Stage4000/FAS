@@ -7,11 +7,13 @@ function fasStorefrontNotFound(): void
     http_response_code(404);
     header('X-Robots-Tag: noindex, follow');
     header('Cache-Control: no-store');
-    try {
-        $monitor = new \FAS\Utils\ErrorMonitor(\FAS\Config\Database::getInstance()->getConnection());
-        $monitor->recordNotFound();
-    } catch (\Throwable $e) {
-        error_log('404 landing logging failed: ' . $e->getMessage());
+    if (!\FAS\Utils\ErrorMonitor::isKnownNonAiCrawler($_SERVER['HTTP_USER_AGENT'] ?? '')) {
+        try {
+            $monitor = new \FAS\Utils\ErrorMonitor(\FAS\Config\Database::getInstance()->getConnection());
+            $monitor->recordNotFound();
+        } catch (\Throwable $e) {
+            error_log('404 landing logging failed: ' . $e->getMessage());
+        }
     }
     $metaTitle = 'Page Not Found | Flip and Strip';
     $metaDescription = 'This page is unavailable. Search the current Flip and Strip inventory or browse all parts.';

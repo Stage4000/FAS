@@ -138,6 +138,10 @@ class ErrorMonitor
 
     public function recordNotFound(): void
     {
+        if (self::isKnownNonAiCrawler($_SERVER['HTTP_USER_AGENT'] ?? '')) {
+            return;
+        }
+
         // Apache's local ErrorDocument redirect can change the executing script.
         // Preserve the missing URL, including its original query string.
         $uri = $_SERVER['REQUEST_URI'] ?? '/404.php';
@@ -158,6 +162,21 @@ class ErrorMonitor
                 'referrer' => $this->cleanText($_SERVER['HTTP_REFERER'] ?? null, 1000),
             ],
         ]);
+    }
+
+    public static function isKnownNonAiCrawler(?string $userAgent): bool
+    {
+        if ($userAgent === null || trim($userAgent) === '') {
+            return false;
+        }
+
+        // AI-specific agents stay visible even if a mixed user agent also names a search bot.
+        if (preg_match('/(?<![a-z0-9])(?:GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-SearchBot|Claude-User|anthropic-ai|PerplexityBot|Perplexity-User|Bytespider|CCBot|Meta-ExternalAgent|Meta-ExternalFetcher|Applebot-Extended|Google-Extended)(?![a-z0-9])/i', $userAgent)) {
+            return false;
+        }
+
+        // Match specific published crawler tokens, never generic "bot" or "spider" words.
+        return preg_match('/(?<![a-z0-9])(?:Googlebot|Google-InspectionTool|AdsBot-Google|Mediapartners-Google|bingbot|msnbot|BingPreview|BingVideoPreview|MicrosoftPreview|AdIdxBot|DuckDuckBot|Baiduspider|YandexBot|YandexImages|YandexVideo|Slurp|Sogou web spider|SeznamBot|PetalBot|Qwantify|MojeekBot|AhrefsBot|AhrefsSiteAudit|SemrushBot|SiteAuditBot|MJ12bot|DotBot|Rogerbot|Pinterestbot|Pinterest\/0\.2|facebookexternalhit|Twitterbot|LinkedInBot)(?![a-z0-9])/i', $userAgent) === 1;
     }
 
     public function recordThrowable(string $area, \Throwable $exception, array $context = []): void
