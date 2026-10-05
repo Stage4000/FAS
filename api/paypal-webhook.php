@@ -11,12 +11,14 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Order.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/integrations/PayPalAPI.php';
+require_once __DIR__ . '/../src/payments/PayPalWebhookSetup.php';
 require_once __DIR__ . '/../src/utils/ErrorMonitor.php';
 
 use FAS\Config\Database;
 use FAS\Models\Order;
 use FAS\Models\Product;
 use FAS\Integrations\PayPalAPI;
+use FAS\Payments\PayPalWebhookSetup;
 use FAS\Utils\ErrorMonitor;
 
 function paypalWebhookMonitor(string $message, array $context = []): void
@@ -36,6 +38,19 @@ function paypalWebhookMonitor(string $message, array $context = []): void
 // Get webhook data
 $rawInput = file_get_contents('php://input');
 $webhookData = json_decode($rawInput, true);
+$headers = function_exists('getallheaders') ? (array)getallheaders() : [];
+$normalizedHeaders = [];
+foreach ($headers as $key => $value) {
+    $normalizedHeaders[strtolower((string)$key)] = $value;
+}
+
+// Setup deliberately sends this unsigned probe to confirm the listener rejects it.
+// Keep the HTTP 401, but do not turn a successful readiness check into an alarm.
+if (is_array($webhookData) && PayPalWebhookSetup::isReadinessProbe($webhookData, $normalizedHeaders)) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Webhook signature could not be verified']);
+    exit;
+}
 
 // Log webhook metadata only (not sensitive payment data)
 if ($webhookData && isset($webhookData['event_type'])) {
@@ -65,14 +80,6 @@ if (!$webhookData || !isset($webhookData['event_type'])) {
 $webhookVerified = false;
 try {
     $paypalAPI = new PayPalAPI();
-    $headers = getallheaders();
-    
-    // Convert header keys to match PayPal's format (case-insensitive)
-    $normalizedHeaders = [];
-    foreach ($headers as $key => $value) {
-        $normalizedHeaders[strtolower($key)] = $value;
-    }
-    
     $webhookVerified = $paypalAPI->verifyWebhookSignature($normalizedHeaders, $rawInput);
     if (!$webhookVerified) {
         error_log('PayPal Webhook: Signature verification failed - possible unauthorized request');

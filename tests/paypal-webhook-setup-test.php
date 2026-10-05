@@ -20,6 +20,12 @@ class SetupGateway extends PayPalWebhookSetup {
 }
 $checks=0;
 function checkSetup(bool $ok,string $message):void {global $checks;$checks++;if(!$ok)throw new RuntimeException($message);}
+$probe=['id'=>'FAS-READINESS-0123456789abcdef','event_type'=>'FAS.WEBHOOK.READINESS'];
+checkSetup(PayPalWebhookSetup::isReadinessProbe($probe, ['Content-Type'=>'application/json']), 'Unsigned generated readiness probe recognized');
+checkSetup(!PayPalWebhookSetup::isReadinessProbe($probe, ['PayPal-Transmission-Id'=>'fake']), 'Probe with PayPal headers is not suppressed');
+checkSetup(!PayPalWebhookSetup::isReadinessProbe($probe+['resource'=>[]], []), 'Probe with extra payload is not suppressed');
+checkSetup(!PayPalWebhookSetup::isReadinessProbe(['id'=>'FAS-READINESS-not-generated','event_type'=>'FAS.WEBHOOK.READINESS'], []), 'Arbitrary readiness event is not suppressed');
+checkSetup(!PayPalWebhookSetup::isReadinessProbe(['id'=>'WH-EVENT','event_type'=>'PAYMENT.CAPTURE.COMPLETED'], []), 'Payment events are never suppressed');
 $url='https://example.invalid/api/paypal-webhook.php';
 $p=new SetupGateway();$hook=$p->ensure($url);
 checkSetup($hook['url']===$url,'registered correct URL');
