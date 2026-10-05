@@ -141,6 +141,8 @@ final class ShippingSettingsStore
             if (!chmod($temporary,0600) || !rename($temporary,$path)) {
                 throw new \RuntimeException('Private shipping settings could not be saved.');
             }
+            clearstatcache(true,$path);
+            if (function_exists('opcache_invalidate')) opcache_invalidate($path,true);
         } finally {
             if (is_file($temporary)) unlink($temporary);
             umask($oldMask);
