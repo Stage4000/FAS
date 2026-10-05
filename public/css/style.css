@@ -1673,6 +1673,34 @@ footer a:hover {
     height: 48px;
 }
 
+.checkout-paypal-option + .checkout-paypal-option {
+    margin-top: 12px;
+}
+
+.checkout-wallet-button,
+.checkout-paypal-option {
+    position: relative;
+}
+
+/* Frame the official control without intercepting clicks or enclosing its footer. */
+.checkout-wallet-button::after,
+.checkout-paypal-option::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    border-radius: 12px;
+    box-shadow: 0 0 0 2px var(--primary-color);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.checkout-wallet-button:has([aria-disabled="true"])::after {
+    opacity: 0.45;
+}
+
 .checkout-guidance-card,
 .checkout-summary-note {
     background: linear-gradient(135deg, #fff7f8 0%, #ffffff 100%);

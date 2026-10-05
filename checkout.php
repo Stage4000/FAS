@@ -239,10 +239,6 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                         <?php endif; ?>
                         <div id="paypal-button-container"></div>
-                        <p class="text-center small text-muted mt-3 mb-0">
-                            <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
-                            Payments processed by PayPal
-                        </p>
                     </section>
                 </div>
             </div>
@@ -252,7 +248,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <!-- Load one PayPal SDK instance for all available payment methods. -->
 <?php if (!empty($paypalClientId) && strpos($paypalClientId, 'YOUR_') !== 0): ?>
-<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars(rawurlencode($paypalClientId), ENT_QUOTES, 'UTF-8'); ?>&amp;currency=USD&amp;components=buttons<?php echo $applePayAvailable ? ',applepay' : ''; ?><?php echo $googlePayAvailable ? ',googlepay' : ''; ?>"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars(rawurlencode($paypalClientId), ENT_QUOTES, 'UTF-8'); ?>&amp;currency=USD&amp;components=buttons,funding-eligibility<?php echo $applePayAvailable ? ',applepay' : ''; ?><?php echo $googlePayAvailable ? ',googlepay' : ''; ?>"></script>
 <?php if ($applePayAvailable): ?>
 <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
 <?php endif; ?>
@@ -649,8 +645,8 @@ function setupPayPalButton() {
         return;
     }
     
-    // Render actual PayPal button
-    paypal.Buttons({
+    // Share the same payment handlers across eligible provider-rendered buttons.
+    const buttonOptions = {
         style: {
             layout: 'vertical',
             color: 'white',
@@ -813,7 +809,22 @@ function setupPayPalButton() {
             });
             alert('Payment was cancelled. Your cart items are still saved so you can adjust shipping or continue shopping.');
         }
-    }).render('#paypal-button-container');
+    };
+    // Separate hosts let each payment choice share the site's outline without
+    // modifying PayPal's protected frame or its branding below the card button.
+    paypal.getFundingSources().forEach(function (fundingSource) {
+        const button = paypal.Buttons({ ...buttonOptions, fundingSource });
+        if (!button.isEligible()) return;
+        const host = document.createElement('div');
+        host.className = 'checkout-paypal-option';
+        container.appendChild(host);
+        button.render(host).catch(function (error) {
+            host.remove();
+            logCheckoutError('paypal', 'PayPal payment option could not render.', {
+                stage: 'paypal_button_render', funding_source: fundingSource
+            }, error);
+        });
+    });
 }
 
 async function calculateShipping() {
