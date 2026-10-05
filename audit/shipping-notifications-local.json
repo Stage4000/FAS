@@ -1,5 +1,5 @@
 {
-    "date": "2026-10-02T22:26:42+00:00",
+    "date": "2026-10-05T16:54:13+00:00",
     "scope": "synthetic orders, statuses, isolated mail callbacks and local readiness",
     "checks": 55,
     "passed": [

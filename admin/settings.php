@@ -290,6 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h5 class="mb-0"><i class="bi bi-truck me-2"></i>EasyShip Settings</h5>
                         </div>
                         <div class="card-body">
+                            <p class="small text-muted">USPS and UPS account details are managed separately in <a href="shipping-settings.php">Shipping Settings</a>.</p>
                             <div class="row">
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label">API Key</label>

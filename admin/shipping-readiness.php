@@ -74,6 +74,7 @@ $modeLabel=['easyship'=>'Easyship','direct_with_fallback'=>'Direct with Easyship
             <p class="mb-0 opacity-75">USPS and UPS setup, inventory and storage checks</p></div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-light" href="shipping-readiness.php" data-admin-refresh>Refresh checks</a>
+            <a class="btn btn-outline-light" href="shipping-settings.php">Shipping Settings</a>
             <a class="btn btn-outline-secondary" href="shipping-operations.php">Shipping Review</a>
         </div>
     </div>

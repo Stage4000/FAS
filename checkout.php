@@ -594,6 +594,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
     if (window.FASGooglePay?.pending()) {
+        window.FASGooglePayResumeCheckout = () => window.location.reload();
         document.dispatchEvent(new Event('fas:checkout-ready'));
         return;
     }

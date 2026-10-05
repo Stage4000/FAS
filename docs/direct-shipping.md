@@ -60,7 +60,9 @@ No delivery-day promise is inferred from a service name. The first version displ
 
 ## Configuration and release controls
 
-Configuration lives in src/config/shipping.php, separate from ordinary settings-file rewrites. The file is ignored by Git. The example is src/config/shipping.example.php. An operator may instead select a deployment-owned file with FAS_SHIPPING_CONFIG_PATH. Secrets can be supplied through the environment variables named in the example; do not put credentials in tracked files.
+The administrator enters USPS and UPS account details on **Shipping Settings** (`/admin/shipping-settings.php`). Every save requires the current administrator password and writes an owner-only PHP configuration file outside the web root; the page shows only which fields are present, never their values. The default private path is a `fas-private/shipping.php` file beside the deployed web directory. Set `FAS_SHIPPING_CONFIG_PATH` to an absolute path outside both the application and document roots when the host requires another private location; create its owner-only parent directory first. Existing `src/config/shipping.php` settings are read for compatibility until the first admin save migrates them to the private path. Ordinary admin Settings saves do not rewrite shipping policies. The example is `src/config/shipping.example.php`; environment variables in it remain supported for initial deployment. Do not put credentials in tracked files. A missing or unwritable private directory prevents saving credentials but does not change Easyship checkout.
+
+Credential entry does not activate a carrier. The account must be tested with representative rates and the origin's private cache and order schema must be prepared before changing the mode or activation flags in the private shipping configuration. Credential replacement and removal are refused while direct checkout or carrier operations are active; pause those operations first so in-flight purchases retain their original account context.
 
 | Mode | Behavior |
 |---|---|
@@ -83,7 +85,7 @@ Deploy these files together:
 - src/shipping/ShippingConfig.php, ShippingShipment.php, ShippingRateService.php
 - src/shipping/CarrierHttp.php, CarrierRates.php, ShippingCache.php, ShippingCatalogReadiness.php
 - src/shipping/ShippingLabelOperations.php, ShippingLabelCancellations.php, ShippingLabelCancellationService.php, CarrierLabelPayloads.php, CarrierLabelResponses.php, CarrierLabelHttp.php, CarrierLabelClient.php, ShippingLabelService.php, CarrierTrackingHttp.php, CarrierTrackingResponses.php, CarrierTrackingClient.php, ShippingTracking.php, ShippingTrackingService.php, ShippingNotifications.php, ShippingReadiness.php and ShippingMonitor.php
-- src/config/shipping.example.php and the deployment-owned shipping.php when ready
+- src/config/shipping.example.php, src/shipping/ShippingSettingsStore.php and admin/shipping-settings.php; the private shipping.php is created by the administrator after deployment, never shipped from Git
 - api/shipping-rates.php, api/shipping-estimate.php
 - checkout.php, api/process-order.php, src/payments/ApplePayContext.php and ApplePayService.php
 - src/shipping/ShippingOrder.php, admin/order-details.php, admin/shipping-label.php, admin/shipping-label-reconcile.php, admin/shipping-label-cancel.php, admin/shipping-label-download.php, admin/shipping-operations.php, admin/shipping-notification.php, admin/css/shipping-review.css, admin/includes/nav.php, database/schema.sqlite.sql

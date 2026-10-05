@@ -62,6 +62,7 @@ if (!$webhookData || !isset($webhookData['event_type'])) {
 }
 
 // Verify webhook signature
+$webhookVerified = false;
 try {
     $paypalAPI = new PayPalAPI();
     $headers = getallheaders();
@@ -72,7 +73,8 @@ try {
         $normalizedHeaders[strtolower($key)] = $value;
     }
     
-    if (!$paypalAPI->verifyWebhookSignature($normalizedHeaders, $rawInput)) {
+    $webhookVerified = $paypalAPI->verifyWebhookSignature($normalizedHeaders, $rawInput);
+    if (!$webhookVerified) {
         error_log('PayPal Webhook: Signature verification failed - possible unauthorized request');
         paypalWebhookMonitor('PayPal webhook signature verification failed.', [
             'severity' => 'critical',
@@ -81,11 +83,6 @@ try {
                 'paypal_transmission_id' => $normalizedHeaders['paypal-transmission-id'] ?? null,
             ],
         ]);
-        // In production, you should reject the webhook here
-        // For now, we'll log and continue
-        // http_response_code(401);
-        // echo json_encode(['error' => 'Unauthorized']);
-        // exit;
     }
 } catch (Exception $e) {
     error_log('PayPal Webhook: Error verifying signature: ' . $e->getMessage());
@@ -96,6 +93,12 @@ try {
             'event_type' => $webhookData['event_type'] ?? null,
         ],
     ]);
+}
+
+if (!$webhookVerified) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Webhook signature could not be verified']);
+    exit;
 }
 
 $eventType = $webhookData['event_type'];
@@ -146,14 +149,14 @@ function handlePaymentCompleted($webhookData)
         $existingOrder = $orderModel->getByPayPalOrderId($paypalOrderId);
         
         if ($existingOrder) {
-            if (($existingOrder['payment_method'] ?? '') === 'googlepay') {
+            if (in_array($existingOrder['payment_method'] ?? '', ['googlepay', 'applepay'], true)) {
                 // Reconcile using the same verified, atomic path as browser recovery.
                 require_once __DIR__ . '/../src/payments/ApplePayFactory.php';
                 $query = $db->prepare('SELECT id FROM applepay_attempts WHERE order_id = ?');
                 $query->execute([$existingOrder['id']]);
                 $attempt = $query->fetchColumn();
-                if (!$attempt) throw new RuntimeException('Google Pay attempt was not found');
-                \FAS\Payments\ApplePayFactory::make('googlepay')->status((string)$attempt, null);
+                if (!$attempt) throw new RuntimeException('Wallet payment attempt was not found');
+                \FAS\Payments\ApplePayFactory::make($existingOrder['payment_method'])->status((string)$attempt, null);
                 return;
             }
             // Check if already processed to avoid duplicate processing
@@ -217,6 +220,12 @@ function handlePaymentCompleted($webhookData)
                 'event_type' => $webhookData['event_type'] ?? null,
             ],
         ]);
+        if (in_array($existingOrder['payment_method'] ?? '', ['googlepay', 'applepay'], true)) {
+            http_response_code(503);
+            header('Retry-After: 30');
+            echo json_encode(['error' => 'Wallet reconciliation unavailable']);
+            exit;
+        }
     }
 }
 

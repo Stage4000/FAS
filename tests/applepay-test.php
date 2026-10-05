@@ -5,6 +5,8 @@ require_once __DIR__.'/../src/payments/ApplePayContext.php';
 require_once __DIR__.'/../src/payments/WalletPayPalClient.php';
 require_once __DIR__.'/../src/payments/ApplePayService.php';
 use FAS\Payments\{ApplePayContext as C, ApplePayService, WalletPayPalGateway, CheckoutProblem, PayPalFailure};
+$testWallet = defined('FAS_TEST_WALLET') ? FAS_TEST_WALLET : 'applepay';
+$testSource = $testWallet === 'googlepay' ? 'google_pay' : 'apple_pay';
 $bridge = getenv('FAS_APPLEPAY_TEST_BRIDGE');
 if ($bridge) require $bridge;
 if (!$bridge && !in_array('sqlite', PDO::getAvailableDrivers(), true)) {
@@ -24,7 +26,7 @@ final class FakePayPal implements WalletPayPalGateway {
         return $p;
     }
     public function get(string $id): array { return $this->orders[$id]; }
-    public function approve(string $id): void { $this->orders[$id]['status']='APPROVED'; $this->orders[$id]['payment_source']=['apple_pay'=>['name'=>'Test']]; }
+    public function approve(string $id): void { $this->orders[$id]['status']='APPROVED'; $this->orders[$id]['payment_source']=[$GLOBALS['testSource']=>['name'=>'Test']]; }
     public function capture(string $id,string $key): array {
         $this->captureCalls++; $this->captureKeys[]=$key;
         if ($this->duringCapture) ($this->duringCapture)();
@@ -62,7 +64,7 @@ function fixture($shippingConfig='easyship'): array {
     $pp=new FakePayPal();
     $configResolver=is_callable($shippingConfig) ? $shippingConfig
         : static fn(): array => shippingFixtureConfig($shippingConfig);
-    $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live',$configResolver);
+    $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live',$configResolver,$GLOBALS['testWallet']);
     $in=['items'=>[['product_id'=>'1','quantity'=>2]],'email'=>'test@example.invalid','first_name'=>'Test','last_name'=>'Buyer',
         'address'=>['address1'=>'100 Test Road','address2'=>'','city'=>'Test City','state'=>'CA','zip'=>'90001','country'=>'US'],
         'shipping_quote'=>str_repeat('c',32),'shipping_index'=>0,'expected_total'=>'25.00'];
@@ -84,7 +86,7 @@ scenario('success is bound, idempotent, and uses catalog prices',function(){
     $same=$s->create($id,$owner,$in,null);check($same['paypal_order_id']===$r['paypal_order_id']&&$p->createCalls===1,'create idempotent');
     $p->approve($r['paypal_order_id']);$paid=$s->capture($id,$owner);check($paid['state']==='paid','completed');
     $s->capture($id,$owner);$s->status($id,$owner);check($p->captureCalls===1,'one capture');check((int)value($db,'SELECT quantity FROM products WHERE id=1')===8,'stock once');
-    check(value($db,'SELECT payment_status FROM orders')==='completed','paid stored');check(value($db,'SELECT payment_method FROM orders')==='applepay','wallet identity');
+    check(value($db,'SELECT payment_status FROM orders')==='completed','paid stored');check(value($db,'SELECT payment_method FROM orders')===$GLOBALS['testWallet'],'wallet identity');
     check(value($db,'SELECT provider FROM order_shipping')==='easyship','selected shipping provider stored');
     check(value($db,'SELECT courier_id FROM order_shipping')==='123','legacy numeric courier identifier is preserved');
     check($p->captureKeys[0]==='apx-'.$id,'stable capture key');

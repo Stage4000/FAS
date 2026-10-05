@@ -239,6 +239,8 @@ See `cron/README.md` for more details.
 
 ## Support
 
+For Google Pay deployment, account activation, the shared wallet migration, and the PayPal webhook ID, follow [Google Pay setup](docs/google-pay.md). Local tests do not replace sandbox and live-payment acceptance checks.
+
 - **eBay User Token Guide**: `/admin/ebay-token-guide.php`
 - **Database Documentation**: `database/README.md`
 - **Cron Setup**: `cron/README.md`

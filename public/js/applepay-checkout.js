@@ -100,6 +100,7 @@
         }
         root.setAttribute('aria-busy', value ? 'true' : 'false');
         refresh();
+        window.FASGooglePay?.refresh();
     }
     function savePending() {
         sessionStorage.setItem(storageKey, JSON.stringify(pending));

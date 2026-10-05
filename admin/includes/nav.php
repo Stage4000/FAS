@@ -4,7 +4,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
 $compactQualitySidebar = in_array($currentPage, ['product-quality.php', 'order-details.php',
     'shipping-label.php', 'shipping-label-reconcile.php', 'shipping-label-cancel.php',
-    'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php',
+    'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php', 'shipping-settings.php',
     'warehouses.php'], true);
 $ajaxPage = basename($_SERVER['PHP_SELF']);
 $ajaxEnabled = in_array($ajaxPage, [
@@ -91,6 +91,9 @@ if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($acti
         </a>
         <a href="shipping-readiness.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'shipping-readiness.php' ? 'active' : ''; ?>">
             <i class="fas fa-clipboard-check me-2"></i>Shipping Readiness
+        </a>
+        <a href="shipping-settings.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'shipping-settings.php' ? 'active' : ''; ?>">
+            <i class="fas fa-sliders me-2"></i>Shipping Settings
         </a>
     <a href="warehouses.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'warehouses.php' ? 'active' : ''; ?>">
         <i class="fas fa-warehouse me-2"></i>Warehouses

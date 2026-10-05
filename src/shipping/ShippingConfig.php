@@ -4,11 +4,21 @@ namespace FAS\Shipping;
 
 final class ShippingConfig
 {
+    /** Managed settings live alongside, never inside, the deployed web tree. */
+    public static function managedPath(): string
+    {
+        $override = getenv('FAS_SHIPPING_CONFIG_PATH');
+        return $override !== false && $override !== ''
+            ? $override : dirname(__DIR__, 3).'/fas-private/shipping.php';
+    }
+
     public static function load(): array
     {
         $defaults = require __DIR__.'/../config/shipping.example.php';
         $override = getenv('FAS_SHIPPING_CONFIG_PATH');
-        $path = $override ?: __DIR__.'/../config/shipping.php';
+        $managed = self::managedPath();
+        $legacy = __DIR__.'/../config/shipping.php';
+        $path = $override ? $managed : (is_file($managed) ? $managed : $legacy);
         if ($override && !is_file($path)) throw new \RuntimeException('Shipping configuration file is unavailable.');
         if (is_file($path)) {
             $config = require $path;

@@ -45,7 +45,8 @@ return [
         'client_id' => 'YOUR_PAYPAL_CLIENT_ID',
         'client_secret' => 'YOUR_PAYPAL_CLIENT_SECRET',
         'mode' => 'sandbox', // or 'live'
-        'currency' => 'USD'
+        'currency' => 'USD',
+        'webhook_id' => '', // ID for this app's /api/paypal-webhook.php subscription (not the client ID).
     ],
     
     // Site configuration

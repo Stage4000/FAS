@@ -29,8 +29,11 @@ try {
         $backup = $argv[2] ?? '';
         $dir = realpath(dirname($backup));
         $root = realpath(__DIR__ . '/..');
-        if ($backup === '' || $backup[0] !== '/' || !$dir || !is_writable($dir) || file_exists($backup)
-            || $dir === $root || str_starts_with($dir, $root . DIRECTORY_SEPARATOR)) {
+        $absolute = preg_match('~^(?:[A-Za-z]:/|/)~', str_replace('\\', '/', $backup)) === 1;
+        $compareDir = PHP_OS_FAMILY === 'Windows' ? strtolower((string)$dir) : (string)$dir;
+        $compareRoot = PHP_OS_FAMILY === 'Windows' ? strtolower((string)$root) : (string)$root;
+        if (!$absolute || !$dir || !is_writable($dir) || file_exists($backup)
+            || $compareDir === $compareRoot || str_starts_with($compareDir, $compareRoot . DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('Supply a NEW absolute SQLite backup filename in a writable directory outside the web root.');
         }
         // SQLite creates a consistent online snapshot; plain filesystem copies can miss WAL writes.
