@@ -25,6 +25,11 @@ final class ShippingConfig
             if (!is_array($config)) throw new \RuntimeException('Invalid shipping configuration.');
             $defaults = array_replace_recursive($defaults, $config);
         }
+        // A private settings file may have been created before storage was provisioned.
+        $cacheOverride=getenv('FAS_SHIPPING_CACHE_PATH');
+        if (($defaults['cache_path'] ?? '')==='' && $cacheOverride!==false && $cacheOverride!=='') {
+            $defaults['cache_path']=$cacheOverride;
+        }
         return self::validate($defaults);
     }
 

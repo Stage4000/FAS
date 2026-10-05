@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-05T17:33:25Z",
+  "date": "2026-10-05T17:42:32Z",
   "scope": "isolated synthetic administrator and private credentials; no carrier calls",
-  "checks": 30,
+  "checks": 33,
   "passed": [
     "Anonymous credential page redirects",
     "Active administrator signs in",
@@ -17,6 +17,7 @@
     "Current password is required",
     "USPS credentials save to private storage",
     "Credentials stay outside the web root",
+    "Later private-cache deployment setting remains effective",
     "Saved values are status-only in HTML",
     "Blank fields retain saved values",
     "Array-shaped credential input is rejected",
@@ -28,6 +29,8 @@
     "Confirmed production account can be approved for rates",
     "Direct switch requires packed-parcel and rate confirmations",
     "Direct switch activates only after storage, catalog, account and confirmations pass",
+    "Rollback refuses an unconfigured Easyship account",
+    "Easyship key can be restored while Direct Shipping is active",
     "Administrator can switch checkout back to Easyship without losing carrier settings",
     "Clearing requires explicit confirmation",
     "Clearing one carrier preserves the other",

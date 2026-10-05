@@ -4,6 +4,8 @@
 .notification-review { max-width: 1000px; }
 .shipping-review .row > *, .notification-review .row > * { min-width: 0; }
 .shipping-review .table-responsive { max-width: 100%; }
+.shipping-review .alert-info { color: #164969; background: #dff3fb; border-color: #aadbed; }
+[data-theme="dark"] .shipping-review .alert-info { color: #d9efff; background: #163249; border-color: #3c6b87; }
 
 button[data-bs-target="#qualitySidebar"],
 .shipping-review .btn-outline-primary,

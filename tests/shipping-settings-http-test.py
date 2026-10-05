@@ -98,6 +98,13 @@ try:
     saved=setting.read_text()
     check('fixture-usps-secret' in saved and str(setting).startswith(str(private)) and
           not str(setting).startswith(str(SITE)),'Credentials stay outside the web root')
+    late=private/'shipping-late-cache.php'
+    late.write_text(re.sub(r"'cache_path' => '.*?',", "'cache_path' => '',", saved, count=1))
+    late_env={**env,'FAS_SHIPPING_CONFIG_PATH':str(late)}
+    source_config=str(SITE/'src/shipping/ShippingConfig.php').replace('\\','/')
+    late_code='require '+repr(source_config)+'; echo \\FAS\\Shipping\\ShippingConfig::load()["cache_path"];'
+    loaded=subprocess.check_output(['php','-r',late_code],env=late_env,text=True)
+    check(loaded==env['FAS_SHIPPING_CACHE_PATH'],'Later private-cache deployment setting remains effective')
     status,headers,page=request(path)
     check('fixture-usps-secret' not in page and 'fixture-usps-id' not in page and
           'fixture-crid' not in page and '3 of 6 details entered' in page,'Saved values are status-only in HTML')
@@ -132,6 +139,7 @@ try:
           "'parcel_data_verified' => true" in setting.read_text(),
           'Direct switch activates only after storage, catalog, account and confirmations pass')
     siteconfig.write_text(siteconfig.read_text().replace('fixture-easyship-secret','YOUR_EASYSHIP_API_KEY'))
+    time.sleep(3)  # The fixture edits config outside the admin writer; let PHP's stat cache refresh.
     check(request(path,{'csrf_token':token,'action':'switch_mode','mode':'easyship','password':password})[0]==200 and
           "'mode' => 'direct'" in setting.read_text(),
           'Rollback refuses an unconfigured Easyship account')
