@@ -105,7 +105,8 @@ try:
     check('data-admin-notice="Tracking information updated successfully' in body and 'AJAX-TRACK' in body,'Order tracking action returns refreshed state')
     body=request('/admin/warehouses.php?action=create',{
         'action':'create','name':'Fixture warehouse','code':'AJAX-QA','address_line1':'1 Test Street',
-        'city':'Test City','state':'CA','postal_code':'90001','country_code':'US','is_active':'1'
+        'city':'Test City','state':'CA','postal_code':'90001','country_code':'US','is_active':'1',
+        'csrf_token':csrf
     })[2]
     check('data-admin-notice="Warehouse created successfully' in body,'Warehouse create returns updated list')
     check('data-admin-url="warehouses.php?action=list"' in body,'Editor save provides canonical list URL for history')
