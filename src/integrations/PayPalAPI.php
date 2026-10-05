@@ -21,6 +21,7 @@ class PayPalAPI
     
     public function __construct($config = null)
     {
+        $loadWebhookFile = $config === null;
         if ($config === null) {
             $configFile = __DIR__ . '/../config/config.php';
             if (!file_exists($configFile)) {
@@ -35,6 +36,14 @@ class PayPalAPI
         $this->mode = $paypalConfig['mode'];
         $this->currency = $paypalConfig['currency'];
         $this->webhookId = $paypalConfig['webhook_id'] ?? '';
+        $webhookFile = __DIR__ . '/../config/paypal-webhook.php';
+        if ($loadWebhookFile && is_file($webhookFile)) {
+            $saved = require $webhookFile;
+            if (is_array($saved) && ($saved['mode'] ?? '') === $this->mode
+                && ($saved['client_id_hash'] ?? '') === hash('sha256', $this->clientId)) {
+                $this->webhookId = $saved['webhook_id'] ?? $this->webhookId;
+            }
+        }
         
         // Validate configuration
         if (empty($this->clientId) || empty($this->clientSecret)) {
@@ -313,8 +322,8 @@ class PayPalAPI
                     'Authorization: Bearer ' . $accessToken
                 ];
                 
-                if ($method === 'POST') {
-                    curl_setopt($ch, CURLOPT_POST, true);
+                if (in_array($method, ['POST', 'PATCH'], true)) {
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
                     if ($data !== null) {
                         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
                     }

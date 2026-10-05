@@ -1,6 +1,6 @@
 <?php
 /**
- * PayPal Webhook/IPN Handler
+ * PayPal REST webhook handler (not a legacy IPN endpoint)
  * Processes PayPal payment notifications and updates orders with production-ready security
  */
 
@@ -105,7 +105,6 @@ $eventType = $webhookData['event_type'];
 
 // Handle different event types
 switch ($eventType) {
-    case 'CHECKOUT.ORDER.APPROVED':
     case 'PAYMENT.CAPTURE.COMPLETED':
         handlePaymentCompleted($webhookData);
         break;
@@ -133,11 +132,8 @@ function handlePaymentCompleted($webhookData)
         $productModel = new Product($db);
         
         $resource = $webhookData['resource'];
-        // For PAYMENT.CAPTURE.COMPLETED, resource.id is the capture ID — order ID is in supplementary_data.
-        // For CHECKOUT.ORDER.APPROVED, resource.id is the order ID.
-        // Prefer supplementary_data order ID when available so both event types work correctly.
+        // An approval is not a capture. Only completed captures reach this handler.
         $paypalOrderId = $resource['supplementary_data']['related_ids']['order_id']
-            ?? $resource['id']
             ?? null;
         
         if (!$paypalOrderId) {
