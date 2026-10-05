@@ -649,7 +649,7 @@ function setupPayPalButton() {
     const buttonOptions = {
         style: {
             layout: 'vertical',
-            color: 'white',
+            color: 'black',
             shape: 'rect',
             label: 'pay',
             height: 48,

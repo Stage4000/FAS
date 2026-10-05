@@ -334,7 +334,7 @@
             const available = await timeout(client.isReadyToPay({ apiVersion: 2, apiVersionMinor: 0,
                 allowedPaymentMethods: googleConfig.allowedPaymentMethods }), 10000);
             if (!available.result) return;
-            googleButton = client.createButton({ onClick: begin, buttonColor: 'white', buttonType: 'pay',
+            googleButton = client.createButton({ onClick: begin, buttonColor: 'black', buttonType: 'pay',
                 buttonSizeMode: 'fill', buttonRadius: 12,
                 allowedPaymentMethods: googleConfig.allowedPaymentMethods });
             buttonHost.replaceChildren(googleButton);

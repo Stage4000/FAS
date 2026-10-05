@@ -342,7 +342,7 @@
             }
             eligible = true;
             appleButton = document.createElement('apple-pay-button');
-            appleButton.setAttribute('buttonstyle', 'white-outline');
+            appleButton.setAttribute('buttonstyle', 'black');
             appleButton.setAttribute('type', 'buy');
             appleButton.setAttribute('locale', 'en-US');
             appleButton.style.setProperty('--apple-pay-button-width', '100%');
