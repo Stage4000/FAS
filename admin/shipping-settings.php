@@ -78,7 +78,7 @@ $fields=[
 <?php include __DIR__.'/includes/nav.php'; ?>
 <main class="shipping-review container-fluid px-3 px-lg-4 pb-5" style="max-width:1200px">
     <div class="admin-hero d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
-        <div><h1 class="mb-1"><i class="fas fa-sliders me-2" aria-hidden="true"></i>Shipping Settings</h1>
+        <div><h1 class="mb-1"><i class="fas fa-sliders me-2" style="color:var(--admin-hero-text)" aria-hidden="true"></i>Shipping Settings</h1>
             <p class="mb-0 opacity-75">USPS and UPS account details</p></div>
         <a class="btn btn-light" href="shipping-readiness.php">View readiness</a>
     </div>
