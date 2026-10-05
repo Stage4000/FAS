@@ -5,7 +5,7 @@ Implemented in the local project on October 5, 2026. This is not a deployment or
 ## Configuration already present
 
 - The existing `src/config/config.php` client ID matches the client-supplied ID: `AUA08SnQ5VhWMoU0UcEyTlJ_ncBGL_7iuKpTDBxZC-mq4peArRBVGnmjCfcEJ1ha_YNcgq5XnlkJSpSu`.
-- PayPal mode is `live`, currency is `USD`, and a non-placeholder server-side client secret exists. The secret was neither disclosed nor tested against PayPal. No replacement secret is needed unless authentication fails or the deployed configuration differs.
+- PayPal mode is `live`, currency is `USD`, and the existing server-side credentials successfully authenticated with PayPal's live API on October 5, 2026. The secret was not disclosed. No replacement credentials are needed.
 - The shared wallet attempt schema has been added to the local SQLite database after a consistent backup at `C:\Users\admin\.codex\backups\fas-before-googlepay-20261005-1651.db`. Production schema has not been inspected or changed.
 - No PayPal webhook ID is configured locally. Account eligibility, production domain approval, and live SDK merchant information have not been verified.
 
@@ -32,7 +32,21 @@ If PayPal's configuration does not provide the production Google merchant ID, or
 
 [Google's production access instructions](https://developers.google.com/pay/api/web/guides/test-and-deploy/publish-your-integration) explain the profile, domain review, and merchant ID. Confirm any PayPal-managed onboarding requirements with PayPal; do not create a duplicate merchant profile solely because no ID was supplied in the original email.
 
-### 3. Supply the PayPal webhook ID for automatic reconciliation
+### 3. Register the webhook automatically (developer operation)
+
+The client does not need to configure IPN or retrieve an ID manually. Deploy the updated payment files through SiteCritter's GitHub integration, then run this command from the deployed FAS directory:
+
+```sh
+php scripts/paypal-webhook-setup.php setup
+```
+
+This authenticates with the existing app credentials, checks that the deployed listener rejects unsigned events, creates or reuses the matching app webhook, adds any missing capture events without removing other subscriptions, reads it back, and saves `src/config/paypal-webhook.php`. That ignored configuration file is bound to the client ID and environment and is loaded automatically; no credentials are rewritten. Re-running setup does not create duplicate webhooks. Run `check` instead of `setup` for a diagnostic without changing PayPal settings.
+
+If running setup on a developer workstation, securely copy its generated `src/config/paypal-webhook.php` to the deployed server afterward. Prefer running on the hosting server so the saved configuration is immediately effective. Do not commit deployment-local configuration. On Windows, if PHP reports a missing certificate issuer, configure `curl.cainfo` with a trusted CA bundle; never disable certificate verification.
+
+Verified before deployment: the live app authenticated and reported zero webhooks. The live handler returned HTTP 200 for an unsigned, non-payment readiness event, indicating the older handler was still deployed. Setup correctly refused registration in that state. The unknown readiness event has no order/payment payload and does not charge or modify an order.
+
+Manual alternative, if ever needed:
 
 In the same **Live** PayPal app, open **Webhooks**. Reuse the existing subscription for `https://flipandstrip.com/api/paypal-webhook.php`, or add that URL if absent. Subscribe to `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, and `PAYMENT.CAPTURE.REFUNDED`. Copy the subscription's **Webhook ID** into `paypal.webhook_id` in the server's `src/config/config.php`.
 
@@ -53,6 +67,7 @@ Deploy these files together:
 - `src/payments/GooglePayContext.php`, `ApplePayService.php`, `ApplePayFactory.php`, `WalletPayPalClient.php`.
 - `src/integrations/PayPalAPI.php`; `src/config/googlepay.example.php`.
 - `scripts/applepay-maintenance.php`; `database/applepay.sql` (existing shared schema).
+- `scripts/paypal-webhook-setup.php`; `src/payments/PayPalWebhookSetup.php`.
 
 Keep the deployed `config.php` credentials; add only the webhook setting as needed. Do not upload the local SQLite database or backup. Existing shipping prerequisites still apply; see `docs/direct-shipping.md` and `docs/apple-pay.md`.
 
