@@ -60,6 +60,10 @@ Detailed phase content is retained until required deployment and carrier retests
 - Checkout payment-state browser QA used a disposable synthetic cart and no payment provider: the unavailable-payment message rendered in ordinary checkout, and a reloaded pending PayPal payment showed its reference and retry delay while hiding the inactive form and stale $0.00 totals. The recovery view rendered at 1440px and 390px in both themes with no horizontal overflow. The rendered retry button completed one mocked captured USPS order; its inventory moved from 10 to 9, and a repeat confirmation with the provider mock unavailable kept inventory at 9. A reused capture already assigned to another fixture order was refused with no stock change. No real PayPal or carrier call occurred; sandbox and deployed capture/recovery retests remain required.
 - Isolated browser QA used synthetic inventory and mocked carrier responses: desktop dark checkout showed USPS/UPS options and updated the total when UPS was selected; editing the destination removed the old rate and disabled payment; 390px light checkout showed the recalculated choices without console errors. The administrator order page displayed the saved USPS service, quote and parcel on desktop and at 390px, without horizontal page overflow. This is local template/interaction evidence, not an account or deployed test.
 
+## Deployed smoke, October 5
+
+- After the code push, an anonymous request to `/admin/shipping-settings.php` returned `302` to `login.php`, and `/checkout` returned `200`. This checks route availability and anonymous access only. Authenticated credential saving, production private-storage permissions, carrier accounts, payment recovery and live shipping behavior remain unverified on the deployed origin.
+
 ## Phase 2 — credentials, staging and deployment verification
 
 - [ ] Have the client enter received USPS/UPS credentials in Admin → Shipping Settings, confirm the resulting private file permissions, USPS gateway and test/production separation. No credential has been entered locally or on deployment.
