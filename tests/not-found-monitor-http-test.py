@@ -127,7 +127,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
             retained_agents = [
                 "GPTBot/1.0", "OAI-SearchBot/1.0", "ChatGPT-User/1.0",
                 "ClaudeBot/1.0", "PerplexityBot/1.0", "CCBot/2.0",
-                "Googlebot/2.1 GPTBot/1.0", "UnknownCrawler/1.0",
+                "Googlebot/2.1 GPTBot/1.0", "Applebot/0.1", "GoogleOther/1.0",
+                "UnknownCrawler/1.0",
             ]
             for expected_count, agent in enumerate(retained_agents, 7):
                 status, _, _ = request("/agent-missing", user_agent=agent)
@@ -143,9 +144,9 @@ require __DIR__.'/src/config/Database.php';
 require __DIR__.'/src/utils/ErrorMonitor.php';
 $monitor = new FAS\Utils\ErrorMonitor(FAS\Config\Database::getInstance()->getConnection());
 $events = $monitor->getRecentEvents(30, 100, 'not_found', 'open');
-if (count($events) !== 14 || $monitor->getSummary()['open'] !== 14) exit(1);
-if ($monitor->markAreaResolved('not_found') !== 14) exit(2);
-if ($monitor->getSummary()['resolved'] !== 14) exit(3);
+if (count($events) !== 16 || $monitor->getSummary()['open'] !== 16) exit(1);
+if ($monitor->markAreaResolved('not_found') !== 16) exit(2);
+if ($monitor->getSummary()['resolved'] !== 16) exit(3);
 if (count($monitor->getRecentEvents(30, 100, 'checkout')) !== 0) exit(4);
 $monitor->record('shipping', 'Synthetic shipping failure', ['user_agent' => 'Googlebot/2.1']);
 if ($monitor->getSummary()['open'] !== 1 || count($monitor->getRecentEvents(30, 100, 'shipping')) !== 1) exit(5);
