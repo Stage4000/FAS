@@ -25,7 +25,7 @@ No storefront code, product data, configuration, orders, payments, or deployment
 
 The earlier [September 30 audit with October 1 follow-up](audit/SEO.md) and its evidence remain unchanged. Its 607-listing counts and full-crawl results are historical. This document supersedes those counts only where explicitly supported by the October 7 snapshot.
 
-The [current per-item register](audit/seo-items-2026-10-07.csv) contains **one record for each of the 613 current public feed products**, including its URL, feed ID, identifiers, condition, price, taxonomy, flags, and explicit page-validation status. Review flags are triage aids; they are not search penalties or proof of an item's physical facts.
+A current per-item register has been prepared locally with **one record for each of the 613 current public feed products**, including its URL, feed ID, identifiers, condition, price, taxonomy, flags, and explicit page-validation status. Its separate repository upload was cancelled, so no downloadable current register is linked here. Review flags are triage aids; they are not search penalties or proof of an item's physical facts.
 
 | Check | Current result | Evidence class / limit |
 | --- | --- | --- |
@@ -208,7 +208,8 @@ Security findings and remediation notes are tracked privately and are not includ
 - **October 7:** completed full feed-record analysis and source reconciliation; independently verified the duplicate Merchant ID in raw XML.
 - **October 7:** bulk page-crawl route stopped after execution cancellation and one authorized retry; page-level coverage left explicitly open.
 - [x] Preserve historical audit and distinguish source from runtime evidence.
-- [x] Examine every current public feed record and publish a dated per-item register.
+- [x] Examine every current public feed record and prepare a dated per-item register.
+- [ ] Publish or deliver the prepared item register after the cancelled upload is resolved.
 - [x] Prioritize reproducible findings and define acceptance criteria.
 - [ ] Complete fresh individual-page, full pagination, image and responsive-browser checks through an authorized available route.
 - [ ] Obtain account-level indexation, Merchant processing and performance evidence.
