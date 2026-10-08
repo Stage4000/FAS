@@ -97,7 +97,7 @@ class MerchantFeedBuilder
     'sale_price' => $effectivePrice < $regularPrice ? number_format($effectivePrice, 2, '.', '') . ' USD' : null,
     'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
     'brand' => $brand,
-    'mpn' => $mpn,
+    'mpn' => ProductCondition::merchantMpn($mpn),
     'identifier_exists' => ($brand !== '' || $mpn !== '') ? 'yes' : 'no',
     'product_type' => $productType,
     'shipping_weight' => $shippingWeight,

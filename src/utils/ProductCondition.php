@@ -32,4 +32,14 @@ final class ProductCondition
         $key=strtolower(preg_replace('/[\s._\/-]+/u','',$value));
         return in_array($key,['','na','none','null','unknown','notavailable','notapplicable','doesnotapply','unspecified'],true)?'':$value;
     }
+
+    public static function merchantMpn($value): string
+    {
+        $value = self::identifier($value);
+        // Merchant Center accepts complete MPNs of at most 70 characters.
+        // Never truncate a part number or choose one from an overlong list.
+        // Keep the source value intact for review; omit it from feed/schema.
+        if (preg_match('/\A.{1,70}\z/us', $value) !== 1) return '';
+        return $value;
+    }
 }

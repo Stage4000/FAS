@@ -304,7 +304,7 @@ class Seo
             ];
         }
 
-        $mpn = ProductCondition::identifier($product['model'] ?? '');
+        $mpn = ProductCondition::merchantMpn($product['model'] ?? '');
         if ($mpn !== '') {
             $schema['mpn'] = $mpn;
         }
