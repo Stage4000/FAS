@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Coupon.php';
@@ -7,6 +8,11 @@ require_once __DIR__ . '/../src/models/Coupon.php';
 use FAS\Config\Database;
 use FAS\Models\Coupon;
 use FAS\Utils\Timezone;
+use FAS\Utils\CSRF;
+
+$auth = new AdminAuth();
+$auth->requireActiveAdmin();
+header('Cache-Control: private, no-store');
 
 $db = Database::getInstance()->getConnection();
 $couponModel = new Coupon($db);
@@ -16,6 +22,7 @@ $error = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    CSRF::validateRequest();
     if (isset($_POST['expires_at'])) {
         $_POST['expires_at'] = Timezone::fromUserInput($_POST['expires_at']);
     }
@@ -115,16 +122,16 @@ $coupons = $couponModel->getAll();
                                     <td><?php echo htmlspecialchars($coupon['description']); ?></td>
                                     <td>
                                         <?php if ($coupon['discount_type'] === 'percentage'): ?>
-                                            <?php echo $coupon['discount_value']; ?>%
+                                            <?php echo htmlspecialchars((string)$coupon['discount_value'], ENT_QUOTES, 'UTF-8'); ?>%
                                         <?php else: ?>
                                             $<?php echo number_format($coupon['discount_value'], 2); ?>
                                         <?php endif; ?>
                                     </td>
                                     <td>$<?php echo number_format($coupon['minimum_purchase'], 2); ?></td>
                                     <td>
-                                        <?php echo $coupon['times_used']; ?>
+                                        <?php echo htmlspecialchars((string)$coupon['times_used'], ENT_QUOTES, 'UTF-8'); ?>
                                         <?php if ($coupon['max_uses']): ?>
-                                            / <?php echo $coupon['max_uses']; ?>
+                                            / <?php echo htmlspecialchars((string)$coupon['max_uses'], ENT_QUOTES, 'UTF-8'); ?>
                                         <?php else: ?>
                                             / Unlimited
                                         <?php endif; ?>
@@ -145,8 +152,9 @@ $coupons = $couponModel->getAll();
                                     </td>
                                     <td>
                                         <form method="POST" class="d-inline" data-admin-fragments="#coupon-list" onsubmit="return confirm('Are you sure?');">
+                                            <?= CSRF::tokenField() ?>
                                             <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo $coupon['id']; ?>">
+                                            <input type="hidden" name="id" value="<?php echo (int)$coupon['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -171,6 +179,7 @@ $coupons = $couponModel->getAll();
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" data-admin-fragments="#coupon-list" data-admin-reset-on-success>
+                    <?= CSRF::tokenField() ?>
                     <input type="hidden" name="action" value="create">
                     <div class="modal-header">
                         <h5 class="modal-title">Create New Coupon</h5>
@@ -234,3 +243,4 @@ $coupons = $couponModel->getAll();
 
 </body>
 </html>
+
