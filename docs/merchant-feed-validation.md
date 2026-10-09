@@ -58,10 +58,55 @@ choose a winner. Google associates item history with a stable ID.
    per-product feed-ID mapping if the source SKU cannot be changed safely.
 4. Rebuild and recheck the feed, then verify Google's next processing result.
 
+### Reviewed ambiguous collision: October 9, 2026
+
+The public feed and historical listing evidence both assign `10196 FAS` to
+two different records. Neither establishes which product owns any existing
+Merchant history. With the decision to proceed without guessing ownership,
+`MerchantFeedBuilder` permanently maps these internal product IDs:
+
+- Product `6331` (Alpinestars helmet): `FAS-P6331`
+- Product `6333` (Honda axle): `FAS-P6333`
+
+These are feed identities, not corrected business SKUs or manufacturer part
+numbers. Inventory data, displayed SKU, Product JSON-LD SKU, product URLs,
+prices, availability, and every other product's feed ID remain unchanged.
+Feed IDs need to identify an offer uniquely; they need not replace its source
+SKU. The product-page template emits one Product with one Offer; its canonical
+and schema offer URLs remain unchanged. Verify that the live pages still use
+that single-product structure before deployment. The mapping also applies to
+single-item feed previews. Google's structured-data guidance requires matching SKU or GTIN
+when multiple offers appear on one landing page; reassess these identities
+before introducing variants or multiple offers on either affected page.
+
+Tradeoff: retire the ambiguous `10196 FAS` feed ID rather than choose a winner
+from row order, internal ID age, or a guessed SKU. The two mapped products may
+be treated as new offers and lose continuity with that ambiguous Merchant
+history. This does not prove which product Google previously associated with
+the ID or resolve any account-level disapproval. Google processing and any
+campaign or supplemental-data references to the old ID still need review.
+
+Keep these mappings when an item is sold, temporarily hidden, relisted under
+the same internal record, or its source SKU is corrected. Never recalculate
+them from the currently visible catalog or remove them merely because only
+one duplicate is visible. Check proposed IDs against the complete feed before
+release, and continue the duplicate-ID check after inventory updates. Future
+collisions require their own reviewed correction; no bulk automatic
+renumbering is performed.
+
+Before release, retain a fresh rollback copy outside the web root and compare
+the pending Plesk Git diff with the reviewed commit. For this change, only
+`src/utils/MerchantFeedBuilder.php` changes runtime behavior. After the pull,
+check the live feed has unique IDs, both intended mappings, the same URLs and
+unchanged non-ID fields. If deployment causes a problem, restore the backed-up
+runtime file and verify the rollback. Do not call repository publication a
+production release.
+
 ## Test and release
 
 ```sh
 php tests/merchant-identifier-test.php
+php tests/merchant-feed-id-test.php
 python3 tests/merchant-feed-check-test.py
 ```
 
@@ -81,5 +126,6 @@ production deployment.
 ## Official references
 
 - [Google Merchant ID requirements](https://support.google.com/merchants/answer/6324405)
+- [Google Merchant structured-data matching](https://support.google.com/merchants/answer/7331077)
 - [Google Merchant MPN requirements](https://support.google.com/merchants/answer/6324482)
 - [Google identifier-exists requirements](https://support.google.com/merchants/answer/6324478)

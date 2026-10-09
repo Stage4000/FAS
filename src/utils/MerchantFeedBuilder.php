@@ -13,6 +13,14 @@ require_once __DIR__ . '/ShippingRules.php';
 
 class MerchantFeedBuilder
 {
+    // Permanent feed-only identities for the reviewed 10196 FAS collision.
+    // Do not derive these from current feed membership or mutable source SKUs.
+    // See docs/merchant-feed-validation.md before changing an assigned ID.
+    private const PRODUCT_FEED_IDS = [
+        6331 => 'FAS-P6331',
+        6333 => 'FAS-P6333',
+    ];
+
     private $productModel;
     private $baseUrl;
 
@@ -111,6 +119,11 @@ class MerchantFeedBuilder
      */
     private function resolveProductId(array $product)
     {
+        $productId = (string) ($product['id'] ?? '');
+        if (isset(self::PRODUCT_FEED_IDS[$productId])) {
+            return self::PRODUCT_FEED_IDS[$productId];
+        }
+
         $candidates = [
             $product['sku'] ?? null,
             $product['ebay_item_id'] ?? null,
