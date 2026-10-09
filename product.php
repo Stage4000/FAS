@@ -149,7 +149,8 @@ $ogType = 'product';
 
 // Include header with the meta tags
 $productName = Seo::cleanText($product['name'] ?? 'Product');
-$productDescription = Seo::cleanText($product['storefront_description'] ?? $product['description'] ?? $productName);
+$storefrontDescription = $product['storefront_description'] ?? Seo::cleanSourceShippingInstructions($product['description'] ?? '');
+$productDescription = Seo::cleanText($storefrontDescription !== '' ? $storefrontDescription : $productName);
 $productCategoryPath = $productModel->getEbayStoreCategoryPath($product);
 $schemaImages = $images;
 if ($mainImage && !in_array($mainImage, $schemaImages, true)) {
@@ -475,7 +476,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                     <?php
                     // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)
                     // Display as plain text with proper escaping and preserve line breaks
-                    $description = $product['storefront_description'] ?? $product['description'] ?? '';
+                    $description = $storefrontDescription;
                     if (!empty($description)) {
                         echo '<p>' . nl2br(htmlspecialchars($description)) . '</p>';
                     } else {

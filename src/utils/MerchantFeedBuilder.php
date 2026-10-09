@@ -226,7 +226,7 @@ class MerchantFeedBuilder
     private function buildDescription(array $product)
     {
         $description = Seo::limitText(
-            $product['storefront_description'] ?? Seo::cleanProductSeoDescription($product['description'] ?? ''),
+            $product['storefront_description'] ?? Seo::cleanProductSeoDescription(Seo::cleanSourceShippingInstructions($product['description'] ?? '')),
             5000, ''
         );
         if ($description !== '') {

@@ -97,6 +97,76 @@ class Seo
         return self::limitText($value, 160, '');
     }
 
+    /**
+     * Remove only the two reviewed marketplace calculator/customer-label paragraphs.
+     * This source-only presentation cleanup is not an item review or a policy decision.
+     * Keep unknown, partial and embedded text; never change published overrides or inventory.
+     */
+    public static function cleanSourceShippingInstructions($value): string
+    {
+        $source = (string) $value;
+        $paragraphs = [
+            'Shipping Costs: We do not set shipping prices. Shipping fees are automatically calculated by the eBay shipping calculator based on package weight, size, and your destination. If you believe you can ship the item cheaper or faster, we are happy to use your own shipping label. In that case, there will be no additional shipping or handling charges from us.',
+            'Shipping Costs:We do not set shipping prices. Shipping fees are automatically calculated by the eBay shipping calculator based on package weight, size, and your destination.If you believe you can ship the item cheaper or faster, we are happy to use your own shipping label. In that case, there will be no additional shipping or handling charges from us.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at any time you feel you can get the item shipped cheaper or better we would be completely willing to use your shipping label and there will be no other shipping or handling charges.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at any time you feel you can get the item shipped cheaper or better we would be completely willingto use your shipping label and there will be no other shipping or handling charges.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at anytime you feel you can get the item shipped cheaper or better we would be completely willing to use your shipping label and there will be no other shipping or handling charges.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at any time youfeel you can get the item shipped cheaper or better we would be completely willingto use your shipping label and there will be no other shipping or handling charges.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at anytime you feel you can get the item shipped cheaper or better we would be completelywilling to use your shipping label and there will be no other shipping or handling charges.',
+            'We do NOT set our shipping prices. We simply enter the weight and size , then the Ebay shipping calculator determines the shipping fee due to your destination. If at anytime you feel you can get the item shipped cheaper or better we would be completely willing to use your shipping label and there will be no other shipping or handling charges',
+        ];
+        $newLead = 'These are inexpensive options that help protect against porch pirates, theft, and fraud.';
+        $legacyLead = 'These are inexpensive options to help protect you and cut down on porch pirates , theft and fraud. Thank you!!';
+        $legacyLeads = [
+            $legacyLead,
+            $legacyLead.' ((( THIS PRICE IS FOR 1 EACH , BUY ONE OR MORE )))',
+            'Buyers will be responsible for all taxes , tariffs , custom fees and any other shipper or government fees imposed.',
+        ];
+        $literalPattern = static function (string $text): string {
+            return str_replace(' ', '[\s\x{00A0}]+', preg_quote($text, '~'));
+        };
+        $insideQuote = static function (string $prefix): bool {
+            // Decode for inspection only; offsets and returned source bytes stay original.
+            $prefix = html_entity_decode($prefix, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $quotePattern = '~&(?:quot|apos);|&#(?:0*34|0*39|x0*22|x0*27);|["“”‘]|(?<![\p{L}\p{N}])[\x{0027}’]|[\x{0027}’](?![\p{L}\p{N}])~iu';
+            if (preg_match_all($quotePattern, $prefix, $quotes) === false) return true;
+            $double = false;
+            $single = false;
+            foreach ($quotes[0] as $encoded) {
+                $quote = html_entity_decode($encoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                if ($quote === '“') $double = true;
+                elseif ($quote === '”') $double = false;
+                elseif ($quote === '‘') $single = true;
+                elseif ($quote === '’') $single = false;
+                elseif ($quote === '"') $double = !$double;
+                else $single = !$single;
+            }
+            return $double || $single;
+        };
+        $cleaned = $source;
+        foreach ($paragraphs as $paragraph) {
+            // Require its observed template context, not merely a word boundary.
+            // This leaves quoted/embedded descriptions and unknown contexts for review.
+            $leads = strpos($paragraph, 'Shipping Costs:') === 0 ? [$newLead] : $legacyLeads;
+            $contexts = array_map($literalPattern, $leads);
+            $leading = '(?:(?<=[.!?])|^)([\s\x{00A0}]*(?:'.implode('|', $contexts).')[\s\x{00A0}]*)';
+            $trailing = substr($paragraph, -1) === '.'
+                ? '(?=$|[\s\x{00A0}.!?,;:>\)\]]|Shipping Carrier Notice:|PLEASE READ BEFORE ORDERING)'
+                : '$';
+            $result = preg_replace_callback(
+                '~'.$leading.$literalPattern($paragraph).$trailing.'~u',
+                static function (array $match) use ($cleaned, $insideQuote): string {
+                    return $insideQuote(substr($cleaned, 0, $match[0][1])) ? $match[0][0] : $match[1][0];
+                },
+                $cleaned, -1, $count, PREG_OFFSET_CAPTURE
+            );
+            if ($result === null) return $source;
+            $cleaned = $result;
+        }
+        // Unicode whitespace or empty markup is not usable product content.
+        return self::cleanText($cleaned) !== '' ? $cleaned : $source;
+    }
+
     public static function cleanProductSeoDescription($value): string
     {
         $text = self::cleanText($value);
