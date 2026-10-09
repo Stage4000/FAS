@@ -151,9 +151,9 @@ $landingIntroCopy = '';
 if ($discoveryCollection !== '' && isset($collectionMeta[$discoveryCollection])) {
     $landingIntroCopy = $collectionMeta[$discoveryCollection]['copy'];
 } elseif ($isCuratedFitmentLanding) {
-    $landingIntroCopy = 'Use this focused inventory page to review matching parts, confirm fitment from photos and SKU details, and estimate shipping before checkout.';
+    $landingIntroCopy = 'Use this focused inventory page to compare source model / part number values, photos and item notes. Verify vehicle compatibility before ordering.';
 } elseif ($homepageCategory && isset($categoryMeta[$homepageCategory])) {
-    $landingIntroCopy = $categoryMeta[$homepageCategory]['description'] . ' Check manufacturer, model, SKU, photos, and notes before purchase because fitment can vary by year and trim.';
+    $landingIntroCopy = $categoryMeta[$homepageCategory]['description'] . ' Compare manufacturer, source model / part number, SKU, photos and notes. Verify compatibility before purchase; a matching source value is not a fitment confirmation.';
 }
 
 $landingIntroLinks = [
