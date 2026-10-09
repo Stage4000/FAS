@@ -60,10 +60,10 @@ function pqIssueDefinitions(): array
             'note' => 'Shipping weight is missing.',
         ],
         'fitment' => [
-            'label' => 'Missing Fitment',
+            'label' => 'Missing source identity',
             'icon' => 'fa-motorcycle',
             'class' => 'primary',
-            'note' => 'Manufacturer and model are both blank.',
+            'note' => 'Manufacturer and source model / identifier are both blank. These fields do not independently verify vehicle compatibility.',
         ],
         'sku' => [
             'label' => 'Missing SKU',
@@ -546,7 +546,7 @@ $baseParams = [
         <form method="get" class="row g-3 align-items-end">
             <div class="col-lg-4">
                 <label class="form-label fw-semibold" for="search">Search</label>
-                <input type="text" class="form-control" id="search" name="search" placeholder="Name, SKU, fitment, category..." value="<?php echo pqSafe($search); ?>">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Name, SKU, model / identifier, category..." value="<?php echo pqSafe($search); ?>">
             </div>
             <div class="col-sm-6 col-lg-2">
                 <label class="form-label fw-semibold" for="issue">Issue</label>
@@ -634,7 +634,7 @@ $baseParams = [
                         <th>Fields</th>
                         <th>Missing / Review Items</th>
                         <th>Shipping Data</th>
-                        <th>Fitment / Category</th>
+                        <th>Source identity / Category</th>
                         <th>Visibility</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -696,7 +696,7 @@ $baseParams = [
                             </td>
                             <td>
                                 <div class="small">
-                                    <?php echo pqSafe(trim(implode(' ', array_filter([$product['manufacturer'] ?? '', $product['model'] ?? '']))) ?: 'Missing fitment'); ?>
+                                    <?php echo pqSafe(trim(implode(' ', array_filter([$product['manufacturer'] ?? '', $product['model'] ?? '']))) ?: 'Missing source identity'); ?>
                                 </div>
                                 <div class="small text-muted">
                                     <?php echo pqSafe(trim((string)($product['category'] ?? '')) !== '' ? $product['category'] : 'Missing category'); ?>
@@ -743,7 +743,7 @@ $baseParams = [
 </div>
 
 <div class="alert alert-light border small text-muted mt-4">
-    Use this dashboard before pushing product updates live. Fix photos and shipping data first, then fitment, SKU/category, and SEO text.
+    Use this dashboard before pushing product updates live. Fix photos and shipping data first, then verify source identity and compatibility before reviewing SKU/category and SEO text.
 </div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

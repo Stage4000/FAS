@@ -167,7 +167,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 <?php if (!empty($allManufacturers) || !empty($allModels)): ?>
 <div class="row mb-4 g-3">
     <div class="col-md-6">
-        <label class="form-label fw-bold">Make / Manufacturer</label>
+        <label class="form-label fw-bold" for="manufacturerFilter">Make / Manufacturer</label>
         <select class="form-select" id="manufacturerFilter">
             <option value="">All Makes / Manufacturers</option>
             <?php foreach ($allManufacturers as $mfg): ?>
@@ -179,9 +179,9 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
         </select>
     </div>
     <div class="col-md-6">
-        <label class="form-label fw-bold">Model / Fitment</label>
-        <select class="form-select" id="modelFilter" <?php echo empty($allModels) ? 'disabled' : ''; ?>>
-            <option value="">All Models / Fitments</option>
+        <label class="form-label fw-bold" for="modelFilter">Model / part number</label>
+        <select class="form-select" id="modelFilter" aria-describedby="modelFilterHelp" <?php echo empty($allModels) ? 'disabled' : ''; ?>>
+            <option value="">All models / part numbers</option>
             <?php foreach ($allModels as $modelOption): ?>
                 <option value="<?php echo htmlspecialchars($modelOption); ?>"
                         <?php echo $fitmentModel === $modelOption ? 'selected' : ''; ?>>
@@ -189,6 +189,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                 </option>
             <?php endforeach; ?>
         </select>
+<p class="form-text mb-0" id="modelFilterHelp">Matches source listing values. A matching model or part number does not confirm vehicle compatibility.</p>
     </div>
 </div>
 <?php endif; ?>
@@ -198,7 +199,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
 <div>
 <h2 class="h6 fw-bold mb-1"><i class="fas fa-bookmark text-danger me-2"></i>Saved Searches</h2>
-<div class="small text-muted">Save fitment, keyword, and category searches on this device for quick return visits.</div>
+<div class="small text-muted">Save model, part number, keyword, and category searches on this device for quick return visits.</div>
 </div>
 <div id="savedSearches" class="d-flex flex-wrap gap-2 justify-content-lg-end"></div>
 </div>
@@ -332,7 +333,7 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
                             <strong>Mfg:</strong> <?php echo htmlspecialchars($product['manufacturer']); ?><br>
                         <?php endif; ?>
                         <?php if (!empty($product['model'])): ?>
-                            <strong>Model:</strong> <?php echo htmlspecialchars($product['model']); ?>
+                            <strong>Model / part number:</strong> <?php echo htmlspecialchars($product['model']); ?>
                         <?php endif; ?>
                     </p>
                     <div class="mt-auto">

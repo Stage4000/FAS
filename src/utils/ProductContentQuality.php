@@ -15,6 +15,7 @@ final class ProductContentQuality
             'source_changed'=>['Source changed','Identity, condition, description, category or photos changed after the last review.'],
             'content_draft'=>['Unpublished edits','A draft differs from the published description or search text.'],
             'placeholder_mpn'=>['Placeholder identifier','A value such as N/A or unknown is not a part number. It is omitted from feed/schema.'],
+            'unsupported_mpn'=>['Source identifier omitted','The source value is omitted from feed/schema by the existing 1–70-character MPN guard. Verify the complete manufacturer-assigned identifier for the actual item. Do not truncate a list, select a component number, or guess.'],
             'marketplace_copy'=>['Marketplace copy','Review inherited marketplace instructions before using them on this website.'],
             'duplicate_opening'=>['Repeated opening','Another listing starts with the same description. Verify the actual item.'],
             'description_relevance'=>['Check description identity','The description opening shares few meaningful words with the product title. This is a review hint.'],
@@ -59,6 +60,7 @@ final class ProductContentQuality
         $model = trim((string)($product['model'] ?? ''));
         if ($model !== '' && ProductCondition::identifier($model) === '') $keys[]='placeholder_mpn';
         if ($model !== '' && ProductCondition::identifier($model) !== '') $keys[]='fitment_review';
+        if (ProductCondition::identifier($model) !== '' && ProductCondition::merchantMpn($model) === '') $keys[]='unsupported_mpn';
         $description = self::description($product,$review);
         if (preg_match('/\bebay\b|IMPORTANT BUYER NOTICE|porch pirates?/iu',$description)) $keys[]='marketplace_copy';
         $opening = self::opening($description);
@@ -71,3 +73,4 @@ final class ProductContentQuality
         return array_intersect_key($definitions,array_flip($keys));
     }
 }
+

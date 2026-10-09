@@ -415,7 +415,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($productCategoryPath)): ?>
                             <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
                                 <i class="fas fa-wrench me-1"></i>
-                                Confirm fitment using the manufacturer, model, SKU, category, and photos before purchase. Contact us if you need help matching this part.
+                                The source model / part number does not confirm vehicle compatibility. Check the complete item notes, photos and manufacturer reference before purchase. Contact us if you need help matching this part.
                             </div>
                         <?php endif; ?>
                     </div>
@@ -447,7 +447,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         <?php endif; ?>
                         <?php if (!empty($product['model'])): ?>
                         <tr>
-                            <td class="text-muted" style="white-space: nowrap;">Model:</td>
+                            <td class="text-muted" style="white-space: nowrap;">Model / part number:</td>
                             <td style="word-break: break-word;"><?php echo htmlspecialchars($product['model']); ?></td>
                         </tr>
                         <?php endif; ?>
