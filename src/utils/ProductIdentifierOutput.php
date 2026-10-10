@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Utils;
+require_once __DIR__.'/ReviewedProductFacts.php';
 
-/** Explicit output holds; never rewrite source inventory or infer a replacement. */
+/** Reviewed identifiers and fallback holds; never rewrite source inventory. */
 final class ProductIdentifierOutput
 {
-    // 6305 has conflicting source brand/MPN versus its title and photographed label.
-    // Keep the hold until an explicit fact-backed review resolves the actual item.
+    // Keep the hold if the owner-confirmed ID/SKU association no longer matches.
     // A later import is not verification. See docs/identifier-output-holds.md.
     private const HELD_PRODUCT_IDS = ['6305'];
 
@@ -14,12 +14,15 @@ final class ProductIdentifierOutput
     {
         $id = $product['id'] ?? null;
         return (is_int($id) || is_string($id))
-            && in_array((string)$id, self::HELD_PRODUCT_IDS, true);
+            && in_array((string)$id, self::HELD_PRODUCT_IDS, true)
+            && ReviewedProductFacts::identifiers($product) === null;
     }
 
     /** Preserve each caller's existing normalization for every non-held product. */
     public static function forProduct(array $product, string $brand, string $mpn): array
     {
+        $reviewed = ReviewedProductFacts::identifiers($product);
+        if ($reviewed !== null) return $reviewed + ['held'=>false];
         $held = self::isHeld($product);
         return ['brand' => $held ? '' : $brand, 'mpn' => $held ? '' : $mpn, 'held' => $held];
     }

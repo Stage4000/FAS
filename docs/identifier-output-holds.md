@@ -1,23 +1,30 @@
-# Temporary product identifier output holds
+# Reviewed product identifiers and fallback hold
 
-Product 6305 has a recorded conflict between its source manufacturer/part number (EPI / WE437724) and its listing title and photographed label (Wiseco / PWR128-101). The actual current item and source association remain unverified. This change does not choose either identity.
+## Owner-confirmed correction, 2026-10-10
 
-`ProductIdentifierOutput` applies one explicit hold to product ID 6305. Merchant feed items omit brand/MPN through the existing empty-field serializer, and Product JSON-LD omits the same two properties. The feed retains `identifier_exists=yes`: uncertainty about correct values is not evidence that the manufacturer assigned no identifiers. No replacement brand, MPN or GTIN is invented.
+The owner confirmed that product ID `6305`, exact SKU `10171 FAS`, is the Wiseco `PWR128-101` kit. Its imported manufacturer/model values previously said EPI / WE437724. `ReviewedProductFacts` now supplies only the two confirmed output values, keyed by both the existing ID and exact, case-sensitive SKU. No title token, photograph inference, import value or fuzzy SKU match selects a correction.
 
-The shared helper preserves each caller's existing normalization for every other product. This change does not modify source inventory, importer behavior, public titles/descriptions, visible labels/filters, IDs/SKUs, URLs, photos, prices, stock, condition, shipping or return policies. It has no migration, new storage or background task. The Product Quality view gains an explicit warning for held output.
+The reviewed values are used consistently in:
 
-The hold persists after imports or title/source-field edits. Remove it only after a deliberate review of the full current record, linked photos and authoritative source establishes the actual item and appropriate manufacturer identifiers. Apply the verified correction through the approved inventory/upstream workflow, then review removal of the hold and check feed/schema agreement. A title token or an import alone is not verification. No automatic replacement or expiry is provided.
+- Merchant RSS brand/MPN, retaining `identifier_exists=yes`, including when a subsequent import leaves its raw identifiers blank.
+- Product JSON-LD, visible part specifications, product metadata, image alt text and purchase/analytics metadata.
+- Server-rendered, AJAX, homepage and related-product cards, plus the saved-cart recovery catalog presenter.
+- Existing storefront search scoring and manufacturer/model filter SQL expressions, dropdowns and related/recent filtering. The query expressions are read-only CASE expressions; unrelated records keep their exact source values and existing query behavior.
 
-This is a reversible risk reduction for unsupported machine-readable claims. It does not resolve the visible identity conflict, establish fitment or guarantee Merchant eligibility. Missing assigned identifiers may limit visibility; Google account acceptance remains separate.
+Raw `products.manufacturer`, `products.model`, primary key, SKU, marketplace source keys and all other database columns are unchanged. Admin/source lookups and import writes retain their original provenance. The Product Quality warning explicitly distinguishes reviewed output from raw imported values. This is a source-controlled presentation/query overlay, not a database update or an editorial publication. It needs no `product_content_reviews` tables, migration, initialization or maintenance mutation.
 
-## Verification
+No title, description, condition, completeness, vehicle compatibility, GTIN, other identifier, stock, price, photo, URL, shipping term or warranty is inferred or changed. Existing source descriptions are preserved. Manufacturer/MPN confirmation does not establish kit completeness or condition.
 
-Run `php tests/identifier-output-hold-test.php` and the existing identifier, editorial, catalog, discovery and presentation regressions. Tests use synthetic arrays/database fixtures, never production inventory. Compare complete historical feed/schema fixture outputs against the exact baseline: only product 6305's two identifier properties may differ; all other fields and all other products must match. Historical fixtures do not prove current production feed acceptance.
+## Identity drift fails safely
 
-Publish/deploy only after normal review and authorization gates. Back up all changed runtime files through an allowed private rollback path before deployment; verify current output through permitted access. Restoring the three changed existing utility files together returns the prior behavior; remove the new helper only after those callers no longer reference it. No inventory rollback is needed because no inventory is changed. Restoring the prior output also restores its unresolved identifier claims, so record that consequence.
+If record 6305's exact SKU no longer matches, the confirmed replacement stops applying. The existing hold still withholds its brand/MPN from feed/schema, and the same output helper withholds them from product/card display and image-alt metadata. An import or source-field edit alone does not clear this hold. Its raw fields remain available for source review. Reassignment requires another deliberate review and source change; do not silently extend the mapping.
 
-## Official guidance
+SQL filtering falls back to the current source fields when the exact reviewed identity does not match; it never assigns the Wiseco correction to a changed SKU or another record. Public output continues to withhold unverified identifiers on held ID 6305. The separate return-policy mapping is documented in `reviewed-product-facts.md`.
 
-- [Unique product identifiers](https://support.google.com/merchants/answer/160161?hl=en): unavailable assigned identifiers should be left blank rather than guessed; missing assigned values may limit visibility.
-- [Identifier exists](https://support.google.com/merchants/answer/6324478?hl=en): use `no` only when certain the product has no assigned identifiers.
-- [Invalid MPN](https://support.google.com/merchants/answer/12468184?hl=en): provide an MPN only when confident it is correct.
+## Verification and release
+
+Run the existing identifier hold test (which exercises an intentionally unmatched synthetic SKU), plus `reviewed-product-facts-test.php`, `reviewed-product-query-test.php` and `reviewed-product-facts-http-test.py`. Run the full suite. Compare historical feed/schema/alt and query outputs against the exact upstream baseline. Only the reviewed targets may change; historical fixtures do not certify current production state or Google account acceptance.
+
+Back up all changed runtime files using a verified private restore path before deployment. Add `ReviewedProductFacts.php` before updating any caller. Restore callers as a matched set before removing an added dependency. No database rollback is needed because the overlay does not mutate inventory. Restoring prior source also restores the previous visible identifier conflict and generic final-sale policy conflict; record that consequence.
+
+Do not bypass denied hosting views or blocked public endpoints. Current feed validation and Merchant Center account-policy verification remain separate gates if their permitted access is unavailable.

@@ -31,13 +31,19 @@ final class ResponsiveImage
             'key'=>hash('sha256',$path.'|'.filemtime($file).'|'.$bytes),'type'=>$size[2]];
     }
 
-    public static function attributes(string $source,string $sizes,int $maxWidth=0,?string $root=null): string
+    public static function attributes(string $source,string $sizes,int $maxWidth=0,?string $root=null,?string $productId=null): string
     {
         $root=$root??dirname(__DIR__,2);
         $escape=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
         $attrs='src="'.$escape($source).'"';
         $info=self::local($source,$root);
-        if(!$info)return $attrs;
+        if(!$info) {
+            if($productId!==null) {
+                require_once __DIR__.'/ImportedImage.php';
+                return ImportedImage::attributes($source,$sizes,$maxWidth,$root,$productId)??$attrs;
+            }
+            return $attrs;
+        }
         $attrs.=' width="'.$info['width'].'" height="'.$info['height'].'"';
         $candidates=[];
         foreach(self::WIDTHS as $width) {
@@ -50,6 +56,13 @@ final class ResponsiveImage
             $attrs.=' srcset="'.$escape(implode(', ',$candidates)).'" sizes="'.$escape($sizes).'"';
         }
         return $attrs;
+    }
+
+    /** Offline import; no network requests or inventory mutations. */
+    public static function importRemote(array $record,string $inputDirectory,?string $root=null): array
+    {
+        require_once __DIR__.'/ImportedImage.php';
+        return ImportedImage::import($record,$inputDirectory,$root??dirname(__DIR__,2));
     }
 
     public static function build(string $source,?string $root=null): array

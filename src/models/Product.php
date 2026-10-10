@@ -6,6 +6,8 @@
 
 namespace FAS\Models;
 
+require_once __DIR__.'/../utils/ReviewedProductFacts.php';
+
 class Product
 {
     private $db;
@@ -152,6 +154,8 @@ class Product
      */
     public function getAll($page = 1, $perPage = 24, $category = null, $search = null, $manufacturer = null)
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
         $offset = ($page - 1) * $perPage;
 
         $sql = "SELECT * FROM products WHERE is_active = 1 AND show_on_website = 1";
@@ -163,7 +167,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
@@ -171,7 +175,7 @@ class Product
     $searchTerms = $this->buildSqlSearchTerms($search);
     $searchClauses = [];
     foreach ($searchTerms as $searchTerm) {
-    $searchClauses[] = "(name LIKE ? OR description LIKE ? OR sku LIKE ? OR manufacturer LIKE ? OR model LIKE ? OR category LIKE ? OR ebay_store_cat1_name LIKE ? OR ebay_store_cat2_name LIKE ? OR ebay_store_cat3_name LIKE ?)";
+    $searchClauses[] = "(name LIKE ? OR description LIKE ? OR sku LIKE ? OR {$manufacturerSql} LIKE ? OR {$modelSql} LIKE ? OR category LIKE ? OR ebay_store_cat1_name LIKE ? OR ebay_store_cat2_name LIKE ? OR ebay_store_cat3_name LIKE ?)";
     $likeTerm = "%{$searchTerm}%";
     $params = array_merge($params, array_fill(0, 9, $likeTerm));
     }
@@ -287,6 +291,7 @@ class Product
      */
     public function getCount($category = null, $search = null, $manufacturer = null)
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
         $sql = "SELECT COUNT(*) as total FROM products WHERE is_active = 1 AND show_on_website = 1";
         $params = [];
 
@@ -296,7 +301,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
@@ -320,8 +325,9 @@ class Product
      */
     public function getManufacturers($includeHidden = false)
     {
-        $sql = "SELECT DISTINCT manufacturer FROM products
-                WHERE is_active = 1 AND manufacturer IS NOT NULL ";
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $sql = "SELECT DISTINCT {$manufacturerSql} AS manufacturer FROM products
+                WHERE is_active = 1 AND {$manufacturerSql} IS NOT NULL ";
         if (!$includeHidden) {
             $sql .= "AND show_on_website = 1 ";
         }
@@ -343,8 +349,10 @@ class Product
      */
     public function getModels($includeHidden = false, $manufacturer = null)
     {
-        $sql = "SELECT DISTINCT model FROM products
-                WHERE is_active = 1 AND model IS NOT NULL AND model != '' ";
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
+        $sql = "SELECT DISTINCT {$modelSql} AS model FROM products
+                WHERE is_active = 1 AND {$modelSql} IS NOT NULL AND {$modelSql} != '' ";
         $params = [];
 
         if (!$includeHidden) {
@@ -352,7 +360,7 @@ class Product
         }
 
         if ($manufacturer !== null && trim((string)$manufacturer) !== '') {
-            $sql .= "AND manufacturer = ? ";
+            $sql .= "AND {$manufacturerSql} = ? ";
             $params[] = $manufacturer;
         }
 
@@ -1381,6 +1389,8 @@ class Product
 
     public function getAllByEbayCategory($page = 1, $perPage = 24, $cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null)
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
         if ($search !== null && trim((string)$search) !== '') {
             return $this->searchByEbayCategory($page, $perPage, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model, $homepageCategory);
         }
@@ -1406,12 +1416,12 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
         if ($model) {
-            $sql .= " AND model = ?";
+            $sql .= " AND {$modelSql} = ?";
             $params[] = $model;
         }
 
@@ -1439,6 +1449,8 @@ class Product
      */
     public function getCountByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $search = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null)
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
         if ($search !== null && trim((string)$search) !== '') {
             return count($this->searchByEbayCategory(1, 0, $cat1Id, $cat2Id, $cat3Id, $search, $manufacturer, $includeHidden, $model, $homepageCategory));
         }
@@ -1462,12 +1474,12 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
         if ($model) {
-            $sql .= " AND model = ?";
+            $sql .= " AND {$modelSql} = ?";
             $params[] = $model;
         }
 
@@ -1592,6 +1604,8 @@ class Product
 
     private function getSearchCandidateProductsByEbayCategory($cat1Id = null, $cat2Id = null, $cat3Id = null, $manufacturer = null, $includeHidden = false, $model = null, $homepageCategory = null): array
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
         $sql = "SELECT * FROM products WHERE is_active = 1";
         $params = [];
 
@@ -1611,12 +1625,12 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
         if ($model) {
-            $sql .= " AND model = ?";
+            $sql .= " AND {$modelSql} = ?";
             $params[] = $model;
         }
 
@@ -1715,7 +1729,8 @@ class Product
             $product['ebay_store_cat2_name'] ?? '',
             $product['ebay_store_cat3_name'] ?? '',
         ]));
-        $manufacturerModel = trim((string)($product['manufacturer'] ?? '') . ' ' . (string)($product['model'] ?? ''));
+        $reviewed = \FAS\Utils\ReviewedProductFacts::identifiers($product);
+        $manufacturerModel = trim((string)($reviewed['brand'] ?? $product['manufacturer'] ?? '') . ' ' . (string)($reviewed['mpn'] ?? $product['model'] ?? ''));
 
         return [
             'name' => $this->normalizeProductSearchText($product['name'] ?? ''),
@@ -1978,6 +1993,8 @@ class Product
 
     public function getRecentVisible(int $limit = 8, array $excludeIds = [], ?string $category = null, ?string $manufacturer = null, ?string $model = null): array
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
         $excludeIds = array_values(array_unique(array_filter(array_map('intval', $excludeIds), function ($id) {
             return $id > 0;
         })));
@@ -2007,12 +2024,12 @@ class Product
         }
 
         if ($manufacturer !== null && trim($manufacturer) !== '') {
-            $sql .= " AND manufacturer = ?";
+            $sql .= " AND {$manufacturerSql} = ?";
             $params[] = $manufacturer;
         }
 
         if ($model !== null && trim($model) !== '') {
-            $sql .= " AND model = ?";
+            $sql .= " AND {$modelSql} = ?";
             $params[] = $model;
         }
 
@@ -2037,8 +2054,9 @@ class Product
             ?? $product['ebay_store_cat1_name']
             ?? $product['category']
             ?? null;
-        $manufacturer = $product['manufacturer'] ?? null;
-        $model = $product['model'] ?? null;
+        $reviewed = \FAS\Utils\ReviewedProductFacts::identifiers($product);
+        $manufacturer = $reviewed['brand'] ?? $product['manufacturer'] ?? null;
+        $model = $reviewed['mpn'] ?? $product['model'] ?? null;
 
         $related = [];
         if ($manufacturer !== null && trim((string)$manufacturer) !== '' && $model !== null && trim((string)$model) !== '') {
@@ -2122,9 +2140,11 @@ class Product
 
     public function getVisibleFitmentLandingPages(int $limit = 40, int $minProductCount = 2): array
     {
+        $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
+        $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
     $sql = "SELECT
-    manufacturer,
-    model,
+    {$manufacturerSql} AS manufacturer,
+    {$modelSql} AS model,
     category,
     ebay_store_cat1_name,
     ebay_store_cat2_name,
@@ -2134,9 +2154,9 @@ class Product
     FROM products
     WHERE is_active = 1
     AND show_on_website = 1
-    AND manufacturer IS NOT NULL
-    AND TRIM(manufacturer) != ''
-    GROUP BY manufacturer, model, category, ebay_store_cat1_name, ebay_store_cat2_name, ebay_store_cat3_name
+    AND {$manufacturerSql} IS NOT NULL
+    AND TRIM({$manufacturerSql}) != ''
+    GROUP BY {$manufacturerSql}, {$modelSql}, category, ebay_store_cat1_name, ebay_store_cat2_name, ebay_store_cat3_name
     HAVING COUNT(*) >= ?
     ORDER BY product_count DESC, last_updated_at DESC
     LIMIT ?";

@@ -33,9 +33,11 @@ for key in list(env):
 env['ANALYTICS_IP_GEO_ENABLED'] = '0'
 env['FAS_SECURITY_DB_PATH'] = str(BASE / 'private/security.sqlite')
 # All optional subsystem stores derive from this disposable site path.
+(BASE / 'editorial-backups').mkdir(mode=0o700)
 for script in ['security-maintenance.php','product-content-maintenance.php']:
     if (SITE / 'scripts' / script).is_file():
-        subprocess.run(['php',str(SITE / 'scripts' / script),'init'],env=env,stdout=subprocess.DEVNULL,check=True)
+        backup = [str(BASE / 'editorial-backups/before-init.sqlite')] if script == 'product-content-maintenance.php' else []
+        subprocess.run(['php',str(SITE / 'scripts' / script),'init',*backup],env=env,stdout=subprocess.DEVNULL,check=True)
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
 ORIGIN = 'http://127.0.0.1:'+str(port)

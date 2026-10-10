@@ -20,6 +20,7 @@ FILES = [
     "src/config/Database.php",
     "src/models/Order.php",
     "src/models/Product.php",
+    "src/utils/ReviewedProductFacts.php",
     "src/integrations/PayPalAPI.php",
     "src/payments/PayPalWebhookSetup.php",
     "src/utils/ErrorMonitor.php",

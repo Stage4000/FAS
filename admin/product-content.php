@@ -122,7 +122,7 @@ $saved = is_string($_GET['saved'] ?? null) ? ($_GET['saved'] ?? '') : '';
     </div>
     <?php if ($error): ?><div class="alert alert-danger" role="alert"><?= contentH($error) ?></div><?php endif; ?>
     <?php if (isset($notices[$saved]) && !$error): ?><div class="alert alert-success" role="status"><?= contentH($notices[$saved]) ?></div><?php endif; ?>
-    <?php if (!$storageReady): ?><div class="alert alert-warning">Editorial storage needs initialization. Run <code>php scripts/product-content-maintenance.php init</code> on the server before saving reviews.</div><?php endif; ?>
+    <?php if (!$storageReady): ?><div class="alert alert-warning">Editorial storage needs initialization. After the host backup checks, run <code>php scripts/product-content-maintenance.php init /private/0700-directory/NEW-backup.sqlite</code> on the server before saving reviews. See the product content deployment guide.</div><?php endif; ?>
     <?php if ($state==='Source changed'): ?><div class="alert alert-warning">The source listing changed after publication. Compare the current facts and photos before reviewing again. The last published text remains active.</div><?php endif; ?>
     <div class="row g-4">
         <section class="col-xl-5" aria-labelledby="source-heading"><div class="card border-0 shadow-sm"><div class="card-body p-4">

@@ -347,7 +347,7 @@ class Seo
                 '@type' => 'Organization',
                 'name' => 'Flip and Strip',
             ],
-            'hasMerchantReturnPolicy' => self::merchantReturnPolicySchema(),
+            'hasMerchantReturnPolicy' => self::merchantReturnPolicySchema($product),
         ],
     ];
 
@@ -440,8 +440,17 @@ class Seo
         ];
     }
 
-    private static function merchantReturnPolicySchema(): array
+    private static function merchantReturnPolicySchema(array $product): array
     {
+        $policy = ReviewedProductFacts::returnPolicy($product);
+        if ($policy === 'review_required') return [];
+        if ($policy === 'final_sale') {
+            return [
+                '@type' => 'MerchantReturnPolicy',
+                'applicableCountry' => 'US',
+                'returnPolicyCategory' => 'https://schema.org/MerchantReturnNotPermitted',
+            ];
+        }
         return [
             '@type' => 'MerchantReturnPolicy',
             'applicableCountry' => 'US',
