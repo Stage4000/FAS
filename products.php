@@ -77,8 +77,8 @@ require_once __DIR__ . '/includes/header.php';
             <div class="card">
                 <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-list"></i> Categories</h5>
-                    <button class="btn btn-sm btn-outline-light d-md-none" type="button" id="categoryToggle">
-                        <i class="fas fa-chevron-down"></i>
+                    <button class="btn btn-sm btn-outline-light d-md-none" type="button" id="categoryToggle" aria-controls="categoryMenu" aria-expanded="true" aria-label="Toggle categories">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
                 </div>
                 <div class="card-body p-0 collapse show" id="categoryMenu">
@@ -559,6 +559,7 @@ document.getElementById('categoryToggle').addEventListener('click', function() {
         icon.classList.remove('fa-chevron-up');
         icon.classList.add('fa-chevron-down');
     }
+    this.setAttribute('aria-expanded', String(menu.classList.contains('show')));
 });
 
 const savedSearchStorageKey = 'fas_saved_product_searches';
@@ -951,12 +952,19 @@ attachPaginationHandlers();
 
 <style>
 /* Mobile category menu styles */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     #categoryMenu.collapse:not(.show) {
         display: none;
     }
 
     #categoryMenu.collapse.show {
+        display: block;
+    }
+}
+
+/* The mobile toggle is hidden from md upward; always expose its links there. */
+@media (min-width: 768px) {
+    #categoryMenu.collapse {
         display: block;
     }
 }

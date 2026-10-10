@@ -1756,6 +1756,31 @@ footer a:hover {
     color: #35383d;
 }
 
+/* Wrap catalog controls by available space, including the nested desktop grid. */
+#search-form .input-group {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+#search-form .input-group > .form-control {
+    flex: 1 1 14rem;
+    width: auto;
+    min-width: min(100%, 14rem);
+    border-radius: var(--bs-border-radius) !important;
+}
+
+#search-form .input-group > .btn {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    margin-left: 0 !important;
+    border-radius: var(--bs-border-radius) !important;
+}
+
+#modelFilterHelp {
+    color: var(--text-color);
+}
+
 .saved-search-notify-form {
     background: #fff;
     border-color: rgba(219, 3, 53, 0.14) !important;
