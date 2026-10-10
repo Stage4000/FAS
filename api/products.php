@@ -264,6 +264,7 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
 <?php else: ?>
 <div class="row g-4">
     <?php foreach ($products as $index => $product): ?>
+<?php $displayIdentifiers = \FAS\Utils\ProductIdentifierOutput::forProduct($product, (string)($product['manufacturer'] ?? ''), (string)($product['model'] ?? '')); ?>
         <?php
                     // Staggered animation with max delay cap of 400ms
                     $delay = min(($index % 8) * 50, 400);
@@ -290,7 +291,7 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
                         );
                         ?>
                         <?php if ($hasImage): ?>
-                        <img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 25vw, (min-width: 768px) 38vw, 100vw'); ?>
+                        <img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 25vw, (min-width: 768px) 38vw, 100vw', 0, null, (string)($product['id'] ?? '')); ?>
                              class="card-img-top product-image"
                              alt="<?php echo htmlspecialchars($imageAltText); ?>"
                              loading="lazy" decoding="async"
@@ -329,11 +330,11 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
                         if ($catPath): ?>
                             <strong>Category:</strong> <?php echo htmlspecialchars($catPath); ?><br>
                         <?php endif; ?>
-                        <?php if (!empty($product['manufacturer'])): ?>
-                            <strong>Mfg:</strong> <?php echo htmlspecialchars($product['manufacturer']); ?><br>
+                        <?php if (!empty($displayIdentifiers['brand'])): ?>
+                            <strong>Mfg:</strong> <?php echo htmlspecialchars($displayIdentifiers['brand']); ?><br>
                         <?php endif; ?>
-                        <?php if (!empty($product['model'])): ?>
-                            <strong>Model / part number:</strong> <?php echo htmlspecialchars($product['model']); ?>
+                        <?php if (!empty($displayIdentifiers['mpn'])): ?>
+                            <strong>Model / part number:</strong> <?php echo htmlspecialchars($displayIdentifiers['mpn']); ?>
                         <?php endif; ?>
                     </p>
                     <div class="mt-auto">
@@ -356,7 +357,7 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                             data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
                             data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
-data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+data-manufacturer="<?php echo htmlspecialchars($displayIdentifiers['brand'] ?? ''); ?>"
 data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
 data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
 data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"

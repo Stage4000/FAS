@@ -54,6 +54,10 @@ try {
     exit('This product is temporarily unavailable. Please try again shortly.');
 }
 
+// Display-only values; keep the imported product array and provenance untouched.
+$displayIdentifiers = \FAS\Utils\ProductIdentifierOutput::forProduct($product, (string)($product['manufacturer'] ?? ''), (string)($product['model'] ?? ''));
+$productReturnPolicy = \FAS\Utils\ReviewedProductFacts::returnPolicy($product);
+
 $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
 $relatedProducts = fasRelatedMerchandisingProducts($db, $productModel, $product, 3);
 
@@ -169,8 +173,8 @@ $metaDetails = [];
 if (!empty($product['condition_name'])) {
     $metaDetails[] = Seo::cleanText($product['condition_name']);
 }
-if (!empty($product['manufacturer'])) {
-    $metaDetails[] = Seo::cleanText($product['manufacturer']);
+if (!empty($displayIdentifiers['brand'])) {
+    $metaDetails[] = Seo::cleanText($displayIdentifiers['brand']);
 }
 if ($productCategoryPath) {
     $metaDetails[] = Seo::cleanText($productCategoryPath);
@@ -261,7 +265,7 @@ require_once __DIR__ . '/includes/header.php';
                     ?>
                     <?php if ($hasMainImage): ?>
                             <a id="product-image-original" href="<?php echo htmlspecialchars($mainImage); ?>" target="_blank" rel="noopener" aria-label="Open full-size product photo">
-                            <img <?php echo \FAS\Utils\ResponsiveImage::attributes($mainImage, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw'); ?>
+                            <img <?php echo \FAS\Utils\ResponsiveImage::attributes($mainImage, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw', 0, null, (string)($product['id'] ?? '')); ?>
                                  class="img-fluid product-detail-img w-100"
                                  id="main-product-image"
                                  alt="<?php echo htmlspecialchars($productImageAltText); ?>"
@@ -293,9 +297,9 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if ($hasImage): ?>
                             <button type="button" class="product-thumbnail <?= $index === 0 ? 'active' : '' ?>"
                                 aria-label="View product photo <?= $index + 1 ?>" aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>"
-                                data-image-attributes="<?= htmlspecialchars(\FAS\Utils\ResponsiveImage::attributes($image, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw'), ENT_QUOTES, 'UTF-8') ?>"
+                                data-image-attributes="<?= htmlspecialchars(\FAS\Utils\ResponsiveImage::attributes($image, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw', 0, null, (string)($product['id'] ?? '')), ENT_QUOTES, 'UTF-8') ?>"
                                 data-full="<?= htmlspecialchars($image, ENT_QUOTES, 'UTF-8') ?>">
-                                <img <?= \FAS\Utils\ResponsiveImage::attributes($image, '80px', 320) ?>
+                                <img <?= \FAS\Utils\ResponsiveImage::attributes($image, '80px', 320, null, (string)($product['id'] ?? '')) ?>
                                      alt="<?= htmlspecialchars(ProductAltText::forProductImage($product, $index)); ?>"
                                      loading="lazy" decoding="async">
                             </button>
@@ -328,7 +332,7 @@ require_once __DIR__ . '/includes/header.php';
                         data-image-alt="<?php echo htmlspecialchars($productImageAltText); ?>"
                                 data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
 data-category="<?php echo htmlspecialchars($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? ''); ?>"
-data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+data-manufacturer="<?php echo htmlspecialchars($displayIdentifiers['brand'] ?? ''); ?>"
 data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
 data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
 data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']) : 1.0; ?>"
@@ -408,11 +412,19 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                             <div class="text-muted">Rates are calculated at checkout before payment.</div>
                         </div>
                         <div class="col-sm-6">
+                            <?php if ($productReturnPolicy === 'final_sale'): ?>
+                            <div class="fw-semibold">Final Sale</div>
+                            <div class="text-muted">Returns are not accepted for this item.</div>
+                            <?php elseif ($productReturnPolicy === 'review_required'): ?>
+                            <div class="fw-semibold">Return Policy</div>
+                            <div class="text-muted">Contact us to confirm this item's return terms before ordering.</div>
+                            <?php else: ?>
                             <div class="fw-semibold">30-Day Return Policy</div>
                             <div class="text-muted">Eligible orders may be returned within 30 days.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
-                        <?php if (!empty($product['manufacturer']) || !empty($product['model']) || !empty($product['sku']) || !empty($productCategoryPath)): ?>
+                        <?php if (!empty($displayIdentifiers['brand']) || !empty($displayIdentifiers['mpn']) || !empty($product['sku']) || !empty($productCategoryPath)): ?>
                             <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
                                 <i class="fas fa-wrench me-1"></i>
                                 The source model / part number does not confirm vehicle compatibility. Check the complete item notes, photos and manufacturer reference before purchase. Contact us if you need help matching this part.
@@ -439,16 +451,16 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                             <td style="word-break: break-word;"><?php echo htmlspecialchars($ebayCategory); ?></td>
                         </tr>
                         <?php endif; ?>
-                        <?php if (!empty($product['manufacturer'])): ?>
+                        <?php if (!empty($displayIdentifiers['brand'])): ?>
                         <tr>
                             <td class="text-muted" style="white-space: nowrap;">Manufacturer:</td>
-                            <td style="word-break: break-word;"><?php echo htmlspecialchars($product['manufacturer']); ?></td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($displayIdentifiers['brand']); ?></td>
                         </tr>
                         <?php endif; ?>
-                        <?php if (!empty($product['model'])): ?>
+                        <?php if (!empty($displayIdentifiers['mpn'])): ?>
                         <tr>
                             <td class="text-muted" style="white-space: nowrap;">Model / part number:</td>
-                            <td style="word-break: break-word;"><?php echo htmlspecialchars($product['model']); ?></td>
+                            <td style="word-break: break-word;"><?php echo htmlspecialchars($displayIdentifiers['mpn']); ?></td>
                         </tr>
                         <?php endif; ?>
                         <?php if (!empty($product['condition_name'])): ?>
@@ -512,7 +524,7 @@ window.FAS_PRODUCT_DATA = {
     product_name: <?php echo json_encode((string) $product['name']); ?>,
     product_sku: <?php echo json_encode((string) ($product['sku'] ?? '')); ?>,
     category: <?php echo json_encode((string) ($product['ebay_store_cat3_name'] ?? $product['ebay_store_cat2_name'] ?? $product['ebay_store_cat1_name'] ?? $product['category'] ?? '')); ?>,
-    manufacturer: <?php echo json_encode((string) ($product['manufacturer'] ?? '')); ?>,
+    manufacturer: <?php echo json_encode((string) ($displayIdentifiers['brand'] ?? '')); ?>,
     product_source: <?php echo json_encode((string) ($product['source'] ?? '')); ?>,
     product_price: <?php echo json_encode((float) $priceInfo['effective_price']); ?>,
     event_value: <?php echo json_encode((float) $priceInfo['effective_price']); ?>

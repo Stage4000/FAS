@@ -108,7 +108,7 @@ class MerchantFeedBuilder
     'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
     'brand' => $identifiers['brand'],
     'mpn' => $identifiers['mpn'],
-    'identifier_exists' => ($identifiers['held'] || $brand !== '' || $mpn !== '') ? 'yes' : 'no',
+    'identifier_exists' => ($identifiers['held'] || $identifiers['brand'] !== '' || $identifiers['mpn'] !== '' || $brand !== '' || $mpn !== '') ? 'yes' : 'no',
     'product_type' => $productType,
     'shipping_weight' => $shippingWeight,
     'shipping_label' => $freeShippingEligible ? 'continental_us_free_shipping' : null,

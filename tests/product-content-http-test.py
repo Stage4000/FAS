@@ -55,7 +55,22 @@ try:
     check(request("/admin/login.php",{"username":"content-fixture","password":"Local-test-only","csrf_token":csrf})[0]==302,"Synthetic active admin signs in")
     status,headers,body=request("/admin/product-content.php?id=1")
     check(status==200 and '<fieldset disabled' in body and "private, no-store" in headers["Cache-Control"],"Uninitialized editor is read-only and private")
-    subprocess.check_call(["php",str(SITE/"scripts/product-content-maintenance.php"),"init"],env=fixture.env,stdout=subprocess.DEVNULL)
+    check("NEW-backup.sqlite" in body,"Editor initialization hint requires a new private backup")
+    body,tokens=editor()
+    check(post({**tokens,**copy,"action":"draft"})[0]==503,"Direct POST cannot bypass uninitialized read-only editor")
+    for payload in [None,{"command":"init"}]:
+        check(request("/scripts/product-content-maintenance.php",payload)[0]==404,"Maintenance script cannot run over HTTP")
+    with sqlite3.connect(dbfile) as db:
+        check(db.execute("SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'product_content_%'").fetchone()[0]==0,"HTTP reads and rejected writes never initialize editorial storage")
+    check(request(path)[0]==200 and request("/google-merchant-feed.php")[0]==200,"Uninitialized storefront and feed remain available")
+    backup_dir=BASE/"editorial-backups"
+    backup_dir.mkdir(mode=0o700)
+    backup=backup_dir/"before-init.sqlite"
+    result=subprocess.check_output(["php",str(SITE/"scripts/product-content-maintenance.php"),"preflight"],env=fixture.env,text=True)
+    check(json.loads(result)["installed"] is False,"CLI preflight confirms uninitialized storage without installing it")
+    subprocess.check_call(["php",str(SITE/"scripts/product-content-maintenance.php"),"init",str(backup)],env=fixture.env,stdout=subprocess.DEVNULL)
+    with sqlite3.connect(backup) as db:
+        check(db.execute("PRAGMA integrity_check").fetchone()[0]=="ok" and db.execute("SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'product_content_%'").fetchone()[0]==0,"Verified private snapshot contains pre-initialization inventory")
     body,tokens=editor()
     check("<fieldset disabled" not in body,"Initialized editor allows drafts")
     check(post({**tokens,**copy,"action":"draft","csrf_token":"bad"})[0]==403,"Draft rejects invalid CSRF")

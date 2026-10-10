@@ -4,6 +4,7 @@
  */
 
 namespace FAS\Utils;
+require_once __DIR__.'/ProductIdentifierOutput.php';
 
 class ProductAltText
 {
@@ -18,8 +19,10 @@ class ProductAltText
     {
         $name = self::clean($product['name'] ?? '');
         $condition = self::clean($product['condition_name'] ?? '');
-        $manufacturer = self::clean($product['manufacturer'] ?? '');
-        $model = self::clean($product['model'] ?? '');
+        $identifiers = ProductIdentifierOutput::forProduct($product,
+            self::clean($product['manufacturer'] ?? ''), self::clean($product['model'] ?? ''));
+        $manufacturer = $identifiers['brand'];
+        $model = $identifiers['mpn'];
         $category = self::categoryLabel($product);
 
         $parts = [];

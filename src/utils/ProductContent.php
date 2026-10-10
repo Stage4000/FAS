@@ -13,7 +13,9 @@ final class ProductContent
     public static function install(\PDO $db): void
     {
         if (PHP_SAPI !== 'cli') throw new \RuntimeException('Initialize editorial storage from the CLI.');
-        $db->beginTransaction();
+        // Maintenance may own the transaction so post-install checks can roll back DDL.
+        $ownsTransaction = !$db->inTransaction();
+        if ($ownsTransaction) $db->beginTransaction();
         try {
         $db->exec("CREATE TABLE IF NOT EXISTS product_content_reviews (
             product_id INTEGER PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 0,
@@ -26,9 +28,9 @@ final class ProductContent
             created_at TEXT NOT NULL
         )");
         $db->exec('CREATE INDEX IF NOT EXISTS product_content_history_product ON product_content_history(product_id,id)');
-            $db->commit();
+            if ($ownsTransaction) $db->commit();
         } catch (\Throwable $e) {
-            $db->rollBack();
+            if ($ownsTransaction) $db->rollBack();
             throw $e;
         }
     }

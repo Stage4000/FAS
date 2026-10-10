@@ -50,6 +50,7 @@ function fasProductCardUrl(array $product): string
 
 function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6 col-sm-12', int $delay = 0): string
 {
+    $displayIdentifiers = \FAS\Utils\ProductIdentifierOutput::forProduct($product, (string)($product['manufacturer'] ?? ''), (string)($product['model'] ?? ''));
     $imageUrl = fasProductImagePath($product['image_url'] ?? null);
     $imageAltText = ProductAltText::forProductImage($product);
     $priceInfo = getEffectivePrice(
@@ -67,7 +68,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
         <div class="card product-card h-100">
             <a href="<?php echo htmlspecialchars($productUrl); ?>" class="text-decoration-none">
                 <div class="position-relative">
-<img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw'); ?>
+<img <?php echo \FAS\Utils\ResponsiveImage::attributes($imageUrl, '(min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw', 0, null, (string)($product['id'] ?? '')); ?>
 class="card-img-top product-image"
 alt="<?php echo htmlspecialchars($imageAltText); ?>"
 loading="lazy"
@@ -115,7 +116,7 @@ decoding="async">
                             data-image-alt="<?php echo htmlspecialchars($imageAltText); ?>"
                             data-sku="<?php echo htmlspecialchars($product['sku'] ?? ''); ?>"
                             data-category="<?php echo htmlspecialchars($category); ?>"
-                            data-manufacturer="<?php echo htmlspecialchars($product['manufacturer'] ?? ''); ?>"
+                            data-manufacturer="<?php echo htmlspecialchars($displayIdentifiers['brand']); ?>"
                             data-source="<?php echo htmlspecialchars($product['source'] ?? ''); ?>"
                             data-condition="<?php echo htmlspecialchars($product['condition_name'] ?? ''); ?>"
                             data-weight="<?php echo !empty($product['weight']) ? (float)$product['weight'] : 1.0; ?>"
@@ -178,8 +179,9 @@ function fasRelatedMerchandisingProducts(\PDO $db, Product $productModel, array 
 {
     $currentId = (int)($product['id'] ?? 0);
     $category = fasProductCategoryLabel($product);
-    $manufacturer = trim((string)($product['manufacturer'] ?? ''));
-    $model = trim((string)($product['model'] ?? ''));
+    $reviewed = \FAS\Utils\ReviewedProductFacts::identifiers($product);
+    $manufacturer = trim((string)($reviewed['brand'] ?? $product['manufacturer'] ?? ''));
+    $model = trim((string)($reviewed['mpn'] ?? $product['model'] ?? ''));
     $searchText = strtolower(Seo::cleanText(implode(' ', [
         $product['name'] ?? '',
         $product['sku'] ?? '',
@@ -193,8 +195,9 @@ function fasRelatedMerchandisingProducts(\PDO $db, Product $productModel, array 
 
     foreach ($ranked as $candidate) {
     $candidateCategory = fasProductCategoryLabel($candidate);
-    $candidateManufacturer = trim((string)($candidate['manufacturer'] ?? ''));
-    $candidateModel = trim((string)($candidate['model'] ?? ''));
+    $candidateReviewed = \FAS\Utils\ReviewedProductFacts::identifiers($candidate);
+    $candidateManufacturer = trim((string)($candidateReviewed['brand'] ?? $candidate['manufacturer'] ?? ''));
+    $candidateModel = trim((string)($candidateReviewed['mpn'] ?? $candidate['model'] ?? ''));
     $candidateText = strtolower(Seo::cleanText(implode(' ', [
         $candidate['name'] ?? '',
         $candidate['sku'] ?? '',
