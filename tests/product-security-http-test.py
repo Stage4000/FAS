@@ -107,7 +107,15 @@ try:
         with sqlite3.connect(DB) as db:
             db.execute('UPDATE products SET name=?,sku=?,image_url=?,images=? WHERE id=9001', ['Synthetic '+value,'SYNTHETIC-'+value,'/gallery/'+value,json.dumps(['/gallery/'+value])])
         before=snapshot()
-        body=request('/product/9001')[2]
+        status, headers, body=request('/product/9001')
+        if status == 301:
+            canonical = urllib.parse.urlsplit(headers.get('Location', '')).path
+            if not canonical.startswith('/product/9001/'):
+                raise AssertionError('Fixture product redirect must remain scoped to its local route')
+            # Follow the app's canonical path through the fixture origin only.
+            # Its configured public hostname must never receive a test request.
+            status, _, body = request(canonical)
+        check(status == 200, 'Synthetic product reaches its canonical page locally')
         try:
             product=next(s for s in schemas(body) if s.get('@type')=='Product')
             check(product['sku']=='SYNTHETIC-'+cleaned and product['image'][0].endswith('/gallery/'+value), 'Product schema keeps existing SKU cleaning and original image data')
