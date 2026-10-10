@@ -9,6 +9,7 @@ use FAS\Models\Product;
 
 require_once __DIR__ . '/Seo.php';
 require_once __DIR__ . '/ProductCondition.php';
+require_once __DIR__ . '/ProductIdentifierOutput.php';
 require_once __DIR__ . '/ShippingRules.php';
 
 class MerchantFeedBuilder
@@ -83,6 +84,7 @@ class MerchantFeedBuilder
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
         $mpn = ProductCondition::identifier($product['model'] ?? '');
+        $identifiers = ProductIdentifierOutput::forProduct($product, $brand, ProductCondition::merchantMpn($mpn));
         $description = $this->buildDescription($product);
         $productType = $this->resolveProductType($product);
     $priceInfo = $this->resolvePriceInfo($product);
@@ -104,9 +106,9 @@ class MerchantFeedBuilder
     'price' => number_format($regularPrice, 2, '.', '') . ' USD',
     'sale_price' => $effectivePrice < $regularPrice ? number_format($effectivePrice, 2, '.', '') . ' USD' : null,
     'condition' => $this->normalizeCondition($product['condition_name'] ?? ''),
-    'brand' => $brand,
-    'mpn' => ProductCondition::merchantMpn($mpn),
-    'identifier_exists' => ($brand !== '' || $mpn !== '') ? 'yes' : 'no',
+    'brand' => $identifiers['brand'],
+    'mpn' => $identifiers['mpn'],
+    'identifier_exists' => ($identifiers['held'] || $brand !== '' || $mpn !== '') ? 'yes' : 'no',
     'product_type' => $productType,
     'shipping_weight' => $shippingWeight,
     'shipping_label' => $freeShippingEligible ? 'continental_us_free_shipping' : null,
