@@ -189,9 +189,9 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
                     <!-- Search Box -->
                     <form method="get" action="/products" id="search-form">
 <?php if ($homepageCategory): ?><input type="hidden" name="category" value="<?php echo htmlspecialchars($homepageCategory); ?>"><?php endif; ?>
-                        <?php if ($ebayCat1): ?><input type="hidden" name="cat1" value="<?php echo $ebayCat1; ?>"><?php endif; ?>
-<?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo $ebayCat2; ?>"><?php endif; ?>
-<?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo $ebayCat3; ?>"><?php endif; ?>
+                        <?php if ($ebayCat1): ?><input type="hidden" name="cat1" value="<?php echo htmlspecialchars($ebayCat1, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"><?php endif; ?>
+<?php if ($ebayCat2): ?><input type="hidden" name="cat2" value="<?php echo htmlspecialchars($ebayCat2, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"><?php endif; ?>
+<?php if ($ebayCat3): ?><input type="hidden" name="cat3" value="<?php echo htmlspecialchars($ebayCat3, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"><?php endif; ?>
 <?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
 <?php if ($fitmentModel): ?><input type="hidden" name="model" value="<?php echo htmlspecialchars($fitmentModel); ?>"><?php endif; ?>
 <?php if ($includeHiddenProducts): ?><input type="hidden" name="show_hidden" value="1"><?php endif; ?>
@@ -524,7 +524,7 @@ data-stock="<?php echo isset($product['quantity']) ? intval($product['quantity']
 
 <script src="/public/js/catalog-navigation.js?v=<?php echo filemtime(__DIR__ . '/public/js/catalog-navigation.js'); ?>"></script>
 <script>
-window.FAS_PRODUCTS_PAGE_DATA = <?php echo json_encode([
+window.FAS_PRODUCTS_PAGE_DATA = <?php echo Seo::schemaJson([
     'page_type' => $discoveryCollection !== '' ? 'collection' : ($isCuratedFitmentLanding ? 'fitment_landing' : ($homepageCategory ? 'category' : 'products')),
     'collection' => $discoveryCollection,
     'category' => $homepageCategory,
@@ -532,7 +532,7 @@ window.FAS_PRODUCTS_PAGE_DATA = <?php echo json_encode([
     'model' => $fitmentModelName,
     'product_count' => $totalProducts,
     'canonical_url' => $canonicalUrl,
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+]); ?>;
 
 function trackProductsLandingPage() {
     if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function' && window.FAS_PRODUCTS_PAGE_DATA.page_type !== 'products') {

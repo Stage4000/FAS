@@ -1292,12 +1292,158 @@ class Product
         }
     }
 
-    public function updateImages($prodId, $newImagesJson) {
-        $sql = "UPDATE products SET images = :imgs WHERE id = :pid";
+    public function updateImages($prodId, $newImagesJson, $expectedImagesJson = null) {
+        $sql = "UPDATE products SET images = :imgs WHERE id = :pid
+            AND (images IS NULL OR images <> :changed)";
+        if (func_num_args() >= 3) {
+            $sql .= $expectedImagesJson === null ? ' AND images IS NULL' : ' AND images = :expected';
+        }
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':imgs', $newImagesJson);
         $stmt->bindParam(':pid', $prodId);
-        return $stmt->execute();
+        $stmt->bindParam(':changed', $newImagesJson);
+        if (func_num_args() >= 3 && $expectedImagesJson !== null) {
+            $stmt->bindParam(':expected', $expectedImagesJson);
+        }
+        return $stmt->execute() && $stmt->rowCount() === 1;
+    }
+
+    public function removeAdditionalImage($prodId, $imagePath, string $applicationRoot): bool
+    {
+        if (!filter_var($prodId, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])
+            || !is_string($imagePath) || $imagePath === '' || $this->db->inTransaction()) {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $product = $this->getById($prodId, true);
+            $rawImages = $product['images'] ?? null;
+            $images = is_string($rawImages) ? json_decode($rawImages, true) : null;
+            if (!$product || !is_array($images) || array_values($images) !== $images
+                || count(array_filter($images, 'is_string')) !== count($images)
+                || !in_array($imagePath, $images, true)) {
+                throw new \InvalidArgumentException('Image is not a stored additional image');
+            }
+
+            $file = $this->localAdditionalImageFile($imagePath, $applicationRoot);
+            $fileStat = $file === null ? null : lstat($file);
+            $remaining = array_values(array_filter($images, static function ($image) use ($imagePath) {
+                return $image !== $imagePath;
+            }));
+            if (!$this->updateImages($prodId, json_encode($remaining, JSON_THROW_ON_ERROR), $rawImages)) {
+                throw new \InvalidArgumentException('Image list changed');
+            }
+            $deleteFile = $file !== null && !$this->hasAdditionalImageReference($imagePath);
+            $this->db->commit();
+        } catch (\InvalidArgumentException $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            return false;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $e;
+        }
+
+        // Cleanup follows a durable DB change. Failed cleanup retains the file;
+        // it never deletes an image following a failed/no-op inventory update.
+        // The site's SQLite writer lock prevents a concurrent product save
+        // from adding a reference between the last reference scan and unlink.
+        // Other drivers retain the upload until serialized cleanup is available.
+        if ($deleteFile && $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $cleanupTransaction = false;
+            try {
+                $this->db->exec('BEGIN IMMEDIATE');
+                $cleanupTransaction = true;
+                clearstatcache(true);
+                $currentFile = $this->localAdditionalImageFile($imagePath, $applicationRoot);
+                $currentStat = $currentFile === null ? false : lstat($currentFile);
+                if ($currentFile === $file && $currentStat && $fileStat
+                    && $currentStat['dev'] === $fileStat['dev'] && $currentStat['ino'] === $fileStat['ino']
+                    && !$this->hasAdditionalImageReference($imagePath)) {
+                    @unlink($file);
+                }
+                $this->db->exec('COMMIT');
+                $cleanupTransaction = false;
+            } catch (\Throwable $e) {
+                if ($cleanupTransaction) {
+                    try { $this->db->exec('ROLLBACK'); } catch (\Throwable $ignored) {}
+                }
+                // A changed path or unreadable reference leaves cleanup pending.
+            }
+        }
+        return true;
+    }
+
+    private function localAdditionalImageFile(string $imagePath, string $applicationRoot): ?string
+    {
+        if (preg_match('~^https?://~', $imagePath)) return null;
+        if (strpos($imagePath, "\0") !== false || strpos($imagePath, '\\') !== false) {
+            throw new \InvalidArgumentException('Invalid local image path');
+        }
+        $relative = $imagePath[0] === '/' ? substr($imagePath, 1) : $imagePath;
+        foreach (explode('/', $relative) as $part) {
+            if ($part === '' || $part === '.' || $part === '..') {
+                throw new \InvalidArgumentException('Invalid local image path');
+            }
+        }
+        if ($relative === 'gallery/uploads') throw new \InvalidArgumentException('Image path is a directory');
+        if (strpos($relative, 'gallery/uploads/') !== 0) return null;
+
+        $root = realpath($applicationRoot);
+        if ($root === false) throw new \InvalidArgumentException('Upload root unavailable');
+        $uploads = $root . '/gallery/uploads';
+        $path = $root;
+        foreach (explode('/', $relative) as $part) {
+            $path .= '/' . $part;
+            if (is_link($path)) throw new \InvalidArgumentException('Symlink image path');
+        }
+        $canonical = realpath($path);
+        $stat = $canonical === false ? false : lstat($path);
+        if ($canonical === false || $canonical !== $path || strpos($canonical, $uploads . '/') !== 0
+            || !$stat || ($stat['mode'] & 0170000) !== 0100000) {
+            throw new \InvalidArgumentException('Image is not a contained regular upload');
+        }
+        return $canonical;
+    }
+
+    private function hasAdditionalImageReference(string $imagePath): bool
+    {
+        $relative = $this->additionalImageReferencePath($imagePath);
+        $stmt = $this->db->query('SELECT image_url, images FROM products');
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $primary = (string) ($row['image_url'] ?? '');
+            if ($primary !== '') {
+                $primaryPath = $this->additionalImageReferencePath($primary);
+                if ($primaryPath === null || $primaryPath === $relative) return true;
+            }
+            if (empty($row['images'])) continue;
+            $images = json_decode($row['images'], true);
+            // Unreadable lists cannot establish that the upload is unreferenced.
+            if (!is_array($images)) return true;
+            foreach ($images as $image) {
+                if (!is_string($image)) return true;
+                $referencePath = $this->additionalImageReferencePath($image);
+                if ($referencePath === null || $referencePath === $relative) return true;
+            }
+        }
+        return false;
+    }
+
+    private function additionalImageReferencePath(string $image): ?string
+    {
+        $path = parse_url(str_replace('\\', '/', trim($image)), PHP_URL_PATH);
+        if (!is_string($path)) return null;
+        $path = rawurldecode($path);
+        if (strpos($path, "\0") !== false) return null;
+        $parts = [];
+        foreach (explode('/', $path) as $part) {
+            if ($part === '' || $part === '.') continue;
+            if ($part === '..') { array_pop($parts); continue; }
+            $parts[] = $part;
+        }
+        // Host aliases are treated conservatively: a matching URL path keeps
+        // the upload even if its hostname cannot be established as local.
+        return implode('/', $parts);
     }
 
     /**
