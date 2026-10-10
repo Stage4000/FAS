@@ -7,6 +7,7 @@ namespace FAS\Utils;
 
 require_once __DIR__ . '/ShippingRules.php';
 require_once __DIR__ . '/ProductCondition.php';
+require_once __DIR__ . '/ProductIdentifierOutput.php';
 
 class Seo
 {
@@ -366,7 +367,12 @@ class Seo
     ];
     }
 
-    $brand = self::cleanText($product['manufacturer'] ?? '');
+    $identifiers = ProductIdentifierOutput::forProduct(
+        $product,
+        self::cleanText($product['manufacturer'] ?? ''),
+        ProductCondition::merchantMpn($product['model'] ?? '')
+    );
+    $brand = $identifiers['brand'];
         if ($brand !== '') {
             $schema['brand'] = [
                 '@type' => 'Brand',
@@ -374,7 +380,7 @@ class Seo
             ];
         }
 
-        $mpn = ProductCondition::merchantMpn($product['model'] ?? '');
+        $mpn = $identifiers['mpn'];
         if ($mpn !== '') {
             $schema['mpn'] = $mpn;
         }

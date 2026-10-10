@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace FAS\Utils;
 require_once __DIR__.'/ProductContent.php';
 require_once __DIR__.'/ProductCondition.php';
+require_once __DIR__.'/ProductIdentifierOutput.php';
 require_once __DIR__.'/Seo.php';
 
 /** Review warnings, not automatic publication rules or fitment claims. */
@@ -16,6 +17,7 @@ final class ProductContentQuality
             'content_draft'=>['Unpublished edits','A draft differs from the published description or search text.'],
             'placeholder_mpn'=>['Placeholder identifier','A value such as N/A or unknown is not a part number. It is omitted from feed/schema.'],
             'unsupported_mpn'=>['Source identifier omitted','The source value is omitted from feed/schema by the existing 1–70-character MPN guard. Verify the complete manufacturer-assigned identifier for the actual item. Do not truncate a list, select a component number, or guess.'],
+            'identifier_output_hold'=>['Conflicting identifiers withheld','Brand and part number are withheld from feed/schema until the actual item is verified. Source inventory and visible content are unchanged; this is not an identity correction or Merchant approval.'],
             'marketplace_copy'=>['Marketplace copy','Review inherited marketplace instructions before using them on this website.'],
             'duplicate_opening'=>['Repeated opening','Another listing starts with the same description. Verify the actual item.'],
             'description_relevance'=>['Check description identity','The description opening shares few meaningful words with the product title. This is a review hint.'],
@@ -61,6 +63,7 @@ final class ProductContentQuality
         if ($model !== '' && ProductCondition::identifier($model) === '') $keys[]='placeholder_mpn';
         if ($model !== '' && ProductCondition::identifier($model) !== '') $keys[]='fitment_review';
         if (ProductCondition::identifier($model) !== '' && ProductCondition::merchantMpn($model) === '') $keys[]='unsupported_mpn';
+        if (ProductIdentifierOutput::isHeld($product)) $keys[]='identifier_output_hold';
         $description = self::description($product,$review);
         if (preg_match('/\bebay\b|IMPORTANT BUYER NOTICE|porch pirates?/iu',$description)) $keys[]='marketplace_copy';
         $opening = self::opening($description);
