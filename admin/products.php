@@ -4,9 +4,26 @@ require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+
+// Validate every POST before product writes or upload filesystem operations.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !\FAS\Utils\CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    header('Cache-Control: private, no-store');
+    $csrfError = 'Invalid security token. Refresh the page and try again.';
+    if (isset($_POST['ajax_remove_image'])
+        || in_array($_POST['action'] ?? '', ['toggle_visibility', 'toggle_free_shipping'], true)) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => $csrfError]);
+    } else {
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $csrfError;
+    }
+    exit;
+}
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -30,39 +47,16 @@ $productId = $_GET['id'] ?? null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image'])) {
     header('Content-Type: application/json');
 
-    $productIdToUpdate = $_POST['product_id'] ?? null;
+    $productIdToUpdate = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $imagePathToRemove = $_POST['image_path'] ?? null;
 
-    if ($productIdToUpdate && $imagePathToRemove) {
+    if ($productIdToUpdate && is_string($imagePathToRemove) && $imagePathToRemove !== '') {
         try {
-            $productData = $productModel->getById($productIdToUpdate);
-            if ($productData) {
-                $currentAdditionalImgs = is_string($productData['images']) ?
-                    json_decode($productData['images'], true) :
-                    ($productData['images'] ?? []);
-
-                // Remove the specified image from the array
-                $updatedImgList = array_values(array_filter($currentAdditionalImgs, function($img) use ($imagePathToRemove) {
-                    return $img !== $imagePathToRemove;
-                }));
-
-                // Update product with new image list
-                $updateSuccess = $productModel->updateImages($productIdToUpdate, json_encode($updatedImgList));
-
-                // Try to delete the physical file if it's a local upload
-                if ($updateSuccess && (strpos($imagePathToRemove, 'gallery/uploads/') === 0 || strpos($imagePathToRemove, '/gallery/uploads/') === 0)) {
-                    $physicalPath = __DIR__ . '/../' . ltrim($imagePathToRemove, '/');
-                    if (file_exists($physicalPath)) {
-                        @unlink($physicalPath);
-                    }
-                }
-
-                echo json_encode(['success' => $updateSuccess]);
-            } else {
-                echo json_encode(['success' => false, 'error' => 'Product not found']);
-            }
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            $updateSuccess = $productModel->removeAdditionalImage($productIdToUpdate, $imagePathToRemove, __DIR__ . '/..');
+            echo json_encode($updateSuccess ? ['success' => true]
+                : ['success' => false, 'error' => 'Image could not be removed. Refresh the product and try again.']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => 'Image could not be removed. Try again later.']);
         }
     } else {
         echo json_encode(['success' => false, 'error' => 'Missing parameters']);
@@ -464,6 +458,7 @@ if ($action === 'list') {
         </div>
 
         <form method="POST" id="bulkProductsForm" class="mb-0">
+            <?php echo \FAS\Utils\CSRF::tokenField(); ?>
             <input type="hidden" name="action" value="bulk_update">
 
             <!-- Bulk Product Actions -->
@@ -705,6 +700,7 @@ if ($action === 'list') {
             <div class="card">
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
+                        <?php echo \FAS\Utils\CSRF::tokenField(); ?>
                         <input type="hidden" name="action" value="<?php echo $action === 'create' ? 'create' : 'update'; ?>">
                         <?php if ($product): ?>
                             <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
@@ -1028,6 +1024,7 @@ if ($action === 'list') {
                 </div>
                 <div class="modal-footer">
                     <form method="POST" action="products.php" id="deleteForm">
+                        <?php echo \FAS\Utils\CSRF::tokenField(); ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="product_id" id="deleteProductId">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1144,6 +1141,7 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                 const formData = new FormData();
                 formData.append('action', 'toggle_visibility');
                 formData.append('product_id', productId);
+                formData.append('csrf_token', document.querySelector('input[name="csrf_token"]')?.value || '');
 
                 try {
                     const response = await fetch('', {
@@ -1171,6 +1169,7 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                 const formData = new FormData();
                 formData.append('action', 'toggle_free_shipping');
                 formData.append('product_id', productId);
+                formData.append('csrf_token', document.querySelector('input[name="csrf_token"]')?.value || '');
 
                 this.disabled = true;
 
@@ -1262,7 +1261,8 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                             body: new URLSearchParams({
                                 ajax_remove_image: '1',
                                 product_id: prodId,
-                                image_path: imagePath
+                                image_path: imagePath,
+                                csrf_token: document.querySelector('input[name="csrf_token"]')?.value || ''
                             })
                         });
 

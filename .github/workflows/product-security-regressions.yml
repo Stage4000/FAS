@@ -1,0 +1,43 @@
+name: Synthetic product regressions
+on:
+  push:
+    branches: [fix/fas-product-security-2026-10-10]
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'includes/**'
+      - 'admin/products.php'
+      - 'products.php'
+      - 'api/products.php'
+      - 'tests/**'
+      - '.github/workflows/product-security-regressions.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-suite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/gallery/**
+            !/audit/**
+            !/google-merchant-feed.txt
+      - name: Install test extensions
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring php-curl php-gd
+          php -v
+      - name: PHP syntax
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - name: Full synthetic regression suite
+        env:
+          ANALYTICS_IP_GEO_ENABLED: '0'
+        # Only loopback exists in this network namespace. Even older fixtures
+        # cannot reach production, providers, SMTP or external image hosts.
+        run: |
+          sudo unshare --net -- bash -c 'ip link set lo up; exec runuser -u "$1" -- python3 tests/run-synthetic-suite.py' _ "$(id -un)"

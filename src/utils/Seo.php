@@ -258,7 +258,20 @@ class Seo
 
     public static function schemaJson(array $schema): string
     {
-        return (string) json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return (string) json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    }
+
+    public static function schemaJsonString(string $schema): string
+    {
+        $decoded = json_decode($schema);
+        if (json_last_error() !== JSON_ERROR_NONE || (!is_object($decoded) && !is_array($decoded))) {
+            return '';
+        }
+
+        // In valid JSON these characters occur only inside strings. Escape
+        // them without re-encoding objects or rounding raw number tokens.
+        return str_replace(['<', '>', '&', "'"], ['\\u003C', '\\u003E', '\\u0026', '\\u0027'], $schema);
     }
 
     public static function organizationSchema(array $config = []): array

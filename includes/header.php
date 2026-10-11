@@ -118,8 +118,14 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
     
     <!-- JSON-LD Structured Data -->
     <?php foreach ($structuredData as $schema): ?>
+    <?php
+    $schemaJson = is_string($schema)
+        ? \FAS\Utils\Seo::schemaJsonString($schema)
+        : \FAS\Utils\Seo::schemaJson($schema);
+    if ($schemaJson === '') continue;
+    ?>
     <script type="application/ld+json">
-    <?php echo is_string($schema) ? $schema : \FAS\Utils\Seo::schemaJson($schema); ?>
+    <?php echo $schemaJson; ?>
     </script>
     <?php endforeach; ?>
     

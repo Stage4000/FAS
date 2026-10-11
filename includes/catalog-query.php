@@ -27,6 +27,13 @@ function fasCatalogRequest(array $query): array
             $invalid = true;
         }
     }
+    foreach (['cat1', 'cat2', 'cat3'] as $key) {
+        $value = fasCatalogString($query, $key);
+        if ((isset($query[$key]) && !is_scalar($query[$key]))
+            || ($value !== null && $value !== '' && !preg_match('/^[0-9]+$/D', $value))) {
+            $invalid = true;
+        }
+    }
     $request = [
         'catalogNotFound' => $invalid,
         'homepageCategory' => isset(\FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$category ?? '']) ? $category : null,
