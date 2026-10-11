@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Shipping;
+require_once __DIR__.'/ShippingTransaction.php';
 
 /** One private, durable operation per direct-carrier shipment scope. No carrier calls here. */
 final class ShippingLabelOperations
@@ -143,7 +144,7 @@ final class ShippingLabelOperations
             $this->db->exec('COMMIT');
             return $record;
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }
@@ -213,7 +214,7 @@ final class ShippingLabelOperations
             $this->db->exec('COMMIT');
             return $operation;
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }
@@ -245,7 +246,7 @@ final class ShippingLabelOperations
             $stmt->execute([$now,(int)$operation['id']]);
             $this->db->exec('COMMIT');
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }
@@ -383,7 +384,7 @@ final class ShippingLabelOperations
             }
             $this->db->exec('COMMIT');
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }

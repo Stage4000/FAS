@@ -71,7 +71,7 @@ function shippingFixtureTransport($url,$headers,$body,$timeout) {
         ['totalBasePrice'=>9,'rates'=>[['mailClass'=>'USPS_GROUND_ADVANTAGE','priceType'=>'RETAIL',
             'rateIndicator'=>'SP','processingCategory'=>'MACHINABLE','destinationEntryFacilityType'=>'NONE']]]
     ]]];
-    return ['status'=>200,'data'=>['RateResponse'=>['RatedShipment'=>[
+    return ['status'=>200,'data'=>['RateResponse'=>['Response'=>['ResponseStatus'=>['Code'=>'1','Description'=>'Success']],'RatedShipment'=>[
         'Service'=>['Code'=>'03'],'TotalCharges'=>['MonetaryValue'=>'11.00','CurrencyCode'=>'USD']
     ]]]];
 }

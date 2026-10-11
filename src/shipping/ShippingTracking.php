@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Shipping;
+require_once __DIR__.'/ShippingTransaction.php';
 
 /** Private per-package status cache with a cross-worker polling lease. */
 final class ShippingTracking
@@ -77,7 +78,7 @@ final class ShippingTracking
             $this->db->exec('COMMIT');
             return $claimed;
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }

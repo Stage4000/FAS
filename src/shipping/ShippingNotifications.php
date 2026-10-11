@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Shipping;
+require_once __DIR__.'/ShippingTransaction.php';
 
 /** Transactional package-status digests. Stores hashes and state, never email bodies. */
 final class ShippingNotifications
@@ -87,7 +88,7 @@ final class ShippingNotifications
                 $result['scanned']++;
                 $result[$inserted ? 'queued' : 'skipped']++;
             } catch (\Throwable $e) {
-                if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+                ShippingTransaction::rollback($this->db);
                 throw $e;
             }
         }
@@ -124,7 +125,7 @@ final class ShippingNotifications
                 $this->db->exec('COMMIT');
                 if (!$claimed) { $result['skipped']++; continue; }
             } catch (\Throwable $e) {
-                if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+                ShippingTransaction::rollback($this->db);
                 throw $e;
             }
             // Recheck after the durable claim, immediately before the external handoff.
@@ -194,7 +195,7 @@ final class ShippingNotifications
             $this->run('UPDATE shipping_notifications SET state=?,finished_at=? WHERE id=?',[$outcome,$this->now(),$id]);
             $this->db->exec('COMMIT');
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }

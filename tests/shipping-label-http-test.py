@@ -44,6 +44,11 @@ with sqlite3.connect(DB) as db:
         [int(time.time())+600,origin,packages])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(13,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups-13',?,?,?,NULL)",
         [int(time.time())+600,origin,packages])
+# Supply complete synthetic addresses to isolate shipping assertions. The existing
+# null billing-address/display_errors status defect is documented in the audit.
+with sqlite3.connect(DB) as db:
+    db.execute('UPDATE orders SET billing_address=shipping_address')
+
 env={k:v for k,v in os.environ.items() if not k.startswith('FAS_')}
 env['FAS_SECURITY_DB_PATH']=str(BASE/'private/security.sqlite')
 env['FAS_SHIPPING_CACHE_PATH']=str(BASE/'private/shipping.sqlite')
