@@ -134,8 +134,8 @@ final class CarrierRates
                     || $parcel['length']+2*($parcel['width']+$parcel['height'])>130) return [];
             }
         }
-        // v2 prevents pre-limit cached USPS Priority or oversized options from resurfacing.
-        $key='quote:v2:'.$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
+        // Revalidate quotes cached before carrier response-contract checks were added.
+        $key='quote:v3:'.$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
         $cached=$this->cache->get($key);
         if ($cached!==null) return $cached;
         $rates=$this->name==='usps'?$this->usps($shipment):$this->ups($shipment);
@@ -158,9 +158,15 @@ final class CarrierRates
             if (!isset($byParcel[$parcelKey])) {
                 $result=$this->request('/prices/v3/base-rates-list/search',$payload);
                 $options=[];
-                foreach ($result['rateOptions'] ?? [] as $option) {
+                $rateOptions=$result['rateOptions'] ?? [];
+                if (!is_array($rateOptions) || !array_is_list($rateOptions)) {
+                    throw new \RuntimeException('Invalid carrier rating response.');
+                }
+                foreach ($rateOptions as $option) {
+                    if (!is_array($option)) continue;
                     $lines=$option['rates'] ?? [];
-                    if (count($lines)!==1) continue;
+                    if (!is_array($lines) || !array_is_list($lines) || count($lines)!==1
+                        || !is_array($lines[0])) continue;
                     $line=$lines[0]; $code=$line['mailClass'] ?? '';
                     // No flat-rate packaging, destination-entry discounts, cubic tiers or restricted mail classes.
                     if (!in_array($code,$mailClasses,true)
@@ -220,14 +226,23 @@ final class CarrierRates
             'PaymentDetails'=>['ShipmentCharge'=>[['Type'=>'01','BillShipper'=>['AccountNumber'=>$this->config['account_number']]]]],
             'ShipmentRatingOptions'=>['NegotiatedRatesIndicator'=>'Y'],'NumOfPieces'=>(string)count($packages),'Package'=>$packages]]];
         $result=$this->request('/api/rating/v2409/Shop',$payload);
+        // HTTP 200 alone does not establish a successful UPS rating transaction.
+        if (($result['RateResponse']['Response']['ResponseStatus']['Code'] ?? null)!=='1') {
+            throw new \RuntimeException('Invalid carrier rating response.');
+        }
         $options=$result['RateResponse']['RatedShipment'] ?? [];
+        if (!is_array($options)) throw new \RuntimeException('Invalid carrier rating response.');
         if (isset($options['Service'])) $options=[$options];
+        if (!array_is_list($options)) throw new \RuntimeException('Invalid carrier rating response.');
         $rates=[];
         foreach ($options as $option) {
-            $negotiated=$option['NegotiatedRateCharges']['TotalCharge'] ?? null;
-            $charge=$negotiated ?? $option['TotalCharges'] ?? [];
-            $rate=$this->rate((string)($option['Service']['Code'] ?? ''),$charge['MonetaryValue'] ?? null,
-                (string)($charge['CurrencyCode'] ?? ''),$negotiated?'account':'published');
+            if (!is_array($option) || !is_string($option['Service']['Code'] ?? null)) continue;
+            $negotiated=array_key_exists('NegotiatedRateCharges',$option);
+            $charge=$negotiated ? ($option['NegotiatedRateCharges']['TotalCharge'] ?? null)
+                : ($option['TotalCharges'] ?? null);
+            if (!is_array($charge) || !is_string($charge['CurrencyCode'] ?? null)) continue;
+            $rate=$this->rate($option['Service']['Code'],$charge['MonetaryValue'] ?? null,
+                $charge['CurrencyCode'],$negotiated?'account':'published');
             if ($rate) $rates[]=$rate;
         }
         return $rates;

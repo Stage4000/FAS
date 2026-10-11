@@ -121,6 +121,10 @@ The `shipping_cache` table stores OAuth tokens, normalized rates and provider co
 
 Tokens expire before the carrier's reported expiry. Quotes expire after three minutes by default. A 401 permits one token refresh/retry; a second failure stops. Provider 429 Retry-After values produce a shared cooldown, and authentication/server failures also back off. No background retry loop is introduced. Per-request transport timeouts are at most six seconds with an eighteen-second default budget for direct requests. Existing Easyship timeout/retry behavior is unchanged and is outside that direct-request budget.
 
+UPS rate replies must also report `Response.ResponseStatus.Code=1`; HTTP success alone does not authorize a quote. A present but malformed negotiated-charge container is withheld rather than silently replaced with a published price. Both adapters validate option containers before reading them, so malformed individual options do not discard valid sibling services. Quote cache version 3 avoids reusing entries accepted before these response checks. These checks follow the [official UPS Rating specification](https://github.com/UPS-API/api-documentation/blob/main/Rating.yaml) and [USPS Domestic Prices schema](https://developers.usps.com/domesticpricesv3).
+
+Private shipping ledgers acquire their writer lock with SQL `BEGIN IMMEDIATE`. Their error paths explicitly attempt SQL rollback because older PDO SQLite drivers can report no active transaction for a transaction opened this way. The shared `ShippingTransaction.php` cleanup preserves the original error even if SQLite already rolled back. Offline tests verify that failed writes leave no partial audit/lease data and another worker can proceed; the one-send purchase/cancellation/email claims remain unchanged.
+
 Direct transport uses fixed HTTPS hosts, certificate verification, no redirects and a one-megabyte response limit. Direct provider errors omit request/response bodies, addresses and credentials. Endpoint monitoring also records counts/provider status instead of submitted customer payloads. Existing logging inside the legacy Easyship adapter is unchanged.
 
 To roll back carrier selection, restore mode=easyship. Preserve the private cache and order selection records unless doing a coordinated code rollback. No inventory or order rollback is needed.
@@ -128,3 +132,5 @@ To roll back carrier selection, restore mode=easyship. Preserve the private cach
 ## Verification status
 
 Local evidence and remaining rollout work are tracked in audit/SHIPPING.md. Mocked tests validate rate requests, checkout behavior, label preparation, one-send purchase and cancellation states, and bounded tracking status updates; isolated HTTP and browser fixtures validate the administrator views. These do not verify real account authorization, negotiated pricing, carrier acceptance or live label purchases, cancellations or tracking. Credentials, carrier sandbox testing and production deployment verification remain pending.
+
+The October 11 rate-contract and SQLite recovery work, baseline comparison and remaining defects and environment limits are recorded in [the offline validation report](../audit/SHIPPING-2026-10-11.md). Deploy `src/shipping/ShippingTransaction.php` with the updated ledger classes when deployment is separately authorized.

@@ -37,7 +37,7 @@ function carrierFixture(string $url,array $headers,string $body,int $timeout): a
             uspsOption('MEDIA_MAIL',1),uspsOption('PRIORITY_MAIL_EXPRESS',1,['destinationEntryFacilityType'=>'DESTINATION_DELIVERY_UNIT']),
         ]]];
     }
-    return ['status'=>200,'data'=>['RateResponse'=>['RatedShipment'=>[
+    return ['status'=>200,'data'=>['RateResponse'=>['Response'=>['ResponseStatus'=>['Code'=>'1','Description'=>'Success']],'RatedShipment'=>[
         ['Service'=>['Code'=>'03'],'TotalCharges'=>['MonetaryValue'=>'30.00','CurrencyCode'=>'USD'],
             'NegotiatedRateCharges'=>['TotalCharge'=>['MonetaryValue'=>'17.89','CurrencyCode'=>'USD']]],
         ['Service'=>['Code'=>'02'],'TotalCharges'=>['MonetaryValue'=>'45.67','CurrencyCode'=>'USD']],
@@ -224,7 +224,7 @@ shippingCheck(count($intersect)===1 && $intersect[0]['total_charge']===19.5,'Mul
 $malformed=$sandbox; $malformed['client_id']='malformed-rates';
 $adapter=new CarrierRates('ups',$malformed,$cache,new CarrierHttp(microtime(true)+18,static function($url,$headers,$body,$timeout) {
     if (strpos($url,'token')!==false) return carrierFixture($url,$headers,$body,$timeout);
-    return ['status'=>200,'data'=>['RateResponse'=>['RatedShipment'=>[
+    return ['status'=>200,'data'=>['RateResponse'=>['Response'=>['ResponseStatus'=>['Code'=>'1','Description'=>'Success']],'RatedShipment'=>[
         ['Service'=>['Code'=>'03'],'TotalCharges'=>['CurrencyCode'=>'USD']],
         ['Service'=>['Code'=>'02'],'TotalCharges'=>['MonetaryValue'=>'NaN','CurrencyCode'=>'USD']],
     ]]]];

@@ -44,7 +44,7 @@ final class ShippingLabelCancellations
             $this->db->exec('COMMIT');
             return $record;
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }
@@ -133,7 +133,7 @@ final class ShippingLabelCancellations
             if ($update->rowCount()!==1) throw new \DomainException('Cancellation changed during review.');
             $this->db->exec('COMMIT');
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->exec('ROLLBACK');
+            ShippingTransaction::rollback($this->db);
             throw $e;
         }
     }
