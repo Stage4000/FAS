@@ -806,12 +806,12 @@ if ($action === 'list') {
                                     <label class="form-label">Website Category (Legacy)</label>
                                     <select class="form-select" name="category">
                                         <option value="">Select Category</option>
-                                        <option value="motorcycle" <?php echo $product && $product['category'] === 'motorcycle' ? 'selected' : ''; ?>>Motorcycle Parts</option>
-                                        <option value="atv" <?php echo $product && $product['category'] === 'atv' ? 'selected' : ''; ?>>ATV/UTV Parts</option>
-                                        <option value="boat" <?php echo $product && $product['category'] === 'boat' ? 'selected' : ''; ?>>Boat Parts</option>
-                                        <option value="automotive" <?php echo $product && $product['category'] === 'automotive' ? 'selected' : ''; ?>>Automotive Parts</option>
-                                        <option value="gifts" <?php echo $product && $product['category'] === 'gifts' ? 'selected' : ''; ?>>Gifts</option>
-                                        <option value="other" <?php echo $product && $product['category'] === 'other' ? 'selected' : ''; ?>>Other</option>
+                                        <option value="motorcycle" <?php echo $product && strcasecmp(trim((string)$product['category']), 'motorcycle') === 0 ? 'selected' : ''; ?>>Motorcycle Parts</option>
+                                        <option value="atv" <?php echo $product && strcasecmp(trim((string)$product['category']), 'atv') === 0 ? 'selected' : ''; ?>>ATV/UTV Parts</option>
+                                        <option value="boat" <?php echo $product && strcasecmp(trim((string)$product['category']), 'boat') === 0 ? 'selected' : ''; ?>>Boat Parts</option>
+                                        <option value="automotive" <?php echo $product && strcasecmp(trim((string)$product['category']), 'automotive') === 0 ? 'selected' : ''; ?>>Automotive Parts</option>
+                                        <option value="gifts" <?php echo $product && strcasecmp(trim((string)$product['category']), 'gifts') === 0 ? 'selected' : ''; ?>>Gifts</option>
+                                        <option value="other" <?php echo $product && strcasecmp(trim((string)$product['category']), 'other') === 0 ? 'selected' : ''; ?>>Other</option>
                                     </select>
                                     <small class="text-muted">For manual products only. eBay products use store categories below.</small>
                                 </div>

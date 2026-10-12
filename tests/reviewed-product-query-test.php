@@ -25,6 +25,7 @@ checkReviewedQuery($model->getModels(false,'EPI')===['WE437724'],'Other manufact
 checkReviewedQuery($ids($model->getAll(1,100,null,null,'Wiseco'))===[6305],'Legacy public list uses same reviewed brand');
 checkReviewedQuery($model->getCount(null,null,'Wiseco')===1,'Legacy public count agrees');
 checkReviewedQuery($ids($model->getRecentVisible(100,[],null,'Wiseco','PWR128-101'))===[6305],'Related/recent filters use reviewed identifiers');
+checkReviewedQuery($ids($model->getRecentVisible(100,[],null,'wiseco','pwr128-101'))===[6305],'Related/recent filters accept browse capitalization variants');
 // Existing discovery HAVING binding yields no rows on SQLite; do not broaden this patch to fix it.
 checkReviewedQuery($model->getVisibleFitmentLandingPages(100,1)===[], 'Existing discovery query result is preserved');
 $brandSql=FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
@@ -36,6 +37,9 @@ checkReviewedQuery($model->getById(6305)['manufacturer']==='EPI' && $model->getB
 checkReviewedQuery($db->query('SELECT * FROM products ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$before,'Queries do not mutate any source columns');
 $db->exec("UPDATE products SET manufacturer='Refreshed import',model='CHANGED' WHERE id=6305");
 checkReviewedQuery($ids($select(null,'Wiseco','PWR128-101'))===[6305],'Query correction survives import refresh');
+$db->exec("UPDATE products SET sku='10171 fas' WHERE id=6305");
+checkReviewedQuery($select(null,'wiseco','pwr128-101')===[],'SKU capitalization changes do not inherit reviewed identity');
+$db->exec("UPDATE products SET sku='10171 FAS' WHERE id=6305");
 $db->exec("UPDATE products SET sku='REASSIGNED' WHERE id=6305");
 checkReviewedQuery($select(null,'Wiseco','PWR128-101')===[],'Changed SKU cannot inherit confirmed query identity');
 checkReviewedQuery($ids($select(null,'EPI','WE437724'))===[6306],'Unrelated record still filterable after reviewed identity changes');

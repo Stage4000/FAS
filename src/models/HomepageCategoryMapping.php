@@ -61,7 +61,7 @@ class HomepageCategoryMapping
         $grouped = [];
         
         foreach ($mappings as $mapping) {
-            $ebayCategory = $mapping['ebay_store_cat1_name'];
+            $ebayCategory = $this->normalizeEbayCategoryName($mapping['ebay_store_cat1_name']);
             if (!isset($grouped[$ebayCategory])) {
                 $grouped[$ebayCategory] = [];
             }
@@ -84,7 +84,7 @@ class HomepageCategoryMapping
         $normalizedName = $this->normalizeEbayCategoryName($ebayCat1Name);
         
         $sql = "SELECT homepage_category FROM homepage_category_mappings 
-                WHERE ebay_store_cat1_name = ? AND is_active = 1 
+                WHERE UPPER(TRIM(ebay_store_cat1_name)) = ? AND is_active = 1
                 ORDER BY priority DESC 
                 LIMIT 1";
         $stmt = $this->db->prepare($sql);
@@ -103,12 +103,15 @@ class HomepageCategoryMapping
             return false;
         }
         
+        $homepageCategory = strtolower(trim((string)$homepageCategory));
+        if (!isset(self::HOMEPAGE_CATEGORIES[$homepageCategory])) return false;
+
         // Normalize eBay category name to uppercase
         $normalizedName = $this->normalizeEbayCategoryName($ebayCat1Name);
         
         // Check if mapping exists
         $sql = "SELECT id FROM homepage_category_mappings 
-                WHERE homepage_category = ? AND ebay_store_cat1_name = ?";
+                WHERE LOWER(TRIM(homepage_category)) = ? AND UPPER(TRIM(ebay_store_cat1_name)) = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$homepageCategory, $normalizedName]);
         $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -151,7 +154,7 @@ class HomepageCategoryMapping
         }
         
         $sql = "SELECT ebay_store_cat1_name FROM homepage_category_mappings 
-                WHERE homepage_category = ? AND is_active = 1 
+                WHERE LOWER(TRIM(homepage_category)) = LOWER(TRIM(?)) AND is_active = 1
                 ORDER BY priority DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$homepageCategory]);
@@ -169,11 +172,11 @@ class HomepageCategoryMapping
      */
     public function getEbayCategoriesFromProducts()
     {
-        $sql = "SELECT DISTINCT ebay_store_cat1_name 
+        $sql = "SELECT MIN(TRIM(ebay_store_cat1_name)) AS ebay_store_cat1_name
                 FROM products 
                 WHERE ebay_store_cat1_name IS NOT NULL 
-                  AND ebay_store_cat1_name != '' 
-                ORDER BY ebay_store_cat1_name ASC";
+                  AND TRIM(ebay_store_cat1_name) != ''
+                GROUP BY UPPER(TRIM(ebay_store_cat1_name)) ORDER BY UPPER(ebay_store_cat1_name) ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         

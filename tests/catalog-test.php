@@ -84,10 +84,19 @@ $request=fasCatalogRequest(['category'=>'motorcycle','manufacturer'=>'kawasaki',
 checkCatalog($request['manufacturer']==='kawasaki' && $request['fitmentModel']==='XR' && $request['page']===2 && $request['ebayCat1']==='2','Request retains filters and legacy spelling');
 checkCatalog(fasCatalogPageUrl('/products/motorcycle',['manufacturer'=>'kawasaki','model'=>'XR','search'=>'rotor','cat1'=>'2'],2)==='/products/motorcycle?manufacturer=kawasaki&model=XR&search=rotor&cat1=2&page=2','Pagination keeps make, model, search and category');
 $db->exec("UPDATE products SET model='xr' WHERE id=3; UPDATE products SET manufacturer='Kawasaki Heavy Industries' WHERE id=4");
-checkCatalog($model->getModels(false,'Kawasaki')===['XR','xr'],'Model casing remains distinct');
-checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',false,'XR','motorcycle')===56,'Different make and model identifiers are not merged');
+checkCatalog($model->getModels(false,'Kawasaki')===['XR'],'Model options group capitalization-only variants');
+checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',false,'XR','motorcycle')===57,'Model capitalization matches while different makes remain distinct');
+checkCatalog($model->getCountByEbayCategory(null,null,null,'rotor','kawasaki',false,' xr ','motorcycle')===57,'Search and padded mixed-case model filters agree');
 checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',true,null,'motorcycle')===57,'Hidden visibility is preserved');
 $db->exec("UPDATE products SET manufacturer='Kawasaki', model='XR' WHERE id=4; UPDATE products SET model='XR' WHERE id=3");
+$db->exec("UPDATE products SET model='XR-100' WHERE id=3; UPDATE products SET model='XR 100' WHERE id=5; UPDATE products SET model='XR/100' WHERE id=7");
+$sourceModels=$db->query('SELECT id,model,sku FROM products ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+foreach (['xr-100','XR 100','xr/100'] as $part) {
+    checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',false,$part,'motorcycle')===1,'Model/MPN punctuation remains meaningful: '.$part);
+}
+checkCatalog(count($model->getModels(false,'Kawasaki'))===4,'Different model punctuation produces different browse options');
+checkCatalog($db->query('SELECT id,model,sku FROM products ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$sourceModels,'Browse keys never rewrite model/MPN or SKU fields');
+$db->exec("UPDATE products SET model='XR' WHERE id IN (3,5,7)");
 $db->exec('DROP TABLE homepage_category_mappings');
 try { $scope(); throw new RuntimeException('Missing mapping table widened catalog'); }
 catch (PDOException $e) { checkCatalog(true,'Unavailable mappings fail instead of exposing all products'); }

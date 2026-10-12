@@ -3,25 +3,32 @@ function fasCatalogParamsFromUrl(value) {
     const url = new URL(value, window.location.origin);
     const params = new URLSearchParams(url.search);
     const parts = url.pathname.split('/').filter(Boolean);
+    const catalogParts = parts.map(part => part.toLowerCase());
     const categories = ['motorcycle', 'atv', 'boat', 'automotive', 'gifts', 'other'];
     const collections = ['trending', 'best-sellers', 'recent-arrivals', 'free-shipping', 'sale'];
-    if (parts[0] === 'products') {
+    if (catalogParts[0] === 'products') {
         let index = 1;
-        if (collections.includes(parts[index])) {
-            params.set('collection', parts[index]);
+        if (collections.includes(catalogParts[index])) {
+            params.set('collection', catalogParts[index]);
         } else {
-            if (categories.includes(parts[index])) params.set('category', parts[index++]);
-            if (parts[index] === 'make') {
-                if (parts[index + 1]) params.set('manufacturer_slug', parts[index + 1]);
-                if (parts[index + 2]) params.set('model_slug', parts[index + 2]);
+            if (categories.includes(catalogParts[index])) params.set('category', catalogParts[index++]);
+            if (catalogParts[index] === 'make') {
+                if (parts[index + 1]) params.set('manufacturer_slug', catalogParts[index + 1]);
+                if (parts[index + 2]) params.set('model_slug', catalogParts[index + 2]);
             }
         }
     }
+    ['category', 'collection', 'manufacturer_slug', 'model_slug'].forEach(key => {
+        if (params.has(key)) params.set(key, params.get(key).toLowerCase());
+    });
     return params;
 }
 
 function fasCatalogNavigationUrl(input) {
     const params = new URLSearchParams(input);
+    ['category', 'collection', 'manufacturer_slug', 'model_slug'].forEach(key => {
+        if (params.has(key)) params.set(key, params.get(key).toLowerCase());
+    });
     let path = '/products';
     const aliases = {best:'best-sellers', recent:'recent-arrivals', free_shipping:'free-shipping'};
     if (params.get('collection')) {

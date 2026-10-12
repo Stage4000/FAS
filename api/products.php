@@ -62,7 +62,10 @@ function pruneEmptyEbayCategories(array $categories, array $visibleCategoryIds):
             : [];
 
         $categoryId = isset($category['id']) ? (string)$category['id'] : null;
-        $hasVisibleProducts = $categoryId !== null && isset($visibleCategoryIds[$categoryId]);
+        $hasVisibleProducts = false;
+        foreach ($category['ids'] ?? [$categoryId] as $id) {
+            if ($id !== null && isset($visibleCategoryIds[(string)$id])) $hasVisibleProducts = true;
+        }
 
         if ($hasVisibleProducts || !empty($children)) {
             $category['children'] = $children;
@@ -184,7 +187,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
             <option value="">All models / part numbers</option>
             <?php foreach ($allModels as $modelOption): ?>
                 <option value="<?php echo htmlspecialchars($modelOption); ?>"
-                        <?php echo $fitmentModel === $modelOption ? 'selected' : ''; ?>>
+                        <?php echo strcasecmp(trim((string)$fitmentModel), trim((string)$modelOption)) === 0 ? 'selected' : ''; ?>>
                     <?php echo htmlspecialchars($modelOption); ?>
                 </option>
             <?php endforeach; ?>

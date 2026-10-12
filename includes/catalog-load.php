@@ -27,10 +27,15 @@ if ($modelSlug) {
 $ebayAPI = null;
 $ebayCategories = [];
 $flatCategories = [];
+$categoryScope = [$ebayCat1, $ebayCat2, $ebayCat3];
 try {
     $config = require __DIR__ . '/../src/config/config.php';
     $ebayAPI = new \FAS\Integrations\EbayAPI($config);
-    $ebayCategories = pruneEmptyEbayCategories($ebayAPI->getStoreCategoriesHierarchical(), $visibleCategoryIds);
+    $categoryGroups = \FAS\Utils\CatalogCategoryGroups::groupSiblings($ebayAPI->getStoreCategoriesHierarchical());
+    $selection = \FAS\Utils\CatalogCategoryGroups::selection($categoryGroups, $categoryScope);
+    $categoryScope = $selection['scope'];
+    [$ebayCat1, $ebayCat2, $ebayCat3] = $selection['selected'];
+    $ebayCategories = pruneEmptyEbayCategories($categoryGroups, $visibleCategoryIds);
     if ($ebayCat1 || $ebayCat2 || $ebayCat3) {
         $flatCategories = $ebayAPI->getStoreCategories();
     }
@@ -43,8 +48,8 @@ if ($discoveryCollection !== '') {
     $products = $collectionResult['products'];
     $totalProducts = $collectionResult['totalProducts'];
 } else {
-    $products = $productModel->getAllByEbayCategory($page, $perPage, $ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel, $homepageCategory);
-    $totalProducts = $productModel->getCountByEbayCategory($ebayCat1, $ebayCat2, $ebayCat3, $search, $manufacturer, $includeHiddenProducts, $fitmentModel, $homepageCategory);
+    $products = $productModel->getAllByEbayCategory($page, $perPage, $categoryScope[0], $categoryScope[1], $categoryScope[2], $search, $manufacturer, $includeHiddenProducts, $fitmentModel, $homepageCategory);
+    $totalProducts = $productModel->getCountByEbayCategory($categoryScope[0], $categoryScope[1], $categoryScope[2], $search, $manufacturer, $includeHiddenProducts, $fitmentModel, $homepageCategory);
 }
 $allManufacturers = $productModel->getManufacturers($includeHiddenProducts);
 $allModels = $productModel->getModels($includeHiddenProducts, $manufacturer);

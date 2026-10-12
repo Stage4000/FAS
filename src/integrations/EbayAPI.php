@@ -10,6 +10,7 @@
 namespace FAS\Integrations;
 
 use FAS\Utils\SyncLogger;
+require_once __DIR__ . '/../utils/StoreCategoryHierarchy.php';
 
 class EbayAPI
 {
@@ -1292,6 +1293,8 @@ class EbayAPI
                     'name' => $topCategoryName,
                     'level' => 1,
                     'parent' => null,
+                    'parent_id' => null,
+                    'topLevel_id' => $topCategoryId,
                     'topLevel' => $topCategoryName
                 ];
                 
@@ -1311,6 +1314,8 @@ class EbayAPI
                                 'name' => $level2Name,
                                 'level' => 2,
                                 'parent' => $topCategoryName,
+                                'parent_id' => $topCategoryId,
+                                'topLevel_id' => $topCategoryId,
                                 'topLevel' => $topCategoryName
                             ];
                             
@@ -1330,6 +1335,8 @@ class EbayAPI
                                             'name' => $level3Name,
                                             'level' => 3,
                                             'parent' => $level2Name,
+                                            'parent_id' => $level2Id,
+                                            'topLevel_id' => $topCategoryId,
                                             'topLevel' => $topCategoryName
                                         ];
                                     }
@@ -1483,52 +1490,29 @@ class EbayAPI
             }
         }
         
-        // Second pass: collect level 2 categories and attach to parents
+        // Resolve each source parent by ID, never by a lossy case-folded label.
         foreach ($flatCategories as $catId => $cat) {
-            if ($cat['level'] == 2) {
-                $topLevelName = $cat['topLevel'] ?? null;
-                
-                // Find parent level 1 category
-                foreach ($hierarchical as $parentId => &$parent) {
-                    if ($parent['name'] === $topLevelName) {
-                        $parent['children'][$catId] = [
-                            'id' => $catId,
-                            'name' => $cat['name'],
-                            'level' => 2,
-                            'parent_id' => $parentId,
-                            'children' => []
-                        ];
-                        break;
-                    }
-                }
-            }
+            if ((int)$cat['level'] !== 2) continue;
+            $path = \FAS\Utils\StoreCategoryHierarchy::path($flatCategories, $catId);
+            if (!isset($path[1], $path[2])) continue;
+            $parentId = $path[1]['id'];
+            $hierarchical[$parentId]['children'][$catId] = [
+                'id'=>$catId, 'name'=>$cat['name'], 'level'=>2,
+                'parent_id'=>$parentId, 'children'=>[],
+            ];
         }
-        
-        // Third pass: collect level 3 categories and attach to level 2 parents
         foreach ($flatCategories as $catId => $cat) {
-            if ($cat['level'] == 3) {
-                $parentName = $cat['parent'] ?? null;
-                $topLevelName = $cat['topLevel'] ?? null;
-                
-                // Find parent level 2 category
-                foreach ($hierarchical as $l1Id => &$l1Cat) {
-                    if ($l1Cat['name'] === $topLevelName) {
-                        foreach ($l1Cat['children'] as $l2Id => &$l2Cat) {
-                            if ($l2Cat['name'] === $parentName) {
-                                $l2Cat['children'][$catId] = [
-                                    'id' => $catId,
-                                    'name' => $cat['name'],
-                                    'level' => 3,
-                                    'parent_id' => $l2Id
-                                ];
-                                break 2;
-                            }
-                        }
-                    }
-                }
-            }
+            if ((int)$cat['level'] !== 3) continue;
+            $path = \FAS\Utils\StoreCategoryHierarchy::path($flatCategories, $catId);
+            if (!isset($path[1], $path[2], $path[3])) continue;
+            $topId = $path[1]['id'];
+            $parentId = $path[2]['id'];
+            if (!isset($hierarchical[$topId]['children'][$parentId])) continue;
+            $hierarchical[$topId]['children'][$parentId]['children'][$catId] = [
+                'id'=>$catId, 'name'=>$cat['name'], 'level'=>3, 'parent_id'=>$parentId,
+            ];
         }
-        
+
         return $hierarchical;
     }
     

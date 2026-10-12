@@ -7,6 +7,7 @@
 namespace FAS\Models;
 
 require_once __DIR__.'/../utils/ReviewedProductFacts.php';
+require_once __DIR__.'/../utils/StoreCategoryHierarchy.php';
 
 class Product
 {
@@ -162,7 +163,7 @@ class Product
         $params = [];
 
         if ($category) {
-            $sql .= " AND category = ?";
+            $sql .= " AND LOWER(TRIM(category)) = LOWER(TRIM(?))";
             $params[] = $category;
         }
 
@@ -296,7 +297,7 @@ class Product
         $params = [];
 
         if ($category) {
-            $sql .= " AND category = ?";
+            $sql .= " AND LOWER(TRIM(category)) = LOWER(TRIM(?))";
             $params[] = $category;
         }
 
@@ -352,8 +353,8 @@ class Product
     {
         $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
         $modelSql = \FAS\Utils\ReviewedProductFacts::identifierSql('model');
-        $sql = "SELECT DISTINCT {$modelSql} AS model FROM products
-                WHERE is_active = 1 AND {$modelSql} IS NOT NULL AND {$modelSql} != '' ";
+        $sql = "SELECT MIN(TRIM({$modelSql})) AS model FROM products
+                WHERE is_active = 1 AND {$modelSql} IS NOT NULL AND TRIM({$modelSql}) != '' ";
         $params = [];
 
         if (!$includeHidden) {
@@ -365,7 +366,7 @@ class Product
             $params[] = $manufacturer;
         }
 
-        $sql .= "ORDER BY model";
+        $sql .= "GROUP BY LOWER(TRIM({$modelSql})) ORDER BY LOWER(model)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
@@ -988,71 +989,9 @@ class Product
 
         error_log("[Category Extraction] Processing category ID $storeCategoryId: '" . ($category['name'] ?? 'unnamed') . "' at level $level");
 
-        // Build indexed lookups to avoid O(n) searches
-        // Group categories by level and name for fast lookup
-        // Note: Do not use static to avoid stale data across different product syncs
-        $levelIndex = [];
-        foreach ($storeCategories as $catId => $cat) {
-            $levelKey = $cat['level'] . ':' . $cat['name'] . ':' . ($cat['topLevel'] ?? '');
-            $levelIndex[$levelKey] = ['id' => $catId, 'name' => $cat['name']];
-        }
-
-        // Based on the level, extract the hierarchy
-        if ($level == 1) {
-            // Level 1: Only top-level category
-            $hierarchy['cat1_id'] = $storeCategoryId;
-            $hierarchy['cat1_name'] = $category['name'];
-            error_log("[Category Extraction] Extracted Level 1: " . $category['name']);
-        } elseif ($level == 2) {
-            // Level 2: Top-level + manufacturer
-            $hierarchy['cat2_id'] = $storeCategoryId;
-            $hierarchy['cat2_name'] = $category['name'];
-
-            // Find parent (level 1) by looking for topLevel
-            $topLevelName = $category['topLevel'] ?? null;
-            if ($topLevelName) {
-                $key = '1:' . $topLevelName . ':' . $topLevelName;
-                if (isset($levelIndex[$key])) {
-                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
-                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
-                    error_log("[Category Extraction] Extracted Level 1: " . $hierarchy['cat1_name'] . ", Level 2: " . $hierarchy['cat2_name']);
-                } else {
-                    error_log("[Category Extraction] Could not find parent Level 1 for: $topLevelName");
-                }
-            }
-        } elseif ($level == 3) {
-            // Level 3: Complete hierarchy
-            $hierarchy['cat3_id'] = $storeCategoryId;
-            $hierarchy['cat3_name'] = $category['name'];
-
-            // Get parent (level 2) name
-            $parentName = $category['parent'] ?? null;
-            $topLevelName = $category['topLevel'] ?? null;
-
-            // Find level 2 parent
-            if ($parentName && $topLevelName) {
-                $key = '2:' . $parentName . ':' . $topLevelName;
-                if (isset($levelIndex[$key])) {
-                    $hierarchy['cat2_id'] = $levelIndex[$key]['id'];
-                    $hierarchy['cat2_name'] = $levelIndex[$key]['name'];
-                } else {
-                    error_log("[Category Extraction] Could not find Level 2 parent: $parentName");
-                }
-            }
-
-            // Find level 1 (top-level)
-            if ($topLevelName) {
-                $key = '1:' . $topLevelName . ':' . $topLevelName;
-                if (isset($levelIndex[$key])) {
-                    $hierarchy['cat1_id'] = $levelIndex[$key]['id'];
-                    $hierarchy['cat1_name'] = $levelIndex[$key]['name'];
-                    error_log("[Category Extraction] Extracted complete hierarchy: L1={$hierarchy['cat1_name']}, L2={$hierarchy['cat2_name']}, L3={$hierarchy['cat3_name']}");
-                } else {
-                    error_log("[Category Extraction] Could not find Level 1 top-level: $topLevelName");
-                }
-            }
-        } else {
-            error_log("[Category Extraction] Unknown category level: $level");
+        foreach (\FAS\Utils\StoreCategoryHierarchy::path($storeCategories, $storeCategoryId) as $pathLevel=>$ancestor) {
+            $hierarchy['cat' . $pathLevel . '_id'] = $ancestor['id'];
+            $hierarchy['cat' . $pathLevel . '_name'] = $ancestor['name'];
         }
 
         return $hierarchy;
@@ -1516,6 +1455,18 @@ class Product
         return $categories;
     }
 
+    /** Category IDs may be a scalar legacy ID or a derived group of equivalent siblings. */
+    private function ebayCategoryPredicate($cat1Id, $cat2Id, $cat3Id, array &$params): string
+    {
+        foreach (['ebay_store_cat3_id'=>$cat3Id, 'ebay_store_cat2_id'=>$cat2Id, 'ebay_store_cat1_id'=>$cat1Id] as $column=>$value) {
+            if (!$value) continue;
+            $ids = array_values(array_unique((array)$value));
+            $params = array_merge($params, $ids);
+            return " AND {$column} IN (" . implode(',', array_fill(0, count($ids), '?')) . ")";
+        }
+        return '';
+    }
+
     /** Active mappings override stale imported categories; unmapped inventory keeps its stored category. */
     private function homepageCategoryPredicate($category, array &$params): string
     {
@@ -1526,9 +1477,9 @@ class Product
         $params[] = $category;
         return " AND (
             EXISTS (SELECT 1 FROM homepage_category_mappings h
-                WHERE h.is_active = 1 AND h.homepage_category = ?
+                WHERE h.is_active = 1 AND LOWER(TRIM(h.homepage_category)) = LOWER(TRIM(?))
                   AND UPPER(TRIM(h.ebay_store_cat1_name)) = UPPER(TRIM(products.ebay_store_cat1_name)))
-            OR (LOWER(TRIM(products.category)) = ? AND NOT EXISTS (
+            OR (LOWER(TRIM(products.category)) = LOWER(TRIM(?)) AND NOT EXISTS (
                 SELECT 1 FROM homepage_category_mappings h WHERE h.is_active = 1
                   AND UPPER(TRIM(h.ebay_store_cat1_name)) = UPPER(TRIM(products.ebay_store_cat1_name))))
         )";
@@ -1550,17 +1501,7 @@ class Product
         }
         $params = [];
 
-        // Filter by eBay category (most specific first)
-        if ($cat3Id) {
-            $sql .= " AND ebay_store_cat3_id = ?";
-            $params[] = $cat3Id;
-        } elseif ($cat2Id) {
-            $sql .= " AND ebay_store_cat2_id = ?";
-            $params[] = $cat2Id;
-        } elseif ($cat1Id) {
-            $sql .= " AND ebay_store_cat1_id = ?";
-            $params[] = $cat1Id;
-        }
+        $sql .= $this->ebayCategoryPredicate($cat1Id, $cat2Id, $cat3Id, $params);
 
         if ($manufacturer) {
             $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
@@ -1568,7 +1509,7 @@ class Product
         }
 
         if ($model) {
-            $sql .= " AND {$modelSql} = ?";
+            $sql .= " AND LOWER(TRIM({$modelSql})) = LOWER(TRIM(?))";
             $params[] = $model;
         }
 
@@ -1608,17 +1549,7 @@ class Product
         }
         $params = [];
 
-        // Filter by eBay category (most specific first)
-        if ($cat3Id) {
-            $sql .= " AND ebay_store_cat3_id = ?";
-            $params[] = $cat3Id;
-        } elseif ($cat2Id) {
-            $sql .= " AND ebay_store_cat2_id = ?";
-            $params[] = $cat2Id;
-        } elseif ($cat1Id) {
-            $sql .= " AND ebay_store_cat1_id = ?";
-            $params[] = $cat1Id;
-        }
+        $sql .= $this->ebayCategoryPredicate($cat1Id, $cat2Id, $cat3Id, $params);
 
         if ($manufacturer) {
             $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
@@ -1626,7 +1557,7 @@ class Product
         }
 
         if ($model) {
-            $sql .= " AND {$modelSql} = ?";
+            $sql .= " AND LOWER(TRIM({$modelSql})) = LOWER(TRIM(?))";
             $params[] = $model;
         }
 
@@ -1760,16 +1691,7 @@ class Product
             $sql .= " AND show_on_website = 1";
         }
 
-        if ($cat3Id) {
-            $sql .= " AND ebay_store_cat3_id = ?";
-            $params[] = $cat3Id;
-        } elseif ($cat2Id) {
-            $sql .= " AND ebay_store_cat2_id = ?";
-            $params[] = $cat2Id;
-        } elseif ($cat1Id) {
-            $sql .= " AND ebay_store_cat1_id = ?";
-            $params[] = $cat1Id;
-        }
+        $sql .= $this->ebayCategoryPredicate($cat1Id, $cat2Id, $cat3Id, $params);
 
         if ($manufacturer) {
             $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
@@ -1777,7 +1699,7 @@ class Product
         }
 
         if ($model) {
-            $sql .= " AND {$modelSql} = ?";
+            $sql .= " AND LOWER(TRIM({$modelSql})) = LOWER(TRIM(?))";
             $params[] = $model;
         }
 
@@ -2159,10 +2081,10 @@ class Product
 
         if ($category !== null && trim($category) !== '') {
             $sql .= " AND (
-                category = ?
-                OR ebay_store_cat1_name = ?
-                OR ebay_store_cat2_name = ?
-                OR ebay_store_cat3_name = ?
+                LOWER(TRIM(category)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ebay_store_cat1_name)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ebay_store_cat2_name)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ebay_store_cat3_name)) = LOWER(TRIM(?))
             )";
             $params[] = $category;
             $params[] = $category;
@@ -2176,7 +2098,7 @@ class Product
         }
 
         if ($model !== null && trim($model) !== '') {
-            $sql .= " AND {$modelSql} = ?";
+            $sql .= " AND LOWER(TRIM({$modelSql})) = LOWER(TRIM(?))";
             $params[] = $model;
         }
 

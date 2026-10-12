@@ -11,6 +11,8 @@ const cases = [
     ['/products/make/honda',{manufacturer_slug:'honda'}],
     ['/products?manufacturer=Honda&search=rotor',{manufacturer:'Honda',search:'rotor'}],
     ['/products/sale?page=2',{collection:'sale',page:'2'}],
+    ['/products/MOTORCYCLE/make/KAWASAKI/XR?page=2',{category:'motorcycle',manufacturer_slug:'kawasaki',model_slug:'xr',page:'2'}],
+    ['/products?category=MOTORCYCLE&manufacturer=Kawasaki&model=xR',{category:'motorcycle',manufacturer:'Kawasaki',model:'xR'}],
 ];
 for (const [url,expected] of cases) {
     const params=context.fasCatalogParamsFromUrl(url);
@@ -20,4 +22,5 @@ for (const [url,expected] of cases) {
 }
 assert.equal(context.fasCatalogNavigationUrl(new URLSearchParams('collection=free_shipping&page=2')),'/products/free-shipping?page=2');
 assert.equal(context.fasCatalogNavigationUrl(new URLSearchParams('category=motorcycle&manufacturer=Honda')),'/products/motorcycle?manufacturer=Honda');
-console.log('PASS 14 catalog URL assertions');
+assert.equal(context.fasCatalogNavigationUrl(new URLSearchParams('category=MOTORCYCLE&manufacturer=Kawasaki&model=xR')),'/products/motorcycle?manufacturer=Kawasaki&model=xR');
+console.log('PASS 19 catalog URL assertions');

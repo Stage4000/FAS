@@ -826,8 +826,9 @@ $stages = [
 
         $since = $this->since($days);
         if ($this->tableExists('orders') && $this->tableExists('order_items')) {
+            $categorySql = "COALESCE(NULLIF(TRIM(p.ebay_store_cat1_name), ''), NULLIF(TRIM(p.category), ''), 'Uncategorized')";
             $rows = $this->fetchAll(
-                "SELECT COALESCE(NULLIF(p.ebay_store_cat1_name, ''), NULLIF(p.category, ''), 'Uncategorized') AS category,
+                "SELECT MIN({$categorySql}) AS category,
                         COUNT(DISTINCT o.id) AS orders,
                         COALESCE(SUM(oi.quantity), 0) AS units_sold,
                         COALESCE(SUM(oi.total_price), 0) AS revenue
@@ -836,7 +837,7 @@ $stages = [
                  LEFT JOIN products p ON p.id = oi.product_id
                  WHERE o.created_at >= ?
                    AND o.payment_status = 'completed'
-                 GROUP BY category
+                 GROUP BY LOWER({$categorySql})
                  ORDER BY revenue DESC
                  LIMIT " . (int) $limit,
                 [$since]
@@ -848,9 +849,10 @@ $stages = [
         }
 
         $nonAdminEventCondition = $this->nonAdminEventCondition();
+        $categorySql = "COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized')";
 
         return $this->fetchAll(
-            "SELECT COALESCE(NULLIF(category, ''), 'Uncategorized') AS category,
+            "SELECT MIN({$categorySql}) AS category,
                     COUNT(DISTINCT order_id) AS orders,
                     COUNT(*) AS units_sold,
                     COALESCE(SUM(revenue), 0) AS revenue
@@ -858,7 +860,7 @@ $stages = [
             WHERE created_at >= ?
                 AND event_type = 'purchase_completed'
                 AND {$nonAdminEventCondition}
-            GROUP BY category
+            GROUP BY LOWER({$categorySql})
              ORDER BY revenue DESC
              LIMIT " . (int) $limit,
             [$since]
@@ -1986,8 +1988,8 @@ private function getAbandonedCartSummary(string $since): array
             "SELECT product_id,
                     product_name,
                     product_sku,
-                    category,
-                    manufacturer,
+                    MIN(TRIM(category)) AS category,
+                    MIN(TRIM(manufacturer)) AS manufacturer,
                     MAX(product_price) AS product_price,
                     MAX(condition_name) AS condition_name,
                     MAX(stock_quantity) AS stock_quantity,
@@ -1998,7 +2000,7 @@ private function getAbandonedCartSummary(string $since): array
                AND event_type IN ('add_to_cart', 'cart_quantity_changed')
                AND product_name IS NOT NULL
                AND product_name <> ''
-             GROUP BY product_id, product_name, product_sku, category, manufacturer
+             GROUP BY product_id, product_name, product_sku, LOWER(TRIM(category)), LOWER(TRIM(manufacturer))
              ORDER BY last_added_at DESC
              LIMIT 5",
             [$sessionId]

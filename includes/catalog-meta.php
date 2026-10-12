@@ -96,10 +96,10 @@ if ($discoveryCollection !== '') {
     }
 }
 if (!$isCuratedFitmentLanding && $manufacturerName !== '') {
-$canonicalParams['manufacturer'] = $manufacturerName;
+$canonicalParams['manufacturer'] = fasCatalogRepresentativeOption($allManufacturers ?? [], $manufacturerName);
 }
 if (!$isCuratedFitmentLanding && $fitmentModelName !== '') {
-$canonicalParams['model'] = $fitmentModelName;
+$canonicalParams['model'] = fasCatalogRepresentativeOption($allModels ?? [], $fitmentModelName);
 }
 if ($searchTerm !== '') {
     $canonicalParams['search'] = $searchTerm;
@@ -174,7 +174,7 @@ $searchSuggestions = $searchTerm !== '' ? $productModel->getSearchSuggestionQuer
 
 if (empty($products)) {
     $noResultsProducts = $searchTerm !== ''
-        ? $productModel->getSearchFallbackRecommendations($searchTerm, 6, [], $ebayCat1, $ebayCat2, $ebayCat3, $manufacturer, $includeHiddenProducts, $fitmentModel)
+        ? $productModel->getSearchFallbackRecommendations($searchTerm, 6, [], $categoryScope[0] ?? $ebayCat1, $categoryScope[1] ?? $ebayCat2, $categoryScope[2] ?? $ebayCat3, $manufacturer, $includeHiddenProducts, $fitmentModel)
         : [];
     if (count($noResultsProducts) < 6) {
         $noResultsProducts = array_merge(

@@ -2,6 +2,7 @@
 /** Shared inventory selection and pagination for the storefront and AJAX endpoint. */
 require_once __DIR__ . '/product-merchandising.php';
 require_once __DIR__ . '/../src/models/HomepageCategoryMapping.php';
+require_once __DIR__ . '/../src/utils/CatalogCategoryGroups.php';
 
 function fasCatalogString(array $query, string $key): ?string
 {
@@ -13,8 +14,8 @@ function fasCatalogRequest(array $query): array
     $aliases = ['trending'=>'trending', 'best'=>'best', 'best-sellers'=>'best',
         'recent'=>'recent', 'recent-arrivals'=>'recent', 'free_shipping'=>'free_shipping',
         'free-shipping'=>'free_shipping', 'sale'=>'sale', 'on-sale'=>'sale'];
-    $category = fasCatalogString($query, 'category');
-    $collection = fasCatalogString($query, 'collection');
+    $category = strtolower(fasCatalogString($query, 'category') ?? '');
+    $collection = strtolower(fasCatalogString($query, 'collection') ?? '');
     $pageValue = fasCatalogString($query, 'page');
     $validPage = $pageValue === null ? 1 : filter_var($pageValue, FILTER_VALIDATE_INT, [
         'options' => ['min_range' => 1, 'max_range' => intdiv(PHP_INT_MAX, 24)],
@@ -41,7 +42,7 @@ function fasCatalogRequest(array $query): array
         'ebayCat3'=>fasCatalogString($query, 'cat3'), 'manufacturer'=>fasCatalogString($query, 'manufacturer'),
         'fitmentModel'=>fasCatalogString($query, 'model'), 'manufacturerSlug'=>fasCatalogString($query, 'manufacturer_slug'),
         'modelSlug'=>fasCatalogString($query, 'model_slug'), 'search'=>fasCatalogString($query, 'search'),
-        'discoveryCollection'=>$aliases[fasCatalogString($query, 'collection') ?? ''] ?? '',
+        'discoveryCollection'=>$aliases[$collection] ?? '',
         'page'=>$validPage === false ? 1 : $validPage, 'perPage'=>24,
     ];
     if ($request['discoveryCollection'] !== '') {
@@ -54,12 +55,24 @@ function fasCatalogRequest(array $query): array
 
 function fasResolveSlugOption(array $options, ?string $slug): ?string
 {
+    $match = null;
+    $slug = strtolower(trim($slug ?? ''));
     foreach ($options as $option) {
         if (\FAS\Utils\Seo::slug((string)$option) === $slug) {
-            return (string)$option;
+            if ($match !== null && strcasecmp(trim($match), trim((string)$option)) !== 0) return null;
+            if ($match === null) $match = (string)$option;
         }
     }
-    return null;
+    return $match;
+}
+
+/** An existing display label for a case-equivalent filter, without changing its URL input. */
+function fasCatalogRepresentativeOption(array $options, string $value): string
+{
+    foreach ($options as $option) {
+        if (strcasecmp(trim((string)$option), trim($value)) === 0) return (string)$option;
+    }
+    return $value;
 }
 
 function fasCatalogCollection(\PDO $db, \FAS\Models\Product $model, string $collection, int $page, int $perPage): array
