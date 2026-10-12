@@ -167,7 +167,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 
@@ -301,7 +301,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 
@@ -321,18 +321,19 @@ class Product
     }
 
     /**
-     * Get unique manufacturers for filtering
+     * Group makes by a derived case-insensitive key, keeping an existing label.
+     * Imported identifiers and category IDs are never rewritten.
      */
     public function getManufacturers($includeHidden = false)
     {
         $manufacturerSql = \FAS\Utils\ReviewedProductFacts::identifierSql('manufacturer');
-        $sql = "SELECT DISTINCT {$manufacturerSql} AS manufacturer FROM products
-                WHERE is_active = 1 AND {$manufacturerSql} IS NOT NULL ";
+        $sql = "SELECT MIN(TRIM({$manufacturerSql})) AS manufacturer FROM products
+                WHERE is_active = 1 AND {$manufacturerSql} IS NOT NULL AND TRIM({$manufacturerSql}) != '' ";
         if (!$includeHidden) {
             $sql .= "AND show_on_website = 1 ";
         }
         $sql .= "
-                ORDER BY manufacturer";
+                GROUP BY LOWER(TRIM({$manufacturerSql})) ORDER BY LOWER(manufacturer)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
 
@@ -360,7 +361,7 @@ class Product
         }
 
         if ($manufacturer !== null && trim((string)$manufacturer) !== '') {
-            $sql .= "AND {$manufacturerSql} = ? ";
+            $sql .= "AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?)) ";
             $params[] = $manufacturer;
         }
 
@@ -1562,7 +1563,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 
@@ -1620,7 +1621,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 
@@ -1771,7 +1772,7 @@ class Product
         }
 
         if ($manufacturer) {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 
@@ -2170,7 +2171,7 @@ class Product
         }
 
         if ($manufacturer !== null && trim($manufacturer) !== '') {
-            $sql .= " AND {$manufacturerSql} = ?";
+            $sql .= " AND LOWER(TRIM({$manufacturerSql})) = LOWER(TRIM(?))";
             $params[] = $manufacturer;
         }
 

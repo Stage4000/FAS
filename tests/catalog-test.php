@@ -57,6 +57,37 @@ checkCatalog(fasCatalogRequest(['collection'=>'not-a-collection'])['catalogNotFo
 checkCatalog(!fasCatalogRequest(['category'=>'motorcycle','page'=>2])['catalogNotFound'],'Valid category and page accepted');
 checkCatalog(fasCatalogPageUrl('/products/motorcycle/make/honda',['page'=>2],3)==='/products/motorcycle/make/honda?page=3','Scoped clean pagination');
 checkCatalog(fasCatalogPageUrl('/products/free-shipping',['page'=>2],1)==='/products/free-shipping','Page one clean URL');
+$db->exec("UPDATE products SET manufacturer = CASE id % 3 WHEN 0 THEN 'KAWASAKI' WHEN 1 THEN 'Kawasaki' ELSE 'kawasaki' END WHERE id BETWEEN 3 AND 60");
+$sourceMakes=$db->query('SELECT id,manufacturer FROM products ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+checkCatalog(count($model->getManufacturers())===3,'Manufacturer dropdown groups capitalization variants alongside other makes');
+$make = fasResolveSlugOption($model->getManufacturers(), 'kawasaki');
+checkCatalog($make !== null,'Canonical make slug still resolves an existing display label');
+$db->exec("UPDATE products SET model='KX' WHERE id=3; UPDATE products SET model='Ninja' WHERE id=4");
+checkCatalog($model->getModels(false,'kawasaki')===['KX','Ninja','XR'],'Model options include models stored under other make spellings');
+$db->exec("UPDATE products SET model='XR' WHERE id IN (3,4)");
+foreach (['KAWASAKI','Kawasaki','kawasaki','  KaWaSaKi  ', $make] as $variant) {
+    checkCatalog($model->getCountByEbayCategory(null,null,null,null,$variant,false,null,'motorcycle')===58,'Every make spelling and canonical slug counts the full group');
+    $seen=[];
+    for ($p=1;$p<=3;$p++) $seen=array_merge($seen,array_column($scope($p,24,null,$variant),'id'));
+    checkCatalog($seen===range(60,3),'Normalized make pages have complete stable pagination');
+    checkCatalog(count($scope(1,100,'rotor',$variant))===58,'Search retains normalized make and homepage category');
+    checkCatalog($model->getCountByEbayCategory(2,null,null,'rotor',$variant,false,'XR','motorcycle')===30,'Search count retains category ID and exact model');
+    checkCatalog(count($model->getAllByEbayCategory(1,100,2,null,null,'rotor',$variant,false,'XR','motorcycle'))===30,'Search results agree with combined count');
+    checkCatalog($model->getModels(false,$variant)===['XR'],'Model options span every manufacturer capitalization');
+    checkCatalog(count($model->getAll(1,100,null,null,$variant))===58,'Legacy listing normalizes make');
+    checkCatalog((int)$model->getCount(null,null,$variant)===58,'Legacy count normalizes make');
+}
+checkCatalog(count($scope(1,100))===58,'Clearing make retains category scope');
+checkCatalog($db->query('SELECT id,manufacturer FROM products ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$sourceMakes,'Grouping and filtering leave imported manufacturer labels unchanged');
+checkCatalog((int)$model->getCountByEbayCategory()===128,'Clearing all filters restores visible catalog');
+$request=fasCatalogRequest(['category'=>'motorcycle','manufacturer'=>'kawasaki','model'=>'XR','search'=>'rotor','cat1'=>'2','page'=>'2']);
+checkCatalog($request['manufacturer']==='kawasaki' && $request['fitmentModel']==='XR' && $request['page']===2 && $request['ebayCat1']==='2','Request retains filters and legacy spelling');
+checkCatalog(fasCatalogPageUrl('/products/motorcycle',['manufacturer'=>'kawasaki','model'=>'XR','search'=>'rotor','cat1'=>'2'],2)==='/products/motorcycle?manufacturer=kawasaki&model=XR&search=rotor&cat1=2&page=2','Pagination keeps make, model, search and category');
+$db->exec("UPDATE products SET model='xr' WHERE id=3; UPDATE products SET manufacturer='Kawasaki Heavy Industries' WHERE id=4");
+checkCatalog($model->getModels(false,'Kawasaki')===['XR','xr'],'Model casing remains distinct');
+checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',false,'XR','motorcycle')===56,'Different make and model identifiers are not merged');
+checkCatalog($model->getCountByEbayCategory(null,null,null,null,'Kawasaki',true,null,'motorcycle')===57,'Hidden visibility is preserved');
+$db->exec("UPDATE products SET manufacturer='Kawasaki', model='XR' WHERE id=4; UPDATE products SET model='XR' WHERE id=3");
 $db->exec('DROP TABLE homepage_category_mappings');
 try { $scope(); throw new RuntimeException('Missing mapping table widened catalog'); }
 catch (PDOException $e) { checkCatalog(true,'Unavailable mappings fail instead of exposing all products'); }

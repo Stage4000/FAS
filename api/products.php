@@ -172,7 +172,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
             <option value="">All Makes / Manufacturers</option>
             <?php foreach ($allManufacturers as $mfg): ?>
                 <option value="<?php echo htmlspecialchars($mfg); ?>"
-                        <?php echo $manufacturer === $mfg ? 'selected' : ''; ?>>
+                        <?php echo strcasecmp(trim((string)$manufacturer), trim((string)$mfg)) === 0 ? 'selected' : ''; ?>>
                     <?php echo htmlspecialchars($mfg); ?>
                 </option>
             <?php endforeach; ?>
