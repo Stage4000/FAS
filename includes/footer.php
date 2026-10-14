@@ -52,6 +52,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
             <hr class="bg-white">
             <div class="text-center">
                 <p class="mb-0 small">&copy; <?php echo date('Y'); ?> Flip and Strip. All rights reserved.</p>
+                <p class="mt-2 mb-0 small"><a href="https://stage4000.com" class="text-white-50">Website by Stage4000</a></p>
             </div>
         </div>
 </footer>
