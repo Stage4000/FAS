@@ -28,11 +28,11 @@ require_once __DIR__ . '/includes/header.php';
     <section class="hero-section parallax-section py-5">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <div class="mb-4" data-aos="fade-down" data-aos-duration="800">
-                <img src="gallery/hero-image.png" alt="Flip and Strip" style="max-width: 300px; height: auto;" class="img-fluid">
+                <img src="gallery/hero-image.png?v=20261016" alt="Flip and Strip Parts - Your Powersports Parts House" style="max-width: 300px; height: auto;" class="img-fluid">
             </div>
-            <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP</h1>
-            <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</p>
-            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">New & used parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more.</p>
+            <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP PARTS</h1>
+            <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Your Powersports Parts House</p>
+            <p class="fs-4 mb-5" data-aos="fade-up" data-aos-delay="400" data-aos-duration="1000">New & used motorcycle, ATV/UTV, boat & automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more.</p>
             <div data-aos="zoom-in" data-aos-delay="600" data-aos-duration="1000">
                 <a href="/products" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
                     <i class="fas fa-search me-2"></i>Shop Now
@@ -207,7 +207,7 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Call to Action -->
     <section class="py-5 cta-section">
         <div class="container text-center">
-            <h2 class="mb-4">Find the Parts You Need</h2>
+            <h2 class="mb-4">Great parts at Great Prices</h2>
             <p class="lead mb-4">Browse our extensive inventory or contact us for specific parts</p>
             <div class="d-flex gap-3 justify-content-center">
                 <a href="products" class="btn btn-danger btn-lg">View All Products</a>

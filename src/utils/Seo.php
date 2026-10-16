@@ -283,7 +283,7 @@ class Seo
             '@type' => 'Organization',
             'name' => self::cleanText($site['name'] ?? 'Flip and Strip'),
             'url' => self::BASE_URL,
-            'logo' => self::absoluteUrl('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg'),
+            'logo' => self::absoluteUrl('/gallery/hero-image.png?v=20261016'),
             'description' => 'Quality motorcycle, ATV/UTV, boat, and automotive parts from top brands.',
             'sameAs' => [
                 'https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/',

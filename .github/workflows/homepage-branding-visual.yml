@@ -1,0 +1,67 @@
+name: Isolated homepage branding preview
+on:
+  pull_request:
+    paths:
+      - 'index.php'
+      - 'gallery/hero-image.png'
+      - 'includes/**'
+      - 'public/**'
+      - 'src/utils/Seo.php'
+      - 'tests/homepage-visual/**'
+      - '.github/workflows/homepage-branding-visual.yml'
+permissions:
+  contents: read
+jobs:
+  homepage-visual:
+    if: github.event.pull_request.number == 140
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /index.php
+            /includes/
+            /src/
+            !/src/config/config*.php
+            /public/
+            /tests/
+            /gallery/hero-image.png
+            /gallery/FLIPANDSTRIP.COM_d00a_018a.jpg
+            /gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg
+            /gallery/favicons/favicon.png
+      - name: Install official test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring
+          npm install --prefix "$RUNNER_TEMP/fas-visual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/fas-visual-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache public presentation assets before network isolation
+        run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-visual-assets"
+      - name: Materialize baseline and candidate Git blobs before network isolation
+        run: python3 tests/homepage-visual/prepare-fixture.py --materialize-only --source-cache "$RUNNER_TEMP/fas-visual-source"
+      - name: Render and inspect without external network access
+        env:
+          ANALYTICS_IP_GEO_ENABLED: '0'
+        run: |
+          mkdir -p "$RUNNER_TEMP/fas-visual-output"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env NODE_PATH="$2/fas-visual-deps/node_modules" \
+              bash -c '\''set -euo pipefail
+                python3 tests/homepage-visual/prepare-fixture.py --source-cache "$1/fas-visual-source" --output "$1/fas-visual-fixture"
+                node tests/homepage-visual/check-layout.cjs "$1/fas-visual-fixture" "$1/fas-visual-assets" "$1/fas-visual-output"
+              '\'' _ "$2"
+          ' _ "$(id -un)" "$RUNNER_TEMP"
+      - name: Upload synthetic screenshots and report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: homepage-branding-visual-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/fas-visual-output/
+          if-no-files-found: error
+          retention-days: 7
