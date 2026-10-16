@@ -49,9 +49,15 @@ async function runCompletion(status, body) {
     const form={checkValidity:()=>true,first_name:{value:'Synthetic'},last_name:{value:'Buyer'},
         address1:{value:'200 Synthetic Street'},address2:{value:''},city:{value:'Test City'},
         state:{value:'CA'},zip:{value:'90210'}};
+    // Match the current DOM and funding-source API used by the themed buttons.
+    const paypalContainer={innerHTML:'',replaceChildren(){},appendChild(){}};
     const context={
-        document:{getElementById:id=>id==='checkout-form'?form:{innerHTML:''}},
-        paypal:{Buttons:config=>{buttonConfig=config;return {render:()=>{}};}},
+        document:{getElementById:id=>id==='checkout-form'?form:paypalContainer,
+            documentElement:{getAttribute:()=> 'light'},addEventListener(){},
+            createElement:()=>({className:'',remove(){}})},
+        paypal:{getFundingSources:()=>['paypal'],
+            Buttons:config=>{buttonConfig=config;return {isEligible:()=>true,render:async()=>{}};}},
+        setTimeout:callback=>{callback();return 1;},
         selectedShippingRate:{cost:9},pendingOrderResult:null,appliedCoupon:null,
         createOrder:async()=>({order_id:42,order_number:'FAS-00042'}),
         getCheckoutItems:()=>[{name:'Synthetic part',sku:'TEST-1',price:100,quantity:1}],
