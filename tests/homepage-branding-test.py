@@ -30,8 +30,8 @@ assert "crash into cash" not in copy.lower()
 assert "motorcycle, ATV/UTV, boat & automotive parts" in copy
 assert "Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more." in copy
 assert sum(tag == "h1" for tag, _ in parser.elements) == 1
-assert any(tag == "img" and attrs.get("src") == "gallery/hero-image.png"
-           and attrs.get("alt") == "Flip and Strip" for tag, attrs in parser.elements)
+assert any(tag == "img" and attrs.get("src") == "gallery/hero-image.png?v=20261016"
+           and attrs.get("alt") == "Flip and Strip Parts - Your Powersports Parts House" for tag, attrs in parser.elements)
 links = [attrs.get("href") for tag, attrs in parser.elements if tag == "a"]
 assert links == ["/products", "products", "contact"], links
-print("PASS 9 homepage branding assertions; original logo reference and shopping links preserved")
+print("PASS 9 homepage branding assertions; approved logo reference, cache version, and shopping links verified")

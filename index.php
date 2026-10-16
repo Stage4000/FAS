@@ -28,7 +28,7 @@ require_once __DIR__ . '/includes/header.php';
     <section class="hero-section parallax-section py-5">
         <div class="container text-center text-white py-5 d-flex flex-column justify-content-center" style="min-height: 600px;">
             <div class="mb-4" data-aos="fade-down" data-aos-duration="800">
-                <img src="gallery/hero-image.png" alt="Flip and Strip" style="max-width: 300px; height: auto;" class="img-fluid">
+                <img src="gallery/hero-image.png?v=20261016" alt="Flip and Strip Parts - Your Powersports Parts House" style="max-width: 300px; height: auto;" class="img-fluid">
             </div>
             <h1 class="display-2 fw-bold mb-4" data-aos="fade-down" data-aos-duration="1000">FLIP AND STRIP PARTS</h1>
             <p class="lead mb-4 fs-3" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">Your Powersports Parts House</p>
