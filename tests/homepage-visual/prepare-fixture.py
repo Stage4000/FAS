@@ -7,9 +7,9 @@ from pathlib import Path
 import argparse, hashlib, json, os, re, shutil, sqlite3, subprocess, tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = '28018e345f5b35c731536b65dd88f015ca75a626'
+BASELINE = '4589db39f5c2c40cf19d9bc22d98cb6d4dcd5df8'
 APPROVED_LOGO = '209532a773f807801d63dcc1036b7bc8272b3c85fa0c0d6952cc61340b9cbb36'
-BASELINE_FILES = ['index.php', 'includes/header.php', 'src/utils/Seo.php', 'gallery/hero-image.png']
+BASELINE_FILES = ['index.php', 'includes/header.php', 'src/utils/Seo.php', 'gallery/hero-image.png', 'public/css/style.css']
 GALLERY = ['gallery/hero-image.png', 'gallery/FLIPANDSTRIP.COM_d00a_018a.jpg',
            'gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg',
            'gallery/favicons/favicon.png']

@@ -25,10 +25,84 @@ for (const resource of Object.values(manifest)) {
 const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png',
     '.jpg': 'image/jpeg', '.html': 'text/html'})[path.extname(filename)] || 'application/octet-stream';
 
+// Capture text ranges as well as the flex item's box: overflowing text can escape
+// a correctly sized brand box without changing that box's own dimensions.
+const measureNavigation = () => {
+    const box = node => {
+        const rect = node.getBoundingClientRect();
+        return {x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+            right: rect.right, bottom: rect.bottom};
+    };
+    const visible = node => {
+        const style = getComputedStyle(node), rect = node.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility === 'visible' && rect.width > 0 && rect.height > 0;
+    };
+    const brand = document.querySelector('.navbar-brand'), toggle = document.querySelector('.navbar-toggler');
+    const menu = document.querySelector('#navbarNav'), walker = document.createTreeWalker(brand, NodeFilter.SHOW_TEXT);
+    const textBoxes = [];
+    while (walker.nextNode()) {
+        if (!walker.currentNode.textContent.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        for (const rect of range.getClientRects()) {
+            if (rect.width && rect.height) textBoxes.push({x: rect.x, y: rect.y, width: rect.width,
+                height: rect.height, right: rect.right, bottom: rect.bottom});
+        }
+    }
+    return {
+        text: brand.textContent.replace(/\s+/g, ' ').trim(),
+        aria_label: brand.getAttribute('aria-label'), visible: visible(brand), box: box(brand), text_boxes: textBoxes,
+        toggle: {visible: visible(toggle), box: box(toggle), expanded: toggle.getAttribute('aria-expanded'),
+            controls: toggle.getAttribute('aria-controls'), focused: document.activeElement === toggle},
+        menu: {visible: visible(menu), box: box(menu), open: menu.classList.contains('show')},
+        controls: [...menu.querySelectorAll('a,button')].filter(visible).map(node => ({
+            label: node.getAttribute('aria-label') || node.textContent.replace(/\s+/g, ' ').trim(), box: box(node)})),
+    };
+};
+const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.x, b.x) > 1 &&
+    Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y) > 1;
+const checkNavigation = (nav, prefix, width, height, expanded = false) => {
+    const insideViewport = box => box.x >= -1 && box.right <= width + 1 && box.y >= -1 && box.bottom <= height + 1;
+    check(nav.text === 'FLIP AND STRIP PARTS', `${prefix}: approved shared navbar text`);
+    check(nav.visible && insideViewport(nav.box), `${prefix}: brand stays visible within viewport`);
+    check(nav.text_boxes.length > 0, `${prefix}: brand text has rendered bounds`);
+    for (const box of nav.text_boxes) {
+        check(insideViewport(box) && box.x >= nav.box.x - 1 && box.right <= nav.box.right + 1 &&
+            box.y >= nav.box.y - 1 && box.bottom <= nav.box.bottom + 1,
+            `${prefix}: full brand text fits within its link and viewport`);
+    }
+    const controls = [...nav.controls];
+    if (width < 992) {
+        check(nav.toggle.visible && insideViewport(nav.toggle.box), `${prefix}: mobile toggler stays within viewport`);
+        check(nav.toggle.controls === 'navbarNav', `${prefix}: toggler controls the navigation menu`);
+        check(nav.toggle.expanded === String(expanded) && nav.menu.open === expanded && nav.menu.visible === expanded,
+            `${prefix}: mobile menu visibility and aria-expanded agree`);
+        check(expanded ? nav.controls.length === 9 : nav.controls.length === 0,
+            `${prefix}: mobile navigation controls appear only while open`);
+        controls.push({label: 'Toggle navigation', box: nav.toggle.box});
+    } else {
+        check(!nav.toggle.visible && nav.menu.visible && nav.controls.length === 9,
+            `${prefix}: desktop navigation is visible with toggler hidden`);
+    }
+    for (const control of controls) {
+        check(insideViewport(control.box), `${prefix}: ${control.label} stays within viewport`);
+        check(!overlaps(nav.box, control.box), `${prefix}: brand does not overlap ${control.label}`);
+        for (const textBox of nav.text_boxes) {
+            check(!overlaps(textBox, control.box), `${prefix}: brand text does not overlap ${control.label}`);
+        }
+    }
+    for (let i = 0; i < controls.length; i++) {
+        for (let j = i + 1; j < controls.length; j++) {
+            check(!overlaps(controls[i].box, controls[j].box),
+                `${prefix}: ${controls[i].label} does not overlap ${controls[j].label}`);
+        }
+    }
+};
+
 (async () => {
     const browser = await chromium.launch({headless: true});
     try {
-        for (const [width, height] of [[1440, 1050], [390, 844], [320, 740]]) {
+        for (const [width, height] of [[1440, 1050], [1280, 900], [1024, 900], [992, 900], [991, 900], [768, 1024], [390, 844], [375, 812], [320, 740]]) {
             for (const version of ['before', 'after']) {
                 const requests = [], unexpected = [], pageErrors = [], failedResponses = [];
                 const context = await browser.newContext({viewport: {width, height}, deviceScaleFactor: 1,
@@ -72,6 +146,9 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                     const prefix = `${version}-${width}`;
                     await page.screenshot({path: path.join(output, `${prefix}-viewport.png`), animations: 'disabled'});
                     await page.locator('.navbar').screenshot({path: path.join(output, `${prefix}-navbar.png`), animations: 'disabled'});
+                    const navigation = await page.evaluate(measureNavigation);
+                    const accessibleBrandMatches = await page.locator('.navbar')
+                        .getByRole('link', {name: 'Flip and Strip Parts Home', exact: true}).count();
                     await hero.screenshot({path: path.join(output, `${prefix}-hero.png`), animations: 'disabled'});
                     const measurements = await page.evaluate(() => {
                         const box = node => {
@@ -124,16 +201,39 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                             }).map(node => ({tag: node.tagName, id: node.id, class: node.className, box: box(node)})),
                         };
                     });
+                    measurements.navigation = navigation;
+                    measurements.navbar_brand_accessible_matches = accessibleBrandMatches;
                     await cta.screenshot({path: path.join(output, `${prefix}-cta.png`), animations: 'disabled'});
                     if (width < 992) {
                         await page.evaluate(() => scrollTo(0, 0));
                         const toggle = page.getByRole('button', {name: 'Toggle navigation', exact: true});
-                        for (let repeat = 0; repeat < 2; repeat++) {
-                            await toggle.click();
-                            await page.waitForFunction(() => document.querySelector('#navbarNav').classList.contains('show'));
-                            await toggle.click();
+                        measurements.mobile_menu_cycles = [];
+                        for (let repeat = 0; repeat < 3; repeat++) {
+                            const keyboard = repeat === 1;
+                            if (keyboard) {await toggle.focus(); await toggle.press('Enter');}
+                            else await toggle.click();
+                            await page.waitForFunction(() => document.querySelector('#navbarNav').classList.contains('show') &&
+                                !document.querySelector('#navbarNav').classList.contains('collapsing'));
+                            const open = await page.evaluate(measureNavigation);
+                            if (version === 'after') {
+                                checkNavigation(open, `${prefix} open cycle ${repeat + 1}`, width, height, true);
+                                check(open.toggle.focused, `${prefix}: focus stays on toggler after opening`);
+                                if (repeat === 0) await page.locator('.navbar').screenshot({
+                                    path: path.join(output, `${prefix}-navbar-open.png`), animations: 'disabled'});
+                            }
+                            if (keyboard) await toggle.press('Space');
+                            else await toggle.click();
                             await page.waitForFunction(() => !document.querySelector('#navbarNav').classList.contains('show') &&
                                 !document.querySelector('#navbarNav').classList.contains('collapsing'));
+                            const closed = await page.evaluate(measureNavigation);
+                            if (version === 'after') {
+                                checkNavigation(closed, `${prefix} closed cycle ${repeat + 1}`, width, height);
+                                check(closed.toggle.focused, `${prefix}: focus stays on toggler after closing`);
+                                check(Math.abs(closed.box.x - navigation.box.x) <= 1 && Math.abs(closed.box.y - navigation.box.y) <= 1 &&
+                                    Math.abs(closed.box.height - navigation.box.height) <= 1,
+                                    `${prefix}: repeated menu use restores brand position and height`);
+                            }
+                            measurements.mobile_menu_cycles.push({input: keyboard ? 'keyboard' : 'pointer', open, closed});
                         }
                         measurements.mobile_menu_repeated_open_close = true;
                     }
@@ -146,6 +246,8 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                     check(pageErrors.length === 0, `${prefix}: browser errors: ${JSON.stringify(pageErrors)}`);
                     check(failedResponses.length === 0, `${prefix}: failed resource responses`);
                     if (version === 'after') {
+                        checkNavigation(navigation, prefix, width, height);
+                        check(accessibleBrandMatches === 1, `${prefix}: brand has the accessible name Flip and Strip Parts Home`);
                         check(measurements.nav_logo.src === approvedLogoPath, `${prefix}: approved versioned navbar logo`);
                         check(measurements.nav_logo.current_src === origin + approvedLogoPath, `${prefix}: navbar displays the approved asset`);
                         check(measurements.nav_logo.alt === 'Flip and Strip Parts Logo', `${prefix}: navbar logo alternative text`);

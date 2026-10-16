@@ -138,9 +138,16 @@ html {
 }
 
 .navbar-brand img {
+    flex-shrink: 0;
     border-radius: 50%;
     border: 2px solid var(--primary-color);
     transition: var(--transition);
+}
+
+.navbar-brand-name {
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 .navbar-brand:hover img {

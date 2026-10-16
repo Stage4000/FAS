@@ -1,11 +1,12 @@
 # Isolated homepage branding acceptance
 
-This release-specific workflow runs only for PR #140. It renders `index.php` through PHP with a new synthetic SQLite database,
+This release-specific workflow runs only for the `fix/fas-navbar-parts-2026-10-16` branch. It renders `index.php` through PHP with a new synthetic SQLite database,
 the actual header/footer and CSS, the approved hero PNG, and repository-owned public
-hero background/navigation imagery. It compares the pre-branding template at
-`28018e345f5b35c731536b65dd88f015ca75a626` against the checkout at 1440, 390 and 320 px.
-Shared CSS and dependencies are identical for both sides; the baseline retains its
-original index, header, SEO helper and logo. No application implementation file is modified by these tests.
+hero background/navigation imagery. It compares the approved branding release at
+`4589db39f5c2c40cf19d9bc22d98cb6d4dcd5df8` against the checkout at 320, 375, 390,
+768, 991, 992, 1024, 1280 and 1440 px. Dependencies are identical for both sides;
+the baseline retains its original index, header, SEO helper, logo and CSS.
+No application implementation file is modified by these tests.
 
 All required baseline Git blobs and current source/branding files are materialized
 and SHA-256 checked before isolation, so a partial clone cannot trigger a lazy
@@ -23,7 +24,7 @@ Checks cover approved text, exact approved-logo SHA-256/load/version/alt text, v
 hero/navbar bounds, uncropped 40px navbar logo, approved OG/Twitter/schema logo URLs,
 unchanged rendered link destinations, no newly introduced horizontal
 overflow, loaded Roboto typography, browser/resource errors, and repeated mobile
-navigation open/close. Any pre-existing overflow remains visible in `report.json`.
+navigation open/close with pointer and keyboard, accessible brand naming, full text-range bounds, and non-overlapping menu controls. Any pre-existing overflow remains visible in `report.json`.
 No CSS patches are injected to conceal layout issues.
 
 The artifact contains before/after viewport, navbar, whole-hero and CTA PNGs for each width,

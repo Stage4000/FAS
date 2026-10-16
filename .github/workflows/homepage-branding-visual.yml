@@ -13,7 +13,7 @@ permissions:
   contents: read
 jobs:
   homepage-visual:
-    if: github.event.pull_request.number == 140
+    if: github.head_ref == 'fix/fas-navbar-parts-2026-10-16'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

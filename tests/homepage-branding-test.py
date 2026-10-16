@@ -39,6 +39,14 @@ header = (root / "includes/header.php").read_text()
 seo = (root / "src/utils/Seo.php").read_text()
 navigation = HomepageCopy()
 navigation.feed(header.split('<!-- Navigation -->', 1)[1])
+nav_brand_match = re.search(r'<a\b[^>]*class="[^"]*\bnavbar-brand\b[^"]*"[^>]*>.*?</a>', header, re.S)
+assert nav_brand_match, "shared public navigation must have a brand link"
+nav_brand = HomepageCopy()
+nav_brand.feed(nav_brand_match.group())
+assert " ".join(" ".join(nav_brand.text).split()) == "FLIP AND STRIP PARTS"
+nav_brand_link = next(attrs for tag, attrs in nav_brand.elements if tag == "a")
+assert nav_brand_link.get("aria-label") == "Flip and Strip Parts Home"
+assert nav_brand_link.get("href") == "/"
 nav_logo = next(attrs for tag, attrs in navigation.elements if tag == "img")
 assert nav_logo.get("src") == "/gallery/hero-image.png?v=20261016"
 assert nav_logo.get("alt") == "Flip and Strip Parts Logo"
@@ -48,4 +56,4 @@ assert "border-radius: 0" in nav_logo.get("style", "") and "border: 0" in nav_lo
 assert "Seo::absoluteUrl('/gallery/hero-image.png?v=20261016')" in header
 assert "'logo' => self::absoluteUrl('/gallery/hero-image.png?v=20261016')" in seo
 assert "FLIPANDSTRIP.COM_d00a_018a.jpg" not in header + seo
-print("PASS 17 homepage branding assertions; hero, navigation, social/schema logo references and shopping links verified")
+print("PASS homepage branding assertions; hero, public brand text/accessibility, navigation, social/schema logo references and shopping links verified")
