@@ -40,7 +40,7 @@ $ogTitle = isset($ogTitle) ? \FAS\Utils\Seo::metaTitle($ogTitle) : $metaTitle;
 $ogDescription = isset($ogDescription) ? \FAS\Utils\Seo::metaDescription($ogDescription) : $metaDescription;
 $ogImage = isset($ogImage)
     ? \FAS\Utils\Seo::absoluteUrl($ogImage)
-    : \FAS\Utils\Seo::absoluteUrl('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg');
+    : \FAS\Utils\Seo::absoluteUrl('/gallery/hero-image.png?v=20261016');
 $structuredData = isset($structuredData) && is_array($structuredData) ? $structuredData : [];
 array_unshift($structuredData, \FAS\Utils\Seo::organizationSchema($seoConfig));
 
@@ -280,7 +280,7 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Home">
-                <img <?= \FAS\Utils\ResponsiveImage::attributes('/gallery/FLIPANDSTRIP.COM_d00a_018a.jpg', '40px', 160) ?> alt="Flip and Strip Logo" class="d-inline-block align-text-top me-2 rounded-circle">
+                <img src="/gallery/hero-image.png?v=20261016" width="40" height="40" alt="Flip and Strip Parts Logo" class="d-inline-block align-text-top me-2" style="object-fit: contain; border: 0; border-radius: 0;">
                 FLIP AND STRIP
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

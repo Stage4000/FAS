@@ -17,7 +17,8 @@ class HomepageCopy(HTMLParser):
         self.text.append(data)
 
 
-source = (Path(__file__).resolve().parents[1] / "index.php").read_text()
+root = Path(__file__).resolve().parents[1]
+source = (root / "index.php").read_text()
 hero = source.split("<!-- Hero Section -->", 1)[1].split("</section>", 1)[0]
 cta = source.split("<!-- Call to Action -->", 1)[1].split("</section>", 1)[0]
 parser = HomepageCopy()
@@ -34,4 +35,17 @@ assert any(tag == "img" and attrs.get("src") == "gallery/hero-image.png?v=202610
            and attrs.get("alt") == "Flip and Strip Parts - Your Powersports Parts House" for tag, attrs in parser.elements)
 links = [attrs.get("href") for tag, attrs in parser.elements if tag == "a"]
 assert links == ["/products", "products", "contact"], links
-print("PASS 9 homepage branding assertions; approved logo reference, cache version, and shopping links verified")
+header = (root / "includes/header.php").read_text()
+seo = (root / "src/utils/Seo.php").read_text()
+navigation = HomepageCopy()
+navigation.feed(header.split('<!-- Navigation -->', 1)[1])
+nav_logo = next(attrs for tag, attrs in navigation.elements if tag == "img")
+assert nav_logo.get("src") == "/gallery/hero-image.png?v=20261016"
+assert nav_logo.get("alt") == "Flip and Strip Parts Logo"
+assert (nav_logo.get("width"), nav_logo.get("height")) == ("40", "40")
+assert "object-fit: contain" in nav_logo.get("style", "") and "rounded-circle" not in nav_logo.get("class", "")
+assert "border-radius: 0" in nav_logo.get("style", "") and "border: 0" in nav_logo.get("style", "")
+assert "Seo::absoluteUrl('/gallery/hero-image.png?v=20261016')" in header
+assert "'logo' => self::absoluteUrl('/gallery/hero-image.png?v=20261016')" in seo
+assert "FLIPANDSTRIP.COM_d00a_018a.jpg" not in header + seo
+print("PASS 17 homepage branding assertions; hero, navigation, social/schema logo references and shopping links verified")

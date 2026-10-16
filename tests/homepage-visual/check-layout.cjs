@@ -11,6 +11,8 @@ const [fixtureArg, assetsArg, outputArg] = process.argv.slice(2);
 assert(fixtureArg && assetsArg && outputArg, 'Usage: node check-layout.cjs FIXTURE ASSETS OUTPUT');
 const fixture = path.resolve(fixtureArg), assets = path.resolve(assetsArg), output = path.resolve(outputArg);
 const origin = 'http://127.0.0.1:43187';
+const approvedLogoPath = '/gallery/hero-image.png?v=20261016';
+const approvedLogoUrl = 'https://flipandstrip.com' + approvedLogoPath;
 const manifest = JSON.parse(fs.readFileSync(path.join(assets, 'manifest.json')));
 const evidence = JSON.parse(fs.readFileSync(path.join(fixture, 'fixture.json')));
 const rows = [], failures = [];
@@ -69,6 +71,7 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                     const hero = page.locator('.hero-section'), cta = page.locator('.cta-section');
                     const prefix = `${version}-${width}`;
                     await page.screenshot({path: path.join(output, `${prefix}-viewport.png`), animations: 'disabled'});
+                    await page.locator('.navbar').screenshot({path: path.join(output, `${prefix}-navbar.png`), animations: 'disabled'});
                     await hero.screenshot({path: path.join(output, `${prefix}-hero.png`), animations: 'disabled'});
                     const measurements = await page.evaluate(() => {
                         const box = node => {
@@ -78,6 +81,9 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                         };
                         const hero = document.querySelector('.hero-section'), cta = document.querySelector('.cta-section');
                         const heroNodes = [...hero.querySelectorAll('img,h1,p,a.btn')];
+                        const navLogo = document.querySelector('.navbar-brand img');
+                        const schemas = [...document.querySelectorAll('script[type="application/ld+json"]')]
+                            .map(node => JSON.parse(node.textContent)).flatMap(node => Array.isArray(node) ? node : node['@graph'] || [node]);
                         const all = [...document.body.querySelectorAll('*')];
                         return {
                             document_width: document.documentElement.scrollWidth,
@@ -88,6 +94,19 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                             description: hero.querySelector('p.fs-4').textContent.trim(),
                             cta: cta.querySelector('h2').textContent.trim(),
                             hero: box(hero), cta_box: box(cta),
+                            navbar: box(document.querySelector('.navbar')),
+                            navbar_brand: box(document.querySelector('.navbar-brand')),
+                            nav_logo: {loaded: navLogo.complete && navLogo.naturalWidth > 0,
+                                src: navLogo.getAttribute('src'), current_src: navLogo.currentSrc, alt: navLogo.alt,
+                                box: box(navLogo), object_fit: getComputedStyle(navLogo).objectFit,
+                                border_radius: getComputedStyle(navLogo).borderRadius,
+                                corner_radii: ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius']
+                                    .map(property => getComputedStyle(navLogo)[property]),
+                                border_widths: ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth']
+                                    .map(property => getComputedStyle(navLogo)[property])},
+                            social_images: {og: document.querySelector('meta[property="og:image"]').content,
+                                twitter: document.querySelector('meta[name="twitter:image"]').content},
+                            organization_logos: schemas.filter(node => node['@type'] === 'Organization').map(node => node.logo),
                             hero_elements: heroNodes.map(node => ({tag: node.tagName, text: node.textContent.trim(),
                                 box: box(node), opacity: getComputedStyle(node).opacity, visibility: getComputedStyle(node).visibility})),
                             cta_heading: box(cta.querySelector('h2')),
@@ -121,11 +140,23 @@ const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', 
                     rows.push({version, width, height, ...measurements, requests, unexpected, page_errors: pageErrors,
                         failed_responses: failedResponses});
                     check(measurements.logo.loaded, `${prefix}: hero logo must load`);
+                    check(measurements.nav_logo.loaded, `${prefix}: navbar logo must load`);
                     check(measurements.roboto_loaded, `${prefix}: actual Roboto font must load`);
                     check(unexpected.length === 0, `${prefix}: unexpected/blocked resources: ${JSON.stringify(unexpected)}`);
                     check(pageErrors.length === 0, `${prefix}: browser errors: ${JSON.stringify(pageErrors)}`);
                     check(failedResponses.length === 0, `${prefix}: failed resource responses`);
                     if (version === 'after') {
+                        check(measurements.nav_logo.src === approvedLogoPath, `${prefix}: approved versioned navbar logo`);
+                        check(measurements.nav_logo.current_src === origin + approvedLogoPath, `${prefix}: navbar displays the approved asset`);
+                        check(measurements.nav_logo.alt === 'Flip and Strip Parts Logo', `${prefix}: navbar logo alternative text`);
+                        check(measurements.nav_logo.object_fit === 'contain' && measurements.nav_logo.corner_radii.every(radius => radius === '0px') &&
+                            measurements.nav_logo.border_widths.every(border => border === '0px'), `${prefix}: entire navbar logo is contained without circular cropping`);
+                        const navImage = measurements.nav_logo.box, navBrand = measurements.navbar_brand, navbar = measurements.navbar;
+                        check(Math.abs(navImage.width - 40) < 1 && Math.abs(navImage.height - 40) < 1, `${prefix}: navbar logo preserves 40px layout`);
+                        check(navImage.x >= -1 && navImage.right <= width + 1 && navImage.x >= navBrand.x - 1 && navImage.right <= navBrand.right + 1 &&
+                            navImage.y >= navbar.y - 1 && navImage.bottom <= navbar.bottom + 1, `${prefix}: navbar logo stays within brand/navbar/viewport bounds`);
+                        check(measurements.social_images.og === approvedLogoUrl && measurements.social_images.twitter === approvedLogoUrl, `${prefix}: approved OG/Twitter logo URLs`);
+                        check(measurements.organization_logos.length === 1 && measurements.organization_logos[0] === approvedLogoUrl, `${prefix}: approved organization-schema logo`);
                         check(measurements.title === 'FLIP AND STRIP PARTS', `${prefix}: approved heading`);
                         check(measurements.slogan === 'Your Powersports Parts House', `${prefix}: approved slogan`);
                         check(measurements.cta === 'Great parts at Great Prices', `${prefix}: approved CTA`);

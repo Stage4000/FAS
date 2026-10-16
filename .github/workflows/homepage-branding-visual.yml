@@ -6,6 +6,7 @@ on:
       - 'gallery/hero-image.png'
       - 'includes/**'
       - 'public/**'
+      - 'src/utils/Seo.php'
       - 'tests/homepage-visual/**'
       - '.github/workflows/homepage-branding-visual.yml'
 permissions:
@@ -40,6 +41,8 @@ jobs:
           "$RUNNER_TEMP/fas-visual-deps/node_modules/.bin/playwright" install --with-deps chromium
       - name: Cache public presentation assets before network isolation
         run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-visual-assets"
+      - name: Materialize baseline and candidate Git blobs before network isolation
+        run: python3 tests/homepage-visual/prepare-fixture.py --materialize-only --source-cache "$RUNNER_TEMP/fas-visual-source"
       - name: Render and inspect without external network access
         env:
           ANALYTICS_IP_GEO_ENABLED: '0'
@@ -50,7 +53,7 @@ jobs:
             ip link set lo up
             exec runuser -u "$1" -- env NODE_PATH="$2/fas-visual-deps/node_modules" \
               bash -c '\''set -euo pipefail
-                python3 tests/homepage-visual/prepare-fixture.py --output "$1/fas-visual-fixture"
+                python3 tests/homepage-visual/prepare-fixture.py --source-cache "$1/fas-visual-source" --output "$1/fas-visual-fixture"
                 node tests/homepage-visual/check-layout.cjs "$1/fas-visual-fixture" "$1/fas-visual-assets" "$1/fas-visual-output"
               '\'' _ "$2"
           ' _ "$(id -un)" "$RUNNER_TEMP"
