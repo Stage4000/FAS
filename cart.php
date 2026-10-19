@@ -193,6 +193,9 @@ function displayCartItems() {
         const imageSrc = escapeHtml(item.image || '');
         const imageAlt = escapeHtml(item.image_alt || item.name || 'Product image');
         const itemName = escapeHtml(item.name || '');
+        const productId = String(item.id ?? '');
+        const productUrl = /^[1-9]\d*$/.test(productId) ? `/product/${productId}` : null;
+        const itemTitle = productUrl ? `<a class="cart-product-link link-danger" href="${productUrl}">${itemName}</a>` : itemName;
         const sku = escapeHtml(item.sku || 'N/A');
         const freeShippingBadge = item.free_shipping ? '<small class="text-success fw-semibold d-block mt-1"><i class="fas fa-truck-fast me-1"></i>Free shipping eligible for continental US addresses</small>' : '';
 
@@ -207,7 +210,7 @@ function displayCartItems() {
                         
                         <!-- Product Details -->
             <div class="col-md-4 cart-item-details">
-            <h6 class="mb-1 fw-bold">${itemName}</h6>
+            <h6 class="mb-1 fw-bold">${itemTitle}</h6>
             <small class="text-muted d-block">SKU: ${sku}</small>
             ${freeShippingBadge}
             <div class="d-md-none cart-item-price mt-2">
