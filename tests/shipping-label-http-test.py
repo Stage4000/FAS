@@ -44,10 +44,7 @@ with sqlite3.connect(DB) as db:
         [int(time.time())+600,origin,packages])
     db.execute("INSERT INTO order_shipping(order_id,provider,courier_id,service_code,courier_name,service_name,quoted_cents,currency,quote_hash,quote_expires_at,origin_json,packages_json,fulfillment_json) VALUES(13,'ups','direct_ups_03','03','UPS','Ground',900,'USD','fixture-ups-13',?,?,?,NULL)",
         [int(time.time())+600,origin,packages])
-# Supply complete synthetic addresses to isolate shipping assertions. The existing
-# null billing-address/display_errors status defect is documented in the audit.
-with sqlite3.connect(DB) as db:
-    db.execute('UPDATE orders SET billing_address=shipping_address')
+# Keep nullable billing addresses as persisted by the normal order flow.
 
 env={k:v for k,v in os.environ.items() if not k.startswith('FAS_')}
 env['FAS_SECURITY_DB_PATH']=str(BASE/'private/security.sqlite')
@@ -60,6 +57,7 @@ with socket.socket() as sock:
 ORIGIN=f'http://127.0.0.1:{port}'
 log=open(BASE/'server.log','w')
 server=subprocess.Popen(['php','-d','disable_functions=mail,curl_exec,curl_multi_exec',
+    '-d','display_errors=1','-d','error_reporting=32767','-d','output_buffering=0',
     '-d','session.save_path='+str(BASE/'sessions'),'-S',f'127.0.0.1:{port}','-t',str(SITE)],
     env=env,stdout=log,stderr=log)
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -102,6 +100,22 @@ try:
     csrf=re.search(r'name="csrf_token" value="([^"]+)"',loginPage)[1]
     login=request('/admin/login.php',{'csrf_token':csrf,'username':'shipping-fixture','password':PASSWORD})
     check(login[0]==302,'Synthetic active administrator signs in')
+    orderPath='/admin/order-details.php?id=10'
+    for billing in [None, address]:
+        with sqlite3.connect(DB) as db:
+            db.execute('UPDATE orders SET billing_address=? WHERE id=10',[billing])
+        status,_,body=request(orderPath,{'action':'update_tracking','tracking_number':'INJECTED'})
+        check(status==403, f'Invalid CSRF returns HTTP 403 with billing {billing is not None} (got {status})')
+        check('Deprecated' not in body and 'Warning' not in body,
+              'Rejected order update emits no PHP diagnostics')
+        with sqlite3.connect(DB) as db:
+            check(db.execute('SELECT tracking_number,order_status FROM orders WHERE id=10').fetchone()==(None,'processing'),
+                  'Rejected order update preserves tracking and status')
+        status,_,body=request(orderPath)
+        check(status==200 and 'Review shipping labels' in body and 'Deprecated' not in body,
+              'Order detail renders with nullable or populated billing address without diagnostics')
+    with sqlite3.connect(DB) as db:
+        db.execute('UPDATE orders SET billing_address=NULL WHERE id=10')
     warehousePath='/admin/warehouses.php'
     check(request(warehousePath,who=anonymous)[0]==302,
           'Anonymous visitors cannot open warehouse origins')
