@@ -387,7 +387,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                             </button>
                         </div>
                     </form>
-                    <div id="product-shipping-estimate-result" class="mt-3"></div>
+                    <div id="product-shipping-estimate-result" class="mt-3" role="status" aria-live="polite"></div>
                 </div>
             </div>
 
@@ -538,6 +538,7 @@ document.getElementById('decrease-qty').addEventListener('click', function() {
     const currentValue = parseInt(input.value);
     if (currentValue > 1) {
         input.value = currentValue - 1;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 });
 
@@ -547,6 +548,7 @@ document.getElementById('increase-qty').addEventListener('click', function() {
     const maxValue = parseInt(input.getAttribute('max')) || 999;
     if (currentValue < maxValue) {
         input.value = currentValue + 1;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
         // Remove tooltip if it exists
         const tooltip = bootstrap.Tooltip.getInstance(this);
         if (tooltip) {

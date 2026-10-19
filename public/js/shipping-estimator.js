@@ -2,6 +2,7 @@
 const endpoint = '/api/shipping-estimate.php';
 const estimateStorageKey = 'flipandstrip_shipping_estimate';
 const estimateMaxAgeMs = 4 * 60 * 60 * 1000;
+const estimatorStates = new WeakMap();
 
     function formatMoney(value) {
         const amount = Number(value || 0);
@@ -196,75 +197,142 @@ return null;
         container.innerHTML = `<div class="${className}">${content}</div>`;
     }
 
+    function getEstimatorState(form) {
+        if (!estimatorStates.has(form)) {
+            estimatorStates.set(form, { version: 0, pending: false, hasEstimate: false, controller: null, label: null });
+        }
+        return estimatorStates.get(form);
+    }
+
+    function estimateContext(form) {
+        const mode = form.dataset.estimateMode || 'cart';
+        return JSON.stringify({
+            address: getAddressFromForm(form),
+            items: mode === 'product' ? getProductEstimateItems(form) : getCartEstimateItems()
+        });
+    }
+
+    function invalidateEstimate(form, reason = '') {
+        const state = getEstimatorState(form);
+        const wasActive = state.pending || state.hasEstimate;
+        state.version += 1;
+        state.controller?.abort();
+        state.controller = null;
+        state.pending = false;
+        state.hasEstimate = false;
+        try { localStorage.removeItem(estimateStorageKey); } catch (error) {}
+
+        const shippingTarget = form.dataset.shippingTarget ? document.querySelector(form.dataset.shippingTarget) : null;
+        const totalTarget = form.dataset.totalTarget ? document.querySelector(form.dataset.totalTarget) : null;
+        if (shippingTarget) {
+            shippingTarget.textContent = window.cart?.cart?.length === 0 ? 'No items' : 'Estimate below';
+            shippingTarget.classList.add('text-muted');
+            shippingTarget.classList.remove('text-success', 'text-danger');
+        }
+        totalTarget?.closest('.shipping-estimate-total-row')?.classList.add('d-none');
+        const button = form.querySelector('[type="submit"]');
+        if (button && state.label !== null) {
+            button.innerHTML = state.label;
+            button.disabled = false;
+        }
+        state.label = null;
+        const result = document.querySelector(form.dataset.resultTarget);
+        if (wasActive && reason) setResult(result, 'error', reason);
+        else if (result) result.innerHTML = '';
+    }
+
     async function handleEstimatorSubmit(event) {
         event.preventDefault();
-
         const form = event.currentTarget;
+        invalidateEstimate(form);
+        const state = getEstimatorState(form);
+        const version = state.version;
         const resultContainer = document.querySelector(form.dataset.resultTarget);
         const submitButton = form.querySelector('[type="submit"]');
         const mode = form.dataset.estimateMode || 'cart';
         const items = mode === 'product' ? getProductEstimateItems(form) : getCartEstimateItems();
         const address = getAddressFromForm(form);
-
         if (items.length === 0) {
             setResult(resultContainer, 'error', 'Add an item before estimating shipping.');
             return;
         }
-
         if (!address.city || !address.state || !address.zip) {
             setResult(resultContainer, 'error', 'Enter destination city, state, and ZIP code.');
             return;
         }
-
-        const originalLabel = submitButton ? submitButton.innerHTML : '';
+        const context = estimateContext(form);
+        state.pending = true;
+        state.controller = typeof AbortController === 'function' ? new AbortController() : null;
         if (submitButton) {
+            state.label = submitButton.innerHTML;
             submitButton.disabled = true;
             submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Estimating';
         }
         setResult(resultContainer, 'loading', 'Checking live shipping estimate...');
-
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items, address })
+                body: JSON.stringify({ items, address }),
+                ...(state.controller ? { signal: state.controller.signal } : {})
             });
             const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.error || 'Unable to estimate shipping.');
+            if (state.version !== version) return;
+            // Also guard programmatic changes that did not dispatch an input/cart event.
+            if (estimateContext(form) !== context) {
+                invalidateEstimate(form, 'Your items or destination changed. Estimate shipping again.');
+                return;
             }
-
-        setResult(resultContainer, 'success', buildEstimateSummary(data));
-        updateSummaryTargets(form, data);
-        const savedEstimate = saveEstimateForCheckout(mode, address, items, data);
-
-        if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
-        window.fasAnalytics.track('shipping_estimate_returned', {
-        source: mode,
-        destination_state: address.state,
-        destination_zip_prefix: address.zip.slice(0, 3),
-        free_items_count: Number(data.free_shipping?.free_items_count || 0),
-        rated_items_count: Number(data.free_shipping?.rated_items_count || 0),
-        lowest_rate: Number(data.lowest_rate?.total_charge || 0),
-        estimate_saved_for_checkout: !!savedEstimate
-        });
-        }
+            if (!data.success) throw new Error(data.error || 'Unable to estimate shipping.');
+            setResult(resultContainer, 'success', buildEstimateSummary(data));
+            updateSummaryTargets(form, data);
+            const savedEstimate = saveEstimateForCheckout(mode, address, items, data);
+            state.hasEstimate = true;
+            if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
+                window.fasAnalytics.track('shipping_estimate_returned', {
+                    source: mode,
+                    destination_state: address.state,
+                    destination_zip_prefix: address.zip.slice(0, 3),
+                    free_items_count: Number(data.free_shipping?.free_items_count || 0),
+                    rated_items_count: Number(data.free_shipping?.rated_items_count || 0),
+                    lowest_rate: Number(data.lowest_rate?.total_charge || 0),
+                    estimate_saved_for_checkout: !!savedEstimate
+                });
+            }
         } catch (error) {
+            if (state.version !== version) return;
             setResult(resultContainer, 'error', escapeHtml(error.message || 'Shipping estimate is unavailable. Final shipping is calculated at checkout.'));
         } finally {
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = originalLabel;
+            if (state.version === version) {
+                state.pending = false;
+                state.controller = null;
+                if (submitButton && state.label !== null) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = state.label;
+                }
+                state.label = null;
             }
         }
     }
 
-function initShippingEstimators() {
-document.querySelectorAll('[data-shipping-estimator]').forEach(form => {
-form.addEventListener('submit', handleEstimatorSubmit);
-});
-}
+    function initShippingEstimators() {
+        document.querySelectorAll('[data-shipping-estimator]').forEach(form => {
+            form.addEventListener('submit', handleEstimatorSubmit);
+            ['input', 'change'].forEach(event => form.addEventListener(event, () => {
+                invalidateEstimate(form, 'Destination changed. Estimate shipping again.');
+            }));
+            if (form.dataset.estimateMode === 'product') {
+                const quantity = document.querySelector(form.dataset.quantitySource || '#quantity-input');
+                ['input', 'change'].forEach(event => quantity?.addEventListener(event, () => {
+                    invalidateEstimate(form, 'Quantity changed. Estimate shipping again.');
+                }));
+            } else {
+                document.addEventListener('fas:cart-changed', () => {
+                    invalidateEstimate(form, 'Cart changed. Estimate shipping again.');
+                });
+            }
+        });
+    }
 
 window.fasShippingEstimator = Object.assign({}, window.fasShippingEstimator || {}, {
 getLatestEstimate,
