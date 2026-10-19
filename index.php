@@ -183,8 +183,8 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-shield-alt display-5 text-danger mb-3"></i>
                     </div>
-                    <h5>Quality Parts</h5>
-                    <p class="text-muted">Tested & inspected</p>
+                    <h5>Item Condition</h5>
+                    <p class="text-muted">Review photos &amp; listing notes</p>
                 </div>
                 <div class="col-md-3" data-aos="zoom-in" data-aos-delay="300" data-aos-duration="800">
                     <div class="feature-icon-wrapper">

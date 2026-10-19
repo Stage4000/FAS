@@ -114,3 +114,17 @@ function fasCatalogPageUrl(string $path, array $params, int $page, bool $include
     }
     return $path . ($params ? '?' . http_build_query($params) : '');
 }
+
+/** Native category navigation retains shopping filters and resets stale category/page scope. */
+function fasCatalogCategoryUrl(array $ids, array $query): string
+{
+    $params = [];
+    foreach (['search', 'manufacturer', 'model', 'manufacturer_slug', 'model_slug', 'show_hidden'] as $key) {
+        $value = fasCatalogString($query, $key);
+        if ($value !== null && $value !== '') $params[$key] = $value;
+    }
+    foreach (['cat1', 'cat2', 'cat3'] as $key) {
+        if (isset($ids[$key])) $params[$key] = (string)$ids[$key];
+    }
+    return '/products?' . http_build_query($params);
+}
