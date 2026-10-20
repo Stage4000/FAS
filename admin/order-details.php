@@ -33,7 +33,7 @@ if (!$order) {
 $items = $orderModel->getItems($orderId);
 $shippingSelection = \FAS\Shipping\ShippingOrder::find($db, (int)$orderId);
 $shippingAddress = json_decode($order['shipping_address'], true);
-$billingAddress = json_decode($order['billing_address'], true);
+$billingAddress = json_decode($order['billing_address'] ?? '', true);
 
 // Handle status updates
 $success = '';
