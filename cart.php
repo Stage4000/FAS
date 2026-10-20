@@ -104,12 +104,12 @@ require_once __DIR__ . '/includes/header.php';
 </button>
 </div>
 </form>
-<div id="cart-shipping-estimate-result" class="mt-3"></div>
+<div id="cart-shipping-estimate-result" class="mt-3" role="status" aria-live="polite"></div>
 </div>
 </div>
 <hr>
                     <div class="d-flex justify-content-between mb-4">
-                        <strong>Total:</strong>
+                        <strong>Items total:</strong>
                         <strong id="cart-total" class="text-danger fs-4">$0.00</strong>
                     </div>
                     
