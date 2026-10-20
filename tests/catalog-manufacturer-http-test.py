@@ -1,6 +1,6 @@
 """Manufacturer case grouping through full-page and AJAX catalog rendering; synthetic stock only."""
 from pathlib import Path
-import json, os, re, shutil, socket, sqlite3, subprocess, tempfile, time
+import json, os, re, shutil, socket, sqlite3, subprocess, tempfile, time, sys
 import urllib.request
 import urllib.error
 
@@ -126,6 +126,23 @@ try:
         check('1 products found' in (json.loads(body)['html'] if prefix.startswith('/api') else body),'Same model label under another parent stays separate')
         body=get(prefix+'cat1=999')
         check('0 products found' in (json.loads(body)['html'] if prefix.startswith('/api') else body),'Unknown ID never widens results')
+    import html as html_module
+    from urllib.parse import urlparse, parse_qs
+    for endpoint in ['/products?', '/api/products.php?']:
+        content=get(endpoint+'cat1=1&cat2=11&cat3=111&search=rotor&manufacturer=Kawasaki&model=XR&include_sidebar=1&page=2')
+        sidebar=json.loads(content)['sidebar'] if endpoint.startswith('/api') else content
+        links=re.findall(r'<a href="([^"]*)"[^>]*data-cat1="([^"]*)"([^>]*)>',sidebar)
+        check(len(links)>=5, 'Every category level has native destinations')
+        for href, cat1, attrs in links:
+            href=html_module.unescape(href)
+            params=parse_qs(urlparse(href).query)
+            check(href.startswith('/products?') and params['cat1']==[cat1], 'Native category URL targets its category')
+            check(params.get('search')==['rotor'] and params.get('manufacturer')==['Kawasaki'] and params.get('model')==['XR'], 'Native category URL preserves shopping filters')
+            check('page' not in params and 'include_sidebar' not in params, 'Native category URL resets pagination and drops API transport flags')
+            for level in [2,3]:
+                match=re.search('data-cat%d="([^"]*)"'%level, attrs)
+                check(params.get('cat'+str(level))==([match[1]] if match else None), 'Native category URL resets stale descendants')
+            check('products found' in get(href), 'Native category destination renders without JavaScript')
     with sqlite3.connect(SYNTHETIC_DB) as db:
         db.execute('UPDATE products SET show_on_website=0 WHERE id<=15')
         db.execute('UPDATE products SET is_active=0 WHERE id=30')
@@ -133,6 +150,9 @@ try:
     check('14 products found' in body and 'data-cat1="1"' in body,'Canonical sibling without visible stock still exposes alias stock, excluding hidden/inactive products')
     print('PASS',checks,'catalog label HTTP assertions; synthetic inventory only')
 finally:
-    server.terminate()
-    server.wait(timeout=10)
+    if '--keep' in sys.argv:
+        print(json.dumps({'origin':origin,'fixture':str(BASE),'server_pid':server.pid}))
+    else:
+        server.terminate()
+        server.wait(timeout=10)
     log.close()

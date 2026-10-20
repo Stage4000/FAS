@@ -473,7 +473,7 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
 <?php if (!empty($ebayCategories)): ?>
         <?php foreach ($ebayCategories as $cat1): ?>
             <!-- Level 1 Category -->
-            <a href="#" data-cat1="<?php echo $cat1['id']; ?>"
+            <a href="<?php echo htmlspecialchars(fasCatalogCategoryUrl(['cat1' => $cat1['id']], $_GET), ENT_QUOTES, 'UTF-8'); ?>" data-cat1="<?php echo $cat1['id']; ?>"
                class="category-link list-group-item list-group-item-action <?php echo $ebayCat1 == $cat1['id'] && !$ebayCat2 ? 'active' : ''; ?>"
                style="font-weight: bold;">
                 <i class="fas fa-folder"></i> <?php echo htmlspecialchars($cat1['name']); ?>
@@ -482,7 +482,7 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
             <!-- Level 2 Categories (show ONLY if THIS level 1 is selected) -->
             <?php if ($ebayCat1 == $cat1['id'] && !empty($cat1['children'])): ?>
                 <?php foreach ($cat1['children'] as $cat2): ?>
-                    <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>"
+                    <a href="<?php echo htmlspecialchars(fasCatalogCategoryUrl(['cat1' => $cat1['id'], 'cat2' => $cat2['id']], $_GET), ENT_QUOTES, 'UTF-8'); ?>" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>"
                        class="category-link list-group-item list-group-item-action ps-4 <?php echo $ebayCat2 == $cat2['id'] && !$ebayCat3 ? 'active' : ''; ?>">
                         <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($cat2['name']); ?>
                     </a>
@@ -490,7 +490,7 @@ if (isset($_GET['include_sidebar']) && $_GET['include_sidebar'] == '1') {
                     <!-- Level 3 Categories (show ONLY if THIS level 2 is selected) -->
                     <?php if ($ebayCat2 == $cat2['id'] && !empty($cat2['children'])): ?>
                         <?php foreach ($cat2['children'] as $cat3): ?>
-                            <a href="#" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>"
+                            <a href="<?php echo htmlspecialchars(fasCatalogCategoryUrl(['cat1' => $cat1['id'], 'cat2' => $cat2['id'], 'cat3' => $cat3['id']], $_GET), ENT_QUOTES, 'UTF-8'); ?>" data-cat1="<?php echo $cat1['id']; ?>" data-cat2="<?php echo $cat2['id']; ?>" data-cat3="<?php echo $cat3['id']; ?>"
                                class="category-link list-group-item list-group-item-action ps-5 <?php echo $ebayCat3 == $cat3['id'] ? 'active' : ''; ?>">
                                 <i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat3['name']); ?>
                             </a>
