@@ -1,0 +1,59 @@
+name: Isolated storefront keyboard browser acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '*.php'
+      - 'src/**'
+      - 'includes/**'
+      - 'public/**'
+      - 'tests/keyboard-browser/**'
+      - 'tests/fixtures/security-catalog.sql'
+      - 'tests/homepage-visual/prepare-assets.py'
+      - '.github/workflows/keyboard-browser.yml'
+permissions:
+  contents: read
+jobs:
+  keyboard-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.php
+            /src/
+            !/src/config/config*.php
+            /includes/
+            /public/
+            /tests/
+            /gallery/hero-image.png
+            /gallery/favicons/favicon.png
+      - name: Install existing official browser test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring php-gd
+          npm install --prefix "$RUNNER_TEMP/fas-visual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/fas-visual-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache existing allowlisted public presentation dependencies
+        run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-visual-assets"
+      - name: Keyboard and layout acceptance with loopback only
+        run: |
+          mkdir -p "$RUNNER_TEMP/fas-keyboard-output"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env NODE_PATH="$2/fas-visual-deps/node_modules" \
+              python3 tests/keyboard-browser/run.py --assets "$2/fas-visual-assets" --output "$2/fas-keyboard-output"
+          ' _ "$(id -un)" "$RUNNER_TEMP"
+      - name: Upload synthetic keyboard evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: keyboard-browser-${{ github.sha }}
+          path: ${{ runner.temp }}/fas-keyboard-output/
+          if-no-files-found: error
+          retention-days: 7
