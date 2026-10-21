@@ -103,9 +103,17 @@ try:
     buy=re.search(r'<button[^>]*product-buy-now[^>]*>',sold,re.S)[0]
     add=re.search(r'<button[^>]*product-detail-add-to-cart[^>]*>',sold,re.S)[0]
     check("disabled" in buy and "disabled" in add,"Sold out detail purchase controls disabled")
-    check(request("/product/999999999")[0]==404,"Missing products remain 404")
+    missing_status,_,missing=request("/product/999999999")
+    check(missing_status==404,"Missing products remain 404")
     status,_,catalog=request("/products")
     check(status==200,"Catalog renders")
+    for surface,html in [("product",body),("catalog",catalog),("missing product",missing)]:
+        check(html.count('<main id="main-content" tabindex="-1">')==1 and html.count('</main>')==1,
+              surface+" has one focusable main landmark")
+        check(html.index('href="#main-content"')<html.index('<nav class="navbar')<html.index('<main id="main-content"'),
+              surface+" skip link precedes repeated navigation and targets content")
+        check(html.index('</main>')<html.index('id="newsletter-heading"'),
+              surface+" main landmark excludes shared newsletter and footer")
     api=json.loads(request("/api/products.php")[2])
     check("html" in api,"API renders without warnings: "+str(api.get("message","OK")))
     markup=api["html"]

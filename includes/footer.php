@@ -3,6 +3,7 @@ require_once __DIR__ . '/ebay-seller-rating.php';
 $sellerRating = fasGetCachedSellerRating();
 $sellerRatingConfig = fasGetSellerRatingConfig();
 ?>
+    </main>
     <!-- Footer -->
     <section class="container my-5" aria-labelledby="newsletter-heading">
         <div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4 p-lg-5">

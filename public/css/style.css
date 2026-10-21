@@ -1813,3 +1813,24 @@ footer a:hover {
     border-color: #374151 !important;
     color: #e5e7eb;
 }
+
+/* Native keyboard bypass stays available without JavaScript. */
+.skip-link {
+    position: fixed;
+    top: .5rem;
+    left: .5rem;
+    z-index: 1100;
+    padding: .75rem 1rem;
+    color: #fff;
+    background: #111;
+    border: 2px solid #fff;
+    border-radius: .25rem;
+    transform: translateY(-200%);
+}
+.skip-link:focus {
+    color: #fff;
+    transform: translateY(0);
+    outline: 3px solid #db0335;
+    outline-offset: 2px;
+}
+#main-content { scroll-margin-top: 6rem; }

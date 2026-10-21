@@ -225,6 +225,7 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
     </script>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <?php
     // ── Alert Banners ──────────────────────────────────────────────────────────
     // Show active banners above the navbar.  We load them on every page; the
@@ -329,3 +330,4 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
             </div>
         </div>
     </nav>
+    <main id="main-content" tabindex="-1">

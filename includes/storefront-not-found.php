@@ -21,7 +21,7 @@ function fasStorefrontNotFound(): void
     $structuredData = [];
     require __DIR__ . '/header.php';
     ?>
-    <main class="container my-5 py-4">
+    <div class="container my-5 py-4">
         <div class="row justify-content-center">
             <div class="col-lg-7 col-md-9 text-center">
                 <p class="text-danger fw-bold mb-2">404</p>
@@ -38,7 +38,7 @@ function fasStorefrontNotFound(): void
                 <a href="/contact" class="btn btn-secondary mb-2">Contact us</a>
             </div>
         </div>
-    </main>
+    </div>
     <?php
     require __DIR__ . '/footer.php';
     exit;
