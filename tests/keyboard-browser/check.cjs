@@ -79,6 +79,8 @@ const geometry = () => {
                             'shared navigation, newsletter and footer outside main');
                         await page.screenshot({path: path.join(output, prefix + '-layout.png'), fullPage: true});
                         await page.keyboard.press('Tab');
+                        // Focus styles may settle on the next rendering frame.
+                        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
                         row.skip = await page.evaluate(geometry);
                         assert(row.skip.focused, 'first Tab focuses skip link');
                         assert(row.skip.width > 0 && row.skip.height > 0 && row.skip.x >= 0 && row.skip.y >= 0 &&
@@ -109,6 +111,8 @@ const geometry = () => {
                     } catch (error) {
                         row.passed = false;
                         row.failure = error.stack;
+                        console.error(JSON.stringify({view: prefix, error: error.message, skip: row.skip,
+                            next: row.next, blocked, errors, badResponses}));
                         failures.push({view: prefix, error: error.message});
                         await page.screenshot({path: path.join(output, prefix + '-failure.png'), fullPage: true}).catch(() => {});
                     } finally {
