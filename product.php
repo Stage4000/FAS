@@ -75,6 +75,7 @@ function normalizeImagePath($path) {
     if (empty($path)) {
         return $path;
     }
+    if (is_string($path) && trim($path) === '') return '';
     // If it's an external URL, return as-is
     if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
         return $path;
@@ -100,6 +101,9 @@ if (empty($mainImage) && !empty($images)) {
 if ($mainImage && !in_array($mainImage, $images)) {
     array_unshift($images, $mainImage);
 }
+
+// Structured data uses supplied photos, before the display-only fallback.
+$schemaImages = $images;
 
 // Fallback to default if no images
 if (empty($mainImage)) {
@@ -156,10 +160,6 @@ $productName = Seo::cleanText($product['name'] ?? 'Product');
 $storefrontDescription = $product['storefront_description'] ?? Seo::cleanSourceShippingInstructions($product['description'] ?? '');
 $productDescription = Seo::cleanText($storefrontDescription !== '' ? $storefrontDescription : $productName);
 $productCategoryPath = $productModel->getEbayStoreCategoryPath($product);
-$schemaImages = $images;
-if ($mainImage && !in_array($mainImage, $schemaImages, true)) {
-    array_unshift($schemaImages, $mainImage);
-}
 
 $canonicalUrl = Seo::productUrl($product);
 $canonicalPath = parse_url($canonicalUrl, PHP_URL_PATH) ?: '';

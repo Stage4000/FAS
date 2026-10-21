@@ -43,6 +43,10 @@ with sqlite3.connect(SITE / "database/flipandstrip.db") as db:
     row=dict(zip([r[1] for r in db.execute("PRAGMA table_info(products)")], db.execute("SELECT * FROM products").fetchone()))
     row.update(id=2, name="Synthetic sold out part", sku="TEST-2", quantity=0, model="2203143", condition_name="Used")
     db.execute("INSERT INTO products(%s) VALUES(%s)" % (",".join(row),",".join("?"*len(row))), list(row.values()))
+    for pid,photos in [(3,[]),(4,[source]),(5,['']),(6,['   '])]:
+        row.update(id=pid,name='Synthetic image case '+str(pid),sku='IMAGE-'+str(pid),quantity=1,image_url='   ' if pid==6 else None,images=json.dumps(photos))
+        db.execute("INSERT INTO products(%s) VALUES(%s)" % (",".join(row),",".join("?"*len(row))),list(row.values()))
+
 env=os.environ.copy()
 env["FAS_SECURITY_DB_PATH"]=str(BASE / "private/security.sqlite")
 env["FAS_GROWTH_DB_PATH"]=str(BASE / "private/growth.sqlite")
@@ -97,6 +101,12 @@ try:
     schema=product_schema(body)
     check(schema["offers"]["itemCondition"].endswith("/NewCondition") and "mpn" not in schema,"Schema normalizes explicit new condition and omits placeholder MPN")
     check(schema["image"][0].endswith(source) and "/responsive/" not in schema["image"][0],"Schema retains full quality source image")
+    for pid in [3,5,6]:
+        status,_,photo_missing=request('/product/'+str(pid)+'/synthetic-image-case-'+str(pid))
+        check(status==200 and 'image' not in product_schema(photo_missing),'Missing source photo omits Product image metadata: '+str(pid))
+        check('src="/gallery/default.jpg"' in photo_missing,'Visible no-photo fallback remains available: '+str(pid))
+    status,_,gallery_only=request('/product/4/synthetic-image-case-4')
+    check(status==200 and product_schema(gallery_only)['image']==['https://flipandstrip.com'+source],'Gallery-only source photo remains in Product metadata')
     status,_,sold=request("/product/2/synthetic-sold-out-part")
     check(status==200 and 'Out of stock</span>' in sold and 'In Stock</span>' not in sold,"Sold out page has truthful visible stock badge")
     check(product_schema(sold)["offers"]["availability"].endswith("/OutOfStock"),"Sold out schema agrees with display")

@@ -34,6 +34,12 @@ foreach (['n/a','NA','N.A.','None','Does Not Apply','not applicable','unknown','
     verifyPresentation($feed['mpn']==='' && !isset($data['mpn']),'Placeholder MPN omitted: '.$value);
 }
 foreach (['2203143','XR 100','PWR128-101'] as $value) verifyPresentation(ProductCondition::identifier($value)===$value,'Identifier not guessed or rewritten');
+$emptyPhotos=Seo::productSchema($product,[],['effective_price'=>100],Seo::productUrl($product),'Fixture notes');
+verifyPresentation(!isset($emptyPhotos['image']),'No supplied photos means no Product image property');
+$blankPhotos=Seo::productSchema($product,['','   ',null],['effective_price'=>100],Seo::productUrl($product),'Fixture notes');
+verifyPresentation(!isset($blankPhotos['image']),'Blank photo values cannot become homepage image URLs');
+$actualPhotos=Seo::productSchema($product,['','/gallery/item.jpg','/gallery/item.jpg','https://example.invalid/item.jpg?size=1600','/gallery/default.jpg'],['effective_price'=>100],Seo::productUrl($product),'Fixture notes');
+verifyPresentation($actualPhotos['image']===['https://flipandstrip.com/gallery/item.jpg','https://example.invalid/item.jpg?size=1600','https://flipandstrip.com/gallery/default.jpg'],'Supplied photo URLs retain ordering, original URL and existing deduplication without filename guessing');
 $root=sys_get_temp_dir().'/fas-image-test-'.bin2hex(random_bytes(5));
 mkdir($root.'/gallery',0755,true);
 mkdir($root.'/public/uploads',0755,true);

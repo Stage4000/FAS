@@ -336,6 +336,8 @@ class Seo
     {
         $imageUrls = [];
         foreach ($images as $image) {
+            // An absent photo is not an image of the site homepage.
+            if (!is_string($image) || trim($image) === '') continue;
             $imageUrl = self::absoluteUrl($image);
             if (!in_array($imageUrl, $imageUrls, true)) {
                 $imageUrls[] = $imageUrl;
