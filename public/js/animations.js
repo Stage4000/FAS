@@ -114,7 +114,7 @@ function lazyLoadImages() {
 /**
  * Smooth scroll to anchor links
  */
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+document.querySelectorAll('a[href^="#"]:not(.skip-link)').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
         const href = this.getAttribute('href');
         if (href !== '#' && href !== '#!') {
