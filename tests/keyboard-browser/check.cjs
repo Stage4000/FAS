@@ -49,6 +49,12 @@ const geometry = () => {
                     });
                     await context.route('**/*', async route => {
                         const request = route.request(), url = new URL(request.url());
+                        // Native fragment navigation emits popstate; the catalog refreshes
+                        // its results from this exact read-only synthetic endpoint.
+                        const catalogRead = url.origin === origin && url.pathname === '/api/products.php' &&
+                            url.searchParams.toString() === 'include_sidebar=1' &&
+                            request.method() === 'GET' && request.resourceType() === 'fetch';
+                        if (catalogRead) return route.continue();
                         if (request.method() !== 'GET' || ['xhr', 'fetch', 'websocket', 'eventsource'].includes(request.resourceType())) {
                             blocked.push(url.href); return route.abort('blockedbyclient');
                         }
@@ -91,6 +97,7 @@ const geometry = () => {
                         assert(row.skip.outline !== 'none' && parseFloat(row.skip.outlineWidth) > 0, 'visible focus outline');
                         await page.screenshot({path: path.join(output, prefix + '-skip.png')});
                         await page.keyboard.press('Enter');
+                        await page.waitForLoadState('networkidle');
                         row.mainFocused = await page.evaluate(() => document.activeElement === document.getElementById('main-content'));
                         assert(row.mainFocused, 'Enter moves focus to main');
                         assert.equal(new URL(page.url()).hash, '#main-content');

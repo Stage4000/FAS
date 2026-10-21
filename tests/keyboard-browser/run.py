@@ -25,6 +25,8 @@ def main():
                 'config*.php', 'uploads', '*.log', '*.db', '*.sqlite'))
         for name in ['index.php', 'products.php', 'product.php', '404.php']:
             shutil.copy2(ROOT / name, site / name)
+        (site / 'api').mkdir()
+        shutil.copy2(ROOT / 'api/products.php', site / 'api/products.php')
         sources = {str(p.relative_to(site)): hashlib.sha256(p.read_bytes()).hexdigest()
                    for p in sorted(site.rglob('*')) if p.is_file()}
         (site / 'database').mkdir()

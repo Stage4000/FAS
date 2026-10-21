@@ -10,6 +10,9 @@ minimal test configuration, and replaces the eBay category client with an empty
 fixture. The real header, footer, page templates and application JS run unchanged.
 Only analytics and address-autofill scripts receive inert browser responses, as
 in the existing homepage visual workflow. All other unexpected requests fail.
+The catalog's fragment-navigation refresh uses its actual read-only
+`GET /api/products.php?include_sidebar=1` against the same disposable SQLite
+fixture; other API requests remain blocked. Focus is checked after that refresh settles.
 Inventory photos are generated; the branding logo is the repository asset.
 
 Chromium visits a real local PHP server on home, catalog, product, missing product

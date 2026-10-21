@@ -28,6 +28,7 @@ jobs:
             /src/
             !/src/config/config*.php
             /includes/
+            /api/products.php
             /public/
             /tests/
             /gallery/hero-image.png
