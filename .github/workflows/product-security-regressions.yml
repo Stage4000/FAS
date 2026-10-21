@@ -1,7 +1,22 @@
 name: Synthetic product regressions
 on:
+  workflow_dispatch:
   push:
-    branches: [fix/fas-product-security-2026-10-10]
+    branches: [main, fix/fas-product-security-2026-10-10]
+    paths:
+      - '*.php'
+      - '.htaccess'
+      - 'robots.txt'
+      - 'src/**'
+      - 'includes/**'
+      - 'admin/**'
+      - 'api/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'database/*.sql'
+      - 'gallery/**'
+      - 'tests/**'
+      - '.github/workflows/product-security-regressions.yml'
   pull_request:
     paths:
       - 'src/**'
