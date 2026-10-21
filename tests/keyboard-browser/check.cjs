@@ -79,8 +79,9 @@ const geometry = () => {
                             'shared navigation, newsletter and footer outside main');
                         await page.screenshot({path: path.join(output, prefix + '-layout.png'), fullPage: true});
                         await page.keyboard.press('Tab');
-                        // Focus styles may settle on the next rendering frame.
-                        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+                        // Sample after the site's 0.3s transitions, including when scripting
+                        // is disabled (requestAnimationFrame callbacks do not run there).
+                        await page.waitForTimeout(350);
                         row.skip = await page.evaluate(geometry);
                         assert(row.skip.focused, 'first Tab focuses skip link');
                         assert(row.skip.width > 0 && row.skip.height > 0 && row.skip.x >= 0 && row.skip.y >= 0 &&
