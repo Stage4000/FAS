@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', function() {
  * Scroll-triggered animations
  */
 function initScrollAnimations() {
+    if (!('IntersectionObserver' in window)) {
+        // Content must stay visible when observation is unavailable.
+        document.querySelectorAll('.scroll-reveal').forEach(el => el.classList.add('revealed'));
+        return;
+    }
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -107,6 +112,12 @@ function lazyLoadImages() {
         
         document.querySelectorAll('img[data-src]').forEach(img => {
             imageObserver.observe(img);
+        });
+    } else {
+        // Load deferred images directly rather than leaving placeholders forever.
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            img.src = img.dataset.src;
+            img.classList.remove('skeleton');
         });
     }
 }
