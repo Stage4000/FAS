@@ -148,6 +148,26 @@ try:
         db.execute('UPDATE products SET is_active=0 WHERE id=30')
     body=get('/products?cat1=2')
     check('14 products found' in body and 'data-cat1="1"' in body,'Canonical sibling without visible stock still exposes alias stock, excluding hidden/inactive products')
+    (SITE / 'gallery').mkdir(exist_ok=True)
+    for photo in ['gallery-only.jpg', 'primary.jpg', 'second.jpg', 'default.jpg']:
+        (SITE / 'gallery' / photo).write_bytes(b'synthetic image-path fixture')
+    # Gallery-only stock must use its supplied photo in both listing transports.
+    for primary, gallery, expected in [
+        ('', '["gallery/gallery-only.jpg"]', '/gallery/gallery-only.jpg'),
+        ('gallery/primary.jpg', '["gallery/gallery-only.jpg"]', '/gallery/primary.jpg'),
+        ('  ', '[null,"",{},"gallery/second.jpg"]', '/gallery/second.jpg'),
+        ('', 'broken-json', '/gallery/default.jpg'),
+        ('', '["HTTPS://example.invalid/photo.jpg"]', 'HTTPS://example.invalid/photo.jpg'),
+    ]:
+        with sqlite3.connect(SYNTHETIC_DB) as db:
+            db.execute('UPDATE products SET image_url=?, images=? WHERE id=29', (primary, gallery))
+        for endpoint in ['/products?', '/api/products.php?']:
+            body=get(endpoint+'search=TEST-29')
+            rendered=json.loads(body)['html'] if endpoint.startswith('/api') else body
+            check('data-id="29"' in rendered and 'data-image="'+expected+'"' in rendered, 'Listing uses selected product photo for cart: '+endpoint)
+            check('src="'+expected+'"' in rendered, 'Listing renders selected product photo: '+endpoint)
+        with sqlite3.connect(SYNTHETIC_DB) as db:
+            check(db.execute('SELECT image_url,images FROM products WHERE id=29').fetchone()==(primary,gallery), 'Listing reads do not mutate source images')
     print('PASS',checks,'catalog label HTTP assertions; synthetic inventory only')
 finally:
     if '--keep' in sys.argv:

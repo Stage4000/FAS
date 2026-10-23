@@ -356,10 +356,7 @@ I agree to be contacted only about matching Flip and Strip inventory.
                     $productUrl = fasProductCardUrl($product);
 
                     // Normalize image path for display
-                            $imageUrl = normalizeImagePath($product['image_url'] ?? null);
-                            if (empty($imageUrl)) {
-                                $imageUrl = '/gallery/default.jpg';
-                            }
+                            $imageUrl = \FAS\Utils\ProductListingImage::forProduct($product);
                             $imageAltText = ProductAltText::forProductImage($product);
                             ?>
                     <div class="col-lg-4 col-md-6 col-sm-12" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
@@ -368,7 +365,7 @@ I agree to be contacted only about matching Flip and Strip inventory.
                                 <div class="position-relative">
                                     <?php
                                     // Check if image is external or local
-                                    $isExternal = strpos($imageUrl, 'http://') === 0 || strpos($imageUrl, 'https://') === 0;
+                                    $isExternal = preg_match('#^https?://#i', $imageUrl) === 1;
                                     $hasImage = !empty($imageUrl) && (
                                         $isExternal ||
                                         file_exists(__DIR__ . $imageUrl)

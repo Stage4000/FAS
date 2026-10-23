@@ -6,6 +6,7 @@ require_once __DIR__ . '/../src/utils/ProductAltText.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/Seo.php';
 require_once __DIR__ . '/../src/utils/ResponsiveImage.php';
+require_once __DIR__ . '/../src/utils/ProductListingImage.php';
 
 use FAS\Models\Product;
 use FAS\Utils\Analytics;
@@ -51,7 +52,7 @@ function fasProductCardUrl(array $product): string
 function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6 col-sm-12', int $delay = 0): string
 {
     $displayIdentifiers = \FAS\Utils\ProductIdentifierOutput::forProduct($product, (string)($product['manufacturer'] ?? ''), (string)($product['model'] ?? ''));
-    $imageUrl = fasProductImagePath($product['image_url'] ?? null);
+    $imageUrl = \FAS\Utils\ProductListingImage::forProduct($product);
     $imageAltText = ProductAltText::forProductImage($product);
     $priceInfo = getEffectivePrice(
         (float)($product['price'] ?? 0),
