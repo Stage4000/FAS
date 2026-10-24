@@ -2,7 +2,7 @@
 
 ## Current scope
 
-Direct domestic rate quoting and checkout shipping selection are implemented for USPS and UPS. Easyship remains the default provider. Client account onboarding has already been handled; this document covers application behavior and release controls, not account-registration instructions.
+Direct domestic rate quoting and checkout shipping selection are implemented for USPS and UPS. Easyship remains the default provider. Client carrier access and account-specific acceptance remain pending; this document covers application behavior and release controls, not account-registration instructions. No-key tests do not establish successful carrier authorization or permit activation.
 
 Both api/shipping-rates.php and api/shipping-estimate.php use the shared ShippingRateService. The checkout response retains courier_id, courier_name, service_name, total_charge, currency and delivery-time fields. Direct quotes add provider, service_code and rate_basis. Existing Easyship courier IDs are preserved and receive provider=easyship. Direct IDs must never be passed to Easyship's shipment API.
 
@@ -122,6 +122,8 @@ The read-only `/admin/shipping-readiness.php` page gives active administrators t
 The `shipping_cache` table stores OAuth tokens, normalized rates and provider cooldowns. Quote keys hash the complete shipment and carrier configuration, including credential/environment changes. Street addresses, client secrets and raw response bodies are not stored in that cache table. The same private database can store purchased label images, which contain recipient details, so protect and back up the entire file as both secret and customer-data storage. It is separate from inventory and payment transactions.
 
 Tokens expire before the carrier's reported expiry. Quotes expire after three minutes by default. A 401 permits one token refresh/retry; a second failure stops. Provider 429 Retry-After values produce a shared cooldown, and authentication/server failures also back off. No background retry loop is introduced. Per-request transport timeouts are at most six seconds with an eighteen-second default budget for direct requests. Existing Easyship timeout/retry behavior is unchanged and is outside that direct-request budget.
+
+The shared OAuth entry point also honors the persisted carrier cooldown. A later tracking worker or label, cancellation or USPS reprint preflight cannot repeat an unsuccessful authorization request during that backoff. Preflight refusal occurs before any fulfillment submission claim; it does not purchase, cancel or reprint a label. After cooldown expiry, normal authorization and token-cache reuse resume. The offline regression covers both carriers, OAuth 401/403/429/503 responses, fresh private-storage connections and account/environment isolation; actual carrier acceptance is still required.
 
 UPS rate replies must also report `Response.ResponseStatus.Code=1`; HTTP success alone does not authorize a quote. A present but malformed negotiated-charge container is withheld rather than silently replaced with a published price. Both adapters validate option containers before reading them, so malformed individual options do not discard valid sibling services. Quote cache version 3 avoids reusing entries accepted before these response checks. These checks follow the [official UPS Rating specification](https://github.com/UPS-API/api-documentation/blob/main/Rating.yaml) and [USPS Domestic Prices schema](https://developers.usps.com/domesticpricesv3).
 
