@@ -5,6 +5,7 @@ require_once __DIR__ . '/../src/models/Product.php';
 require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/CSRF.php';
+require_once __DIR__ . '/../src/utils/ProductEditor.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -29,6 +30,7 @@ use FAS\Config\Database;
 use FAS\Models\Product;
 use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
+use FAS\Utils\ProductEditor;
 
 // Configuration constants
 define('MAX_ADDITIONAL_IMAGES', 10);
@@ -37,6 +39,8 @@ $db = Database::getInstance()->getConnection();
 $productModel = new Product($db);
 $warehouseModel = new Warehouse($db);
 $freeShippingSettings = ShippingRules::getFreeShippingSettings();
+// Include every imported catalog condition without silently normalizing its label.
+$catalogConditionNames = ProductEditor::catalogConditions($db);
 
 $success = '';
 $error = '';
@@ -70,6 +74,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'create':
             case 'update':
+                // Load the POST target before handling any editable imported values.
+                $currentProduct = null;
+                if ($_POST['action'] === 'update') {
+                    $editId = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                    $currentProduct = $editId ? $productModel->getById($editId, true) : null;
+                    if (!$currentProduct) {
+                        $error = 'Product not found; no changes saved.';
+                        break;
+                    }
+                }
+                try {
+                    ProductEditor::fields($_POST, $currentProduct, [], $catalogConditionNames);
+                } catch (\InvalidArgumentException $e) {
+                    $error = $e->getMessage();
+                    break;
+                }
                 // Handle image upload
                 $imageUrl = $_POST['image_url'] ?? '';
                 $additionalImages = [];
@@ -150,10 +170,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                // Merge with existing images if updating
-                if ($_POST['action'] === 'update' && isset($product) && $product) {
-                    $existingImages = json_decode($product['images'] ?? '[]', true) ?: [];
-                    $additionalImages = array_merge($existingImages, $additionalImages);
+                try {
+                    $preservedFields = ProductEditor::fields($_POST, $currentProduct, $additionalImages, $catalogConditionNames);
+                } catch (\InvalidArgumentException $e) {
+                    $error = $e->getMessage();
                 }
 
                 if (empty($error)) {
@@ -180,18 +200,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'category' => $_POST['category'] ?? '',
                         'manufacturer' => $_POST['manufacturer'] ?? '',
                         'model' => $_POST['model'] ?? '',
-                        'condition_name' => $_POST['condition_name'] ?? 'New',
                         'weight' => !empty($_POST['weight']) ? floatval($_POST['weight']) : null,
                         'length' => !empty($_POST['length']) ? floatval($_POST['length']) : null,
                         'width' => !empty($_POST['width']) ? floatval($_POST['width']) : null,
                         'height' => !empty($_POST['height']) ? floatval($_POST['height']) : null,
                         'warehouse_id' => !empty($_POST['warehouse_id']) ? intval($_POST['warehouse_id']) : null,
                         'image_url' => $imageUrl,
-                        'images' => $additionalImages,
                         'source' => $_POST['source'] ?? 'manual',
                         'show_on_website' => isset($_POST['show_on_website']) ? 1 : 0,
                         'free_shipping' => isset($_POST['free_shipping']) ? 1 : 0
                     ];
+
+                    $productData = array_merge($productData, $preservedFields);
 
                     if ($_POST['action'] === 'create') {
                         $result = $productModel->create($productData);
@@ -865,9 +885,7 @@ if ($action === 'list') {
                                 <div class="mb-3">
                                     <label class="form-label">Condition</label>
                                     <select class="form-select" name="condition_name">
-                                        <option value="New" <?php echo $product && $product['condition_name'] === 'New' ? 'selected' : ''; ?>>New</option>
-                                        <option value="Used" <?php echo $product && $product['condition_name'] === 'Used' ? 'selected' : ''; ?>>Used</option>
-                                        <option value="Refurbished" <?php echo $product && $product['condition_name'] === 'Refurbished' ? 'selected' : ''; ?>>Refurbished</option>
+                                        <?php echo ProductEditor::renderConditionOptions($product ?: null, $catalogConditionNames); ?>
                                     </select>
                                 </div>
 
