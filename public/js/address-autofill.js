@@ -34,12 +34,13 @@
     }
 
     function normalizeState(value) {
-        return cleanText(value, 2).toUpperCase();
+        const state = String(value || '').trim();
+        return /^[A-Za-z]{2}$/.test(state) ? state.toUpperCase() : '';
     }
 
     function normalizeZip(value) {
         const zip = String(value || '').trim();
-        const match = zip.match(/^\d{5}(?:-\d{4})?/);
+        const match = zip.match(/^\d{5}(?:-\d{4})?$/);
         return match ? match[0] : '';
     }
 
