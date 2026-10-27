@@ -62,9 +62,6 @@ $selectedSession = $selectedSessionId !== '' ? $analytics->getSessionSummary($se
 $selectedSessionEvents = ($selectedSessionId !== '' && $selectedSession) ? $analytics->getSessionEvents($selectedSessionId, 250) : [];
 $averageOrderValue = ((int) ($overview['orders'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['orders']) : 0;
 $revenuePerSession = ((int) ($overview['sessions'] ?? 0)) > 0 ? ((float) ($overview['revenue'] ?? 0) / (int) $overview['sessions']) : 0;
-$abandonedCartRate = (((int) ($overview['abandoned_carts'] ?? 0)) + ((int) ($overview['orders'] ?? 0))) > 0
-    ? round((((int) $overview['abandoned_carts']) / (((int) $overview['abandoned_carts']) + ((int) $overview['orders']))) * 100, 1)
-    : null;
 $sessionExplorerStats = [
     'sessions' => count($recentSessions),
     'potential_bots' => 0,
@@ -678,14 +675,20 @@ function metricCard(string $label, string $value, string $note, string $icon): s
     </div>
 </div>
 
+<div class="alert alert-light border small">
+    Reporting uses a rolling <?php echo (int) $days; ?>-day window from the current time, not complete calendar days. Stored timestamps use UTC; displayed times follow the selected display timezone.
+    Aggregate activity excludes sessions marked as admin but includes potential bots. Visitor IDs are browser identifiers, not verified people.
+    Event totals include repeats; session activity tables count each session once per event type. Reported orders use the larger of completed-order records or tracked purchase events, not their sum. Revenue uses completed-order revenue with tracked-event revenue as fallback when the order total is zero or unavailable. Neither is a payment reconciliation.
+</div>
+
 <div class="row g-3 mb-4">
     <?php
     echo metricCard('Sessions', fmtNumber($overview['sessions']), fmtNumber($overview['visitors']) . ' visitors', 'fa-users');
     echo metricCard('Product Views', fmtNumber($overview['product_views']), fmtNumber($overview['product_impressions']) . ' impressions · ' . fmtNumber($overview['landing_page_views'] ?? 0) . ' landing views', 'fa-eye');
-    echo metricCard('Add To Cart', fmtNumber($overview['cart_adds']), fmtPercent($overview['product_view_to_cart_rate']) . ' view-to-cart · ' . fmtNumber($overview['buy_now_clicks'] ?? 0) . ' buy now', 'fa-cart-plus');
-    echo metricCard('Checkout Starts', fmtNumber($overview['checkout_starts']), fmtNumber($overview['product_shipping_estimates'] ?? 0) . ' product estimates · ' . fmtPercent($overview['cart_to_checkout_rate']) . ' cart-to-checkout', 'fa-credit-card');
-    echo metricCard('Orders', fmtNumber($overview['orders']), fmtPercent($overview['checkout_to_order_rate']) . ' checkout-to-order', 'fa-receipt');
-    echo metricCard('Revenue', fmtMoney($overview['revenue']), 'Completed orders', 'fa-dollar-sign');
+    echo metricCard('Add To Cart', fmtNumber($overview['cart_adds']), 'Events · ' . fmtNumber($overview['buy_now_clicks'] ?? 0) . ' buy now events', 'fa-cart-plus');
+    echo metricCard('Checkout Starts', fmtNumber($overview['checkout_starts']), 'Events · ' . fmtNumber($overview['product_shipping_estimates'] ?? 0) . ' product estimates', 'fa-credit-card');
+    echo metricCard('Reported Orders', fmtNumber($overview['orders']), 'Larger of completed-order records or tracked purchase events; not reconciled', 'fa-receipt');
+    echo metricCard('Revenue', fmtMoney($overview['revenue']), 'Completed-order revenue; tracked-event fallback if zero or unavailable', 'fa-dollar-sign');
     echo metricCard('Abandoned Carts', fmtNumber($overview['abandoned_carts']), fmtMoney($overview['abandoned_cart_value']) . ' at risk', 'fa-cart-arrow-down');
     echo metricCard('eBay Exits', fmtNumber($overview['ebay_link_clicks']), 'Outbound eBay clicks', 'fa-up-right-from-square');
     ?>
@@ -696,14 +699,14 @@ function metricCard(string $label, string $value, string $note, string $icon): s
         <div class="analytics-mini-card p-3 h-100">
             <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
                 <div>
-                    <div class="small text-muted">Funnel Health</div>
-                    <div class="h5 mb-0"><?php echo fmtPercent($overview['product_view_to_cart_rate']); ?> view-to-cart</div>
+                    <div class="small text-muted">Activity Counts</div>
+                    <div class="h5 mb-0"><?php echo fmtNumber($overview['cart_adds']); ?> add-to-cart events</div>
                 </div>
                 <span class="analytics-icon"><i class="fas fa-filter-circle-dollar"></i></span>
             </div>
             <div class="small text-muted">
-                <?php echo fmtPercent($overview['cart_to_checkout_rate']); ?> cart-to-checkout &middot;
-                <?php echo fmtPercent($overview['checkout_to_order_rate']); ?> checkout-to-order
+                <?php echo fmtNumber($overview['checkout_starts']); ?> checkout-start events &middot;
+                <?php echo fmtNumber($overview['orders']); ?> reported orders
             </div>
         </div>
     </div>
@@ -730,9 +733,6 @@ function metricCard(string $label, string $value, string $note, string $icon): s
             </div>
             <div class="small text-muted">
                 <?php echo fmtNumber($overview['abandoned_carts']); ?> abandoned carts
-                <?php if ($abandonedCartRate !== null): ?>
-                    &middot; <?php echo fmtPercent($abandonedCartRate); ?> of carts with outcome
-                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -915,18 +915,16 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     <div class="col-xl-7">
         <div class="card border-0 shadow-sm h-100" data-aos="fade-up">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-filter text-danger me-2"></i>Sales Funnel</h5>
-                <span class="badge text-bg-light">Distinct sessions</span>
+                <h5 class="mb-0"><i class="fas fa-filter text-danger me-2"></i>Shopping Activity</h5>
+                <span class="badge text-bg-light">Independent session counts</span>
             </div>
             <div class="card-body table-responsive">
+                <p class="small text-muted">Each event row counts distinct non-admin sessions with that event in the reporting window, independently of other rows. Sessions may skip steps or perform them in any order; these counts do not measure conversion or drop-off. The Sessions row counts sessions started in the window; event rows may also include sessions started earlier. Purchase completed counts tracked purchase sessions only, not order records.</p>
                 <table class="table align-middle table-fixed">
                     <thead>
                     <tr>
                         <th>Stage</th>
                         <th class="text-end">Count</th>
-                        <th class="text-end">From Previous</th>
-                        <th class="text-end">Drop-Off</th>
-                        <th style="width: 24%">Progress</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -934,13 +932,6 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
                         <tr>
                             <td class="fw-semibold"><?php echo safe($row['stage']); ?></td>
                             <td class="text-end"><?php echo fmtNumber($row['count']); ?></td>
-                            <td class="text-end"><?php echo fmtPercent($row['conversion_rate']); ?></td>
-                            <td class="text-end"><?php echo $row['dropoff'] === null ? '—' : fmtNumber($row['dropoff']) . ' / ' . fmtPercent($row['dropoff_rate']); ?></td>
-                            <td>
-                                <div class="progress progress-thin">
-                                    <div class="progress-bar bg-danger" style="width: <?php echo $row['conversion_rate'] === null ? 100 : max(0, min(100, (float) $row['conversion_rate'])); ?>%"></div>
-                                </div>
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -952,15 +943,15 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     <div class="col-xl-5">
         <div class="card border-0 shadow-sm h-100" data-aos="fade-up">
             <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-truck text-danger me-2"></i>Checkout Drop-Off</h5>
+                <h5 class="mb-0"><i class="fas fa-truck text-danger me-2"></i>Checkout Activity</h5>
             </div>
             <div class="card-body table-responsive">
+                <p class="small text-muted">Independent distinct-session counts, not a sequenced checkout cohort. Coupons and shipping events may be optional or unrecorded; differences do not prove checkout failure.</p>
                 <table class="table table-sm align-middle">
                     <thead>
                     <tr>
                         <th>Step</th>
                         <th class="text-end">Sessions</th>
-                        <th class="text-end">Drop-Off</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -968,7 +959,6 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
                         <tr>
                             <td><?php echo safe($row['stage']); ?></td>
                             <td class="text-end"><?php echo fmtNumber($row['count']); ?></td>
-                            <td class="text-end"><?php echo $row['dropoff'] === null ? '—' : fmtPercent($row['dropoff_rate']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -1247,6 +1237,7 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
                 <h5 class="mb-0"><i class="fas fa-route text-danger me-2"></i>Traffic Sources</h5>
             </div>
             <div class="card-body table-responsive">
+                <p class="small text-muted">Top sources use UTM source / medium when present, otherwise the referring host or Direct. Host variants and self-referrals remain separate. These are not verified organic-search channels or search-engine query data.</p>
                 <table class="table table-sm align-middle">
                     <thead>
                     <tr>
@@ -1308,9 +1299,10 @@ Showing <?php echo fmtNumber($sessionPageStart); ?>&ndash;<?php echo fmtNumber($
     <div class="col-xl-6">
         <div class="card border-0 shadow-sm h-100" data-aos="fade-up">
             <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-search text-danger me-2"></i>Search Terms</h5>
+                <h5 class="mb-0"><i class="fas fa-search text-danger me-2"></i>Onsite Search Terms</h5>
             </div>
             <div class="card-body table-responsive">
+                <p class="small text-muted">Searches submitted on this website, not search-engine queries.</p>
                 <table class="table table-sm align-middle">
                     <thead>
                     <tr>

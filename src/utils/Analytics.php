@@ -648,10 +648,11 @@ $stages = [
 ['stage' => 'Cart views', 'count' => $this->countDistinctSessionsByEvent($since, 'cart_view')],
 ['stage' => 'Checkout starts', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
             ['stage' => 'Shipping selected', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_selected')],
-            ['stage' => 'Completed orders', 'count' => max($this->countDistinctSessionsByEvent($since, 'purchase_completed'), (int) $overview['orders'])],
+            ['stage' => 'Purchase completed (tracked)', 'count' => $this->countDistinctSessionsByEvent($since, 'purchase_completed')],
         ];
 
-        return $this->withStageRates($stages);
+        // Independent session counts: optional steps are not a sequential cohort.
+        return $stages;
     }
 
     public function getCheckoutDropoff(int $days): array
@@ -659,16 +660,16 @@ $stages = [
         $this->ensureTables();
 
         $since = $this->since($days);
-        $overview = $this->getOverview($days);
         $stages = [
             ['stage' => 'Checkout started', 'count' => $this->countDistinctSessionsByEvent($since, 'checkout_start')],
             ['stage' => 'Shipping requested', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_requested')],
             ['stage' => 'Shipping selected', 'count' => $this->countDistinctSessionsByEvent($since, 'shipping_rate_selected')],
             ['stage' => 'Coupon attempted', 'count' => $this->countDistinctSessionsByEvent($since, 'coupon_attempted')],
-            ['stage' => 'Purchase completed', 'count' => max($this->countDistinctSessionsByEvent($since, 'purchase_completed'), (int) $overview['orders'])],
+            ['stage' => 'Purchase completed (tracked)', 'count' => $this->countDistinctSessionsByEvent($since, 'purchase_completed')],
         ];
 
-        return $this->withStageRates($stages);
+        // Independent session counts: optional steps are not a sequential cohort.
+        return $stages;
     }
 
     public function getAbandonedCarts(int $days, int $limit = 20): array
@@ -1875,22 +1876,6 @@ $stages = [
         $courier = $this->cleanText($this->firstValue([$event, $metadata], ['courier_name'], ''), 120);
         $serviceName = $this->cleanText($this->firstValue([$event, $metadata], ['service_name'], ''), 120);
         return trim($courier . ($courier && $serviceName ? ' - ' : '') . $serviceName);
-    }
-
-    private function withStageRates(array $stages): array
-    {
-        $previous = null;
-        foreach ($stages as &$stage) {
-            $count = (int) $stage['count'];
-            $stage['previous_count'] = $previous;
-            $stage['conversion_rate'] = $previous === null || $previous <= 0 ? null : round(($count / $previous) * 100, 1);
-            $stage['dropoff'] = $previous === null ? null : max(0, $previous - $count);
-            $stage['dropoff_rate'] = $previous === null || $previous <= 0 ? null : round((max(0, $previous - $count) / $previous) * 100, 1);
-            $previous = $count;
-        }
-        unset($stage);
-
-        return $stages;
     }
 
     private function nonAdminSessionCondition(string $sessionAlias = ''): string
