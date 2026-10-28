@@ -8,18 +8,18 @@
     const savedAddressTtlMs = 30 * 24 * 60 * 60 * 1000;
     let isApplyingAddress = false;
 
-    function readJson(storage, key) {
+    function readJson(key) {
         try {
-            const value = storage.getItem(key);
+            const value = window.localStorage.getItem(key);
             return value ? JSON.parse(value) : null;
         } catch (error) {
             return null;
         }
     }
 
-    function writeJson(storage, key, value) {
+    function writeJson(key, value) {
         try {
-            storage.setItem(key, JSON.stringify(value));
+            window.localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
             // Storage may be unavailable in private browsing modes.
         }
@@ -34,12 +34,13 @@
     }
 
     function normalizeState(value) {
-        return cleanText(value, 2).toUpperCase();
+        const state = String(value || '').trim();
+        return /^[A-Za-z]{2}$/.test(state) ? state.toUpperCase() : '';
     }
 
     function normalizeZip(value) {
         const zip = String(value || '').trim();
-        const match = zip.match(/^\d{5}(?:-\d{4})?/);
+        const match = zip.match(/^\d{5}(?:-\d{4})?$/);
         return match ? match[0] : '';
     }
 
@@ -69,7 +70,7 @@
     }
 
     function readSavedAddress() {
-        const saved = normalizeAddress(readJson(window.localStorage, storageKey));
+        const saved = normalizeAddress(readJson(storageKey));
         if (!saved || !isCompleteAddress(saved)) {
             return null;
         }
@@ -161,7 +162,7 @@
         }
         const address = collectAddress(form);
         if (address) {
-            writeJson(window.localStorage, storageKey, address);
+            writeJson(storageKey, address);
         }
     }
 
@@ -200,8 +201,8 @@
     }
 
     function currentAnalyticsIds() {
-        const sessionState = readJson(window.localStorage, 'fas_session_state') || {};
-        const visitorState = readJson(window.localStorage, 'fas_visitor_state') || {};
+        const sessionState = readJson('fas_session_state') || {};
+        const visitorState = readJson('fas_visitor_state') || {};
         const params = new URLSearchParams();
 
         if (sessionState.session_id) {
