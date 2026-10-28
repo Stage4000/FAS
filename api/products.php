@@ -136,6 +136,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
 <?php if ($manufacturer): ?><input type="hidden" name="manufacturer" value="<?php echo htmlspecialchars($manufacturer); ?>"><?php endif; ?>
 <?php if ($fitmentModel): ?><input type="hidden" name="model" value="<?php echo htmlspecialchars($fitmentModel); ?>"><?php endif; ?>
 <?php if ($includeHiddenProducts): ?><input type="hidden" name="show_hidden" value="1"><?php endif; ?>
+            <label for="product-search" class="visually-hidden">Search products</label>
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
                 <?php if ($search): ?>

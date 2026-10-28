@@ -49,6 +49,9 @@ final class CarrierRates
 
     private function token(): string
     {
+        // Label and tracking preflights share OAuth without going through request().
+        // Honor the same persisted backoff before every token lookup or refresh.
+        if ($this->cache->get('cooldown:'.$this->key)!==null) throw new \RuntimeException('Carrier cooling down.');
         $key='token:'.$this->key;
         $saved=$this->cache->get($key);
         if ($saved) return $saved['token'];
