@@ -263,6 +263,8 @@ require_once __DIR__ . '/includes/header.php';
 let selectedShippingRate = null;
 let applePayShippingQuoteId = null;
 let applePayShippingQuoteSnapshot = null;
+// Only the current, non-invalidated calculation may publish a result or reset its button.
+let shippingCalculationGeneration = 0;
 let appliedCoupon = null; // Store applied coupon data
 let pendingOrderResult = null; // Store DB order result for PayPal completion
 const buyNowStorageKey = 'flipandstrip_buy_now';
@@ -979,6 +981,7 @@ async function calculateShipping() {
 
     invalidateShippingSelection();
     const btn = document.getElementById('calculate-shipping-btn');
+    const generation = shippingCalculationGeneration;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculating...';
     
@@ -992,6 +995,7 @@ async function calculateShipping() {
         });
         
         const data = await response.json();
+        if (generation !== shippingCalculationGeneration) return;
         
     if (data.success && data.rates) {
                 applePayShippingQuoteId = data.shipping_quote || data.applepay_shipping_quote || null;
@@ -1015,6 +1019,7 @@ async function calculateShipping() {
         alert('Shipping rates could not be calculated: ' + (data.error || 'Please review the address and try again.'));
     }
 } catch (error) {
+    if (generation !== shippingCalculationGeneration) return;
     console.error('Shipping calculation error:', error);
         logCheckoutError('shipping', 'Checkout shipping calculation failed.', {
             severity: 'error',
@@ -1025,12 +1030,20 @@ async function calculateShipping() {
     });
     alert('Shipping rates could not be calculated. Please review the address and try again.');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
+        if (generation === shippingCalculationGeneration) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
+        }
     }
 }
 
 function invalidateShippingSelection() {
+    shippingCalculationGeneration += 1;
+    const btn = document.getElementById('calculate-shipping-btn');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calculator"></i> Calculate Shipping';
+    }
     applePayShippingQuoteId = null;
     applePayShippingQuoteSnapshot = null;
     selectedShippingRate = null;
