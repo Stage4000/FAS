@@ -66,5 +66,10 @@ if ($discoveryCollection !== '') {
     $currentCategoryName = \FAS\Models\HomepageCategoryMapping::HOMEPAGE_CATEGORIES[$homepageCategory];
 } elseif ($ebayCat3 || $ebayCat2 || $ebayCat1) {
     $cat = $flatCategories[$ebayCat3 ?: ($ebayCat2 ?: $ebayCat1)] ?? [];
-    $currentCategoryName = implode(' > ', array_filter([$cat['topLevel'] ?? '', $cat['parent'] ?? '', $cat['name'] ?? 'Category']));
+    $categoryLevel = (int)($cat['level'] ?? ($ebayCat3 ? 3 : ($ebayCat2 ? 2 : 1)));
+    $currentCategoryName = implode(' > ', array_filter([
+        $categoryLevel >= 2 ? ($cat['topLevel'] ?? '') : '',
+        $categoryLevel >= 3 ? ($cat['parent'] ?? '') : '',
+        $cat['name'] ?? 'Category',
+    ]));
 }
