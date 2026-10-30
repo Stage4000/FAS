@@ -20,6 +20,11 @@ class Coupon
      */
     public function validateCoupon($code, $subtotal = 0)
     {
+        // Public coupon previews may contain malformed JSON subtotal values.
+        // Reject them before comparisons/arithmetic can throw or produce INF/NAN.
+        if (!is_numeric($subtotal) || !is_finite((float)$subtotal) || (float)$subtotal < 0) {
+            return ['valid' => false, 'message' => 'Invalid subtotal'];
+        }
         // Compare expiry against the current local-time string so the comparison
         // is consistent with how admins enter dates (local time, not UTC).
         $now = date('Y-m-d H:i:s');
@@ -46,10 +51,15 @@ class Coupon
             ];
         }
         
+        $discount = $this->calculateDiscount($coupon, $subtotal);
+        // Even finite inputs can overflow during percentage multiplication.
+        if (!is_finite((float)$discount)) {
+            return ['valid' => false, 'message' => 'Invalid coupon discount'];
+        }
         return [
             'valid' => true,
             'coupon' => $coupon,
-            'discount' => $this->calculateDiscount($coupon, $subtotal)
+            'discount' => $discount
         ];
     }
     
