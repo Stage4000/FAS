@@ -7,7 +7,8 @@ final class ProductCondition
 {
     private static function normalized($value): string
     {
-        return trim(preg_replace('/\s+/u',' ',strtolower(strip_tags(is_string($value)?$value:''))));
+        // Invalid UTF-8 must retain the conservative unknown/used classification.
+        return trim(preg_replace('/\s+/u',' ',strtolower(strip_tags(is_string($value)?$value:''))) ?? '');
     }
 
     public static function merchant($value): string
@@ -29,7 +30,11 @@ final class ProductCondition
     public static function identifier($value): string
     {
         $value=trim(strip_tags(is_scalar($value)?(string)$value:''));
-        $key=strtolower(preg_replace('/[\s._\/-]+/u','',$value));
+        $normalized=preg_replace('/[\s._\/-]+/u','',$value);
+        // Preserve source identifier presence; merchantMpn separately rejects
+        // invalid UTF-8 rather than inventing or truncating a part number.
+        if ($normalized === null) return $value;
+        $key=strtolower($normalized);
         return in_array($key,['','na','none','null','unknown','notavailable','notapplicable','doesnotapply','unspecified'],true)?'':$value;
     }
 
@@ -43,3 +48,4 @@ final class ProductCondition
         return $value;
     }
 }
+
