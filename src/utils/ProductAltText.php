@@ -46,15 +46,14 @@ class ProductAltText
             $altText = $altText === '' ? $category : $altText . ' for ' . $category;
         }
 
-        if ($imageIndex > 0) {
-            $altText .= ' alternate view ' . ($imageIndex + 1);
-        }
-
         if ($altText === '') {
             $altText = 'Product image';
         }
 
-        return self::limit($altText, self::MAX_LENGTH);
+        $suffix = $imageIndex > 0 ? ' alternate view ' . ($imageIndex + 1) : '';
+
+        // Reserve the gallery distinction before shortening the product description.
+        return self::limit($altText, self::MAX_LENGTH - strlen($suffix)) . $suffix;
     }
 
     /**
