@@ -8,6 +8,7 @@ namespace FAS\Models;
 
 require_once __DIR__.'/../utils/ReviewedProductFacts.php';
 require_once __DIR__.'/../utils/StoreCategoryHierarchy.php';
+require_once __DIR__.'/../utils/ProductSyncOwnership.php';
 
 class Product
 {
@@ -459,6 +460,17 @@ class Product
      */
     public function update($id, $data)
     {
+        return $this->writeProductUpdate($id, $data, false);
+    }
+
+    private function writeProductUpdate($id, $data, bool $fromEbay)
+    {
+        $ownershipReady = $fromEbay ? \FAS\Utils\ProductSyncOwnership::installed($this->db) : false;
+        if ($fromEbay && !$ownershipReady) {
+            // A missing migration must not silently permit destructive text imports.
+            unset($data['name'], $data['description']);
+            error_log('Product sync preserved website title/description: ownership storage is not initialized.');
+        }
         $fields = [];
         $params = [];
 
@@ -472,7 +484,9 @@ class Product
 
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $data)) {
-                $fields[] = "{$field} = ?";
+                $fields[] = $fromEbay && in_array($field, ['name', 'description'], true)
+                    ? "{$field} = CASE WHEN EXISTS (SELECT 1 FROM product_sync_ownership o WHERE o.product_id = products.id AND o.field = '{$field}' AND o.local_owned = 1) THEN {$field} ELSE ? END"
+                    : "{$field} = ?";
                 if ($field === 'images' && is_array($data[$field])) {
                     $params[] = json_encode($data[$field]);
                 } else {
@@ -1219,7 +1233,7 @@ class Product
                 error_log("[Product Sync] Item {$ebayData['id']} missing dimensions/weight - hiding from website");
             }
 
-            return $this->update($existing['id'], $productData);
+            return $this->writeProductUpdate($existing['id'], $productData, true);
         } else {
             // New eBay products: only show on website if they have complete dimensions/weight
             if ($hasDimensions) {

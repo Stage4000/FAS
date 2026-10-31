@@ -6,6 +6,7 @@ require_once __DIR__ . '/../src/models/Warehouse.php';
 require_once __DIR__ . '/../src/utils/ShippingRules.php';
 require_once __DIR__ . '/../src/utils/CSRF.php';
 require_once __DIR__ . '/../src/utils/ProductEditor.php';
+require_once __DIR__ . '/../src/utils/ImmutableProductUpload.php';
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -31,6 +32,7 @@ use FAS\Models\Product;
 use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
 use FAS\Utils\ProductEditor;
+use FAS\Utils\ProductSyncOwnership;
 
 // Configuration constants
 define('MAX_ADDITIONAL_IMAGES', 10);
@@ -83,6 +85,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = 'Product not found; no changes saved.';
                         break;
                     }
+                    $action = 'edit';
+                    $productId = $editId;
+                    try {
+                        if (!ProductSyncOwnership::installed($db)) {
+                            throw new RuntimeException('Website edit protection needs its maintenance setup before saving.');
+                        }
+                        if (!is_string($_POST['edit_snapshot'] ?? null)
+                            || !hash_equals(ProductSyncOwnership::snapshot($db, $currentProduct), $_POST['edit_snapshot'])) {
+                            throw new DomainException('This product changed since you opened it. Copy your text below, then reload before saving.');
+                        }
+                    } catch (DomainException $e) {
+                        http_response_code(409); $error = $e->getMessage(); break;
+                    } catch (Throwable $e) {
+                        http_response_code(503); $error = 'Website edit protection is unavailable. No changes saved; try again after maintenance.'; break;
+                    }
+
                 }
                 try {
                     ProductEditor::fields($_POST, $currentProduct, [], $catalogConditionNames);
@@ -94,78 +112,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $imageUrl = $_POST['image_url'] ?? '';
                 $additionalImages = [];
 
-                if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
-                    // Create uploads directory if it doesn't exist
-                    $uploadDir = __DIR__ . '/../gallery/uploads/';
-                    if (!file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0755, true);
+                if (isset($_FILES['image_file']) && ($_FILES['image_file']['error'] ?? UPLOAD_ERR_PARTIAL) === UPLOAD_ERR_OK) {
+                    try {
+                        $upload = \FAS\Utils\ImmutableProductUpload::receive($_FILES['image_file']['tmp_name'], __DIR__ . '/..');
+                        $imageUrl = $upload['path'];
+                    } catch (\Throwable $exception) {
+                        $error = 'Unable to store image. Use a valid image within 20 MiB and 20 megapixels.';
                     }
+                }
 
-                    // Validate file type by extension and MIME type
-                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-
-                    $extension = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mimeType = finfo_file($finfo, $_FILES['image_file']['tmp_name']);
-                    finfo_close($finfo);
-
-                    // Additional validation: verify it's actually an image
-                    $imageInfo = @getimagesize($_FILES['image_file']['tmp_name']);
-
-                    if (in_array($extension, $allowedExtensions) &&
-                        in_array($mimeType, $allowedMimeTypes) &&
-                        $imageInfo !== false) {
-                        $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
-                        $targetPath = $uploadDir . $filename;
-
-                        if (move_uploaded_file($_FILES['image_file']['tmp_name'], $targetPath)) {
-                            // Use absolute path from document root
-                            $imageUrl = '/gallery/uploads/' . $filename;
-                        } else {
-                            $error = 'Failed to upload image file';
-                        }
-                    } else {
-                        $error = 'Invalid image file. Please upload a valid JPEG, PNG, GIF, or WebP image.';
-                    }
+                if (isset($_FILES['image_file']) && !in_array($_FILES['image_file']['error'] ?? UPLOAD_ERR_PARTIAL, [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
+                    $error = 'The primary image upload failed. Check the server upload limit and try again.';
                 }
 
                 // Handle multiple additional images
                 if (isset($_FILES['additional_images']) && isset($_FILES['additional_images']['name'])) {
-                    $uploadDir = __DIR__ . '/../gallery/uploads/';
-                    if (!file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0755, true);
-                    }
-
-                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-
-                    // Check if files were actually uploaded (name array has non-empty values)
                     $fileCount = is_array($_FILES['additional_images']['name']) ? count($_FILES['additional_images']['name']) : 0;
                     for ($i = 0; $i < $fileCount && $i < MAX_ADDITIONAL_IMAGES; $i++) {
-                        // Skip if no file was selected for this input
-                        if (empty($_FILES['additional_images']['name'][$i])) {
-                            continue;
-                        }
-
-                        if ($_FILES['additional_images']['error'][$i] === UPLOAD_ERR_OK) {
-                            $extension = strtolower(pathinfo($_FILES['additional_images']['name'][$i], PATHINFO_EXTENSION));
-                            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                            $mimeType = finfo_file($finfo, $_FILES['additional_images']['tmp_name'][$i]);
-                            finfo_close($finfo);
-
-                            $imageInfo = @getimagesize($_FILES['additional_images']['tmp_name'][$i]);
-
-                            if (in_array($extension, $allowedExtensions) &&
-                                in_array($mimeType, $allowedMimeTypes) &&
-                                $imageInfo !== false) {
-                                $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
-                                $targetPath = $uploadDir . $filename;
-
-                                if (move_uploaded_file($_FILES['additional_images']['tmp_name'][$i], $targetPath)) {
-                                    $additionalImages[] = '/gallery/uploads/' . $filename;
-                                }
+                        if (empty($_FILES['additional_images']['name'][$i])) continue;
+                        if (($_FILES['additional_images']['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                            try {
+                                $upload = \FAS\Utils\ImmutableProductUpload::receive($_FILES['additional_images']['tmp_name'][$i], __DIR__ . '/..');
+                                $additionalImages[] = $upload['path'];
+                            } catch (\Throwable $exception) {
+                                $error = 'Unable to store an additional image. Use valid images within 20 MiB and 20 megapixels.';
                             }
+                        } elseif (($_FILES['additional_images']['error'][$i] ?? UPLOAD_ERR_PARTIAL) !== UPLOAD_ERR_NO_FILE) {
+                            $error = 'An additional image upload failed. Check the server upload limit and try again.';
                         }
                     }
                 }
@@ -222,12 +195,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error = 'Failed to create product';
                         }
                     } else {
-                        $result = $productModel->update(intval($_POST['product_id']), $productData);
+                        try {
+                            $release = $_POST['release_ebay_fields'] ?? [];
+                            if (!is_array($release) || ($release && ($_POST['confirm_release_ebay'] ?? '') !== '1')) {
+                                throw new InvalidArgumentException('Confirm that selected fields should follow eBay again.');
+                            }
+                            $result = ProductSyncOwnership::save($db, (int)$editId, $productData,
+                                $_POST['edit_snapshot'], (int)($_SESSION['admin_id'] ?? 0),
+                                function ($id, $data) use ($productModel) { return $productModel->update($id, $data); }, $release);
+                        } catch (\FAS\Utils\ProductSyncConflict | DomainException $e) {
+                            http_response_code(409); $error = $e->getMessage().' Copy your text below, then reload.'; $result = false;
+                        } catch (InvalidArgumentException $e) {
+                            http_response_code(422); $error = $e->getMessage(); $result = false;
+                        } catch (Throwable $e) {
+                            http_response_code(503); $error = 'Save could not be confirmed. Reload and check before trying again.'; $result = false;
+                            error_log('Product ownership save failed: '.$e->getMessage());
+                        }
                         if ($result) {
                             $success = 'Product updated successfully';
                             $action = 'list';
                         } else {
-                            $error = 'Failed to update product';
+                            if (!$error) $error = 'Failed to update product';
                         }
                     }
                 }
@@ -374,6 +362,26 @@ $product = null;
 if ($action === 'edit' && $productId) {
     $product = $productModel->getById($productId, true); // true = include inactive
 }
+$ownershipReady = false;
+$ownershipStates = ['name' => false, 'description' => false];
+$editSnapshot = '';
+if ($product) {
+    try {
+        $ownershipReady = ProductSyncOwnership::installed($db);
+        if ($ownershipReady) {
+            $ownershipStates = ProductSyncOwnership::states($db, (int)$product['id']);
+            $editSnapshot = ProductSyncOwnership::snapshot($db, $product);
+        }
+    } catch (Throwable $e) { $ownershipReady = false; }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error) {
+        // Keep the original token stale: another click cannot bypass conflict review.
+        $editSnapshot = is_string($_POST['edit_snapshot'] ?? null) ? $_POST['edit_snapshot'] : '';
+        foreach (['name', 'description'] as $field) {
+            if (is_string($_POST[$field] ?? null) && strlen($_POST[$field]) <= 100000) $product[$field] = $_POST[$field];
+        }
+    }
+}
+
 
 // Get products list
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -724,19 +732,40 @@ if ($action === 'list') {
                         <input type="hidden" name="action" value="<?php echo $action === 'create' ? 'create' : 'update'; ?>">
                         <?php if ($product): ?>
                             <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                            <input type="hidden" name="edit_snapshot" value="<?= htmlspecialchars($editSnapshot, ENT_QUOTES, 'UTF-8') ?>">
+                            <div class="alert <?= $ownershipReady ? 'alert-info' : 'alert-warning' ?>">
+                                <?php if ($ownershipReady): ?>
+                                    Names and descriptions already present when protection was enabled are retained; this does not mean they were manually edited. Later changes are protected too. Price and stock still follow eBay.
+                                    Published text in <a href="product-content.php?id=<?= (int)$product['id'] ?>">Content review</a> remains separate and takes priority on the storefront.
+                                <?php else: ?>
+                                    Website edit protection is unavailable. Saving is disabled until maintenance is complete.
+                                <?php endif; ?>
+                            </div>
                         <?php endif; ?>
 
+                        <?php if ($product && $ownershipReady && ($ownershipStates['name'] || $ownershipStates['description'])): ?>
+                        <details class="mb-3 border rounded p-3">
+                            <summary>Use eBay text again</summary>
+                            <p>The next successful eBay import will replace the selected fields. Do not edit those fields while releasing them. Reviewed storefront content is not withdrawn.</p>
+                            <?php foreach (['name' => 'Product name', 'description' => 'Description'] as $field => $label): if (!$ownershipStates[$field]) continue; ?>
+                                <label class="d-block py-2"><input type="checkbox" name="release_ebay_fields[]" value="<?= $field ?>"> <?= $label ?></label>
+                            <?php endforeach; ?>
+                            <label class="d-block py-2"><input type="checkbox" name="confirm_release_ebay" value="1"> I want the selected fields to follow eBay again.</label>
+                        </details>
+                        <?php endif; ?>
                         <div class="row">
                             <div class="col-md-5">
                                 <div class="mb-3">
                                     <label class="form-label">Product Name *</label>
                                     <input type="text" class="form-control" name="name" required
                                            value="<?php echo $product ? htmlspecialchars($product['name']) : ''; ?>">
+                                    <?php if ($product && $ownershipReady): ?><div class="form-text">Current source: <?= $ownershipStates['name'] ? 'Website text (protected)' : (!empty($product['ebay_item_id']) ? 'eBay import' : 'Website product') ?></div><?php endif; ?>
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Description</label>
                                     <textarea class="form-control" name="description" rows="4"><?php echo $product ? htmlspecialchars($product['description']) : ''; ?></textarea>
+                                    <?php if ($product && $ownershipReady): ?><div class="form-text">Current source: <?= $ownershipStates['description'] ? 'Website text (protected)' : (!empty($product['ebay_item_id']) ? 'eBay import' : 'Website product') ?></div><?php endif; ?>
                                 </div>
 
                                 <div class="row">
@@ -1020,7 +1049,7 @@ if ($action === 'list') {
 
                         <div class="d-flex justify-content-between">
                             <a href="?action=list" class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" <?= $product && !$ownershipReady ? 'disabled' : '' ?>>
                                 <i class="bi bi-save me-1"></i> <?php echo $action === 'create' ? 'Create' : 'Update'; ?> Product
                             </button>
                         </div>
@@ -1383,3 +1412,4 @@ document.addEventListener('admin:updated', initProducts);
 </script>
 </body>
 </html>
+
