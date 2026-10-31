@@ -8,10 +8,13 @@ namespace FAS\Models;
 
 require_once __DIR__.'/../utils/ReviewedProductFacts.php';
 require_once __DIR__.'/../utils/StoreCategoryHierarchy.php';
+require_once __DIR__.'/../utils/ProductSyncOwnership.php';
+require_once __DIR__.'/../utils/CatalogImageOutbox.php';
 
 class Product
 {
     private $db;
+    private ?\FAS\Utils\CatalogImageOutbox $imageOutbox;
     private $mappingModel = null; // Cache for HomepageCategoryMapping model
     private static $freeShippingColumnEnsured = false;
 
@@ -107,8 +110,10 @@ class Product
         'jetski' => 'jet ski',
     ];
 
-    public function __construct($db)
+    public function __construct($db, ?\FAS\Utils\CatalogImageOutbox $imageOutbox = null)
     {
+        if ($imageOutbox !== null) $imageOutbox->assertConnection($db);
+        $this->imageOutbox = $imageOutbox;
         $this->db = $db;
         $this->ensureFreeShippingColumn();
     }
@@ -410,6 +415,12 @@ class Product
      */
     public function create($data)
     {
+        if ($this->imageOutbox !== null) return $this->imageOutbox->mutate(null, fn() => $this->insertProduct($data));
+        return $this->insertProduct($data);
+    }
+
+    private function insertProduct($data)
+    {
         $sql = "INSERT INTO products (
             ebay_item_id, sku, name, description, price, sale_price, quantity, category,
             manufacturer, model, condition_name, weight, length, width, height, image_url, images, ebay_url, source, show_on_website, free_shipping,
@@ -459,6 +470,23 @@ class Product
      */
     public function update($id, $data)
     {
+        return $this->writeProductUpdate($id, $data, false);
+    }
+
+    private function writeProductUpdate($id, $data, bool $fromEbay)
+    {
+        if ($this->imageOutbox !== null) return $this->imageOutbox->mutate([(int)$id], fn() => $this->writeProductFields($id, $data, $fromEbay));
+        return $this->writeProductFields($id, $data, $fromEbay);
+    }
+
+    private function writeProductFields($id, $data, bool $fromEbay)
+    {
+        $ownershipReady = $fromEbay ? \FAS\Utils\ProductSyncOwnership::installed($this->db) : false;
+        if ($fromEbay && !$ownershipReady) {
+            // A missing migration must not silently permit destructive text imports.
+            unset($data['name'], $data['description']);
+            error_log('Product sync preserved website title/description: ownership storage is not initialized.');
+        }
         $fields = [];
         $params = [];
 
@@ -472,7 +500,9 @@ class Product
 
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $data)) {
-                $fields[] = "{$field} = ?";
+                $fields[] = $fromEbay && in_array($field, ['name', 'description'], true)
+                    ? "{$field} = CASE WHEN EXISTS (SELECT 1 FROM product_sync_ownership o WHERE o.product_id = products.id AND o.field = '{$field}' AND o.local_owned = 1) THEN {$field} ELSE ? END"
+                    : "{$field} = ?";
                 if ($field === 'images' && is_array($data[$field])) {
                     $params[] = json_encode($data[$field]);
                 } else {
@@ -498,6 +528,12 @@ class Product
      */
     public function toggleWebsiteVisibility($id)
     {
+        if ($this->imageOutbox !== null) return $this->imageOutbox->mutate([(int)$id], fn() => $this->writeWebsiteVisibility($id));
+        return $this->writeWebsiteVisibility($id);
+    }
+
+    private function writeWebsiteVisibility($id)
+    {
         $sql = "UPDATE products SET show_on_website = CASE WHEN show_on_website = 1 THEN 0 ELSE 1 END WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
@@ -519,6 +555,15 @@ class Product
      * Bulk update selected active products for admin maintenance actions.
      */
     public function bulkUpdateProducts(array $ids, array $updates, bool $onlyMissingShipping = false): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($id) => $id > 0)));
+        if ($this->imageOutbox !== null && $ids && array_key_exists('show_on_website', $updates)) {
+            return $this->imageOutbox->mutate($ids, fn() => $this->writeBulkProducts($ids, $updates, $onlyMissingShipping));
+        }
+        return $this->writeBulkProducts($ids, $updates, $onlyMissingShipping);
+    }
+
+    private function writeBulkProducts(array $ids, array $updates, bool $onlyMissingShipping): int
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
             return $id > 0;
@@ -1219,7 +1264,7 @@ class Product
                 error_log("[Product Sync] Item {$ebayData['id']} missing dimensions/weight - hiding from website");
             }
 
-            return $this->update($existing['id'], $productData);
+            return $this->writeProductUpdate($existing['id'], $productData, true);
         } else {
             // New eBay products: only show on website if they have complete dimensions/weight
             if ($hasDimensions) {
@@ -1233,16 +1278,22 @@ class Product
     }
 
     public function updateImages($prodId, $newImagesJson, $expectedImagesJson = null) {
+        $compare = func_num_args() >= 3;
+        if ($this->imageOutbox !== null) return $this->imageOutbox->mutate([(int)$prodId], fn() => $this->writeImages($prodId, $newImagesJson, $expectedImagesJson, $compare));
+        return $this->writeImages($prodId, $newImagesJson, $expectedImagesJson, $compare);
+    }
+
+    private function writeImages($prodId, $newImagesJson, $expectedImagesJson, bool $compare) {
         $sql = "UPDATE products SET images = :imgs WHERE id = :pid
             AND (images IS NULL OR images <> :changed)";
-        if (func_num_args() >= 3) {
+        if ($compare) {
             $sql .= $expectedImagesJson === null ? ' AND images IS NULL' : ' AND images = :expected';
         }
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':imgs', $newImagesJson);
         $stmt->bindParam(':pid', $prodId);
         $stmt->bindParam(':changed', $newImagesJson);
-        if (func_num_args() >= 3 && $expectedImagesJson !== null) {
+        if ($compare && $expectedImagesJson !== null) {
             $stmt->bindParam(':expected', $expectedImagesJson);
         }
         return $stmt->execute() && $stmt->rowCount() === 1;
