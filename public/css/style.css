@@ -1834,3 +1834,13 @@ footer a:hover {
     outline-offset: 2px;
 }
 #main-content { scroll-margin-top: 6rem; }
+
+/* Bootstrap's translucent nav focus shadow has low contrast on the dark navbar.
+   Keep an immediate solid keyboard indicator, including when shadows are suppressed. */
+.navbar .nav-link:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+    box-shadow: none;
+    transition: none;
+}
+
