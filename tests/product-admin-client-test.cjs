@@ -12,6 +12,7 @@ const removal = source.slice(removalStart, source.indexOf('imgRemovalDialog.hide
 assert.ok(visibility && shipping && removalStart >= 0, 'Product mutation handlers available');
 let token = 'synthetic-token-first';
 const requests = [];
+const snapshot = {value:'snapshot-before'};
 function element() {
     return {dataset:{productId:'9001',enabled:'0'}, checked:true, disabled:false, callbacks:{},
         classList:{toggle(){}}, setAttribute(){}, closest(){return null;},
@@ -23,12 +24,12 @@ const toggle=element(), button=element(), confirm=element(), image=element();
 const context = {FormData,URLSearchParams,console,
     alert(message){throw new Error(message);},
     document:{
-        querySelector(selector){return {value:selector.includes('product_id')?'9001':token};},
+        querySelector(selector){if(selector.includes('edit_snapshot')) return snapshot; return {value:selector.includes('product_id')?'9001':token};},
         querySelectorAll(selector){return selector==='.visibility-toggle'?[toggle]:[button];},
         getElementById(){return confirm;}
     },
     targetImgElement:image, imgRemovalDialog:{hide(){}},
-    async fetch(url,options){requests.push(options.body);return {async json(){return {success:true,free_shipping:true,qualifies_for_free_shipping:true};}};}
+    async fetch(url,options){requests.push(options.body);return {async json(){return {success:true,edit_snapshot:"snapshot-after",free_shipping:true,qualifies_for_free_shipping:true};}};}
 };
 vm.createContext(context);
 vm.runInContext(visibility,context);
@@ -44,6 +45,8 @@ vm.runInContext(removal,context);
     assert.equal(requests.at(-1).get('csrf_token'),token,'Image removal handler transmits current CSRF');
     assert.equal(requests.at(-1).get('product_id'),'9001');
     assert.equal(requests.at(-1).get('image_path'),'/gallery/uploads/synthetic.png');
+    assert.equal(requests.at(-1).get('edit_snapshot'),'snapshot-before','Removal submits prior snapshot');
+    assert.equal(snapshot.value,'snapshot-after','Removal refreshes form snapshot');
     assert.equal(image.removed,true,'Successful immediate removal updates DOM');
-    console.log('PASS 6 product AJAX client assertions; synthetic DOM and requests only.');
+    console.log('PASS 8 product AJAX client assertions; synthetic DOM and requests only.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

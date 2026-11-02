@@ -56,11 +56,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image']))
     $productIdToUpdate = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $imagePathToRemove = $_POST['image_path'] ?? null;
 
-    if ($productIdToUpdate && is_string($imagePathToRemove) && $imagePathToRemove !== '') {
+    if ($productIdToUpdate && is_string($imagePathToRemove) && $imagePathToRemove !== ''
+        && is_string($_POST['edit_snapshot'] ?? null) && preg_match('/^[a-f0-9]{64}$/D', $_POST['edit_snapshot'])) {
         try {
-            $updateSuccess = $productModel->removeAdditionalImage($productIdToUpdate, $imagePathToRemove, __DIR__ . '/..');
-            echo json_encode($updateSuccess ? ['success' => true]
+            $updateSuccess = $productModel->removeAdditionalImage($productIdToUpdate, $imagePathToRemove, __DIR__ . '/..', $_POST['edit_snapshot'], $updatedSnapshot);
+            echo json_encode($updateSuccess ? ['success' => true, 'edit_snapshot' => $updatedSnapshot]
                 : ['success' => false, 'error' => 'Image could not be removed. Refresh the product and try again.']);
+        } catch (\FAS\Utils\ProductSyncConflict $e) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         } catch (\Throwable $e) {
             echo json_encode(['success' => false, 'error' => 'Image could not be removed. Try again later.']);
         }
@@ -1309,6 +1313,7 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                                 ajax_remove_image: '1',
                                 product_id: prodId,
                                 image_path: imagePath,
+                                edit_snapshot: document.querySelector('input[name="edit_snapshot"]')?.value || '',
                                 csrf_token: document.querySelector('input[name="csrf_token"]')?.value || ''
                             })
                         });
@@ -1316,6 +1321,7 @@ document.querySelectorAll('.visibility-toggle').forEach(toggle => {
                         const result = await response.json();
 
                         if (result.success) {
+                            document.querySelector('input[name="edit_snapshot"]').value = result.edit_snapshot;
                             targetImgElement.remove();
                         } else {
                             alert('Failed to remove image: ' + (result.error || 'Unknown error'));
