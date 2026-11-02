@@ -68,7 +68,8 @@ def request(path, data=None, headers=None):
 def token(body): return html.unescape(re.search(r'name="csrf_token" value="([^"]+)"', body)[1])
 def snapshot():
     with sqlite3.connect(DB) as db: return db.execute('SELECT * FROM products ORDER BY id').fetchall()
-def uploads(): return sorted((p.name, p.read_bytes()) for p in (SITE / 'gallery/uploads').iterdir() if p.is_file() and not p.is_symlink())
+def uploads(): return sorted((p.relative_to(SITE / 'gallery/uploads').as_posix(), p.read_bytes())
+    for p in (SITE / 'gallery/uploads').rglob('*') if p.is_file() and not p.is_symlink())
 checks, failures = [], []
 def check(condition, message):
     if condition: checks.append(message)
@@ -188,7 +189,21 @@ try:
         created=db.execute("SELECT id,image_url,images FROM products WHERE sku='SYNTHETIC-CREATE'").fetchone()
     check(result[0]==200 and created is not None and len(uploads())==2, 'Valid CSRF creates a product with both upload fields')
     if created:
-        result=request('/admin/products.php',dict(fields,action='update',product_id=str(created[0]),name='Synthetic updated part',csrf_token=csrf))
+        update_fields=dict(fields,action='update',product_id=str(created[0]),name='Synthetic updated part',csrf_token=csrf)
+        before, files = snapshot(), uploads()
+        result=request('/admin/products.php',update_fields)
+        check(result[0]==503 and snapshot()==before and uploads()==files,
+              'Valid CSRF cannot update before ownership maintenance setup')
+        subprocess.run(['php', '-r',
+            'require $argv[1]; $db=new PDO("sqlite:".$argv[2]); FAS\\Utils\\ProductSyncOwnership::install($db);',
+            str(SITE / 'src/utils/ProductSyncOwnership.php'), str(DB)], env=env, check=True)
+        for extra in [{}, {'edit_snapshot':'stale-fixture-snapshot'}]:
+            result=request('/admin/products.php',dict(update_fields,**extra))
+            check(result[0]==409 and snapshot()==before and uploads()==files,
+                  'Valid CSRF cannot update with missing or stale edit snapshot')
+        edit_body=request('/admin/products.php?action=edit&id='+str(created[0]))[2]
+        edit_snapshot=html.unescape(re.search(r'name="edit_snapshot" value="([^"]+)"',edit_body)[1])
+        result=request('/admin/products.php',dict(update_fields,edit_snapshot=edit_snapshot))
         with sqlite3.connect(DB) as db: name=db.execute('SELECT name FROM products WHERE id=?',[created[0]]).fetchone()[0]
         check(result[0]==200 and name=='Synthetic updated part', 'Valid CSRF preserves product update')
         result=request('/admin/products.php',{'action':'delete','product_id':str(created[0]),'csrf_token':csrf})
