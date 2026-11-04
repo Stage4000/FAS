@@ -180,14 +180,24 @@ try:
     before,files=snapshot(),uploads()
     result=request('/admin/products.php',{'ajax_remove_image':'1','product_id':'9001','image_path':'/gallery/uploads/nonmember.png','csrf_token':csrf})
     check(json.loads(result[2])['success'] is False and snapshot()==before and uploads()==files, 'Valid CSRF cannot remove a nonmember image')
-    result=request('/admin/products.php',{'ajax_remove_image':'1','product_id':'9001','image_path':'/gallery/uploads/member.png','csrf_token':csrf})
-    with sqlite3.connect(DB) as db: remaining=db.execute('SELECT images FROM products WHERE id=9001').fetchone()[0]
-    check(json.loads(result[2])['success'] is True and remaining=='[]' and not (SITE/'gallery/uploads/member.png').exists(), 'Valid CSRF preserves legitimate immediate image removal')
+    before, files = snapshot(), uploads()
+    removal = {'ajax_remove_image':'1','product_id':'9001','image_path':'/gallery/uploads/member.png','csrf_token':csrf}
+    result=request('/admin/products.php',dict(removal,edit_snapshot='a'*64))
+    check(json.loads(result[2])['success'] is False and snapshot()==before and uploads()==files,
+          'Image removal before ownership maintenance preserves product and files')
+    uploads_before_create = dict(uploads())
     data,headers=multipart(dict(fields,csrf_token=csrf))
     result=request('/admin/products.php',data,headers)
     with sqlite3.connect(DB) as db:
         created=db.execute("SELECT id,image_url,images FROM products WHERE sku='SYNTHETIC-CREATE'").fetchone()
-    check(result[0]==200 and created is not None and len(uploads())==2, 'Valid CSRF creates a product with both upload fields')
+    created_uploads = dict(uploads())
+    added_uploads = set(created_uploads) - set(uploads_before_create)
+    check(result[0]==200 and created is not None and len(added_uploads)==2
+          and all(created_uploads.get(path)==data for path,data in uploads_before_create.items())
+          and all(created_uploads[path]==PNG for path in added_uploads)
+          and set([created[1].removeprefix('/gallery/uploads/')]
+                  + [path.removeprefix('/gallery/uploads/') for path in json.loads(created[2])])==added_uploads,
+          'Valid CSRF creates a product with both upload fields')
     if created:
         update_fields=dict(fields,action='update',product_id=str(created[0]),name='Synthetic updated part',csrf_token=csrf)
         before, files = snapshot(), uploads()
@@ -197,6 +207,35 @@ try:
         subprocess.run(['php', '-r',
             'require $argv[1]; $db=new PDO("sqlite:".$argv[2]); FAS\\Utils\\ProductSyncOwnership::install($db);',
             str(SITE / 'src/utils/ProductSyncOwnership.php'), str(DB)], env=env, check=True)
+        for extra in [{}, {'edit_snapshot':'a'*64}]:
+            before_removal, files_removal = snapshot(), uploads()
+            result=request('/admin/products.php',dict(removal,**extra))
+            check(result[0]==(200 if not extra else 409) and json.loads(result[2])['success'] is False
+                  and snapshot()==before_removal and uploads()==files_removal,
+                  'Image removal rejects missing snapshot with 200 or stale snapshot with 409 after maintenance')
+        removal_body=request('/admin/products.php?action=edit&id=9001')[2]
+        removal_snapshot=html.unescape(re.search(r'name="edit_snapshot" value="([^"]+)"',removal_body)[1])
+        before_nonmember, files_nonmember = snapshot(), uploads()
+        result=request('/admin/products.php',dict(removal,image_path='/gallery/uploads/nonmember.png',edit_snapshot=removal_snapshot))
+        check(result[0]==200 and json.loads(result[2])['success'] is False
+              and snapshot()==before_nonmember and uploads()==files_nonmember,
+              'Fresh snapshot cannot remove a nonmember image')
+        result=request('/admin/products.php',dict(removal,edit_snapshot=removal_snapshot))
+        removed=json.loads(result[2])
+        with sqlite3.connect(DB) as db: remaining=db.execute('SELECT images FROM products WHERE id=9001').fetchone()[0]
+        refreshed_body=request('/admin/products.php?action=edit&id=9001')[2]
+        refreshed_snapshot=html.unescape(re.search(r'name="edit_snapshot" value="([^"]+)"',refreshed_body)[1])
+        check(result[0]==200 and removed['success'] is True and remaining=='[]'
+              and not (SITE/'gallery/uploads/member.png').exists()
+              and re.fullmatch('[a-f0-9]{64}',removed.get('edit_snapshot','')) is not None
+              and removed['edit_snapshot']==refreshed_snapshot and refreshed_snapshot!=removal_snapshot,
+              'Valid CSRF and fresh snapshot preserve legitimate immediate image removal')
+        before_removal, files_removal = snapshot(), uploads()
+        result=request('/admin/products.php',dict(removal,edit_snapshot=removal_snapshot))
+        check(result[0]==409 and json.loads(result[2])['success'] is False
+              and snapshot()==before_removal and uploads()==files_removal,
+              'Image removal rejects replay of the previous snapshot')
+        before, files = snapshot(), uploads()
         for extra in [{}, {'edit_snapshot':'stale-fixture-snapshot'}]:
             result=request('/admin/products.php',dict(update_fields,**extra))
             check(result[0]==409 and snapshot()==before and uploads()==files,
