@@ -193,6 +193,14 @@ databases, config, password hashes, session files, raw request bodies, cookies,
 CSRF tokens, HAR or Playwright storageState. Screenshot masks cover login fields.
 Artifacts expire after seven days.
 
+The harness-owned anonymous POST consumes the redirected login response body and
+waits for that exact request to finish before starting normal login navigation.
+No failed login request is ignored. Modal interactions retain read-only geometry,
+visibility, hover, hit-target category and initialization receipts at each step,
+without page HTML or input values. They still require the real hover-revealed
+button, an ordinary actionable click and the actual visible modal; no forced
+click, injected handler, style override or alternate navigation bypass is used.
+
 On success or failure the runner stops PHP/browser processes, terminates tracked
 descendants using process start identities, checks the loopback listener is gone,
 then deletes all temporary databases, uploads, configuration and browser/session

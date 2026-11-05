@@ -305,9 +305,56 @@ async function removeImage(target, imagePath, mode = 'success') {
   const index = await target.locator('.image-delete-btn').evaluateAll((nodes, value) => nodes.findIndex(n => n.dataset.imageUrl === value), imagePath);
   check(index >= 0, 'Image targeted for modal removal is rendered');
   const selected = target.locator('.image-delete-btn').nth(index);
-  await selected.locator('..').hover();
-  await selected.click();
-  await target.locator('#imgRemoveModal.show').waitFor({ state: 'visible' });
+  // Read-only actionability receipts identify a failed real interaction without
+  // serializing Playwright call logs, form values, credentials or page HTML.
+  const recordModalState = async stage => {
+    const state = await target.evaluate(i => {
+      const button = document.querySelectorAll('.image-delete-btn')[i];
+      const wrapper = button?.closest('.image-hover-container');
+      const root = document.getElementById('admin-content');
+      const modal = document.getElementById('imgRemoveModal');
+      const describe = element => {
+        if (!element) return { present: false };
+        const style = getComputedStyle(element), rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return {
+          present: true, display: style.display, visibility: style.visibility,
+          opacity: style.opacity, pointer_events: style.pointerEvents,
+          disabled: Boolean(element.disabled), inert_ancestor: Boolean(element.closest('[inert]')),
+          hovered: element.matches(':hover'),
+          center_hit: hit === element ? 'self' : hit && element.contains(hit) ? 'descendant' : hit ? 'other' : 'none',
+          rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+        };
+      };
+      return {
+        root_busy: root?.getAttribute('aria-busy') === 'true', root_inert: Boolean(root?.inert),
+        image_buttons: document.querySelectorAll('.image-delete-btn').length,
+        wrapper: describe(wrapper), button: describe(button), modal: describe(modal),
+        modal_count: document.querySelectorAll('#imgRemoveModal').length,
+        modal_show: Boolean(modal?.classList.contains('show')),
+        modal_instance: Boolean(modal && window.bootstrap?.Modal.getInstance(modal)),
+        viewport: { width: innerWidth, height: innerHeight, scroll_x: scrollX, scroll_y: scrollY }
+      };
+    }, index);
+    (activeCase.modal_interactions ||= []).push({ mode, image_index: index, stage, ...state });
+  };
+  try {
+    await recordModalState('before-hover');
+    lastStep = 'hover real image wrapper (' + mode + ')';
+    await selected.locator('..').hover();
+    await recordModalState('after-hover');
+    lastStep = 'wait for hover-revealed image button (' + mode + ')';
+    await selected.waitFor({ state: 'visible' });
+    lastStep = 'click real image removal button (' + mode + ')';
+    await selected.click();
+    await recordModalState('after-click');
+    lastStep = 'wait for real image removal modal (' + mode + ')';
+    await target.locator('#imgRemoveModal.show').waitFor({ state: 'visible' });
+    await recordModalState('modal-visible');
+  } catch (error) {
+    try { await recordModalState('interaction-failed'); } catch { /* The original failure remains authoritative. */ }
+    throw error;
+  }
   if (mode === 'cancel') {
     await screenshot('remove-cancel-dialog', target);
     await target.locator('#imgRemoveModal button').filter({ hasText: 'Keep It' }).click();
@@ -464,11 +511,23 @@ async function main() {
     check(baseline.reviews.length > 0, 'Published editorial fixture exists for byte-preservation comparisons');
     await page.goto(config.origin + '/admin/products.php?action=edit&id=' + config.ids.new, { waitUntil: 'networkidle' });
     check(new URL(page.url()).pathname === '/admin/login.php', 'Anonymous edit GET follows real login redirect');
-    const anonymous = await page.evaluate(async id => {
-      const response = await fetch('/admin/products.php', { method: 'POST', body: new URLSearchParams({ action: 'update', product_id: String(id), name: 'Anonymous forbidden change' }), credentials: 'same-origin' });
-      return { status: response.status, redirected: response.redirected, path: new URL(response.url).pathname };
-    }, config.ids.new);
+    const [anonymous] = await Promise.all([
+      page.evaluate(async id => {
+        const response = await fetch('/admin/products.php', { method: 'POST', body: new URLSearchParams({ action: 'update', product_id: String(id), name: 'Anonymous forbidden change' }), credentials: 'same-origin' });
+        // fetch resolves at response headers. Consume the redirected login body
+        // before a normal login navigation can cancel this harness-owned request.
+        await response.arrayBuffer();
+        return { status: response.status, redirected: response.redirected, path: new URL(response.url).pathname, body_consumed: true };
+      }, config.ids.new),
+      page.waitForEvent('requestfinished', { predicate: request => {
+        const previous = request.redirectedFrom();
+        return request.method() === 'GET' && request.resourceType() === 'fetch'
+          && request.url() === config.origin + '/admin/login.php'
+          && previous?.method() === 'POST' && previous.url() === config.origin + '/admin/products.php';
+      } })
+    ]);
     check(anonymous.redirected && anonymous.path === '/admin/login.php', 'Anonymous mutation is redirected to login');
+    check(anonymous.body_consumed && anonymous.status === 200, 'Anonymous redirected fetch body finishes before login navigation');
     noMutation(baseline, await snapshot(), 'Anonymous GET and mutation');
     await login(page);
     noMutation(baseline, await snapshot(), 'Normal login (auth/security changes intentionally excluded)');
