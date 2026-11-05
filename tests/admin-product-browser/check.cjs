@@ -77,6 +77,9 @@ let negativeStatuses = new Set(), expectedDialog = null;
 const reports = [], http = [], browserIssues = [], blocked = [], dialogs = [];
 const requestIds = new WeakMap();
 const finishedRequests = new WeakSet();
+const pageIds = new WeakMap(), requestTerminals = new WeakMap();
+const trackedRedirects = new Map(), redirectLifecycles = [];
+let nextPageId = 0, lifecycleOrder = 0;
 let nextRequestId = 0;
 function requestId(request) {
   if (!requestIds.has(request)) requestIds.set(request, ++nextRequestId);
@@ -86,6 +89,37 @@ function requestFailureCategory(request) {
   const error = request.failure()?.errorText;
   if (!error) return null;
   return ['net::ERR_ABORTED', 'net::ERR_FAILED', 'net::ERR_BLOCKED_BY_CLIENT', 'net::ERR_CONNECTION_REFUSED'].includes(error) ? error : 'other';
+}
+function pageId(target) {
+  if (!pageIds.has(target)) pageIds.set(target, ++nextPageId);
+  return pageIds.get(target);
+}
+function updateNavigationRelation(record) {
+  const intent = record.events.find(event => event.kind === 'explicit-navigation-start' && event.owning_page);
+  const request = record.events.find(event => event.kind === 'navigation-request-started' && event.owning_page);
+  record.first_owning_navigation_intent_order = intent?.order ?? null;
+  record.first_owning_navigation_request_order = request?.order ?? null;
+  record.terminal_relative_to_owning_navigation = !record.terminal ? 'no-terminal-event'
+    : !intent ? 'no-owning-navigation-intent-recorded'
+    : record.terminal.order < intent.order ? 'before-owning-navigation-intent' : 'after-owning-navigation-intent';
+}
+function recordRequestTerminal(request, kind) {
+  const receipt = { kind, order: ++lifecycleOrder, request_id: requestId(request),
+    failure_category: kind === 'requestfailed' ? requestFailureCategory(request) : null,
+    case: activeCase?.name || 'preflight', step: lastStep, during_teardown: Boolean(summary.teardown_started) };
+  requestTerminals.set(request, receipt);
+  const tracked = trackedRedirects.get(request);
+  if (tracked) {
+    tracked.record.terminal = receipt; tracked.record.events.push(receipt);
+    updateNavigationRelation(tracked.record);
+  }
+}
+function recordNavigation(target, kind, label, extra = {}) {
+  const event = { kind, order: ++lifecycleOrder, page_id: pageId(target), label, ...extra };
+  for (const tracked of trackedRedirects.values()) {
+    tracked.record.events.push({ ...event, owning_page: tracked.owner === target });
+    updateNavigationRelation(tracked.record);
+  }
 }
 const intentionalBoundaries = [];
 const knownGallery = new Set();
@@ -97,7 +131,8 @@ const summary = {
   network: 'browser exact-route/cache allowlist inside the runner-enforced loopback-only kernel network namespace',
   scope: 'real admin login, CSRF, AJAX editor, modal, model import with inert details object; no live provider or cron',
   cleanup: { context_created: false, browser_created: false, context_closed: false, browser_closed: false },
-  cases: reports, http, browserIssues, blocked, dialogs, intentionalBoundaries
+  cases: reports, http, browserIssues, blocked, dialogs, intentionalBoundaries,
+  redirect_lifecycles: redirectLifecycles, diagnostic_only: false
 };
 function check(condition, assertion, detail) {
   if (activeCase) activeCase.assertions.push({ assertion, passed: Boolean(condition), ...(detail === undefined ? {} : { detail }) });
@@ -255,6 +290,16 @@ async function finishLoginRedirect(postResponse, label) {
     && redirected.url() === config.origin + '/admin/login.php'), label + ': exact POST-to-login redirect identity is verified');
   const response = await redirected.response();
   check(Boolean(response && response.request() === redirected && response.status() === 200), label + ': exact redirected login response is received');
+  const owner = original.frame().page();
+  check(redirected.frame().page() === owner, label + ': redirected request retains the exact owning page');
+  const priorTerminal = requestTerminals.get(redirected) || null;
+  const lifecycle = { action: label, post_request_id: requestId(original), login_request_id: requestId(redirected),
+    owner_page_id: pageId(owner), status: response.status(), pending_observed: false,
+    terminal: priorTerminal, events: priorTerminal ? [priorTerminal] : [] };
+  lifecycle.events.push({ kind: 'redirect-identity-observed', order: ++lifecycleOrder, step: lastStep });
+  updateNavigationRelation(lifecycle);
+  trackedRedirects.set(redirected, { owner, record: lifecycle });
+  redirectLifecycles.push(lifecycle);
   let timer, onFailed;
   let completion;
   try {
@@ -273,6 +318,16 @@ async function finishLoginRedirect(postResponse, label) {
     action: label, post_request_id: requestId(original), login_request_id: requestId(redirected),
     status: response.status(), ...completion, failure_category: failureCategory
   });
+  if (completion.timed_out && !completion.failed && failureCategory === null) {
+    // Diagnostic-only continuation: this is not a successful completion or an
+    // allowed cancellation. Keep observing the same request through the original
+    // UI workflow; every request failure remains in the unchanged error gate.
+    lifecycle.pending_observed = true;
+    lifecycle.events.push({ kind: 'pending-after-15s', order: ++lifecycleOrder, step: lastStep });
+    summary.diagnostic_only = true;
+    summary.pending_redirect_boundary = 'Exact handled login response remained pending; continuation collects lifecycle evidence and cannot produce a clean pass.';
+    return;
+  }
   check(completion.completed && failureCategory === null, label + ': redirected login request finishes successfully before the next action');
 }
 async function submit(target, status = 200, notice = /Product updated successfully|Changes saved/) {
@@ -322,6 +377,17 @@ async function login(target) {
   check(await target.locator('#admin-content[data-admin-page="products.php"]').count() === 1, 'Real Products page is accessible after login');
 }
 function monitor(target) {
+  pageId(target);
+  target.on('request', request => {
+    if (request.isNavigationRequest() && request.resourceType() === 'document') {
+      recordNavigation(target, 'navigation-request-started', 'browser event', {
+        request_id: requestId(request), method: request.method(), ...cleanUrl(request.url())
+      });
+    }
+  });
+  target.on('framenavigated', frame => {
+    if (frame === target.mainFrame()) recordNavigation(target, 'main-frame-navigated', 'browser event', cleanUrl(frame.url()));
+  });
   target.on('console', message => {
     // This is Playwright's exact intentional policy notice, not a runtime error.
     if (message.text() === 'Service Worker registration blocked by Playwright') {
@@ -624,16 +690,19 @@ async function main() {
   context.setDefaultNavigationTimeout(30000);
   context.on('page', monitor);
   context.on('request', request => { requestId(request); });
-  context.on('requestfinished', request => { finishedRequests.add(request); });
+  context.on('requestfinished', request => { finishedRequests.add(request); recordRequestTerminal(request, 'requestfinished'); });
   context.on('response', response => {
     const request = response.request();
     http.push({ request_id: requestId(request), redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
       ...cleanUrl(response.url()), method: request.method(), status: response.status(), resource: request.resourceType() });
   });
-  context.on('requestfailed', request => browserIssues.push({ kind: 'request-failed', request_id: requestId(request),
-    redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
-    ...cleanUrl(request.url()), method: request.method(), resource: request.resourceType(),
-    failure_category: requestFailureCategory(request), case: activeCase?.name || 'preflight', step: lastStep }));
+  context.on('requestfailed', request => {
+    recordRequestTerminal(request, 'requestfailed');
+    browserIssues.push({ kind: 'request-failed', request_id: requestId(request),
+      redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
+      ...cleanUrl(request.url()), method: request.method(), resource: request.resourceType(),
+      failure_category: requestFailureCategory(request), case: activeCase?.name || 'preflight', step: lastStep });
+  });
   await context.route('**/*', async route => {
     const request = route.request(), raw = request.url(), url = new URL(raw);
     if (request.method() === 'GET' && cache.has(raw)) return route.fulfill({ status: 200, ...cache.get(raw) });
@@ -904,8 +973,11 @@ async function main() {
     await removeImage(page, 'gallery/legacy.png', 'logged-out');
     noMutation(before, await snapshot(), 'Image removal after session interruption');
     await screenshot('expired-session');
+    recordNavigation(secondPage, 'explicit-navigation-start', 'normal re-login in the other tab');
     await login(secondPage);
     noMutation(before, await snapshot(), 'Normal re-login');
+    lastStep = 'explicit owning-page reload after normal re-login';
+    recordNavigation(page, 'explicit-navigation-start', 'owning-page reload after normal re-login');
     await page.reload({ waitUntil: 'networkidle' });
     await editReady(page);
     await displayMatches(page, before);
@@ -953,12 +1025,17 @@ async function main() {
     check(equal(baseline.reviews, after.reviews), 'Published editorial JSON is byte-identical across all eight groups');
   });
   check(browserIssues.length === 0 && blocked.length === 0, 'No unexpected browser or network failures across the complete suite');
+  check(!summary.diagnostic_only, 'A diagnostic-only pending login response boundary cannot count as clean acceptance');
   summary.session_id_regenerated = sessionRegenerated;
   summary.status = 'passed';
 }
 
 async function closeBrowser() {
   if (!closing) closing = (async () => {
+    summary.teardown_started = true;
+    for (const tracked of trackedRedirects.values()) {
+      tracked.record.events.push({ kind: 'browser-teardown-start', order: ++lifecycleOrder, step: lastStep });
+    }
     try {
       if (context && !summary.cleanup.context_closed) {
         await context.close();

@@ -208,8 +208,8 @@ for the intended empty or deliberately invalid fixture token; only the boolean
 comparison result is retained, never a token or request body. HTTP 403 and exact
 no-mutation assertions remain mandatory.
 
-Expired-session save and removal actions also await the **exact** redirected
-login request's network completion before the next action. The observer follows
+Expired-session save and removal actions observe the **exact** redirected
+login request's network completion. The observer follows
 the original POST request object's redirect, checks its same-origin login GET
 and status, and waits at most 15 seconds for `response.finished()`. It does not
 read/replace the application's response body, add a request, or ignore a failure.
@@ -220,8 +220,26 @@ handler attempts JSON parsing. Earlier evidence identified a failed login fetch
 but did not identify which redirect failed or its cancellation timing. Request
 IDs, redirect-parent IDs, the current test step, and a small fixed set of failure
 categories now distinguish those lifecycles without request bodies or secrets.
-An application/network cancellation still fails the complete browser-error gate
-and the redirect-completion assertion; no cancellation cause is assumed away.
+
+This revision permits a **diagnostics-only continuation** when that exact
+already-handled response remains pending for 15 seconds without any failure.
+The receipt retains `completed: false`; no successful body-completion assertion
+is emitted. The original session/data/draft/removal/re-login/reload assertions
+continue, while the same request object remains tracked. A pending observation
+sets `diagnostic_only: true`, which independently prevents an overall clean pass,
+even if the request later finishes successfully. Every request failure also
+remains in the unchanged complete browser-error gate; there is no cancellation
+exception.
+
+`browser-summary.json` records the exact POST/login request IDs and owning-page
+ID, pending observation, explicit re-login and owning-page reload starts,
+browser navigation-request/frame events, terminal request event and fixed error
+category. Monotonic event order distinguishes cancellation before navigation,
+during another tab's re-login, during the owning-page reload, and during final
+browser teardown. The final summary includes teardown observations; earlier
+per-case files may precede them. No event is synthesized, body consumed/canceled,
+or application behavior changed. Pending state and navigation-correlated
+cancellation remain evidence to review, not an inferred success or an exemption.
 
 Image removal follows a normal scroll, hover and click sequence. After explicitly
 scrolling the wrapper into view, the test waits for its actual geometry and page
