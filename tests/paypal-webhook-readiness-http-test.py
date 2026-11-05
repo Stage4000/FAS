@@ -22,6 +22,8 @@ FILES = [
     "src/models/Product.php",
     "src/utils/ReviewedProductFacts.php",
     "src/utils/StoreCategoryHierarchy.php",
+    "src/utils/ProductSyncOwnership.php",
+    "src/utils/SqliteSchemaDefinition.php",
     "src/integrations/PayPalAPI.php",
     "src/payments/PayPalWebhookSetup.php",
     "src/utils/ErrorMonitor.php",

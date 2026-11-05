@@ -494,3 +494,9 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_coupon ON analytics_events(coupo
 CREATE INDEX IF NOT EXISTS idx_analytics_events_order ON analytics_events(order_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_target_host ON analytics_events(target_host);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_banner ON analytics_events(banner_id);
+
+
+-- Website text protection: CLI initialization required; no completion marker here.
+CREATE TABLE IF NOT EXISTS product_sync_ownership(product_id INTEGER NOT NULL,field TEXT NOT NULL CHECK(field IN ('name','description')),local_owned INTEGER NOT NULL CHECK(local_owned IN(0,1)),revision INTEGER NOT NULL CHECK(revision>0),updated_at TEXT NOT NULL,PRIMARY KEY(product_id,field));
+CREATE TABLE IF NOT EXISTS product_sync_ownership_history(id INTEGER PRIMARY KEY AUTOINCREMENT,product_id INTEGER NOT NULL,actor_id INTEGER NOT NULL,changes_json TEXT NOT NULL,before_hash TEXT NOT NULL,after_hash TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS product_sync_ownership_meta(id INTEGER PRIMARY KEY CHECK(id=1),migration_version INTEGER NOT NULL CHECK(migration_version=1),baseline_product_count INTEGER NOT NULL CHECK(baseline_product_count>=0),initialized_at TEXT NOT NULL);

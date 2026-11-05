@@ -8,6 +8,7 @@ namespace FAS\Models;
 
 require_once __DIR__.'/../utils/ReviewedProductFacts.php';
 require_once __DIR__.'/../utils/StoreCategoryHierarchy.php';
+require_once __DIR__.'/../utils/ProductSyncOwnership.php';
 
 class Product
 {
@@ -459,6 +460,17 @@ class Product
      */
     public function update($id, $data)
     {
+        return $this->writeProductUpdate($id, $data, false);
+    }
+
+    private function writeProductUpdate($id, $data, bool $fromEbay)
+    {
+        $ownershipReady = $fromEbay ? \FAS\Utils\ProductSyncOwnership::installed($this->db) : false;
+        if ($fromEbay && !$ownershipReady) {
+            // A missing migration must not silently permit destructive text imports.
+            unset($data['name'], $data['description']);
+            error_log('Product sync preserved website title/description: ownership storage is not initialized.');
+        }
         $fields = [];
         $params = [];
 
@@ -472,7 +484,9 @@ class Product
 
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $data)) {
-                $fields[] = "{$field} = ?";
+                $fields[] = $fromEbay && in_array($field, ['name', 'description'], true)
+                    ? "{$field} = CASE WHEN EXISTS (SELECT 1 FROM product_sync_ownership o WHERE o.product_id = products.id AND o.field = '{$field}' AND o.local_owned = 1) THEN {$field} ELSE ? END"
+                    : "{$field} = ?";
                 if ($field === 'images' && is_array($data[$field])) {
                     $params[] = json_encode($data[$field]);
                 } else {
@@ -1219,7 +1233,7 @@ class Product
                 error_log("[Product Sync] Item {$ebayData['id']} missing dimensions/weight - hiding from website");
             }
 
-            return $this->update($existing['id'], $productData);
+            return $this->writeProductUpdate($existing['id'], $productData, true);
         } else {
             // New eBay products: only show on website if they have complete dimensions/weight
             if ($hasDimensions) {
@@ -1248,8 +1262,9 @@ class Product
         return $stmt->execute() && $stmt->rowCount() === 1;
     }
 
-    public function removeAdditionalImage($prodId, $imagePath, string $applicationRoot): bool
+    public function removeAdditionalImage($prodId, $imagePath, string $applicationRoot, ?string $expectedSnapshot = null, ?string &$updatedSnapshot = null): bool
     {
+        $updatedSnapshot = null;
         if (!filter_var($prodId, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])
             || !is_string($imagePath) || $imagePath === '' || $this->db->inTransaction()) {
             return false;
@@ -1258,6 +1273,11 @@ class Product
         $this->db->beginTransaction();
         try {
             $product = $this->getById($prodId, true);
+            if ($expectedSnapshot !== null && (!$product || !hash_equals(
+                \FAS\Utils\ProductSyncOwnership::snapshot($this->db, $product), $expectedSnapshot
+            ))) {
+                throw new \FAS\Utils\ProductSyncConflict('This product changed since you opened it. Reload before removing an image.');
+            }
             $rawImages = $product['images'] ?? null;
             $images = is_string($rawImages) ? json_decode($rawImages, true) : null;
             if (!$product || !is_array($images) || array_values($images) !== $images
@@ -1275,7 +1295,12 @@ class Product
                 throw new \InvalidArgumentException('Image list changed');
             }
             $deleteFile = $file !== null && !$this->hasAdditionalImageReference($imagePath);
-            $this->db->commit();
+            // Read under the same transaction so a concurrent edit cannot be absorbed into the token.
+            $nextSnapshot = $expectedSnapshot === null ? null : \FAS\Utils\ProductSyncOwnership::snapshot(
+                $this->db, $this->getById($prodId, true)
+            );
+            if (!$this->db->commit()) throw new \RuntimeException('Image removal commit unconfirmed.');
+            $updatedSnapshot = $nextSnapshot;
         } catch (\InvalidArgumentException $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             return false;
