@@ -91,6 +91,24 @@ function focusedGeometry() {
         reduced: matchMedia('(prefers-reduced-motion: reduce)').matches};
 }
 
+function parseOutlineColor(color, forced) {
+    const match = color.match(/^(rgb|rgba)\((\d+), (\d+), (\d+)(?:, ((?:\d*\.)?\d+))?\)$/);
+    assert(match && (match[1] === 'rgba') === (match[5] !== undefined), 'computed RGB/RGBA outline color');
+    const rgb = match.slice(2, 5).map(Number), alpha = match[5] === undefined ? 1 : Number(match[5]);
+    assert(rgb.every(value => value >= 0 && value <= 255) && alpha > 0 && alpha <= 1, 'valid visible outline color');
+    // Chromium may choose a translucent system focus color in forced-colors.
+    // The authored indicator must remain opaque outside that UA palette.
+    assert(alpha === 1 || forced === true, 'authored outline is opaque');
+    return {rgb, alpha};
+}
+
+function assertCatalogContent(catalog) {
+    assert.equal(catalog.heading, 'All Products', 'destination is the real catalog');
+    assert.equal(catalog.method, 'get', 'native catalog search form');
+    assert.equal(catalog.action, '/products');
+    assert.equal(catalog.inputName, 'search');
+}
+
 function assertOutline(g, screenshot) {
     const r = g.rect, outer = g.offset + g.outlineWidth;
     assert(g.focusVisible && g.visible && g.unobscured, 'keyboard focus is visible and unobscured');
@@ -107,9 +125,7 @@ function assertOutline(g, screenshot) {
     }
     const png = decodeScreenshot(screenshot);
     assert.equal(png.width, g.viewport.width); assert.equal(png.height, g.viewport.height);
-    const expected = g.outlineColor.match(/^rgb\((\d+), (\d+), (\d+)\)$/);
-    assert(expected, 'opaque computed outline color');
-    const rgb = expected.slice(1).map(Number), samples = [];
+    const {rgb, alpha} = parseOutlineColor(g.outlineColor, g.forced), samples = [];
     // Sample three straight-edge points on each side, avoiding rounded corners.
     for (const fraction of [1 / 3, 0.5, 2 / 3]) {
         const x = r.left + r.width * fraction, y = r.top + r.height * fraction;
@@ -119,10 +135,15 @@ function assertOutline(g, screenshot) {
         ]) {
             const ring = png.pixel(...point(g.offset + g.outlineWidth / 2));
             const inner = png.pixel(...point(g.offset / 2)), outside = png.pixel(...point(outer + 1));
-            assert(ring.every((v, i) => Math.abs(v - rgb[i]) <= 3), `${side} outline painted, not obscured`);
+            // Compare the actual paint with the system RGBA color composited
+            // over both neighboring samples. Contrast still uses actual pixels.
+            const expected = [inner, outside].map(background => rgb.map((value, i) =>
+                Math.round(alpha * value + (1 - alpha) * background[i])));
+            assert(expected.every(color => ring.every((v, i) => Math.abs(v - color[i]) <= 3)),
+                `${side} outline painted, not obscured`);
             const ratios = [contrast(ring, inner), contrast(ring, outside)];
             assert(ratios.every(value => value >= 3), `${side} rendered focus contrast >= 3:1`);
-            samples.push({side, fraction, ring, inner, outside, ratios});
+            samples.push({side, fraction, ring, inner, outside, expected, ratios});
         }
     }
     return samples;
@@ -287,8 +308,15 @@ async function main() {
                     page.waitForNavigation({waitUntil: 'networkidle'}), page.keyboard.press('Enter'),
                 ]);
                 assert.equal(navigation.status(), 200); assert.equal(page.url(), origin + '/products');
-                assert(await page.locator(selectors[1]).evaluate(el => el.classList.contains('active')));
-                row.navigation = {destination: page.url(), status: navigation.status()};
+                // products.php does not set the header's $currentPage marker.
+                // Verify the real destination content, not an unrelated active class.
+                const catalog = await page.locator('#productsContent').evaluate(el => {
+                    const form = el.querySelector('#search-form');
+                    return {heading: el.querySelector('h1')?.textContent.trim(), method: form?.method,
+                        action: form?.getAttribute('action'), inputName: form?.querySelector('#product-search')?.name};
+                });
+                assertCatalogContent(catalog);
+                row.navigation = {destination: page.url(), status: navigation.status(), catalog};
                 await page.goBack({waitUntil: 'networkidle'});
                 assert.equal(page.url(), origin + '/');
                 if (mobile && !await page.locator('#navbarNav').isVisible()) {
@@ -322,7 +350,7 @@ async function main() {
                 'no eBay categories, social destinations, About/Contact/Cart pages or form submissions',
                 'brand/toggler are traversed; the nine .nav-link controls are the outline acceptance scope',
                 'no mobile no-JS collapse or theme interaction claim'],
-            test_source_sha256: Object.fromEntries(['run.py', 'check.cjs', 'navbar.cjs'].map(name =>
+            test_source_sha256: Object.fromEntries(['run.py', 'check.cjs', 'navbar.cjs', 'navbar-unit-test.cjs'].map(name =>
                 [name, digest(fs.readFileSync(path.join(__dirname, name)))])),
             passed: failures.length === 0, failures, views: rows, presentation_assets: manifest,
         }, null, 2) + '\n');
@@ -331,5 +359,5 @@ async function main() {
     process.exitCode = failures.length ? 1 : 0;
 }
 
-module.exports = {contrast, decodeScreenshot, assertOutline};
+module.exports = {contrast, decodeScreenshot, parseOutlineColor, assertOutline, assertCatalogContent};
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});

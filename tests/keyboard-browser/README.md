@@ -40,14 +40,18 @@ The navbar suite traverses the real nine `.nav-link` controls with Tab and
 Shift+Tab. It checks immediate solid 3px focus outlines, full viewport/ancestor
 clipping bounds, no horizontal overflow, and unobscured focus. Opaque screenshot
 pixels at three straight-edge locations per side must match the computed outline
-color and contrast at least 3:1 with both adjacent background samples. This checks
+color (alpha-composited for Chromium's forced-color system palette) and contrast
+at least 3:1 with both adjacent background samples. Authored focus remains opaque
+outside forced colors. This checks
 painted focus rather than only declared CSS; it is sampled evidence, not a full
 perimeter pixel audit. Brand and collapse buttons are traversed but are outside
 the nine-control outline-change scope. The real header has no dropdown menu.
 
 Keyboard Space/Enter theme changes, three close/reopen mobile collapse cycles,
 closed-menu tab exclusion, reduced-motion collapse duration, and actual Products
-navigation/browser Back are checked. External/social links, About, Contact and
+navigation/browser Back are checked. Catalog arrival requires HTTP 200, the exact
+URL, the real All Products heading and native search form; the existing catalog
+page does not set the header's active-link marker. External/social links, About, Contact and
 Cart are focused only, never followed; no form is submitted. Desktop no-JS focus
 and navigation are tested, but no mobile no-JS collapse or theme switching is
 required. Without JS, the site theme remains light; forced dark is Chromium's
@@ -59,6 +63,10 @@ navigation outcomes and per-screenshot SHA-256 values. Screenshot filenames
 identify commit, viewport, scheme, forced-colors, motion, JS and interaction.
 Inspect these alongside the original `report.json`. Synthetic acceptance does not
 verify production, real inventory, eBay categories or provider integrations.
+
+`navbar-unit-test.cjs` runs before both browser suites and exercises PNG decoding,
+paint/contrast failures, forced-color compositing, clipping and catalog destination
+markers without a browser. Its failure also fails the workflow.
 
 Run using the workflow, or install the same PHP extensions/Playwright dependency
 as the existing visual workflow, cache assets with

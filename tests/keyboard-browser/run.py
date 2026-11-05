@@ -102,7 +102,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 # if one fails, and fail the job if either acceptance suite fails.
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
-                           for script in ['check.cjs', 'navbar.cjs']]
+                           for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
                 if any(results):
                     raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')
             finally:
