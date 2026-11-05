@@ -208,6 +208,21 @@ for the intended empty or deliberately invalid fixture token; only the boolean
 comparison result is retained, never a token or request body. HTTP 403 and exact
 no-mutation assertions remain mandatory.
 
+Expired-session save and removal actions also await the **exact** redirected
+login request's network completion before the next action. The observer follows
+the original POST request object's redirect, checks its same-origin login GET
+and status, and waits at most 15 seconds for `response.finished()`. It does not
+read/replace the application's response body, add a request, or ignore a failure.
+This matters because the real
+[AJAX handler](https://github.com/Stage4000/FAS/blob/9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c/admin/js/admin-ajax.js#L130-L143)
+returns on a login redirect before consuming its body, whereas the removal
+handler attempts JSON parsing. Earlier evidence identified a failed login fetch
+but did not identify which redirect failed or its cancellation timing. Request
+IDs, redirect-parent IDs, the current test step, and a small fixed set of failure
+categories now distinguish those lifecycles without request bodies or secrets.
+An application/network cancellation still fails the complete browser-error gate
+and the redirect-completion assertion; no cancellation cause is assumed away.
+
 Image removal follows a normal scroll, hover and click sequence. After explicitly
 scrolling the wrapper into view, the test waits for its actual geometry and page
 scroll to remain stable for 200 ms, with no running/pending animation on the

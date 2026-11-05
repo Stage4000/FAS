@@ -75,6 +75,18 @@ const fileKey = value => value.replace(/^\//, '');
 let config, browser, context, page, secondPage, activeCase, lastStep = 'initialization';
 let negativeStatuses = new Set(), expectedDialog = null;
 const reports = [], http = [], browserIssues = [], blocked = [], dialogs = [];
+const requestIds = new WeakMap();
+const finishedRequests = new WeakSet();
+let nextRequestId = 0;
+function requestId(request) {
+  if (!requestIds.has(request)) requestIds.set(request, ++nextRequestId);
+  return requestIds.get(request);
+}
+function requestFailureCategory(request) {
+  const error = request.failure()?.errorText;
+  if (!error) return null;
+  return ['net::ERR_ABORTED', 'net::ERR_FAILED', 'net::ERR_BLOCKED_BY_CLIENT', 'net::ERR_CONNECTION_REFUSED'].includes(error) ? error : 'other';
+}
 const intentionalBoundaries = [];
 const knownGallery = new Set();
 let sessionRegenerated = false;
@@ -231,6 +243,38 @@ async function expectNotice(target, regex) {
     return new RegExp(source, 'i').test(text);
   }, regex.source);
 }
+async function finishLoginRedirect(postResponse, label) {
+  lastStep = 'observe exact login redirect completion: ' + label;
+  // Called after the actual UI has handled the login response. Follow the
+  // original POST's request object, not an unrelated login request in either tab.
+  const original = postResponse.request(), redirected = original.redirectedTo();
+  check(Boolean(redirected && redirected.redirectedFrom() === original
+    && original.method() === 'POST' && original.resourceType() === 'fetch'
+    && new URL(original.url()).pathname === '/admin/products.php'
+    && redirected.method() === 'GET' && redirected.resourceType() === 'fetch'
+    && redirected.url() === config.origin + '/admin/login.php'), label + ': exact POST-to-login redirect identity is verified');
+  const response = await redirected.response();
+  check(Boolean(response && response.request() === redirected && response.status() === 200), label + ': exact redirected login response is received');
+  let timer, onFailed;
+  let completion;
+  try {
+    const failure = new Promise(resolve => {
+      onFailed = request => { if (request === redirected) resolve({ completed: false, failed: true, timed_out: false }); };
+      context.on('requestfailed', onFailed);
+    });
+    completion = redirected.failure() ? { completed: false, failed: true, timed_out: false } : await Promise.race([
+      response.finished().then(() => ({ completed: finishedRequests.has(redirected), failed: false, timed_out: false })),
+      failure,
+      new Promise(resolve => { timer = setTimeout(() => resolve({ completed: false, failed: false, timed_out: true }), 15000); })
+    ]);
+  } finally { clearTimeout(timer); if (onFailed) context.off('requestfailed', onFailed); }
+  const failureCategory = requestFailureCategory(redirected);
+  (activeCase.redirect_completions ||= []).push({
+    action: label, post_request_id: requestId(original), login_request_id: requestId(redirected),
+    status: response.status(), ...completion, failure_category: failureCategory
+  });
+  check(completion.completed && failureCategory === null, label + ': redirected login request finishes successfully before the next action');
+}
 async function submit(target, status = 200, notice = /Product updated successfully|Changes saved/) {
   lastStep = 'submit real multipart edit form';
   const marker = await tagDocument(target);
@@ -251,6 +295,7 @@ async function submit(target, status = 200, notice = /Product updated successful
     } else {
       check(await target.locator(FORM).count() === 0, 'Successful save renders the product list');
     }
+    if (status === 302) await finishLoginRedirect(response, 'expired-session save');
     return response;
   } finally { negativeStatuses = new Set(); }
 }
@@ -494,6 +539,7 @@ async function removeImage(target, imagePath, mode = 'success', csrfKind = null)
       check(mode === 'logged-out' || !Object.hasOwn(result, 'edit_snapshot'), 'Rejected removal never offers a replacement snapshot');
       check(await target.locator('.image-delete-btn').count() === countBefore, 'Rejected removal retains all rendered images');
     }
+    if (mode === 'logged-out') await finishLoginRedirect(response, 'expired-session removal');
   } finally { negativeStatuses = new Set(); expectedDialog = null; }
 }
 async function imported(phase, before, label) {
@@ -577,11 +623,17 @@ async function main() {
   context.setDefaultTimeout(15000);
   context.setDefaultNavigationTimeout(30000);
   context.on('page', monitor);
+  context.on('request', request => { requestId(request); });
+  context.on('requestfinished', request => { finishedRequests.add(request); });
   context.on('response', response => {
     const request = response.request();
-    http.push({ ...cleanUrl(response.url()), method: request.method(), status: response.status(), resource: request.resourceType() });
+    http.push({ request_id: requestId(request), redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
+      ...cleanUrl(response.url()), method: request.method(), status: response.status(), resource: request.resourceType() });
   });
-  context.on('requestfailed', request => browserIssues.push({ kind: 'request-failed', ...cleanUrl(request.url()), resource: request.resourceType() }));
+  context.on('requestfailed', request => browserIssues.push({ kind: 'request-failed', request_id: requestId(request),
+    redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
+    ...cleanUrl(request.url()), method: request.method(), resource: request.resourceType(),
+    failure_category: requestFailureCategory(request), case: activeCase?.name || 'preflight', step: lastStep }));
   await context.route('**/*', async route => {
     const request = route.request(), raw = request.url(), url = new URL(raw);
     if (request.method() === 'GET' && cache.has(raw)) return route.fulfill({ status: 200, ...cache.get(raw) });
