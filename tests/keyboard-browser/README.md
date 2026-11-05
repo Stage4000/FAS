@@ -1,6 +1,6 @@
 # Storefront keyboard browser acceptance
 
-The main/manual workflow reuses the homepage visual test's pinned Playwright
+The main/pull-request/manual workflow reuses the homepage visual test's pinned Playwright
 1.58.2 dependency, allowlisted presentation-asset cache, pinned Actions, and
 loopback-only network namespace. It uses no secrets or deployment credentials.
 
@@ -29,6 +29,36 @@ exact candidate commit and fixture substitutions. Inspect screenshots alongside
 the machine checks; they do not establish production or backend integration
 acceptance. PHP's development router models clean URLs; Apache routing, real
 inventory, provider integrations and production deployment remain unverified.
+
+`navbar.cjs` adds 36 independent header scenarios: 390/991/992/1440px,
+light/dark system themes, forced colors off/on, and normal/reduced motion with
+JavaScript, plus four desktop no-JS color combinations. It uses the same request
+filter and synthetic fixture as the original suite. Both suites run; either
+failure fails the job. The original 20-view checks and request policy are unchanged.
+
+The navbar suite traverses the real nine `.nav-link` controls with Tab and
+Shift+Tab. It checks immediate solid 3px focus outlines, full viewport/ancestor
+clipping bounds, no horizontal overflow, and unobscured focus. Opaque screenshot
+pixels at three straight-edge locations per side must match the computed outline
+color and contrast at least 3:1 with both adjacent background samples. This checks
+painted focus rather than only declared CSS; it is sampled evidence, not a full
+perimeter pixel audit. Brand and collapse buttons are traversed but are outside
+the nine-control outline-change scope. The real header has no dropdown menu.
+
+Keyboard Space/Enter theme changes, three close/reopen mobile collapse cycles,
+closed-menu tab exclusion, reduced-motion collapse duration, and actual Products
+navigation/browser Back are checked. External/social links, About, Contact and
+Cart are focused only, never followed; no form is submitted. Desktop no-JS focus
+and navigation are tested, but no mobile no-JS collapse or theme switching is
+required. Without JS, the site theme remains light; forced dark is Chromium's
+emulated system palette, not a claim of native Windows high-contrast acceptance.
+
+`navbar-report.json` adds exact tested commit/source/test/dependency hashes,
+conditions and actual site theme, focus geometry, sampled RGB/contrast values,
+navigation outcomes and per-screenshot SHA-256 values. Screenshot filenames
+identify commit, viewport, scheme, forced-colors, motion, JS and interaction.
+Inspect these alongside the original `report.json`. Synthetic acceptance does not
+verify production, real inventory, eBay categories or provider integrations.
 
 Run using the workflow, or install the same PHP extensions/Playwright dependency
 as the existing visual workflow, cache assets with
