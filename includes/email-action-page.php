@@ -20,5 +20,5 @@ $recover=($emailActionPage??'')==='recover';
     <a href="/products" class="d-inline-block mt-4">Browse parts</a>
 </section></main>
 <script src="/public/js/growth.js?v=20260930-1"></script>
-<script src="/public/js/email-action.js?v=20260930-1" data-mode="<?= $recover?'recover':'preferences' ?>"></script>
+<script src="/public/js/email-action.js?v=20261103-1" data-mode="<?= $recover?'recover':'preferences' ?>"></script>
 </body></html>

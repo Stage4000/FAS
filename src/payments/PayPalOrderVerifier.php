@@ -18,7 +18,7 @@ final class PayPalOrderVerifier
     public static function capture(array $order,string $paypalId,array $provider,$claimedCapture=''): string
     {
         $units=$provider['purchase_units'] ?? null;
-        $unit=is_array($units) && count($units)===1 ? $units[0] : null;
+        $unit=is_array($units) && count($units)===1 ? ($units[0] ?? null) : null;
         if (!is_array($unit) || ($provider['id'] ?? null)!==$paypalId
             || ($provider['intent'] ?? null)!=='CAPTURE'
             || ($unit['invoice_id'] ?? null)!==($order['order_number'] ?? null)
@@ -40,7 +40,16 @@ final class PayPalOrderVerifier
             'admin_area_1'=>$address['state'] ?? '',
             'postal_code'=>$address['zip'] ?? '',
             'country_code'=>$address['country'] ?? ''];
-        $clean=static fn($value): string => strtoupper(trim(preg_replace('/\s+/u',' ',(string)$value)));
+        $clean=static function ($value): string {
+            if (!is_string($value)) {
+                throw new CheckoutProblem('verification_failed','Payment shipping address needs review. Do not pay again.');
+            }
+            $normalized=preg_replace('/\s+/u',' ',$value);
+            if ($normalized===null) {
+                throw new CheckoutProblem('verification_failed','Payment shipping address needs review. Do not pay again.');
+            }
+            return strtoupper(trim($normalized));
+        };
         foreach ($expected as $key=>$value) {
             if ($clean($value)!==$clean($paidAddress[$key] ?? '')) {
                 throw new CheckoutProblem('verification_failed','Payment shipping address needs review. Do not pay again.');
@@ -50,7 +59,7 @@ final class PayPalOrderVerifier
         if (($provider['status'] ?? null)!=='COMPLETED' || !is_array($captures) || count($captures)!==1) {
             throw new CheckoutProblem('payment_pending','PayPal has not confirmed this payment yet. Retry this order confirmation.',503);
         }
-        $capture=$captures[0];
+        $capture=$captures[0] ?? null;
         if (is_array($capture) && ($capture['status'] ?? null)==='PENDING') {
             throw new CheckoutProblem('payment_pending','PayPal has not confirmed this payment yet. Retry this order confirmation.',503);
         }

@@ -98,8 +98,13 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                         time.sleep(.1)
                 else:
                     raise RuntimeError('PHP fixture did not start')
-                subprocess.run(['node', str(ROOT / 'tests/keyboard-browser/check.cjs'), origin,
-                                str(args.assets.resolve()), str(output)], check=True)
+                # Keep the original 20-view suite intact; collect both reports even
+                # if one fails, and fail the job if either acceptance suite fails.
+                results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
+                            origin, str(args.assets.resolve()), str(output)]).returncode
+                           for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
+                if any(results):
+                    raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')
             finally:
                 server.terminate()
                 server.wait(timeout=10)

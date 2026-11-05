@@ -3,11 +3,16 @@
     const recover=document.currentScript.dataset.mode==='recover';
     const button=document.getElementById('email-action-button');
     const feedback=document.getElementById('email-action-status');
-    let action,token;
+    let action,token,linkHash;
+    let linkGeneration=0;
     function readLink() {
-        const params=new URLSearchParams(location.hash.slice(1));
+        const nextHash=location.hash;
+        if(nextHash===linkHash)return;
+        linkHash=nextHash;
+        linkGeneration++;
+        const params=new URLSearchParams(linkHash.slice(1));
         action=recover?'restore':params.has('unsubscribe')?'unsubscribe':'confirm';
-        token=recover?location.hash.slice(1):params.get(action);
+        token=recover?linkHash.slice(1):params.get(action);
         if(!recover)button.textContent=action==='unsubscribe'?'Unsubscribe':'Confirm email signup';
         button.disabled=!/^[a-f0-9]{64}$/.test(token||'');
         feedback.textContent=button.disabled?'This link is incomplete. Open the full link from your email.':'';
@@ -15,9 +20,16 @@
     readLink();
     window.addEventListener('hashchange',readLink);
     button.addEventListener('click',async()=>{
+        // A fragment can change before its queued hashchange event arrives.
+        if(location.hash!==linkHash)readLink();
+        if(button.disabled)return;
+        const generation=linkGeneration;
+        const requestHash=location.hash;
+        const isCurrent=()=>generation===linkGeneration && location.hash===requestHash;
         button.disabled=true;
         try {
             const data=await window.FASGrowth.api(action,{token});
+            if(!isCurrent())return;
             if(recover) {
                 // Do not discard an existing cart or add the same quantities twice.
                 let current=[];
@@ -32,6 +44,9 @@
                 feedback.textContent=data.items.length?'Available items restored. Opening your cart…':'These saved items are no longer available. You can browse current inventory.';
                 if(data.items.length)location.assign('/cart');
             } else feedback.textContent=data.message;
-        } catch(error) {feedback.textContent=error.message;button.disabled=false;}
+        } catch(error) {
+            if(!isCurrent())return;
+            feedback.textContent=error.message;button.disabled=false;
+        }
     });
 })();
