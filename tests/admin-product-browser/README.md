@@ -199,7 +199,14 @@ No failed login request is ignored. Modal interactions retain read-only geometry
 visibility, hover, hit-target category and initialization receipts at each step,
 without page HTML or input values. They still require the real hover-revealed
 button, an ordinary actionable click and the actual visible modal; no forced
-click, injected handler, style override or alternate navigation bypass is used.
+click, injected removal handler, style override or alternate navigation bypass is used.
+Confirmation also waits for the real Bootstrap `shown.bs.modal` event, leaving
+animations intact. Negative modal-CSRF cases independently remove or invalidate
+all rendered token inputs because the real modal reads the first token in the
+document, rather than the edited form. The actual outgoing request is checked
+for the intended empty or deliberately invalid fixture token; only the boolean
+comparison result is retained, never a token or request body. HTTP 403 and exact
+no-mutation assertions remain mandatory.
 
 On success or failure the runner stops PHP/browser processes, terminates tracked
 descendants using process start identities, checks the loopback listener is gone,

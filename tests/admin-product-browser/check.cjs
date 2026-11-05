@@ -299,8 +299,23 @@ function monitor(target) {
     await dialog.accept();
   });
 }
-async function removeImage(target, imagePath, mode = 'success') {
+async function removeImage(target, imagePath, mode = 'success', csrfKind = null) {
   lastStep = 'real image-removal modal ' + mode;
+  if (mode === 'csrf') {
+    check(['missing', 'invalid'].includes(csrfKind), 'Modal CSRF case specifies its exact negative token condition');
+    // The real modal handler reads document.querySelector, not the edit form.
+    // Independently invalidate every rendered token so a valid delete-modal
+    // token cannot become the handler's fallback after the edit token is removed.
+    const sourceInvalidated = await target.locator('input[name="csrf_token"]').evaluateAll((elements, kind) => {
+      for (const element of elements) {
+        if (kind === 'missing') element.remove();
+        else element.value = 'invalid-fixture-token';
+      }
+      const source = document.querySelector('input[name="csrf_token"]');
+      return kind === 'missing' ? source === null : Boolean(source && source.value === 'invalid-fixture-token');
+    }, csrfKind);
+    check(sourceInvalidated, 'The actual document-wide modal CSRF source is independently invalidated');
+  }
   // Attribute comparison avoids CSS escaping the synthetic remote query string.
   const index = await target.locator('.image-delete-btn').evaluateAll((nodes, value) => nodes.findIndex(n => n.dataset.imageUrl === value), imagePath);
   check(index >= 0, 'Image targeted for modal removal is rendered');
@@ -345,12 +360,22 @@ async function removeImage(target, imagePath, mode = 'success') {
     await recordModalState('after-hover');
     lastStep = 'wait for hover-revealed image button (' + mode + ')';
     await selected.waitFor({ state: 'visible' });
+    // Observe the real Bootstrap event before clicking. Visibility alone can be
+    // true during fade-in, when Bootstrap still ignores an immediate hide().
+    await target.locator('#imgRemoveModal').evaluate(modal => {
+      window.__acceptanceModalShown = false;
+      modal.addEventListener('shown.bs.modal', () => { window.__acceptanceModalShown = true; }, { once: true });
+    });
     lastStep = 'click real image removal button (' + mode + ')';
     await selected.click();
     await recordModalState('after-click');
     lastStep = 'wait for real image removal modal (' + mode + ')';
     await target.locator('#imgRemoveModal.show').waitFor({ state: 'visible' });
     await recordModalState('modal-visible');
+    lastStep = 'wait for real modal shown event (' + mode + ')';
+    await target.waitForFunction(() => window.__acceptanceModalShown === true);
+    check(await target.evaluate(() => window.__acceptanceModalShown === true), 'Real removal modal completes its shown event before confirmation');
+    await recordModalState('modal-shown');
   } catch (error) {
     try { await recordModalState('interaction-failed'); } catch { /* The original failure remains authoritative. */ }
     throw error;
@@ -370,8 +395,17 @@ async function removeImage(target, imagePath, mode = 'success') {
     : mode === 'logged-out' ? /^Error communicating with server$/ : null;
   try {
     const responsePromise = target.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/admin/products.php');
+    lastStep = 'confirm real image removal (' + mode + ')';
     await target.locator('#confirmImgRemove').click();
     const response = await responsePromise;
+    if (mode === 'csrf') {
+      const request = response.request();
+      check((request.headers()['content-type'] || '').startsWith('application/x-www-form-urlencoded'), 'Modal CSRF test inspects the real URL-encoded request');
+      const body = new URLSearchParams(request.postData() || '');
+      // Emit only comparison booleans through check(), never the body or token.
+      check(body.get('ajax_remove_image') === '1' && body.get('csrf_token') === (csrfKind === 'missing' ? '' : 'invalid-fixture-token'),
+        'Outgoing modal request carries the intended missing or invalid fixture token');
+    }
     check(response.status() === status, 'Image removal has expected HTTP status', { expected: status, actual: response.status() });
     check(response.request().resourceType() === 'fetch', 'Image removal exercised the page fetch handler');
     let result;
@@ -542,7 +576,7 @@ async function main() {
       await submit(page, 403, /Access was denied|permissions/);
       check(await page.locator(FORM + ' input[name="name"]').inputValue() === 'Forbidden CSRF change', 'CSRF rejection keeps the entered draft');
       noMutation(before, await snapshot(), kind + ' CSRF with multipart upload');
-      await removeImage(page, 'gallery/legacy.png', 'csrf');
+      await removeImage(page, 'gallery/legacy.png', 'csrf', kind);
       noMutation(before, await snapshot(), kind + ' CSRF modal removal');
       await page.reload({ waitUntil: 'networkidle' });
       await editReady(page);
