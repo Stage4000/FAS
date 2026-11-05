@@ -1,0 +1,81 @@
+name: Isolated authenticated product acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'admin/**'
+      - 'src/**'
+      - 'includes/**'
+      - 'public/**'
+      - 'database/schema.sqlite.sql'
+      - 'scripts/security-maintenance.php'
+      - 'tests/admin-product-browser/**'
+      - 'tests/homepage-visual/prepare-assets.py'
+      - '.github/workflows/admin-product-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-products:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout the explicit PR head without saved credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 20
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /admin/
+            /src/
+            !/src/config/config*.php
+            !/src/config/shipping.php
+            !/src/config/applepay.php
+            !/src/config/googlepay.php
+            /includes/
+            /public/
+            /database/schema.sqlite.sql
+            /scripts/security-maintenance.php
+            /tests/admin-product-browser/
+            /tests/homepage-visual/prepare-assets.py
+            /.github/workflows/admin-product-acceptance.yml
+      - name: Install existing official browser test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring php-gd php-curl iproute2 util-linux
+          npm install --prefix "$RUNNER_TEMP/fas-admin-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-admin-browsers" \
+            "$RUNNER_TEMP/fas-admin-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache existing allowlisted presentation assets
+        run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-admin-assets"
+      - name: Real admin and inert import acceptance with loopback only
+        # This bounded suite is pinned to baseline9734b4. The runner permits only
+        # the four new test files in its diff; later runtime changes need review.
+        # No fallback is permitted if unshare, loopback checks or guards fail.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-admin-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              NODE_PATH="$4/fas-admin-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-admin-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              python3 tests/admin-product-browser/run.py \
+              --assets "$4/fas-admin-assets" --output "$4/fas-admin-output"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Upload sanitized synthetic acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: admin-product-acceptance-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/fas-admin-output/
+          if-no-files-found: error
+          retention-days: 7
