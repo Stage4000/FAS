@@ -12,6 +12,17 @@ on:
       - 'tests/fixtures/security-catalog.sql'
       - 'tests/homepage-visual/prepare-assets.py'
       - '.github/workflows/keyboard-browser.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '*.php'
+      - 'src/**'
+      - 'includes/**'
+      - 'public/**'
+      - 'tests/keyboard-browser/**'
+      - 'tests/fixtures/security-catalog.sql'
+      - 'tests/homepage-visual/prepare-assets.py'
+      - '.github/workflows/keyboard-browser.yml'
 permissions:
   contents: read
 jobs:
