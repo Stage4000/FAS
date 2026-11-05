@@ -208,6 +208,33 @@ for the intended empty or deliberately invalid fixture token; only the boolean
 comparison result is retained, never a token or request body. HTTP 403 and exact
 no-mutation assertions remain mandatory.
 
+Image removal follows a normal scroll, hover and click sequence. After explicitly
+scrolling the wrapper into view, the test waits for its actual geometry and page
+scroll to remain stable for 200 ms, with no running/pending animation on the
+wrapper, its descendants or its ancestors. It repeats that read-only wait after
+hover, also requiring the real button to be fully opaque and hover-revealed.
+The waits fail after 15 seconds; they do not cancel motion or change styles.
+Ordinary Playwright actionability checks still govern the subsequent click.
+
+This addresses an evidenced lost-hover failure mode, not a proven application
+defect. Hosted diagnostics showed a revealed button at scroll Y=201, then a click
+timeout at scroll Y=0 with the wrapper no longer hovered and its button hidden.
+The initial actionability retry trigger remains unproven. In pinned
+[Playwright 1.58.2](https://github.com/microsoft/playwright/blob/v1.58.2/packages/playwright-core/src/server/dom.ts#L360-L379),
+pointer-action retries cycle through default, end, center and start scroll
+alignment, which can move an already-visible hover target away from the pointer.
+The real [Products handlers](https://github.com/Stage4000/FAS/blob/9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c/admin/products.php#L1280-L1295)
+show and hide the button on mouseenter/mouseleave. Existing
+[card/button hover transforms](https://github.com/Stage4000/FAS/blob/9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c/admin/css/admin-style.css#L281-L299)
+and [button fade-in](https://github.com/Stage4000/FAS/blob/9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c/admin/css/admin-style.css#L501-L504)
+remain intact, as does Bootstrap's
+[smooth scrolling rule](https://github.com/twbs/bootstrap/blob/v5.3.2/scss/_reboot.scss#L27-L38).
+Receipts retain actual scroll behavior/positions, transforms and relevant active
+animation counts. A timeout records only fixed actionability categories such as
+not-visible, not-stable or pointer-intercepted, never raw Playwright logs or the
+intercepting element's content. A continued failure must be investigated rather
+than bypassed with forced interaction or a runtime change.
+
 On success or failure the runner stops PHP/browser processes, terminates tracked
 descendants using process start identities, checks the loopback listener is gone,
 then deletes all temporary databases, uploads, configuration and browser/session

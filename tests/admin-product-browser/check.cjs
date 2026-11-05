@@ -299,6 +299,56 @@ function monitor(target) {
     await dialog.accept();
   });
 }
+async function settleImageMotion(target, index, revealed) {
+  const nonce = crypto.randomBytes(8).toString('hex');
+  // Observe real motion only. Do not cancel animations, change scroll behavior,
+  // reposition elements, synthesize events, or retry a mutation.
+  await target.waitForFunction(({ index, revealed, nonce }) => {
+    const button = document.querySelectorAll('.image-delete-btn')[index];
+    const wrapper = button?.closest('.image-hover-container');
+    const root = document.getElementById('admin-content');
+    if (!button || !wrapper || root?.inert || root?.hasAttribute('aria-busy')) return false;
+    const elements = [wrapper];
+    for (let ancestor = wrapper.parentElement; ancestor; ancestor = ancestor.parentElement) elements.push(ancestor);
+    const animations = [...new Set([
+      ...wrapper.getAnimations({ subtree: true }), ...elements.flatMap(element => element.getAnimations())
+    ])].filter(animation => animation.playState === 'running' || animation.pending);
+    const rect = element => {
+      const box = element.getBoundingClientRect();
+      return [box.x, box.y, box.width, box.height].map(value => Math.round(value * 1000) / 1000);
+    };
+    const style = getComputedStyle(button);
+    const sample = JSON.stringify([scrollX, scrollY, rect(wrapper), rect(button), style.display, style.opacity, style.transform]);
+    const now = performance.now();
+    let state = window.__acceptanceImageMotion;
+    if (!state || state.nonce !== nonce) state = window.__acceptanceImageMotion = { nonce, sample, since: now, samples: 0 };
+    if (sample !== state.sample || animations.length > 0) { state.sample = sample; state.since = now; state.samples = 0; }
+    state.samples++;
+    const box = wrapper.getBoundingClientRect();
+    const inView = box.width > 0 && box.height > 0 && box.top >= 0 && box.left >= 0 && box.bottom <= innerHeight && box.right <= innerWidth;
+    const buttonReady = !revealed || (wrapper.matches(':hover') && style.display !== 'none' && style.visibility === 'visible'
+      && Number(style.opacity) === 1 && !button.disabled);
+    return inView && buttonReady && animations.length === 0 && state.samples >= 3 && now - state.since >= 200;
+  }, { index, revealed, nonce }, { polling: 'raf', timeout: 15000 });
+  check(true, revealed ? 'Real hover reveal, image geometry and scrolling settled with animations intact'
+    : 'Real image wrapper scrolling and geometry settled before hover');
+}
+function actionabilityCategories(error) {
+  // Playwright logs can embed DOM/input values. Retain only these fixed labels,
+  // never the raw log, matched text, intercepting element description, or a hash.
+  const message = typeof error?.message === 'string' ? error.message : '';
+  return Object.entries({
+    not_visible: /element is not visible/i,
+    not_stable: /element is not stable/i,
+    not_enabled: /element is not enabled/i,
+    outside_viewport: /element is outside of the viewport/i,
+    pointer_intercepted: /intercepts pointer events/i,
+    detached: /element is not attached|element was detached|element is detached/i,
+    scrolling_attempted: /scrolling into view if needed/i,
+    click_retried: /retrying click action/i,
+    click_dispatched: /click action done/i
+  }).filter(([, pattern]) => pattern.test(message)).map(([name]) => name);
+}
 async function removeImage(target, imagePath, mode = 'success', csrfKind = null) {
   lastStep = 'real image-removal modal ' + mode;
   if (mode === 'csrf') {
@@ -334,13 +384,18 @@ async function removeImage(target, imagePath, mode = 'success', csrfKind = null)
         const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
         return {
           present: true, display: style.display, visibility: style.visibility,
-          opacity: style.opacity, pointer_events: style.pointerEvents,
+          opacity: style.opacity, pointer_events: style.pointerEvents, transform: style.transform,
           disabled: Boolean(element.disabled), inert_ancestor: Boolean(element.closest('[inert]')),
           hovered: element.matches(':hover'),
           center_hit: hit === element ? 'self' : hit && element.contains(hit) ? 'descendant' : hit ? 'other' : 'none',
           rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
         };
       };
+      const relevant = wrapper ? [wrapper] : [];
+      for (let ancestor = wrapper?.parentElement; ancestor; ancestor = ancestor.parentElement) relevant.push(ancestor);
+      const animations = [...new Set([
+        ...(wrapper?.getAnimations({ subtree: true }) || []), ...relevant.flatMap(element => element.getAnimations())
+      ])].filter(animation => animation.playState === 'running' || animation.pending);
       return {
         root_busy: root?.getAttribute('aria-busy') === 'true', root_inert: Boolean(root?.inert),
         image_buttons: document.querySelectorAll('.image-delete-btn').length,
@@ -348,18 +403,32 @@ async function removeImage(target, imagePath, mode = 'success', csrfKind = null)
         modal_count: document.querySelectorAll('#imgRemoveModal').length,
         modal_show: Boolean(modal?.classList.contains('show')),
         modal_instance: Boolean(modal && window.bootstrap?.Modal.getInstance(modal)),
+        motion: {
+          root_scroll_behavior: getComputedStyle(document.documentElement).scrollBehavior,
+          body_scroll_behavior: getComputedStyle(document.body).scrollBehavior,
+          scrolling_top: document.scrollingElement?.scrollTop ?? null,
+          scrolling_left: document.scrollingElement?.scrollLeft ?? null,
+          active_finite_animations: animations.filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime)).length,
+          active_other_animations: animations.filter(animation => !Number.isFinite(animation.effect?.getComputedTiming().endTime)).length
+        },
         viewport: { width: innerWidth, height: innerHeight, scroll_x: scrollX, scroll_y: scrollY }
       };
     }, index);
     (activeCase.modal_interactions ||= []).push({ mode, image_index: index, stage, ...state });
   };
   try {
+    await recordModalState('before-scroll');
+    lastStep = 'scroll real image wrapper into view (' + mode + ')';
+    await selected.locator('..').scrollIntoViewIfNeeded();
+    lastStep = 'settle real image wrapper before hover (' + mode + ')';
+    await settleImageMotion(target, index, false);
     await recordModalState('before-hover');
     lastStep = 'hover real image wrapper (' + mode + ')';
     await selected.locator('..').hover();
     await recordModalState('after-hover');
-    lastStep = 'wait for hover-revealed image button (' + mode + ')';
-    await selected.waitFor({ state: 'visible' });
+    lastStep = 'settle real hover-revealed image button (' + mode + ')';
+    await settleImageMotion(target, index, true);
+    await recordModalState('hover-settled');
     // Observe the real Bootstrap event before clicking. Visibility alone can be
     // true during fade-in, when Bootstrap still ignores an immediate hide().
     await target.locator('#imgRemoveModal').evaluate(modal => {
@@ -377,6 +446,7 @@ async function removeImage(target, imagePath, mode = 'success', csrfKind = null)
     check(await target.evaluate(() => window.__acceptanceModalShown === true), 'Real removal modal completes its shown event before confirmation');
     await recordModalState('modal-shown');
   } catch (error) {
+    (activeCase.modal_actionability_failures ||= []).push({ mode, step: lastStep, categories: actionabilityCategories(error) });
     try { await recordModalState('interaction-failed'); } catch { /* The original failure remains authoritative. */ }
     throw error;
   }
