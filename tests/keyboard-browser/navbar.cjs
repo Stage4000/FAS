@@ -109,6 +109,17 @@ function assertCatalogContent(catalog) {
     assert.equal(catalog.inputName, 'search');
 }
 
+function adjacentExteriorPixel(point, side) {
+    // Choose the first fully external pixel, not an extra pixel farther away.
+    // Right/bottom edges at integer coordinates already border that pixel;
+    // left/top edges border the preceding pixel. Fractional edges round outward.
+    const axis = side === 'left' || side === 'right' ? 0 : 1;
+    const pixel = point.map(Math.floor);
+    pixel[axis] = side === 'left' || side === 'top'
+        ? Math.floor(point[axis]) - 1 : Math.ceil(point[axis]);
+    return pixel;
+}
+
 function assertOutline(g, screenshot) {
     const r = g.rect, outer = g.offset + g.outlineWidth;
     assert(g.focusVisible && g.visible && g.unobscured, 'keyboard focus is visible and unobscured');
@@ -134,7 +145,8 @@ function assertOutline(g, screenshot) {
             ['top', distance => [x, r.top - distance]], ['bottom', distance => [x, r.bottom + distance]],
         ]) {
             const ring = png.pixel(...point(g.offset + g.outlineWidth / 2));
-            const inner = png.pixel(...point(g.offset / 2)), outside = png.pixel(...point(outer + 1));
+            const outsideCoordinate = adjacentExteriorPixel(point(outer), side);
+            const inner = png.pixel(...point(g.offset / 2)), outside = png.pixel(...outsideCoordinate);
             // Compare the actual paint with the system RGBA color composited
             // over both neighboring samples. Contrast still uses actual pixels.
             const expected = [inner, outside].map(background => rgb.map((value, i) =>
@@ -143,7 +155,7 @@ function assertOutline(g, screenshot) {
                 `${side} outline painted, not obscured`);
             const ratios = [contrast(ring, inner), contrast(ring, outside)];
             assert(ratios.every(value => value >= 3), `${side} rendered focus contrast >= 3:1`);
-            samples.push({side, fraction, ring, inner, outside, expected, ratios});
+            samples.push({side, fraction, ring, inner, outside, outsideCoordinate, expected, ratios});
         }
     }
     return samples;
@@ -359,5 +371,5 @@ async function main() {
     process.exitCode = failures.length ? 1 : 0;
 }
 
-module.exports = {contrast, decodeScreenshot, parseOutlineColor, assertOutline, assertCatalogContent};
+module.exports = {contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent};
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});

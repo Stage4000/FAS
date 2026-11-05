@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const zlib = require('node:zlib');
-const {contrast, decodeScreenshot, parseOutlineColor, assertOutline, assertCatalogContent} = require('./navbar.cjs');
+const {contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent} = require('./navbar.cjs');
 let checks = 0;
 function crc32(bytes) {
     let crc = 0xffffffff;
@@ -58,13 +58,14 @@ const geometry = {
     outline: 'solid', outlineColor: 'rgb(255, 255, 255)', shadow: 'none', transition: 'none',
     viewport: {width: 100, height: 80}, documentWidth: 100, clipping: [],
 };
-function ringScreenshot(ring, background, painted = true) {
+function ringScreenshot(ring, background, painted = true, overrides = []) {
     const pixels = Buffer.alloc(100 * 80 * 3);
     for (let y = 0; y < 80; y++) for (let x = 0; x < 100; x++) {
         const onRing = painted && x >= 14 && x < 86 && y >= 14 && y < 66 &&
             !(x >= 17 && x < 83 && y >= 17 && y < 63);
         pixels.set(onRing ? ring : background, (y * 100 + x) * 3);
     }
+    for (const [x, y, rgb] of overrides) pixels.set(rgb, (y * 100 + x) * 3);
     return png(100, 80, 3, pixels, 4);
 }
 const good = ringScreenshot([255, 255, 255], [33, 37, 41]);
@@ -101,5 +102,30 @@ assertCatalogContent(catalog); checks++;
 for (const key of Object.keys(catalog)) {
     assert.throws(() => assertCatalogContent({...catalog, [key]: undefined})); checks++;
     assert.throws(() => assertCatalogContent({...catalog, [key]: 'wrong-destination'})); checks++;
+}
+// Pixel-boundary regression: the first completely exterior pixel is directional.
+for (const [side, edge, expected] of [
+    ['left', [14, 40], [13, 40]], ['right', [86, 40], [86, 40]],
+    ['top', [50, 14], [50, 13]], ['bottom', [50, 66], [50, 66]],
+    ['left', [14.25, 40.6], [13, 40]], ['right', [86.25, 40.6], [87, 40]],
+    ['top', [50.6, 14.25], [50, 13]], ['bottom', [50.6, 66.25], [50, 67]],
+    ['left', [13.75, 40.6], [12, 40]], ['right', [85.75, 40.6], [86, 40]],
+    ['top', [50.6, 13.75], [50, 12]], ['bottom', [50.6, 65.75], [50, 66]],
+]) { assert.deepEqual(adjacentExteriorPixel(edge, side), expected); checks++; }
+// CI's Cart outline is intact. A Facebook glyph fringe one pixel beyond the
+// actual adjacent background must not be mistaken for the outline's underlay.
+for (const [color, background, rendered, fringe] of [
+    ['rgba(5, 0, 73, 0.8)', [255, 255, 255], [55, 51, 109], [255, 231, 225]],
+    ['rgba(0, 230, 255, 0.8)', [0, 0, 0], [0, 184, 204], [7, 31, 0]],
+]) {
+    assert.equal(assertOutline({...geometry, forced: true, outlineColor: color},
+        ringScreenshot(rendered, background, true, [[87, 40, fringe]])).length, 12); checks++;
+}
+// Do not skip actual adjacent low contrast or accept an absent/obscured ring.
+assert.throws(() => assertOutline(geometry,
+    ringScreenshot([255, 255, 255], [33, 37, 41], true, [[86, 40, [255, 255, 255]]])), /contrast/); checks++;
+for (const badRing of [[33, 37, 41], [255, 0, 255]]) {
+    assert.throws(() => assertOutline(geometry,
+        ringScreenshot([255, 255, 255], [33, 37, 41], true, [[84, 40, badRing]])), /painted/); checks++;
 }
 console.log(`PASS ${checks} navbar helper/negative checks (not browser acceptance)`);

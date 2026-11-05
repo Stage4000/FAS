@@ -42,7 +42,9 @@ clipping bounds, no horizontal overflow, and unobscured focus. Opaque screenshot
 pixels at three straight-edge locations per side must match the computed outline
 color (alpha-composited for Chromium's forced-color system palette) and contrast
 at least 3:1 with both adjacent background samples. Authored focus remains opaque
-outside forced colors. This checks
+outside forced colors. The external background sample is the nearest fully
+outside pixel, rounding outward at fractional edges; it does not skip an extra
+pixel into neighboring text or icons. This checks
 painted focus rather than only declared CSS; it is sampled evidence, not a full
 perimeter pixel audit. Brand and collapse buttons are traversed but are outside
 the nine-control outline-change scope. The real header has no dropdown menu.
