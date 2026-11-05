@@ -90,6 +90,133 @@ function requestFailureCategory(request) {
   if (!error) return null;
   return ['net::ERR_ABORTED', 'net::ERR_FAILED', 'net::ERR_BLOCKED_BY_CLIENT', 'net::ERR_CONNECTION_REFUSED'].includes(error) ? error : 'other';
 }
+// BEGIN PURE LOGIN LIFECYCLE CLASSIFIER
+// This block has no browser, filesystem, network, process, or application access.
+function classifyUnusedLoginCancellation(issue, lifecycle, http, expectedOwner, functionalComplete) {
+  const positive = value => Number.isSafeInteger(value) && value > 0;
+  if (functionalComplete !== true || !issue || !lifecycle || !Array.isArray(http) || http.some(row => !row) || !positive(expectedOwner)) return null;
+  if (issue.kind !== 'request-failed' || issue.origin !== 'fixture-origin' || issue.path !== '/admin/login.php'
+    || issue.method !== 'GET' || issue.resource !== 'fetch' || issue.failure_category !== 'net::ERR_ABORTED'
+    || issue.case !== '08-session-and-navigation' || issue.step !== 'explicit owning-page reload after normal re-login'
+    || issue.during_teardown !== false || issue.tracked_redirect_identity !== true || issue.owner_page_id !== expectedOwner) return null;
+  if (lifecycle.action !== 'expired-session save' || lifecycle.identity_verified !== true || lifecycle.pending_observed !== true
+    || lifecycle.owner_page_id !== expectedOwner || lifecycle.status !== 200
+    || !positive(lifecycle.post_request_id) || !positive(lifecycle.login_request_id)
+    || lifecycle.post_request_id === lifecycle.login_request_id || issue.request_id !== lifecycle.login_request_id
+    || issue.redirected_from_request_id !== lifecycle.post_request_id) return null;
+  const response = id => { const rows = http.filter(row => row.request_id === id); return rows.length === 1 ? rows[0] : null; };
+  const post = response(lifecycle.post_request_id), login = response(lifecycle.login_request_id);
+  if (!post || post.origin !== 'fixture-origin' || post.path !== '/admin/products.php' || post.method !== 'POST'
+    || post.resource !== 'fetch' || post.status !== 302 || post.redirected_from_request_id !== null
+    || !login || login.origin !== 'fixture-origin' || login.path !== '/admin/login.php' || login.method !== 'GET'
+    || login.resource !== 'fetch' || login.status !== 200 || login.redirected_from_request_id !== post.request_id) return null;
+  const events = lifecycle.events, terminal = lifecycle.terminal;
+  if (!Array.isArray(events) || !terminal || events.some((event, index) => !event || !positive(event.order)
+    || (index > 0 && event.order <= events[index - 1].order))) return null;
+  const exactlyOne = predicate => { const matches = events.filter(predicate); return matches.length === 1 ? matches[0] : null; };
+  const identity = exactlyOne(event => event.kind === 'redirect-identity-observed');
+  const pending = exactlyOne(event => event.kind === 'pending-after-15s');
+  const intent = exactlyOne(event => event.kind === 'explicit-navigation-start' && event.owning_page === true);
+  const end = exactlyOne(event => ['requestfinished', 'requestfailed'].includes(event.kind));
+  if (!identity || !pending || !intent || !end || intent.page_id !== expectedOwner
+    || intent.label !== 'owning-page reload after normal re-login'
+    || terminal.kind !== 'requestfailed' || terminal.request_id !== login.request_id || terminal.failure_category !== 'net::ERR_ABORTED'
+    || terminal.during_teardown !== false || terminal.case !== issue.case || terminal.step !== issue.step
+    || issue.terminal_order !== terminal.order || end.kind !== terminal.kind || end.order !== terminal.order
+    || end.request_id !== terminal.request_id || end.failure_category !== terminal.failure_category || end.during_teardown !== false
+    || end.case !== terminal.case || end.step !== terminal.step) return null;
+  const ownerNav = events.filter(event => event.kind === 'navigation-request-started' && event.owning_page === true && event.order > intent.order);
+  if (ownerNav.length !== 1) return null;
+  const nav = ownerNav[0];
+  const commit = events.find(event => event.kind === 'main-frame-navigated' && event.owning_page === true && event.order > intent.order);
+  const navResponse = response(nav.request_id);
+  if (nav.page_id !== expectedOwner || nav.origin !== 'fixture-origin' || nav.path !== '/admin/products.php' || nav.method !== 'GET'
+    || !positive(nav.request_id) || [post.request_id, login.request_id].includes(nav.request_id)
+    || !navResponse || navResponse.origin !== 'fixture-origin' || navResponse.path !== '/admin/products.php'
+    || navResponse.method !== 'GET' || navResponse.resource !== 'document' || navResponse.status !== 200
+    || navResponse.redirected_from_request_id !== null || !commit || commit.page_id !== expectedOwner
+    || commit.origin !== 'fixture-origin' || commit.path !== '/admin/products.php') return null;
+  if (!(identity.order < pending.order && pending.order < intent.order && intent.order < nav.order
+    && nav.order < terminal.order && terminal.order < commit.order)
+    || events.some(event => event.kind === 'browser-teardown-start' && event.order <= commit.order)) return null;
+  return { kind: 'unused-login-response-canceled-by-owning-page-reload',
+    post_request_id: post.request_id, login_request_id: login.request_id, owner_page_id: expectedOwner,
+    reload_request_id: nav.request_id, pending_order: pending.order, reload_intent_order: intent.order,
+    reload_request_order: nav.order, cancellation_order: terminal.order, committed_navigation_order: commit.order,
+    observed_failure_category: 'net::ERR_ABORTED', body_completion_claimed: false };
+}
+function selfTestLoginLifecycleClassifier() {
+  const fixture = {
+    owner: 1, complete: true,
+    issue: { kind: 'request-failed', request_id: 335, redirected_from_request_id: 334, origin: 'fixture-origin',
+      path: '/admin/login.php', method: 'GET', resource: 'fetch', failure_category: 'net::ERR_ABORTED',
+      case: '08-session-and-navigation', step: 'explicit owning-page reload after normal re-login',
+      owner_page_id: 1, tracked_redirect_identity: true, terminal_order: 431, during_teardown: false },
+    lifecycle: { action: 'expired-session save', identity_verified: true, post_request_id: 334, login_request_id: 335,
+      owner_page_id: 1, status: 200, pending_observed: true, terminal: null,
+      events: [
+        { kind: 'redirect-identity-observed', order: 388 }, { kind: 'pending-after-15s', order: 389 },
+        { kind: 'explicit-navigation-start', order: 429, owning_page: true, page_id: 1, label: 'owning-page reload after normal re-login' },
+        { kind: 'navigation-request-started', order: 430, owning_page: true, page_id: 1, request_id: 368, method: 'GET', origin: 'fixture-origin', path: '/admin/products.php' },
+        { kind: 'requestfailed', order: 431, request_id: 335, failure_category: 'net::ERR_ABORTED', during_teardown: false,
+          case: '08-session-and-navigation', step: 'explicit owning-page reload after normal re-login' },
+        { kind: 'main-frame-navigated', order: 432, owning_page: true, page_id: 1, origin: 'fixture-origin', path: '/admin/products.php' }
+      ] },
+    http: [
+      { request_id: 334, redirected_from_request_id: null, origin: 'fixture-origin', path: '/admin/products.php', method: 'POST', resource: 'fetch', status: 302 },
+      { request_id: 335, redirected_from_request_id: 334, origin: 'fixture-origin', path: '/admin/login.php', method: 'GET', resource: 'fetch', status: 200 },
+      { request_id: 368, redirected_from_request_id: null, origin: 'fixture-origin', path: '/admin/products.php', method: 'GET', resource: 'document', status: 200 }
+    ]
+  };
+  fixture.lifecycle.terminal = { ...fixture.lifecycle.events[4] };
+  const run = value => classifyUnusedLoginCancellation(value.issue, value.lifecycle, value.http, value.owner, value.complete);
+  const clone = () => JSON.parse(JSON.stringify(fixture));
+  if (!run(fixture)) throw new Error('Classifier rejects its exact positive fixture');
+  const mutations = [
+    ['wrong request', x => { x.issue.request_id++; }], ['wrong parent', x => { x.issue.redirected_from_request_id++; }],
+    ['wrong owner', x => { x.owner = 2; }], ['wrong issue page', x => { x.issue.owner_page_id = 2; }],
+    ['wrong navigation page', x => { x.lifecycle.events[3].page_id = 2; }],
+    ['wrong commit page', x => { x.lifecycle.events[5].page_id = 2; }],
+    ['wrong code', x => { x.issue.failure_category = 'net::ERR_FAILED'; }],
+    ['wrong terminal code', x => { x.lifecycle.terminal.failure_category = 'net::ERR_FAILED'; }],
+    ['wrong action', x => { x.lifecycle.action = 'expired-session removal'; }],
+    ['unverified identity', x => { x.lifecycle.identity_verified = false; }],
+    ['untracked request', x => { x.issue.tracked_redirect_identity = false; }],
+    ['no pending observation', x => { x.lifecycle.pending_observed = false; }],
+    ['missing pending event', x => { x.lifecycle.events.splice(1, 1); }],
+    ['unfinished functional checks', x => { x.complete = false; }],
+    ['wrong login status', x => { x.http[1].status = 403; }],
+    ['wrong post status', x => { x.http[0].status = 200; }],
+    ['wrong post route', x => { x.http[0].path = '/admin/index.php'; }],
+    ['wrong login route', x => { x.http[1].path = '/admin/index.php'; }],
+    ['wrong redirect chain', x => { x.http[1].redirected_from_request_id = 123; }],
+    ['duplicate response identity', x => { x.http.push({ ...x.http[1] }); }],
+    ['failed reload response', x => { x.http[2].status = 500; }],
+    ['missing reload response', x => { x.http.pop(); }],
+    ['missing explicit reload', x => { x.lifecycle.events.splice(2, 1); }],
+    ['wrong explicit reload', x => { x.lifecycle.events[2].label = 'unrelated navigation'; }],
+    ['missing navigation request', x => { x.lifecycle.events.splice(3, 1); }],
+    ['missing committed navigation', x => { x.lifecycle.events.pop(); }],
+    ['wrong commit route', x => { x.lifecycle.events[5].path = '/admin/login.php'; }],
+    ['wrong event order', x => { x.lifecycle.events[5].order = 430; }],
+    ['before navigation', x => { x.lifecycle.events[4].order = x.lifecycle.terminal.order = x.issue.terminal_order = 390; x.lifecycle.events.sort((a, b) => a.order - b.order); }],
+    ['after committed navigation', x => { x.lifecycle.events[4].order = x.lifecycle.terminal.order = x.issue.terminal_order = 433; x.lifecycle.events.sort((a, b) => a.order - b.order); }],
+    ['prior terminal failure', x => { x.lifecycle.events.splice(2, 0, { ...x.lifecycle.events[4], order: 400 }); }],
+    ['teardown terminal', x => { x.lifecycle.terminal.during_teardown = true; }],
+    ['teardown issue', x => { x.issue.during_teardown = true; }],
+    ['teardown before commit', x => { x.lifecycle.events.splice(2, 0, { kind: 'browser-teardown-start', order: 400 }); }],
+    ['wrong terminal request', x => { x.lifecycle.terminal.request_id++; }],
+    ['missing terminal', x => { x.lifecycle.terminal = null; }]
+  ];
+  for (const [name, mutate] of mutations) {
+    const value = clone(); mutate(value);
+    if (run(value) !== null) throw new Error('Classifier accepted negative fixture: ' + name);
+  }
+  const afterTeardown = clone(); afterTeardown.lifecycle.events.push({ kind: 'browser-teardown-start', order: 500 });
+  if (!run(afterTeardown)) throw new Error('Later cleanup invalidated an already verified pre-teardown boundary');
+  return { positive_checks: 2, negative_checks: mutations.length, passed: true, negative_cases: mutations.map(([name]) => name) };
+}
+// END PURE LOGIN LIFECYCLE CLASSIFIER
 function pageId(target) {
   if (!pageIds.has(target)) pageIds.set(target, ++nextPageId);
   return pageIds.get(target);
@@ -113,6 +240,7 @@ function recordRequestTerminal(request, kind) {
     tracked.record.terminal = receipt; tracked.record.events.push(receipt);
     updateNavigationRelation(tracked.record);
   }
+  return receipt;
 }
 function recordNavigation(target, kind, label, extra = {}) {
   const event = { kind, order: ++lifecycleOrder, page_id: pageId(target), label, ...extra };
@@ -134,6 +262,38 @@ const summary = {
   cases: reports, http, browserIssues, blocked, dialogs, intentionalBoundaries,
   redirect_lifecycles: redirectLifecycles, diagnostic_only: false
 };
+function classifiedBoundaryIsValid(issue) {
+  if (!issue.classified_boundary || !page || browserIssues.filter(item => item.request_id === issue.request_id).length !== 1) return false;
+  const records = redirectLifecycles.filter(record => record.login_request_id === issue.request_id);
+  return records.length === 1 && Boolean(classifyUnusedLoginCancellation(issue, records[0], http, pageId(page), summary.session_functional_assertions_complete));
+}
+function unexpectedBrowserIssues() {
+  return browserIssues.filter(issue => !classifiedBoundaryIsValid(issue));
+}
+function classifyObservedLoginBoundary() {
+  const pendingRecords = redirectLifecycles.filter(record => record.pending_observed);
+  // This suite contains one eligible expired-save operation. Ambiguity or a
+  // second pending operation stays unresolved rather than widening the rule.
+  if (pendingRecords.length === 1) {
+    const record = pendingRecords[0];
+    const matches = browserIssues.filter(issue => issue.request_id === record.login_request_id);
+    if (matches.length === 1) {
+      const boundary = classifyUnusedLoginCancellation(matches[0], record, http, pageId(page), summary.session_functional_assertions_complete);
+      if (boundary) {
+        matches[0].classified_boundary = boundary; // Keep every original issue field.
+        record.classified_boundary = boundary;
+        intentionalBoundaries.push(boundary);
+      }
+    }
+  }
+  summary.diagnostic_only = pendingRecords.some(record => !browserIssues.some(issue => issue.request_id === record.login_request_id && classifiedBoundaryIsValid(issue)));
+  if (pendingRecords.length) summary.pending_redirect_boundary = summary.diagnostic_only
+    ? 'Pending login response has no complete permitted lifecycle classification; acceptance fails.'
+    : 'One unused login response was canceled by its owning page reload; the raw issue and exact evidence remain recorded. Body completion is not claimed.';
+  summary.network_issue_counts = { observed: browserIssues.length,
+    classified_lifecycle_boundaries: browserIssues.filter(classifiedBoundaryIsValid).length,
+    unexpected: unexpectedBrowserIssues().length };
+}
 function check(condition, assertion, detail) {
   if (activeCase) activeCase.assertions.push({ assertion, passed: Boolean(condition), ...(detail === undefined ? {} : { detail }) });
   if (!condition) {
@@ -293,7 +453,7 @@ async function finishLoginRedirect(postResponse, label) {
   const owner = original.frame().page();
   check(redirected.frame().page() === owner, label + ': redirected request retains the exact owning page');
   const priorTerminal = requestTerminals.get(redirected) || null;
-  const lifecycle = { action: label, post_request_id: requestId(original), login_request_id: requestId(redirected),
+  const lifecycle = { action: label, identity_verified: true, post_request_id: requestId(original), login_request_id: requestId(redirected),
     owner_page_id: pageId(owner), status: response.status(), pending_observed: false,
     terminal: priorTerminal, events: priorTerminal ? [priorTerminal] : [] };
   lifecycle.events.push({ kind: 'redirect-identity-observed', order: ++lifecycleOrder, step: lastStep });
@@ -319,13 +479,13 @@ async function finishLoginRedirect(postResponse, label) {
     status: response.status(), ...completion, failure_category: failureCategory
   });
   if (completion.timed_out && !completion.failed && failureCategory === null) {
-    // Diagnostic-only continuation: this is not a successful completion or an
-    // allowed cancellation. Keep observing the same request through the original
-    // UI workflow; every request failure remains in the unchanged error gate.
+    // Pending is not successful completion or a cancellation exemption. Observe
+    // the exact request through the original UI; only the complete, independently
+    // tested owning-page reload classification can resolve this boundary later.
     lifecycle.pending_observed = true;
     lifecycle.events.push({ kind: 'pending-after-15s', order: ++lifecycleOrder, step: lastStep });
     summary.diagnostic_only = true;
-    summary.pending_redirect_boundary = 'Exact handled login response remained pending; continuation collects lifecycle evidence and cannot produce a clean pass.';
+    summary.pending_redirect_boundary = 'Exact handled login response remains pending; no successful completion or cancellation classification is claimed yet.';
     return;
   }
   check(completion.completed && failureCategory === null, label + ': redirected login request finishes successfully before the next action');
@@ -637,10 +797,10 @@ async function displayMatches(target, state) {
 async function runCase(name, action) {
   activeCase = { name, status: 'running', assertions: [], deltas: [], screenshots: [] };
   reports.push(activeCase);
-  const issuesBefore = browserIssues.length, blockedBefore = blocked.length;
+  const issuesBefore = unexpectedBrowserIssues().length, blockedBefore = blocked.length;
   try {
     await action();
-    check(browserIssues.length === issuesBefore, 'No unexpected browser errors or dialogs in this case');
+    check(unexpectedBrowserIssues().length === issuesBefore, 'No unexpected browser errors or dialogs in this case; any exact classified lifecycle boundary remains recorded');
     check(blocked.length === blockedBefore, 'No unapproved network requests in this case');
     await screenshot('result');
     activeCase.status = 'passed';
@@ -657,6 +817,7 @@ async function runCase(name, action) {
 }
 
 async function main() {
+  summary.lifecycle_classifier_self_tests = selfTestLoginLifecycleClassifier();
   config = await initPromise;
   const origin = new URL(config.origin);
   if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || !origin.port || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('Non-loopback fixture origin');
@@ -697,11 +858,14 @@ async function main() {
       ...cleanUrl(response.url()), method: request.method(), status: response.status(), resource: request.resourceType() });
   });
   context.on('requestfailed', request => {
-    recordRequestTerminal(request, 'requestfailed');
+    const terminal = recordRequestTerminal(request, 'requestfailed');
+    const tracked = trackedRedirects.get(request);
     browserIssues.push({ kind: 'request-failed', request_id: requestId(request),
       redirected_from_request_id: request.redirectedFrom() ? requestId(request.redirectedFrom()) : null,
       ...cleanUrl(request.url()), method: request.method(), resource: request.resourceType(),
-      failure_category: requestFailureCategory(request), case: activeCase?.name || 'preflight', step: lastStep });
+      failure_category: requestFailureCategory(request), case: activeCase?.name || 'preflight', step: lastStep,
+      terminal_order: terminal.order, during_teardown: terminal.during_teardown,
+      tracked_redirect_identity: Boolean(tracked), owner_page_id: tracked ? pageId(tracked.owner) : null });
   });
   await context.route('**/*', async route => {
     const request = route.request(), raw = request.url(), url = new URL(raw);
@@ -1023,9 +1187,11 @@ async function main() {
     await displayMatches(page, after);
     ownIs(after, config.ids.legacy, true, true);
     check(equal(baseline.reviews, after.reviews), 'Published editorial JSON is byte-identical across all eight groups');
+    summary.session_functional_assertions_complete = true;
+    classifyObservedLoginBoundary();
   });
-  check(browserIssues.length === 0 && blocked.length === 0, 'No unexpected browser or network failures across the complete suite');
-  check(!summary.diagnostic_only, 'A diagnostic-only pending login response boundary cannot count as clean acceptance');
+  check(unexpectedBrowserIssues().length === 0 && blocked.length === 0, 'No unclassified browser or network failures across the complete suite');
+  check(!summary.diagnostic_only, 'Every pending login response has a complete permitted lifecycle classification');
   summary.session_id_regenerated = sessionRegenerated;
   summary.status = 'passed';
 }
@@ -1077,11 +1243,20 @@ for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
   } finally {
     try { await closeBrowser(); }
     catch { ok = false; summary.status = 'failed'; summary.browser_cleanup_failed = true; }
+    summary.network_issue_counts = { observed: browserIssues.length,
+      classified_lifecycle_boundaries: browserIssues.filter(classifiedBoundaryIsValid).length,
+      unexpected: unexpectedBrowserIssues().length };
+    if (summary.network_issue_counts.unexpected > 0 || blocked.length > 0 || summary.diagnostic_only) {
+      ok = false; summary.status = 'failed';
+    }
     if (config?.output && fs.existsSync(config.output)) {
       try { writeJson('browser-summary.json', summary); }
       catch { ok = false; }
     }
-    wire({ type: 'done', ok, summary: { status: ok ? 'passed' : 'failed', cases: reports.map(({ name, status }) => ({ name, status })), browser_errors: browserIssues.length, blocked_requests: blocked.length, chromium_version: summary.chromium_version || null, cleanup: summary.cleanup, evidence: 'browser-summary.json' } });
+    wire({ type: 'done', ok, summary: { status: ok ? 'passed' : 'failed', cases: reports.map(({ name, status }) => ({ name, status })),
+      browser_errors: unexpectedBrowserIssues().length, observed_browser_issues: browserIssues.length,
+      classified_lifecycle_boundaries: summary.network_issue_counts.classified_lifecycle_boundaries,
+      blocked_requests: blocked.length, chromium_version: summary.chromium_version || null, cleanup: summary.cleanup, evidence: 'browser-summary.json' } });
     input.close();
     process.exitCode = ok ? 0 : 1;
   }

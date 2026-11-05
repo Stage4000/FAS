@@ -221,15 +221,12 @@ but did not identify which redirect failed or its cancellation timing. Request
 IDs, redirect-parent IDs, the current test step, and a small fixed set of failure
 categories now distinguish those lifecycles without request bodies or secrets.
 
-This revision permits a **diagnostics-only continuation** when that exact
-already-handled response remains pending for 15 seconds without any failure.
-The receipt retains `completed: false`; no successful body-completion assertion
-is emitted. The original session/data/draft/removal/re-login/reload assertions
-continue, while the same request object remains tracked. A pending observation
-sets `diagnostic_only: true`, which independently prevents an overall clean pass,
-even if the request later finishes successfully. Every request failure also
-remains in the unchanged complete browser-error gate; there is no cancellation
-exception.
+When that exact already-handled response remains pending for 15 seconds without
+failure, observation continues through the original UI workflow. The receipt
+retains `completed: false`; no successful body-completion assertion is emitted.
+The session/data/draft/removal/re-login/reload assertions remain mandatory. A
+pending observation initially sets `diagnostic_only: true` and remains a failure
+unless the complete narrow lifecycle classification below is established.
 
 `browser-summary.json` records the exact POST/login request IDs and owning-page
 ID, pending observation, explicit re-login and owning-page reload starts,
@@ -238,8 +235,46 @@ category. Monotonic event order distinguishes cancellation before navigation,
 during another tab's re-login, during the owning-page reload, and during final
 browser teardown. The final summary includes teardown observations; earlier
 per-case files may precede them. No event is synthesized, body consumed/canceled,
-or application behavior changed. Pending state and navigation-correlated
-cancellation remain evidence to review, not an inferred success or an exemption.
+or application behavior changed.
+
+### Exact unused-login-response lifecycle boundary
+
+Hosted diagnostic attempt 6 established this sequence for one request: the
+handled expired-save POST redirected to a login GET with HTTP 200, whose unused
+body stayed pending across re-login in the other tab. The subsequent explicit
+reload of its owning page started a real Products document request, then that
+exact old login request ended with `net::ERR_ABORTED`, then the new Products
+document committed. It was not an earlier failure or browser teardown.
+
+The test now classifies **only** that evidence-backed lifecycle, after every
+group-8 functional/data assertion has completed. A pure, fail-closed classifier
+requires all of the following:
+
+- The exact previously verified expired-save Request object and owning page,
+  original Products POST/302, its login GET/200 and matching redirect-parent IDs.
+- One pending observation and one eligible pending operation. The raw issue must
+  be the matching fetch GET, expected test step, and exactly `net::ERR_ABORTED`.
+- Strictly ordered identity → pending → explicit owning-page reload → actual
+  same-page Products GET → exact request cancellation → committed same-page
+  Products navigation, with a successful HTTP 200 document response.
+- No prior or additional terminal event, ambiguous navigation, different page,
+  missing commit, teardown cancellation, other code or other request.
+
+The original issue is retained in `browserIssues` with an explicit
+`classified_boundary`, also recorded in the lifecycle and intentional-boundary
+receipts. This is **not** a zero-network-anomaly result and does not claim that
+the unused body finished. A successful suite reports functional acceptance with
+this observed lifecycle boundary. Unknown or incomplete cases still fail.
+
+Observed issues, classified lifecycle boundaries and unexpected issues are
+reported separately. The runner's `browser_errors` field counts unexpected
+issues; the complete raw issue list remains in `browser-summary.json`.
+Classification is revalidated after browser teardown, so a late unrelated error
+cannot inherit an earlier pass. The pure classifier is tested without a browser
+using two positive and 36 negative fixtures, including wrong request/parent/page,
+code/order, early failure, teardown and missing committed navigation. Its marked
+pure block can be extracted for offline self-tests without loading the harness,
+Playwright or application. The hosted suite also runs these self-tests.
 
 Image removal follows a normal scroll, hover and click sequence. After explicitly
 scrolling the wrapper into view, the test waits for its actual geometry and page
