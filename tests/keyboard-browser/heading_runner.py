@@ -4,13 +4,13 @@ import base64, gzip, hashlib, json, re, sqlite3, subprocess
 
 EXPECTED_BASE = '686f9df992f9b6b077b2400870b5a33a3ca6d18d'
 EXPECTED_PATHS = {'index.php', 'products.php', 'api/products.php', 'product.php',
-                  'cart.php', 'includes/product-merchandising.php', 'includes/footer.php', 'public/css/style.css'}
+                  'cart.php', 'includes/product-merchandising.php', 'includes/footer.php', 'public/css/style.css', 'includes/ebay-seller-rating.php'}
 sha256 = lambda data: hashlib.sha256(data).hexdigest()
 INTEGRATION_PATHS = {'tests/keyboard-browser/' + name for name in [
     'run.py','heading_runner.py','heading.cjs','heading-policy.cjs','heading-sources.json',
     'heading-base-tree.json','heading-unit-test.py','heading-policy-test.cjs']}
 EXPECTED_KEYS = {f'{surface}-{width}-{theme}' for surface in
-    ['home','catalog','empty','product','cart','ajax-empty','ajax-populated']
+    ['home','catalog','empty','product','cart','cart-populated','ajax-empty','ajax-populated']
     for width in [1440,390] for theme in ['light','dark']}
 
 def parse_tree(raw):
@@ -62,7 +62,7 @@ def verify_checkout(root):
     candidate = {p:(root/p).read_bytes() for p in EXPECTED_PATHS}
     verify_candidate(manifest, candidate)
     base = json.loads((suite/'heading-base-tree.json').read_text())
-    if base['base_commit'] != EXPECTED_BASE or base['base_tree'] != '5ffe270d1d77b8e15cd92311eea71e51dd7b0b8b':
+    if base['base_commit'] != 'c7122b0e406ce5052bc87bcb443395f5a35d9618' or base['base_tree'] != '3087b90c93484dcd54df0211652b65af696b91ad':
         raise ValueError('Unexpected reference tree')
     if base_tree_hash(base['entries']) != base['base_tree']:
         raise ValueError('Embedded baseline entries do not reconstruct pinned tree')
@@ -91,11 +91,11 @@ def verify_checkout(root):
             'base_tree':base['base_tree'], 'integration_blobs':{p:current[p]['sha'] for p in sorted(INTEGRATION_PATHS)},
             'workflow_blob':current['.github/workflows/keyboard-browser.yml']['sha'],
             'consumed_sha256':{str(p.relative_to(root)):sha256(p.read_bytes()) for p in sorted(set(copied))},
-            'guard':'Every tracked path outside eight source files and eight named integration files equals verified baseline; copied bytes equal checkout blobs.'}
+            'guard':'Every tracked path outside nine source files and eight named integration files equals verified baseline; copied bytes equal checkout blobs.'}
 
 def decode_manifest(manifest):
-    if manifest['base'] != EXPECTED_BASE or {f['path'] for f in manifest['files']} != EXPECTED_PATHS or len(manifest['files']) != 8:
-        raise ValueError('Exact baseline and eight source paths required')
+    if manifest['base'] != EXPECTED_BASE or {f['path'] for f in manifest['files']} != EXPECTED_PATHS or len(manifest['files']) != 9:
+        raise ValueError('Exact baseline and nine source paths required')
     baseline = {}
     for entry in manifest['files']:
         data = gzip.decompress(base64.b64decode(entry['baseline_gzip_b64'], validate=True))
@@ -118,8 +118,37 @@ def cart_restoration(candidate, baseline):
         raise ValueError('Exact Cart parent anchors required')
     restored = dict(candidate)
     restored['cart.php'] = candidate['cart.php'].replace(fixed, old)
-    if restored['cart.php'] != baseline['cart.php']:
-        raise ValueError('Cart restoration must equal verified baseline bytes')
+    # Identity is established by the exact manifest before one reviewed substitution.
+    manifest = json.loads((Path(__file__).parent/'heading-sources.json').read_text())
+    cart_entry=next(e for e in manifest['files'] if e['path']=='cart.php')
+    if sha256(candidate['cart.php']) != cart_entry['candidate_sha256']:
+        raise ValueError('Exact candidate Cart bytes required')
+    restored_residual = residual_restoration(restored, verify=False)
+    if restored_residual['cart.php'] != baseline['cart.php']:
+        raise ValueError('Cart control differs outside reviewed residual anchors')
+    return restored
+
+RESIDUAL_CODES = {'CART_EMPTY_STATUS','CART_SUMMARY','CART_SHIPPING','CART_PAYMENT_LABEL','CART_ITEM','SELLER_IDENTITY'}
+VARIANTS = ['candidate','baseline','cart-parent-restored','residual-restored']
+
+def residual_restoration(candidate, verify=True):
+    manifest = json.loads((Path(__file__).parent/'heading-sources.json').read_text())
+    if verify: verify_candidate(manifest,candidate)
+    changes_map=manifest['residual_changes']
+    if set(changes_map) != {'cart.php','includes/ebay-seller-rating.php'} or [len(changes_map[p]) for p in ['cart.php','includes/ebay-seller-rating.php']] != [5,1] or {c[2] for cs in changes_map.values() for c in cs} != RESIDUAL_CODES:
+        raise ValueError('Exact six residual codes and two paths required')
+    restored = dict(candidate)
+    for path, changes in changes_map.items():
+        for old,new,code in changes:
+            if restored[path].count(new.encode()) != 1:
+                raise ValueError('Exact residual anchor required: '+code)
+            restored[path] = restored[path].replace(new.encode(),old.encode())
+    if verify:
+        base=json.loads((Path(__file__).parent/'heading-base-tree.json').read_text())
+        released={e['path']:e['sha'] for e in base['entries']}
+        for path,data in restored.items():
+            if hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() != released[path]:
+                raise ValueError('Residual restoration must equal exact released source: '+path)
     return restored
 
 def compare_visuals(baseline, candidate):
@@ -141,7 +170,7 @@ def compare_visuals(baseline, candidate):
 
 def evaluate_reports(reports):
     errors = []
-    for variant in ['candidate', 'baseline', 'cart-parent-restored']:
+    for variant in VARIANTS:
         r = reports.get(variant)
         if not r or r.get('infrastructure_failures') or len(r.get('rows',[])) != len(EXPECTED_KEYS) or {row['key'] for row in r['rows']} != EXPECTED_KEYS:
             errors.append(variant + ': missing views or infrastructure failure')
@@ -151,7 +180,7 @@ def evaluate_reports(reports):
         errors.append('candidate semantic assertions failed')
     baseline_codes = {f['code'] for f in reports['baseline']['semantic_failures']}
     required = {'HOME_CATEGORY', 'HOME_FEATURE', 'CATALOG_CARD', 'CATALOG_EMPTY',
-                'PRODUCT_SECTION', 'FOOTER', 'CART_PARENT', 'SHARED_CARD'}
+                'PRODUCT_SECTION', 'FOOTER', 'CART_PARENT', 'SHARED_CARD'} | RESIDUAL_CODES
     if not required.issubset(baseline_codes):
         errors.append('baseline failed to detect every required semantic regression')
     if baseline_codes - (required | {'CATALOG_SIDEBAR'}):
@@ -159,7 +188,10 @@ def evaluate_reports(reports):
     restored = reports['cart-parent-restored']['semantic_failures']
     if not restored or {f['code'] for f in restored} != {'CART_PARENT'}:
         errors.append('Cart negative control must fail only CART_PARENT')
-    errors += compare_visuals(reports['baseline'], reports['candidate'])
+    if {f['code'] for f in reports['residual-restored']['semantic_failures']} != RESIDUAL_CODES:
+        errors.append('Residual control must fail exactly all six residual codes')
+    for variant in VARIANTS[1:]:
+        errors += compare_visuals(reports[variant], reports['candidate'])
     return errors
 
 def seed_recommendations(site):
@@ -183,6 +215,15 @@ def seed_recommendations(site):
                        sku=f'TEST-{product_id}', created_at='2026-09-30', updated_at='2026-09-30')
             db.execute('INSERT INTO products (' + ','.join(columns) + ') VALUES (' + ','.join('?' for _ in columns) + ')',
                        [row[c] for c in columns])
+
+def seed_seller(site):
+    # Disposable database only; real helper/model getLatest uses this exact schema.
+    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+        db.execute("CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    store_name TEXT NOT NULL UNIQUE,\n    seller_name TEXT,\n    feedback_score INTEGER,\n    positive_feedback_percent REAL,\n    store_url TEXT,\n    last_fetched_at TEXT,\n    last_error TEXT,\n    created_at TEXT DEFAULT (datetime('now')),\n    updated_at TEXT DEFAULT (datetime('now'))\n);")
+        if db.execute('SELECT count(*) FROM ebay_seller_rating_cache').fetchone()[0]:
+            raise ValueError('Expected empty synthetic seller cache')
+        db.execute("INSERT INTO ebay_seller_rating_cache(store_name,seller_name,feedback_score,positive_feedback_percent,store_url,last_fetched_at) VALUES(?,?,?,?,?,?)",
+                   ('synthetic-heading-store','Synthetic Heading Seller',123,99.8,'https://example.invalid/synthetic-seller','2026-09-30'))
 
 def restore_database(seed_path, database):
     with sqlite3.connect(seed_path) as source, sqlite3.connect(database) as target:
@@ -215,6 +256,7 @@ def run_heading_variants(root, site, origin, assets, output):
     heading_output.mkdir()
     reports = {}; failures = []
     seed_recommendations(site)
+    seed_seller(site)
     # Reuse the exact same initial synthetic DB for every variant, so read-side
     # setup and session-local data cannot bias the presentation comparison.
     database = site / 'database/flipandstrip.db'
@@ -236,7 +278,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'state_reset':'Identical inventory via SQLite backup; fresh synthetic security/growth stores and isolated PHP sessions for each variant; no active browser between variants.',
                 'scope': 'synthetic local PHP rendering only; no deployment/provider acceptance'}
     try:
-        for variant, source in [('candidate', candidate), ('baseline', baseline), ('cart-parent-restored', restored)]:
+        for variant, source in [('candidate', candidate), ('baseline', baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
             for path, data in source.items():
                 (site / path).write_bytes(data)
             # SQLite backup API handles journal/WAL state; never copy only a live main DB.
@@ -246,7 +288,14 @@ def run_heading_variants(root, site, origin, assets, output):
             directory.mkdir()
             php_log=output/'php.log'
             log_offset=php_log.stat().st_size
+            cache_history=site.parent/'php-runtime.jsonl'
+            cache_offset=cache_history.stat().st_size
             result = subprocess.run(['node', str(suite/'heading.cjs'), origin, str(assets), str(directory)], check=False)
+            cache_bytes=cache_history.read_bytes()[cache_offset:]
+            (directory/'php-runtime.jsonl').write_bytes(cache_bytes)
+            cache_receipts=[json.loads(line) for line in cache_bytes.splitlines()]
+            if not cache_receipts or any(not r['passed'] for r in cache_receipts) or len({r['pid'] for r in cache_receipts}) != 1:
+                failures.append(variant+': missing/invalid same-process cache evidence')
             log_bytes=php_log.read_bytes()[log_offset:]
             (directory/'php.log').write_bytes(log_bytes)
             diagnostics=php_diagnostics(log_bytes.decode(errors='replace'))
@@ -262,6 +311,6 @@ def run_heading_variants(root, site, origin, assets, output):
         verify_candidate(manifest, {p: (site/p).read_bytes() for p in EXPECTED_PATHS})
     failures += evaluate_reports(reports)
     (heading_output/'acceptance.json').write_text(json.dumps({**identity, 'passed':not failures,
-        'failures':failures, 'expected_negative_controls':['baseline','cart-parent-restored'],
+        'failures':failures, 'expected_negative_controls':VARIANTS[1:],
         'candidate_restored':True}, indent=2)+'\n')
     return int(bool(failures))

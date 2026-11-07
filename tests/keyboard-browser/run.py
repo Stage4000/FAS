@@ -51,7 +51,7 @@ def main():
 return [
  'database' => ['path' => __DIR__ . '/../../database/flipandstrip.db'],
  'site' => ['url' => '%s', 'timezone' => 'UTC'],
- 'ebay' => ['store_name' => ''],
+ 'ebay' => ['store_name' => 'synthetic-heading-store'],
  'google_analytics' => ['enabled' => false],
  'tawk' => ['enabled' => false],
  'turnstile' => ['enabled' => false],
@@ -66,6 +66,8 @@ class EbayAPI {
 ''')
         with sqlite3.connect(site / 'database/flipandstrip.db') as db:
             db.executescript((ROOT / 'tests/fixtures/security-catalog.sql').read_text())
+        from heading_runner import seed_seller
+        seed_seller(site)
         # Router only models clean URLs for the PHP development server.
         router = base / 'router.php'
         router.write_text('''<?php
@@ -80,6 +82,7 @@ $_fasCacheDisabled = !$_fasCacheLoaded ||
     ($_fasCacheSetting === '0' && $_fasCacheApi && $_fasCacheStatus === false);
 $_fasCacheReceipt = [
     'sapi' => $_fasSapi,
+    'pid' => getmypid(),
     'opcache_extension_loaded' => $_fasCacheLoaded,
     'opcache_enable' => $_fasCacheSetting === false ? null : $_fasCacheSetting,
     'opcache_status_available' => $_fasCacheApi,
@@ -88,7 +91,8 @@ $_fasCacheReceipt = [
 ];
 // END pure fixture opcode-cache decision
 $_fasCacheWritten = file_put_contents(__DIR__.'/php-runtime.json', json_encode($_fasCacheReceipt)."\\n", LOCK_EX);
-if (!$_fasCacheReceipt['passed'] || $_fasCacheWritten === false) {
+$_fasCacheHistory = file_put_contents(__DIR__.'/php-runtime.jsonl', json_encode($_fasCacheReceipt)."\\n", FILE_APPEND | LOCK_EX);
+if (!$_fasCacheReceipt['passed'] || $_fasCacheWritten === false || $_fasCacheHistory === false) {
     http_response_code(500); echo 'Fixture opcode-cache verification failed'; return true;
 }
 unset($_fasSapi, $_fasCacheLoaded, $_fasCacheSetting, $_fasCacheApi, $_fasCacheStatus,
@@ -134,6 +138,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
                            for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
+                with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                    db.execute('DELETE FROM ebay_seller_rating_cache')
                 from heading_runner import run_heading_variants
                 results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
                 if any(results):
@@ -145,6 +151,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 if not receipt.is_file():
                     raise RuntimeError('Missing same-server opcode-cache evidence')
                 shutil.copy2(receipt, output / 'php-runtime.json')
+                shutil.copy2(base/'php-runtime.jsonl', output/'php-runtime.jsonl')
+                receipts = [json.loads(line) for line in (base/'php-runtime.jsonl').read_text().splitlines()]
+                if not receipts or any(not r['passed'] or r['pid'] != server.pid for r in receipts):
+                    raise RuntimeError('Per-request same-process cache evidence failed')
                 if not json.loads(receipt.read_text()).get('passed'):
                     raise RuntimeError('Same-server opcode-cache verification failed')
 

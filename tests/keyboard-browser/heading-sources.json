@@ -55,8 +55,52 @@
       "path": "cart.php",
       "baseline_git_blob": "1f9f98b87ef53eebdc3bed1f509ab418e8b8ee90",
       "baseline_sha256": "30092f1fe14f4025ca95d119b7f86e468691aa8f38154b326c753d968bc6fc40",
-      "candidate_sha256": "968e5ad7eab609ba94ab10c79a7175bd021c71b4c6fb59a5550ad997350e63b0",
+      "candidate_sha256": "31408066a41b8b31820f059059ff07e5647ede30083c3d7bbdec612bcda37b70",
       "baseline_gzip_b64": "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"
+    },
+    {
+      "path": "includes/ebay-seller-rating.php",
+      "baseline_git_blob": "ba035a437d705891665fcb9f886cd6547f7436a5",
+      "baseline_sha256": "410173975294f1203b0b6f3dbc1b2d47453c9c1eac3d238f0936a4316be51aa6",
+      "baseline_gzip_b64": "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",
+      "candidate_sha256": "c68d2b904b82e2378179ea8bd7ca2c63164d4c4f9bfa162f755ca362bed554bf"
     }
-  ]
+  ],
+  "residual_changes": {
+    "cart.php": [
+      [
+        "<h3>Your cart is empty</h3>",
+        "<p class=\"h3\">Your cart is empty</p>",
+        "CART_EMPTY_STATUS"
+      ],
+      [
+        "<h4 class=\"mb-4\">Order Summary</h4>",
+        "<h2 class=\"h4 mb-4\">Order Summary</h2>",
+        "CART_SUMMARY"
+      ],
+      [
+        "<h5 class=\"h6 fw-bold mb-2\">\n<i class=\"fas fa-truck-fast text-danger me-1\"></i>Shipping Estimate\n</h5>",
+        "<h3 class=\"h6 fw-bold mb-2\">\n<i class=\"fas fa-truck-fast text-danger me-1\"></i>Shipping Estimate\n</h3>",
+        "CART_SHIPPING"
+      ],
+      [
+        "<h6 class=\"mb-3\">We Accept</h6>",
+        "<p class=\"h6 mb-3\">We Accept</p>",
+        "CART_PAYMENT_LABEL"
+      ],
+      [
+        "<h6 class=\"mb-1 fw-bold\">${itemTitle}</h6>",
+        "<h2 class=\"h6 mb-1 fw-bold\">${itemTitle}</h2>",
+        "CART_ITEM"
+      ]
+    ],
+    "includes/ebay-seller-rating.php": [
+      [
+        "<h6 class=\"mb-1\"><?php echo $sellerName; ?></h6>",
+        "<p class=\"h6 mb-1\"><?php echo $sellerName; ?></p>",
+        "SELLER_IDENTITY"
+      ]
+    ]
+  },
+  "residual_patch_sha256": "d6478ce4a7c8185dd710f191b15146ef9d56b48bd3a4ca3a0fb08c50a34600a8"
 }

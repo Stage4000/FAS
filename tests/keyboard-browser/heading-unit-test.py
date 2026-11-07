@@ -18,14 +18,14 @@ def rejected(fn):
     except (ValueError, KeyError): return
     raise AssertionError('Mutation was incorrectly accepted')
 
-check(len(baseline)==8)
+check(len(baseline)==9)
 base_map=json.loads((suite/'heading-base-tree.json').read_text())
 check(h.base_tree_hash(base_map['entries'])==base_map['base_tree'])
 bad_entries=copy.deepcopy(base_map['entries']);bad_entries[0]['sha']='0'*40
 check(h.base_tree_hash(bad_entries)!=base_map['base_tree'])
 for field,value in [('base','wrong')]:
     bad=copy.deepcopy(manifest);bad[field]=value;rejected(lambda:h.decode_manifest(bad))
-for index in range(8):
+for index in range(9):
     bad=copy.deepcopy(manifest);bad['files'][index]['baseline_sha256']='0'*64
     rejected(lambda:h.decode_manifest(bad))
 bad=copy.deepcopy(manifest);bad['files'].append(bad['files'][0]);rejected(lambda:h.decode_manifest(bad))
@@ -40,16 +40,34 @@ for path in baseline:
     rejected(lambda:h.verify_candidate(synthetic_manifest,changed))
 cart_candidate=dict(baseline)
 cart_candidate['cart.php']=baseline['cart.php'].replace(b'<h4 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h4>',b'<h2 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h2>')
-check(h.cart_restoration(cart_candidate,baseline)==baseline)
+for path,changes in manifest['residual_changes'].items():
+    for old,new,code in changes:
+        cart_candidate[path]=cart_candidate[path].replace(old.encode(),new.encode())
+restored=h.cart_restoration(cart_candidate,baseline)
+check(h.residual_restoration(restored,verify=False)==baseline)
+check(restored['includes/ebay-seller-rating.php']==cart_candidate['includes/ebay-seller-rating.php'])
+for path,changes in manifest['residual_changes'].items():
+    for old,new,code in changes:
+        check(h.residual_restoration(cart_candidate,verify=False)[path].count(old.encode())==1)
+        bad=dict(cart_candidate);bad[path]=bad[path].replace(new.encode(),b'missing')
+        rejected(lambda:h.residual_restoration(bad,verify=False))
 bad=dict(cart_candidate);bad['cart.php']+=b'changed';rejected(lambda:h.cart_restoration(bad,baseline))
 
 row=lambda key:{'key':key,'visual':[{'text':'Synthetic heading','visible':True,'style':{'fontSize':'20px'},'rect':{'x':0,'y':0,'width':100,'height':20}}]}
 empty={'rows':[row(k) for k in sorted(h.EXPECTED_KEYS)],'semantic_failures':[],'infrastructure_failures':[]}
-reports={name:copy.deepcopy(empty) for name in ['candidate','baseline','cart-parent-restored']}
+reports={name:copy.deepcopy(empty) for name in h.VARIANTS}
 required=['HOME_CATEGORY','HOME_FEATURE','CATALOG_CARD','CATALOG_EMPTY','PRODUCT_SECTION','FOOTER','CART_PARENT','SHARED_CARD']
-reports['baseline']['semantic_failures']=[{'code':c} for c in required]
+reports['baseline']['semantic_failures']=[{'code':c} for c in required+sorted(h.RESIDUAL_CODES)]
+reports['residual-restored']['semantic_failures']=[{'code':c} for c in sorted(h.RESIDUAL_CODES)]
 reports['cart-parent-restored']['semantic_failures']=[{'code':'CART_PARENT'}]
 check(h.evaluate_reports(reports)==[])
+for variant in ['baseline','residual-restored']:
+    for code in (set(required)|h.RESIDUAL_CODES if variant=='baseline' else h.RESIDUAL_CODES):
+        bad=copy.deepcopy(reports);bad[variant]['semantic_failures']=[f for f in bad[variant]['semantic_failures'] if f['code']!=code]
+        check(bool(h.evaluate_reports(bad)))
+bad=copy.deepcopy(reports);bad['residual-restored']['semantic_failures'].append({'code':'FOOTER'});check(bool(h.evaluate_reports(bad)))
+for variant in h.VARIANTS:
+    bad=copy.deepcopy(reports);bad[variant]['rows'][0]['visual'].append(copy.deepcopy(bad[variant]['rows'][0]['visual'][0]));check(bool(h.evaluate_reports(bad)))
 for variant in reports:
     for mutation in ['missing','duplicate','infra','unknown_key']:
         bad=copy.deepcopy(reports)
@@ -86,6 +104,11 @@ with tempfile.TemporaryDirectory(prefix='heading-helper-unit-') as tmp:
         db.execute('CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,sku TEXT,created_at TEXT,updated_at TEXT,ebay_item_id TEXT)')
         db.execute('CREATE TABLE orders(id INTEGER PRIMARY KEY)')
         db.execute("INSERT INTO products VALUES(1,'Synthetic test part','TEST-1','2026-09-30','2026-09-30',NULL)")
+    h.seed_seller(site)
+    with sqlite3.connect(database) as db:
+        seller=db.execute('SELECT seller_name,feedback_score,positive_feedback_percent FROM ebay_seller_rating_cache WHERE store_name=?',('synthetic-heading-store',)).fetchone()
+        check(seller==('Synthetic Heading Seller',123,99.8))
+    rejected(lambda:h.seed_seller(site))
     h.seed_recommendations(site)
     with sqlite3.connect(database) as db:
         check(db.execute('SELECT count(*) FROM products').fetchone()[0]==40)

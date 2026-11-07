@@ -162,7 +162,7 @@ if (!function_exists('fasRenderSellerRatingBlock')) {
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                         <div>
                             <div class="text-uppercase text-danger fw-semibold small mb-2">Trusted eBay Seller</div>
-                            <h6 class="mb-1"><?php echo $sellerName; ?></h6>
+                            <p class="h6 mb-1"><?php echo $sellerName; ?></p>
                     <div class="text-muted small">
                         <i class="fas fa-store me-1"></i>Marketplace reputation verified
                     </div>

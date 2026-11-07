@@ -32,7 +32,7 @@ require_once __DIR__ . '/includes/header.php';
             <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
 <div class="card-body text-center py-5">
 <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
-<h3>Your cart is empty</h3>
+<p class="h3">Your cart is empty</p>
 <p class="text-muted mb-4">Start with a popular category or high-demand part, then come back here to review totals before checkout.</p>
 <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
 <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
@@ -58,7 +58,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm sticky-top order-summary-mobile">
                 <div class="card-body">
-                    <h4 class="mb-4">Order Summary</h4>
+                    <h2 class="h4 mb-4">Order Summary</h2>
                     
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
@@ -82,9 +82,9 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 <div class="card border-0 bg-light mb-3 shipping-estimator-card">
 <div class="card-body p-3">
-<h5 class="h6 fw-bold mb-2">
+<h3 class="h6 fw-bold mb-2">
 <i class="fas fa-truck-fast text-danger me-1"></i>Shipping Estimate
-</h5>
+</h3>
                     <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="cart" data-result-target="#cart-shipping-estimate-result" data-shipping-target="#cart-shipping-estimate" data-total-target="#cart-estimated-total">
 <div class="col-12">
 <label class="form-label small fw-semibold" for="cart-estimate-city">City</label>
@@ -130,7 +130,7 @@ require_once __DIR__ . '/includes/header.php';
                     </section>
                     
                     <div class="mt-4 pt-3 border-top">
-                        <h6 class="mb-3">We Accept</h6>
+                        <p class="h6 mb-3">We Accept</p>
                         <div class="d-flex align-items-center">
                             <i class="fas fa-credit-card display-6 text-muted me-3"></i>
                             <div>
@@ -210,7 +210,7 @@ function displayCartItems() {
                         
                         <!-- Product Details -->
             <div class="col-md-4 cart-item-details">
-            <h6 class="mb-1 fw-bold">${itemTitle}</h6>
+            <h2 class="h6 mb-1 fw-bold">${itemTitle}</h2>
             <small class="text-muted d-block">SKU: ${sku}</small>
             ${freeShippingBadge}
             <div class="d-md-none cart-item-price mt-2">

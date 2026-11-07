@@ -15,7 +15,7 @@ const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 for (const entry of Object.values(manifest)) assert.equal(digest(fs.readFileSync(path.join(assets, entry.file))), entry.sha256);
 const rows = [], semantic_failures = [], infrastructure_failures = [];
 const surfaces = [['home','/'], ['catalog','/products'], ['empty',`/products?search=${SEARCH_EMPTY}`],
-    ['product','/product/1/synthetic-test-part'], ['cart','/cart']];
+    ['product','/product/1/synthetic-test-part'], ['cart','/cart'], ['cart-populated','/cart']];
 
 // Use the real navbar control and native keys, as in the passing navbar suite.
 // Restore the mobile menu before measuring headings; never click the hidden legacy toggle.
@@ -128,12 +128,38 @@ function observe(surface) {
         record(!!parent && parent.classList.contains('h5'), 'CART_STYLE_CLASS','existing h5 override');
         calls.cart=shared('Popular Parts Shoppers Are Viewing','CART_PARENT');
     }
+    const target = (selector,text,tag,code,visible=true) => {
+        const found=[...document.querySelectorAll(selector)].filter(el=>normalized(el)===text);
+        record(found.length===1 && found[0].tagName===tag && !['role','aria-level','tabindex'].some(name=>found[0].hasAttribute(name)),code,text);
+        record(found.length===1 && (!visible || exposed(found[0])),'RESIDUAL_TARGET_PRESENT',text);
+        return found[0];
+    };
+    if (surface==='cart' || surface==='cart-populated') {
+        target('#empty-cart-message > .card-body > *','Your cart is empty','P','CART_EMPTY_STATUS',surface==='cart');
+        const summary=target('.order-summary-mobile > .card-body > *','Order Summary','H2','CART_SUMMARY');
+        const shipping=target('.shipping-estimator-card > .card-body > *','Shipping Estimate','H3','CART_SHIPPING');
+        record(!!summary && !!shipping && summary.parentElement.contains(shipping) && !!(summary.compareDocumentPosition(shipping)&Node.DOCUMENT_POSITION_FOLLOWING),'CART_SUMMARY_CONTEXT','shipping follows summary');
+        target('.order-summary-mobile .mt-4.pt-3.border-top > *','We Accept','P','CART_PAYMENT_LABEL');
+        const items=[...document.querySelectorAll('#cart-items-container .cart-item-details > .fw-bold')];
+        record(items.length===(surface==='cart'?0:2),'CART_ITEM_COUNT','exact synthetic item count');
+        if(surface==='cart-populated') {
+            record(items.length===2 && items.every(el=>el.tagName==='H2'),'CART_ITEM','repeated item headings');
+            record(items.length===2 && items.every(exposed),'RESIDUAL_TARGET_PRESENT','item headings');
+            record(items.length===2 && normalized(items[0])==='Synthetic linked <part> & title' && normalized(items[1])==='Synthetic plain <part> & title' && items[0].querySelector('a')?.getAttribute('href')==='/product/1' && !items[1].querySelector('a') && items.every(el=>!el.querySelector('part')),'CART_ITEM_CONTENT','safe linked/plain titles');
+        }
+    }
+    if(surface==='product') target('main [data-theme-card] .text-uppercase + *','Synthetic Heading Seller','P','SELLER_IDENTITY');
+    if(surface==='home') target('.seller-rating-homepage-card h3','Synthetic Heading Seller','H3','SELLER_HOME_UNCHANGED');
+    target('footer p','Synthetic Heading Seller','P','SELLER_FOOTER_UNCHANGED');
     for (const text of ['FLIP AND STRIP','Quick Links','Connect']) {
         const found=[...document.querySelectorAll('footer h1,footer h2,footer h3,footer h4,footer h5,footer h6')].filter(el=>normalized(el)===text);
         record(found.length===1 && found[0].tagName==='H2','FOOTER',text);
         record(found.length===1 && exposed(found[0]),'TARGET_EXPOSED','footer '+text);
     }
-    const visual=headings.map(el=>{
+    // Union query returns each target once in document order, including demoted
+    // labels in both old and new markup. Never drop a target from visual parity.
+    const visualTargets = document.querySelectorAll('h1,h2,h3,h4,h5,h6,#empty-cart-message > .card-body > p.h3,.order-summary-mobile .mt-4.pt-3.border-top > p.h6,main [data-theme-card] .text-uppercase + p.h6');
+    const visual=[...visualTargets].map(el=>{
         const s=getComputedStyle(el),r=el.getBoundingClientRect();
         return {text:normalized(el),tag:el.tagName,visible:el.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}),
             style:Object.fromEntries(['fontSize','fontWeight','lineHeight','marginTop','marginBottom','color'].map(k=>[k,s[k]])),
@@ -149,6 +175,13 @@ function observe(surface) {
         for (const [width,height] of [[1440,1000],[390,844]]) for (const theme of ['light','dark']) {
             for (const [surface,routePath] of surfaces) {
                 const context=await browser.newContext({viewport:{width,height},colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block'});
+                // Seed only new isolated browser storage, not DOM or real user cart.
+                if(surface==='cart-populated') await context.addInitScript(() => {
+                    localStorage.setItem('flipandstrip_cart',JSON.stringify([
+                        {id:'1',name:'Synthetic linked <part> & title',sku:'SYN-1',price:12,quantity:2,stock:5},
+                        {id:'synthetic-plain',name:'Synthetic plain <part> & title',sku:'SYN-2',price:8,quantity:1,stock:5}
+                    ]));
+                });
                 const page=await context.newPage(), blocked=[], errors=[], failed=[], ajax=[];
                 page.on('pageerror',e=>errors.push(e.message));
                 page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()}));
@@ -182,6 +215,7 @@ function observe(surface) {
                     assert.equal(response.status(),200);
                     await setSiteTheme(page,theme,width);
                     if(surface==='cart') await page.locator('#empty-cart-message .text-start.mt-4 .card-title').first().waitFor({state:'visible'});
+                    if(surface==='cart-populated') await page.locator('#cart-items-container .cart-item-details').nth(1).waitFor({state:'visible'});
                     await collect(surface);
                     if(surface==='catalog') {
                         // Real native form event, actual app fetch and actual DOM replacement.
