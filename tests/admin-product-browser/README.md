@@ -6,19 +6,34 @@ product model. It is not a deployment or a test against a hosted FAS account.
 
 ## Exact code boundary
 
-The dedicated workflow checks out the **PR head**, not GitHub's merge ref. The
-runner requires `9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c` as an ancestor and
-permits exactly four added files relative to that reviewed baseline:
+The dedicated workflow checks out the **PR head**, not GitHub's merge ref, or the
+exact `github.sha` for an already-authorized manual run. The refreshed runner
+requires `0094abfa7701ff52cb89c6ba28eb951262abada5` as an ancestor and permits
+exactly these four test-only changes relative to that reviewed baseline:
 
-- `tests/admin-product-browser/run.py`
-- `tests/admin-product-browser/check.cjs`
-- `tests/admin-product-browser/README.md`
-- `.github/workflows/admin-product-acceptance.yml`
+- Modified: `tests/admin-product-browser/run.py`
+- Modified: `tests/admin-product-browser/README.md`
+- Modified: `.github/workflows/admin-product-acceptance.yml`
+- Added: `tests/admin-product-browser/guard-test.py`
 
-Any other tracked change, including a later runtime change, fails preflight.
-This intentional temporary baseline must be separately reviewed before this
-suite is adapted for another runtime revision. Other existing regression
-workflows separately exercise the repository's merge candidate.
+The browser cases (`check.cjs`) are unchanged. A missing path, wrong status,
+rename, deletion, additional path, later runtime change, tracked working-tree
+edit, dirty index or untracked file fails preflight. Paths are NUL-framed and
+rename detection is disabled. The four test files must be regular, non-executable
+Git blobs. Every materialized tracked file is compared with its committed raw
+blob hash and executable mode, so skip-worktree/assume-unchanged flags cannot hide
+changed bytes. Only absent paths marked as sparse exclusions may be omitted;
+their contents are never read. This intentional temporary baseline must be independently reviewed
+again before adapting the suite for another runtime revision. The guard cannot
+be advanced through an environment variable or command-line flag.
+
+The offline `guard-test.py` exercises the exact guard function from `run.py`
+against disposable Git repositories without importing or running the application,
+browser, provider clients or full acceptance runner. It substitutes only the
+synthetic repository path/baseline and Git transport, preserving the candidate
+allowlist and guard logic. Passing these checks is not a browser/editor pass.
+Historical eight-group acceptance at the previous baseline is not evidence of a
+run on current main. No workflow trigger or dispatch capability is added here.
 
 Every copied application file is hash-checked against the checkout before and
 after the run. The actual authentication, Products page, AJAX/modal scripts,

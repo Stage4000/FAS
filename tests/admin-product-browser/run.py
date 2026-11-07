@@ -28,12 +28,12 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "9734b4a4b1f9b888a1f94c00ce6b189cc6f72c0c"
+BASELINE = "0094abfa7701ff52cb89c6ba28eb951262abada5"
 ALLOWED_CHANGES = {
-    "tests/admin-product-browser/run.py",
-    "tests/admin-product-browser/check.cjs",
-    "tests/admin-product-browser/README.md",
-    ".github/workflows/admin-product-acceptance.yml",
+    "tests/admin-product-browser/run.py": "M",
+    "tests/admin-product-browser/README.md": "M",
+    ".github/workflows/admin-product-acceptance.yml": "M",
+    "tests/admin-product-browser/guard-test.py": "A",
 }
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
@@ -106,14 +106,66 @@ def verify_candidate() -> dict:
     require(git("rev-parse", BASELINE + "^{commit}") == BASELINE, "Approved baseline unavailable")
     require(run_command(["git", "merge-base", "--is-ancestor", BASELINE, "HEAD"], cwd=ROOT).returncode == 0,
             "Approved baseline must be an ancestor")
-    changed = git("diff", "--name-status", BASELINE, "HEAD").splitlines()
-    entries = [line.split("\t") for line in changed if line]
-    require(all(len(row) == 2 and row[0] == "A" for row in entries), "Only four newly added test files are permitted")
-    require({row[1] for row in entries} == ALLOWED_CHANGES, "Diff exceeds the four approved test paths")
-    require(not git("diff", "--name-only", "HEAD"), "Tracked working tree must be unchanged")
+    # NUL framing and disabled rename detection make paths/statuses unambiguous.
+    changed = git("diff", "--no-renames", "--name-status", "-z", BASELINE, "HEAD")
+    fields = changed.split("\0")
+    require(fields[-1] == "" and len(fields) % 2 == 1, "Malformed candidate diff")
+    entries = list(zip(fields[0:-1:2], fields[1:-1:2]))
+    require(len(entries) == len(ALLOWED_CHANGES)
+            and len({path for _, path in entries}) == len(entries)
+            and {path: status for status, path in entries} == ALLOWED_CHANGES,
+            "Diff must match the four reviewed test paths and exact statuses")
+    objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
+    require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
+            and all(item.startswith("100644 blob ") for item in objects[:-1]),
+            "Reviewed test files must be regular non-executable Git blobs")
+    require(not git("diff", "--name-only", "-z", "HEAD"), "Tracked working tree must be unchanged")
+    require(not git("diff", "--cached", "--name-only", "-z", "HEAD"), "Tracked index must be unchanged")
+    require(not git("ls-files", "--others", "-z"), "Untracked files are forbidden in the checkout")
+
+    # Git diff may trust skip-worktree/assume-unchanged flags. Check actual bytes
+    # independently; absent sparse exclusions are allowed, but never read.
+    tagged = git("ls-files", "-t", "-z").split("\0")
+    require(tagged[-1] == "", "Malformed tracked-index inventory")
+    index = {}
+    for item in tagged[:-1]:
+        require(len(item) > 2 and item[1] == " " and item[2:] not in index,
+                "Malformed or duplicate tracked-index path")
+        index[item[2:]] = item[0]
+    tracked = git("ls-tree", "-r", "-z", "HEAD").split("\0")
+    require(tracked[-1] == "", "Malformed committed-tree inventory")
+    checked, absent, tree_paths = 0, 0, set()
+    for item in tracked[:-1]:
+        row = item.split("\t", 1)
+        require(len(row) == 2, "Malformed committed-tree entry")
+        metadata, rel = row[0].split(), row[1]
+        require(len(metadata) == 3 and rel in index and rel not in tree_paths,
+                "Committed tree and index disagree")
+        tree_paths.add(rel)
+        mode, kind, oid = metadata
+        path = ROOT / rel
+        if not path.exists() and not path.is_symlink():
+            require(index[rel] == "S", "Missing tracked file is not a sparse exclusion")
+            absent += 1
+            continue
+        require(mode in {"100644", "100755"} and kind == "blob"
+                and path.is_file() and not path.is_symlink()
+                and path.resolve().is_relative_to(ROOT.resolve()),
+                "Materialized tracked source is not a regular in-checkout blob")
+        data = path.read_bytes()
+        actual = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+        require(actual == oid, "Materialized tracked bytes differ from committed source")
+        require(bool(path.stat().st_mode & 0o111) == (mode == "100755"),
+                "Materialized tracked file mode differs from committed source")
+        checked += 1
+    require(tree_paths == set(index), "Committed tree and index path sets disagree")
     return {"baseline": BASELINE, "commit": git("rev-parse", "HEAD"),
-            "tree": git("rev-parse", "HEAD^{tree}"), "checkout": "explicit PR head, not a merge ref",
-            "added_paths": sorted(ALLOWED_CHANGES), "runtime_diff_from_baseline": []}
+            "tree": git("rev-parse", "HEAD^{tree}"),
+            "checkout": "explicit PR head or workflow dispatch SHA, not a PR merge ref",
+            "added_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "A"),
+            "modified_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "M"),
+            "materialized_tracked_blobs_verified": checked, "absent_sparse_paths": absent,
+            "runtime_diff_from_baseline": []}
 
 
 def verify_assets(assets: Path) -> dict:

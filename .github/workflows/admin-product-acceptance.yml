@@ -43,6 +43,8 @@ jobs:
             /tests/admin-product-browser/
             /tests/homepage-visual/prepare-assets.py
             /.github/workflows/admin-product-acceptance.yml
+      - name: Check the source guard with disposable offline Git fixtures
+        run: python3 tests/admin-product-browser/guard-test.py
       - name: Install existing official browser test dependencies
         run: |
           set -euo pipefail
@@ -54,8 +56,8 @@ jobs:
       - name: Cache existing allowlisted presentation assets
         run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-admin-assets"
       - name: Real admin and inert import acceptance with loopback only
-        # This bounded suite is pinned to baseline9734b4. The runner permits only
-        # the four new test files in its diff; later runtime changes need review.
+        # Pinned to reviewed main 0094abfa. Only the exact four-path test refresh
+        # is permitted. Later runtime changes require a new independent review.
         # No fallback is permitted if unshare, loopback checks or guards fail.
         run: |
           set -euo pipefail
