@@ -12,6 +12,31 @@
     // Get icons from both buttons if they exist
     const floatingIcon = themeToggle ? themeToggle.querySelector('i') : null;
     const navbarIcon = navbarThemeToggle ? navbarThemeToggle.querySelector('i') : null;
+
+    let storedTheme = null;
+    let transientTheme = null;
+
+    function getThemePreference() {
+        // A failed save must not let system changes undo the manual choice.
+        if (transientTheme) return transientTheme;
+        try {
+            storedTheme = window.localStorage.getItem('theme');
+        } catch (e) {
+            // Keep the last known preference while storage is unavailable.
+        }
+        return storedTheme;
+    }
+
+    function saveThemePreference(theme) {
+        transientTheme = theme;
+        try {
+            window.localStorage.setItem('theme', theme);
+            storedTheme = theme;
+            transientTheme = null;
+        } catch (e) {
+            // The visible theme still works without persistent storage.
+        }
+    }
     
     // Function to update all icons
     function updateIcons(isDark) {
@@ -29,13 +54,12 @@
     }
     
     // Check for saved theme preference or default to system preference
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = getThemePreference();
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-        html.setAttribute('data-theme', 'dark');
-        updateIcons(true);
-    }
+    const initialDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
+    html.setAttribute('data-theme', initialDark ? 'dark' : 'light');
+    updateIcons(initialDark);
     
     // Function to toggle theme
     function toggleTheme() {
@@ -43,8 +67,8 @@
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         html.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
         updateIcons(newTheme === 'dark');
+        saveThemePreference(newTheme);
     }
     
     // Add click listeners to both buttons
@@ -58,7 +82,7 @@
     
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (!localStorage.getItem('theme')) {
+        if (!getThemePreference()) {
             const newTheme = e.matches ? 'dark' : 'light';
             html.setAttribute('data-theme', newTheme);
             updateIcons(e.matches);
