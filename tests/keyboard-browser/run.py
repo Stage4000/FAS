@@ -69,6 +69,30 @@ class EbayAPI {
         # Router only models clean URLs for the PHP development server.
         router = base / 'router.php'
         router.write_text('''<?php
+// This check executes in the actual fixture server, not a separate CLI process.
+$_fasSapi = PHP_SAPI;
+$_fasCacheLoaded = extension_loaded('Zend OPcache');
+$_fasCacheSetting = ini_get('opcache.enable');
+$_fasCacheApi = function_exists('opcache_get_status');
+$_fasCacheStatus = $_fasCacheApi ? opcache_get_status(false) : false;
+// BEGIN pure fixture opcode-cache decision
+$_fasCacheDisabled = !$_fasCacheLoaded ||
+    ($_fasCacheSetting === '0' && $_fasCacheApi && $_fasCacheStatus === false);
+$_fasCacheReceipt = [
+    'sapi' => $_fasSapi,
+    'opcache_extension_loaded' => $_fasCacheLoaded,
+    'opcache_enable' => $_fasCacheSetting === false ? null : $_fasCacheSetting,
+    'opcache_status_available' => $_fasCacheApi,
+    'opcache_status_disabled' => $_fasCacheStatus === false,
+    'passed' => $_fasSapi === 'cli-server' && $_fasCacheDisabled,
+];
+// END pure fixture opcode-cache decision
+$_fasCacheWritten = file_put_contents(__DIR__.'/php-runtime.json', json_encode($_fasCacheReceipt)."\\n", LOCK_EX);
+if (!$_fasCacheReceipt['passed'] || $_fasCacheWritten === false) {
+    http_response_code(500); echo 'Fixture opcode-cache verification failed'; return true;
+}
+unset($_fasSapi, $_fasCacheLoaded, $_fasCacheSetting, $_fasCacheApi, $_fasCacheStatus,
+      $_fasCacheDisabled, $_fasCacheReceipt, $_fasCacheWritten);
 $p=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($p==='/') {require $_SERVER['DOCUMENT_ROOT'].'/index.php'; return true;}
 if ($p==='/cart') {require $_SERVER['DOCUMENT_ROOT'].'/cart.php'; return true;}
@@ -91,7 +115,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
         }, indent=2) + '\n')
         (base / 'sessions').mkdir()
         with (output / 'php.log').open('w') as log:
-            server = subprocess.Popen(['php', '-d', 'opcache.enable_cli=0', '-d', 'session.save_path='+str(base/'sessions'), '-d', 'allow_url_fopen=0', '-d', 'display_errors=1',
+            server = subprocess.Popen(['php', '-d', 'opcache.enable=0', '-d', 'opcache.enable_cli=0', '-d', 'session.save_path='+str(base/'sessions'), '-d', 'allow_url_fopen=0', '-d', 'display_errors=1',
                 '-d', 'disable_functions=mail,curl_exec,curl_multi_exec,exec,shell_exec,system,passthru,popen,proc_open',
                 '-S', f'127.0.0.1:{port}', '-t', str(site), str(router)], env=env, stdout=log, stderr=log)
             try:
@@ -117,6 +141,12 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
             finally:
                 server.terminate()
                 server.wait(timeout=10)
+                receipt = base / 'php-runtime.json'
+                if not receipt.is_file():
+                    raise RuntimeError('Missing same-server opcode-cache evidence')
+                shutil.copy2(receipt, output / 'php-runtime.json')
+                if not json.loads(receipt.read_text()).get('passed'):
+                    raise RuntimeError('Same-server opcode-cache verification failed')
 
 
 if __name__ == '__main__':
