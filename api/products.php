@@ -219,7 +219,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
 <div class="d-flex align-items-start gap-3">
 <i class="fas fa-search text-danger fs-3 mt-1"></i>
 <div>
-<h4 class="mb-2">No exact matches found</h4>
+<h2 class="h4 mb-2">No exact matches found</h2>
 <p class="text-muted mb-3">We checked close spellings and related terms. Try one related search, remove a filter, or browse a high-demand category below.</p>
 <?php if (!empty($searchSuggestions)): ?>
 <div class="mb-3">
@@ -319,11 +319,11 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
 </div>
                 </a>
                 <div class="card-body d-flex flex-column">
-                    <h6 class="card-title">
+                    <h2 class="h6 card-title">
                         <a href="<?php echo htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none text-dark">
                             <?php echo htmlspecialchars($product['name']); ?>
                         </a>
-                    </h6>
+                    </h2>
                     <p class="card-text text-muted small flex-grow-1">
                         <?php
                         // Show eBay store category path if available

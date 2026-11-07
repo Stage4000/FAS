@@ -393,7 +393,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
 
                 <div class="card border-0 shadow-sm mb-4" data-theme-card>
                     <div class="card-body">
-                        <h6 class="mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h6>
+                        <h2 class="h6 mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Buy With Confidence</h2>
                         <div class="row g-3 small">
                             <div class="col-sm-6">
                                 <div class="fw-semibold">Actual Item Photographed</div>
@@ -439,7 +439,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
         <section class="product-details" aria-label="Product details">
                     <div class="card border-0 mb-4" data-theme-card>
                 <div class="card-body">
-                    <h6 class="mb-3">Part Facts</h6>
+                    <h2 class="h6 mb-3">Part Facts</h2>
                     <table class="table table-sm table-borderless mb-0" data-theme-table>
                         <?php
                         // Display eBay store category hierarchy if available
@@ -483,7 +483,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
             <!-- Product Details / Listing Notes -->
             <div class="card border-0 shadow-sm mb-4" data-theme-card>
                 <div class="card-body p-4">
-                    <h3 class="mb-2">Product Details &amp; Notes</h3>
+                    <h2 class="h3 mb-2">Product Details &amp; Notes</h2>
                     <p class="text-muted small mb-4">Review the part facts, condition, photos and details before ordering. Contact us if you need help confirming fitment.</p>
                     <?php
                     // Description should already be sanitized on import (HTML stripped, br tags converted to newlines)

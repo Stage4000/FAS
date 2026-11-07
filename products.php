@@ -79,7 +79,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="col-lg-3 col-md-4 mb-4">
             <div class="card">
                 <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> Categories</h5>
+                    <h2 class="h5 mb-0"><i class="fas fa-list"></i> Categories</h2>
                     <button class="btn btn-sm btn-outline-light d-md-none" type="button" id="categoryToggle" aria-controls="categoryMenu" aria-expanded="true" aria-label="Toggle categories">
                         <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
@@ -281,7 +281,7 @@ if (!empty($clearParams)) $clearUrl .= '?' . implode('&', $clearParams);
                     <div class="d-flex align-items-start gap-3">
                         <i class="fas fa-search text-danger fs-3 mt-1"></i>
                         <div>
-                            <h4 class="mb-2">No exact matches found</h4>
+                            <h2 class="h4 mb-2">No exact matches found</h2>
                             <p class="text-muted mb-3">
                                 We checked close spellings and related terms. Try one related search, remove a filter, or browse high-demand categories below.
                                 Inventory changes often, so recently added and popular parts may still fit your project.
@@ -401,11 +401,11 @@ style="cursor: pointer;">
 </div>
                             </a>
                             <div class="card-body d-flex flex-column">
-                                <h6 class="card-title">
+                                <h2 class="h6 card-title">
                                     <a href="<?php echo htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none text-dark">
                                         <?php echo htmlspecialchars($product['name']); ?>
                                     </a>
-                                </h6>
+                                </h2>
                                 <p class="card-text text-muted small flex-grow-1">
                                     <?php
                                     // Show eBay store category path if available

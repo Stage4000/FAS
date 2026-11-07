@@ -14,6 +14,10 @@ def main():
     parser.add_argument('--assets', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    from heading_runner import verify_checkout
+    checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/heading-unit-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/heading-policy-test.cjs')], check=True)
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='fas-keyboard-') as temporary:
@@ -23,7 +27,7 @@ def main():
         for folder in ['src', 'includes', 'public']:
             shutil.copytree(ROOT / folder, site / folder, ignore=shutil.ignore_patterns(
                 'config*.php', 'uploads', '*.log', '*.db', '*.sqlite'))
-        for name in ['index.php', 'products.php', 'product.php', '404.php']:
+        for name in ['index.php', 'products.php', 'product.php', '404.php', 'cart.php']:
             shutil.copy2(ROOT / name, site / name)
         (site / 'api').mkdir()
         shutil.copy2(ROOT / 'api/products.php', site / 'api/products.php')
@@ -67,6 +71,7 @@ class EbayAPI {
         router.write_text('''<?php
 $p=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($p==='/') {require $_SERVER['DOCUMENT_ROOT'].'/index.php'; return true;}
+if ($p==='/cart') {require $_SERVER['DOCUMENT_ROOT'].'/cart.php'; return true;}
 if ($p==='/products') {require $_SERVER['DOCUMENT_ROOT'].'/products.php'; return true;}
 if (preg_match('~^/product/([0-9]+)(?:/[^/]+)?$~',$p,$m)) {
  $_GET['id']=$m[1]; require $_SERVER['DOCUMENT_ROOT'].'/product.php'; return true;
@@ -78,13 +83,15 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                'FAS_SECURITY_DB_PATH': str(base / 'security.sqlite'),
                'FAS_GROWTH_DB_PATH': str(base / 'growth.sqlite')}
         (output / 'fixture.json').write_text(json.dumps({
+            'heading_checkout_identity': checkout_identity,
             'candidate_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
             'scope': 'actual PHP with synthetic SQLite; simulated clean URL routing',
             'production_verified': False, 'source_sha256': sources,
             'fixture_changes': ['generated config and inventory photos', 'empty eBay category client'],
         }, indent=2) + '\n')
+        (base / 'sessions').mkdir()
         with (output / 'php.log').open('w') as log:
-            server = subprocess.Popen(['php', '-d', 'allow_url_fopen=0', '-d', 'display_errors=1',
+            server = subprocess.Popen(['php', '-d', 'opcache.enable_cli=0', '-d', 'session.save_path='+str(base/'sessions'), '-d', 'allow_url_fopen=0', '-d', 'display_errors=1',
                 '-d', 'disable_functions=mail,curl_exec,curl_multi_exec,exec,shell_exec,system,passthru,popen,proc_open',
                 '-S', f'127.0.0.1:{port}', '-t', str(site), str(router)], env=env, stdout=log, stderr=log)
             try:
@@ -103,6 +110,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
                            for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
+                from heading_runner import run_heading_variants
+                results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
                 if any(results):
                     raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')
             finally:

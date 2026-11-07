@@ -43,7 +43,7 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 <?php if (!empty($cartTrendingProducts)): ?>
 <div class="text-start mt-4">
-<h4 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h4>
+<h2 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h2>
 <div class="row g-3">
 <?php foreach ($cartTrendingProducts as $index => $cartProduct): ?>
 <?php echo fasProductCard($cartProduct, 'col-lg-6 col-md-6 col-sm-12', min($index * 50, 250)); ?>

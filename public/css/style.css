@@ -437,7 +437,7 @@ footer {
     background-color: #000 !important;
 }
 
-footer h5, footer h6 {
+footer h2.h5, footer h2.h6, footer h5, footer h6 {
     color: var(--primary-color);
     font-weight: 700;
 }

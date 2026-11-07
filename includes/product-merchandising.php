@@ -92,7 +92,7 @@ decoding="async">
             </a>
             <div class="card-body d-flex flex-column">
                 <a href="<?php echo htmlspecialchars($productUrl); ?>" class="text-decoration-none text-dark">
-                    <h6 class="card-title text-truncate mb-2"><?php echo htmlspecialchars($product['name'] ?? 'Product'); ?></h6>
+                    <h3 class="h6 card-title text-truncate mb-2"><?php echo htmlspecialchars($product['name'] ?? 'Product'); ?></h3>
                 </a>
                 <?php if ($category !== ''): ?>
                     <div class="small text-muted mb-2"><?php echo htmlspecialchars($category); ?></div>

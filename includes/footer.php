@@ -22,12 +22,12 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <h5 class="fw-bold">FLIP AND STRIP</h5>
+                    <h2 class="h5 fw-bold">FLIP AND STRIP</h2>
                     <p>Motorcycle, ATV/UTV, boat, and automotive parts</p>
                     <p class="small">New and used parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more. Review each listing for condition details.</p>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <h6>Quick Links</h6>
+                    <h2 class="h6">Quick Links</h2>
                     <ul class="list-unstyled">
                         <li><a href="/products" class="text-white-50 text-decoration-none">Shop All Products</a></li>
                         <li><a href="/products/motorcycle" class="text-white-50 text-decoration-none">Motorcycle Parts</a></li>
@@ -39,7 +39,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
                     </ul>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <h6>Connect</h6>
+                    <h2 class="h6">Connect</h2>
             <p><a href="https://www.facebook.com/FLIPANDSTRIPMOTORCYCLES/" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-facebook"></i> Facebook</a></p>
             <p><a href="https://www.instagram.com/flipandstrip" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-instagram"></i> Instagram</a></p>
             <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>

@@ -51,7 +51,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card category-card category-card-featured h-100 border-0 shadow-lg">
                         <div class="card-body text-center p-5">
                             <i class="fas fa-motorcycle display-3 text-danger mb-3"></i>
-                            <h4 class="card-title fw-bold">Motorcycle Parts</h4>
+                            <h3 class="h4 card-title fw-bold">Motorcycle Parts</h3>
                             <p class="card-text text-muted fs-5">Harley, Yamaha, Honda, Suzuki, Kawasaki & More</p>
                             <a href="/products/motorcycle" class="btn btn-danger btn-lg px-5">Browse Motorcycle Parts</a>
                         </div>
@@ -64,7 +64,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-truck display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">ATV/UTV Parts</h5>
+                            <h3 class="h5 card-title">ATV/UTV Parts</h3>
                             <p class="card-text text-muted">ATV & UTV parts</p>
                             <a href="/products/atv" class="btn btn-outline-danger">Browse</a>
                         </div>
@@ -74,7 +74,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-ship display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Boat Parts</h5>
+                            <h3 class="h5 card-title">Boat Parts</h3>
                             <p class="card-text text-muted">Marine & Boat Parts</p>
                             <a href="/products/boat" class="btn btn-outline-danger">Browse</a>
                         </div>
@@ -84,7 +84,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-car-side display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Automotive Parts</h5>
+                            <h3 class="h5 card-title">Automotive Parts</h3>
                             <p class="card-text text-muted">Auto & Truck Parts</p>
                             <a href="/products/automotive" class="btn btn-outline-danger">Browse</a>
                         </div>
@@ -94,7 +94,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card category-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             <i class="fas fa-gift display-4 text-danger mb-3"></i>
-                            <h5 class="card-title">Gifts</h5>
+                            <h3 class="h5 card-title">Gifts</h3>
                             <p class="card-text text-muted">Watches, Clothing & Accessories</p>
                             <a href="/products/gifts" class="btn btn-outline-danger">Browse</a>
                         </div>
@@ -176,28 +176,28 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-shipping-fast display-5 text-danger mb-3"></i>
                     </div>
-                    <h5>Fast Shipping</h5>
+                    <h2 class="h5">Fast Shipping</h2>
                     <p class="text-muted">Quick and reliable delivery</p>
                 </div>
                 <div class="col-md-3" data-aos="zoom-in" data-aos-delay="200" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-shield-alt display-5 text-danger mb-3"></i>
                     </div>
-                    <h5>Item Condition</h5>
+                    <h2 class="h5">Item Condition</h2>
                     <p class="text-muted">Review photos &amp; listing notes</p>
                 </div>
                 <div class="col-md-3" data-aos="zoom-in" data-aos-delay="300" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-credit-card display-5 text-danger mb-3"></i>
                     </div>
-                    <h5>Secure Payment</h5>
+                    <h2 class="h5">Secure Payment</h2>
                     <p class="text-muted">PayPal checkout</p>
                 </div>
                 <div class="col-md-3" data-aos="zoom-in" data-aos-delay="400" data-aos-duration="800">
                     <div class="feature-icon-wrapper">
                         <i class="fas fa-headset display-5 text-danger mb-3"></i>
                     </div>
-                    <h5>Support</h5>
+                    <h2 class="h5">Support</h2>
                     <p class="text-muted">Expert assistance</p>
                 </div>
             </div>
