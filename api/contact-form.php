@@ -34,7 +34,8 @@ $message = $_POST['message'] ?? '';
 $turnstileToken = $_POST['cf-turnstile-response'] ?? '';
 
 // Validate required fields
-if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+if (!is_string($name) || !is_string($email) || !is_string($subject) || !is_string($message)
+    || empty($name) || empty($email) || empty($subject) || empty($message)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'All fields are required']);
     exit;

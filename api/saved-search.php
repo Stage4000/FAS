@@ -26,7 +26,8 @@ if (!is_array($input)) {
     $input = $_POST;
 }
 
-$email = strtolower(trim((string)($input['email'] ?? '')));
+$email = $input['email'] ?? '';
+$email = is_string($email) ? strtolower(trim($email)) : '';
 $consent = filter_var($input['consent'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
