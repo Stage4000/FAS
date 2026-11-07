@@ -17,6 +17,50 @@ const rows = [], semantic_failures = [], infrastructure_failures = [];
 const surfaces = [['home','/'], ['catalog','/products'], ['empty',`/products?search=${SEARCH_EMPTY}`],
     ['product','/product/1/synthetic-test-part'], ['cart','/cart']];
 
+// Use the real navbar control and native keys, as in the passing navbar suite.
+// Restore the mobile menu before measuring headings; never click the hidden legacy toggle.
+async function setSiteTheme(page, theme, width) {
+    assert(['light','dark'].includes(theme), 'reviewed theme');
+    assert.equal(await page.locator('html').getAttribute('data-theme') || 'light', 'light', 'fresh heading context starts light');
+    if (theme === 'light') return;
+    const mobile = width < 992;
+    const focused = selector => page.locator(selector).evaluate(el => el === document.activeElement);
+    const seek = async (selector, key = 'Tab') => {
+        assert(await page.locator(selector).isVisible(), 'visible native control: ' + selector);
+        for (let n = 0; n < 30; n++) {
+            if (await focused(selector)) return;
+            await page.keyboard.press(key);
+        }
+        assert.fail('Keyboard cannot reach ' + selector);
+    };
+    const settleCollapse = async expanded => {
+        await page.waitForFunction(value => {
+            const nav = document.getElementById('navbarNav'), button = document.querySelector('.navbar-toggler');
+            return !nav.classList.contains('collapsing') && nav.classList.contains('show') === value &&
+                button.getAttribute('aria-expanded') === String(value);
+        }, expanded);
+        assert.equal(await page.locator('#navbarNav').isVisible(), expanded);
+    };
+    assert.equal(await page.locator('.navbar-toggler').isVisible(), mobile, '992px collapse breakpoint');
+    if (mobile) {
+        assert.equal(await page.locator('#navbarNav').isVisible(), false, 'fresh mobile menu is closed');
+        await seek('.navbar-toggler');
+        await page.keyboard.press('Enter');
+        await settleCollapse(true);
+    }
+    await seek('#navbarThemeToggle');
+    await page.keyboard.press('Space');
+    await page.waitForFunction(value => document.documentElement.getAttribute('data-theme') === value, theme);
+    assert.equal(await page.locator('html').getAttribute('data-theme'), theme, 'actual document theme');
+    assert.equal(await page.evaluate(() => localStorage.getItem('theme')), theme, 'native theme persistence');
+    if (mobile) {
+        await seek('.navbar-toggler', 'Shift+Tab');
+        await page.keyboard.press('Enter');
+        await settleCollapse(false);
+    }
+    assert.equal(await page.locator('html').getAttribute('data-theme'), theme, 'theme survives menu restoration');
+}
+
 // Read-only DOM observation. No styles, attributes, handlers, or content are replaced.
 function observe(surface) {
     const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')];
@@ -136,7 +180,7 @@ function observe(surface) {
                 try {
                     const response=await page.goto(origin+routePath,{waitUntil:'networkidle'});
                     assert.equal(response.status(),200);
-                    if(theme==='dark') {await page.locator('#themeToggle').click();await page.waitForFunction(()=>document.documentElement.getAttribute('data-theme')==='dark');}
+                    await setSiteTheme(page,theme,width);
                     if(surface==='cart') await page.locator('#empty-cart-message .text-start.mt-4 .card-title').first().waitFor({state:'visible'});
                     await collect(surface);
                     if(surface==='catalog') {
