@@ -16,12 +16,13 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = "0094abfa7701ff52cb89c6ba28eb951262abada5"
+EXPECTED_BASELINE = "1b30980be77f407bca085b261141aaceb24f7115"
 EXPECTED_PATHS = {
     "tests/admin-product-browser/run.py": "M",
-    "tests/admin-product-browser/README.md": "M",
-    ".github/workflows/admin-product-acceptance.yml": "M",
-    "tests/admin-product-browser/guard-test.py": "A",
+    "tests/admin-product-browser/guard-test.py": "M",
+    "tests/keyboard-browser/heading_runner.py": "M",
+    "tests/keyboard-browser/navbar.cjs": "M",
+    "tests/keyboard-browser/navbar-unit-test.cjs": "M"
 }
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
@@ -134,7 +135,7 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-four-path-refresh", lambda repo: None, accepted=True)
+    case("exact-five-path-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
     case("extra-test", changed("tests/extra.txt"))
@@ -142,14 +143,14 @@ def main() -> None:
     case("tab-path", changed("tests/extra\tpath.txt"))
     case("space-path", changed("tests/space path.txt"))
     case("missing-modification", lambda repo: (
-        repo.command("checkout", repo.baseline, "--", "tests/admin-product-browser/README.md"),
+        repo.command("checkout", repo.baseline, "--", "tests/keyboard-browser/heading_runner.py"),
         repo.commit("restore allowed path")))
-    case("missing-addition", lambda repo: (
+    case("deleted-guard-test", lambda repo: (
         repo.command("rm", "tests/admin-product-browser/guard-test.py"), repo.commit("remove new test")))
     case("deleted-allowed-path", lambda repo: (
-        repo.command("rm", "tests/admin-product-browser/README.md"), repo.commit("delete README")))
+        repo.command("rm", "tests/keyboard-browser/heading_runner.py"), repo.commit("delete README")))
     case("renamed-allowed-path", lambda repo: (
-        repo.command("mv", "tests/admin-product-browser/README.md", "tests/admin-product-browser/moved.md"),
+        repo.command("mv", "tests/keyboard-browser/heading_runner.py", "tests/admin-product-browser/moved.md"),
         repo.commit("rename README")))
     case("executable-allowed-path", lambda repo: (
         repo.command("update-index", "--chmod=+x", "tests/admin-product-browser/run.py"),

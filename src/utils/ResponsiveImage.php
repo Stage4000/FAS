@@ -49,7 +49,18 @@ final class ResponsiveImage
         foreach(self::WIDTHS as $width) {
             if($width>=$info['width'] || ($maxWidth>0 && $width>$maxWidth))continue;
             $path='/gallery/responsive/'.$info['key'].'-'.$width.'.webp';
-            if(is_file($root.$path))$candidates[]=$path.' '.$width.'w';
+            $variant=$root.$path;
+            if(is_link($root.'/gallery/responsive') || is_link($variant) || !is_file($variant))continue;
+            clearstatcache(true,$variant);
+            $bytes=@filesize($variant);
+            $header=@file_get_contents($variant,false,null,0,12);
+            $riff=is_string($header) && strlen($header)===12 && substr($header,0,4)==='RIFF' && substr($header,8,4)==='WEBP'
+                ? unpack('Vlength',substr($header,4,4))['length']+8 : 0;
+            $size=@getimagesize($variant);
+            $height=max(1,(int)round($info['height']*$width/$info['width']));
+            if(is_int($bytes) && $bytes>0 && $bytes<$info['bytes'] && $riff===$bytes && $size
+                && $size[2]===IMAGETYPE_WEBP && $size[0]===$width && $size[1]===$height)
+                $candidates[]=$path.' '.$width.'w';
         }
         if($candidates) {
             if(!$maxWidth || $info['width']<=$maxWidth)$candidates[]=$source.' '.$info['width'].'w';

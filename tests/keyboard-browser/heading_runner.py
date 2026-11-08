@@ -13,6 +13,44 @@ EXPECTED_KEYS = {f'{surface}-{width}-{theme}' for surface in
     ['home','catalog','empty','product','cart','cart-populated','ajax-empty','ajax-populated']
     for width in [1440,390] for theme in ['light','dark']}
 
+# Exact reviewed subsequent blobs; historical heading controls remain pinned.
+REVIEWED_OVERLAY = {'.github/workflows/admin-product-acceptance.yml': {'mode': '100644',
+                                                    'type': 'blob',
+                                                    'sha': 'c180ab1b5298290d14ee41e4c90d352fe9436295'},
+ 'public/js/theme-toggle.js': {'mode': '100644',
+                               'type': 'blob',
+                               'sha': '34430acbe4b431f680c686cd40f52be41a1484bc'},
+ 'src/utils/ResponsiveImage.php': {'mode': '100644',
+                                   'type': 'blob',
+                                   'sha': 'd8bfa725d5aaf7320b3c1052966376129379fdd4'},
+ 'tests/admin-product-browser/README.md': {'mode': '100644',
+                                           'type': 'blob',
+                                           'sha': 'fb27ab2cac7920e65fbb6a06c02334ef54aefcf5'},
+ 'tests/admin-product-browser/guard-test.py': {'mode': '100644',
+                                               'type': 'blob',
+                                               'sha': 'f6ad34fcdc07b0200df968400e5ed45b95d11424'},
+ 'tests/admin-product-browser/run.py': {'mode': '100644',
+                                        'type': 'blob',
+                                        'sha': 'bdb201b019c9247fa2cbbe9f0a23bcb11cc833a2'},
+ 'tests/local-image-fallback-test.php': {'mode': '100644',
+                                         'type': 'blob',
+                                         'sha': '4b1bda015a752451c797d6e4d918e2a5f1f6ce65'},
+ 'tests/theme-toggle-test.cjs': {'mode': '100644',
+                                 'type': 'blob',
+                                 'sha': '1bae638fc11c8797f5e0295b372fa0ec96acea39'},
+ 'tests/catalog-loader-lifecycle-test.cjs': {'mode': '100644',
+                                             'type': 'blob',
+                                             'sha': '47b04f168c65ea2d2e3761adf4e872a9da863329'},
+ 'tests/catalog-loader-lifecycle-tests.md': {'mode': '100644',
+                                             'type': 'blob',
+                                             'sha': '468364bfed8f1b8d6f3cc6cc8af4637cd5b56cca'},
+ 'tests/keyboard-browser/navbar.cjs': {'mode': '100644',
+                                       'type': 'blob',
+                                       'sha': '6fcf4b3483fbef9b79bb58548357990700241757'},
+ 'tests/keyboard-browser/navbar-unit-test.cjs': {'mode': '100644',
+                                                 'type': 'blob',
+                                                 'sha': '309f70f76671fce2afd13abdf3875bf949122d86'}}
+
 def parse_tree(raw):
     entries = {}
     for record in raw.split(b'\0'):
@@ -43,6 +81,7 @@ def base_tree_hash(entries):
 
 def verify_tree(base, current, source_manifest):
     expected = {e['path']:{k:e[k] for k in ['mode','type','sha']} for e in base['entries']}
+    expected.update(REVIEWED_OVERLAY)
     # Exact candidate blobs are derived from SHA-256-verified working bytes below.
     for path, blob in source_manifest.items():
         expected[path] = {'mode':'100644','type':'blob','sha':blob}
@@ -91,7 +130,7 @@ def verify_checkout(root):
             'base_tree':base['base_tree'], 'integration_blobs':{p:current[p]['sha'] for p in sorted(INTEGRATION_PATHS)},
             'workflow_blob':current['.github/workflows/keyboard-browser.yml']['sha'],
             'consumed_sha256':{str(p.relative_to(root)):sha256(p.read_bytes()) for p in sorted(set(copied))},
-            'guard':'Every tracked path outside nine source files and eight named integration files equals verified baseline; copied bytes equal checkout blobs.'}
+            'guard':'Every tracked path outside nine source files and eight named integration files equals verified baseline plus exact reviewed overlay; copied bytes equal checkout blobs.'}
 
 def decode_manifest(manifest):
     if manifest['base'] != EXPECTED_BASE or {f['path'] for f in manifest['files']} != EXPECTED_PATHS or len(manifest['files']) != 9:

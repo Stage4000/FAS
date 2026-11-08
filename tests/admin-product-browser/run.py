@@ -28,12 +28,13 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "0094abfa7701ff52cb89c6ba28eb951262abada5"
+BASELINE = "1b30980be77f407bca085b261141aaceb24f7115"
 ALLOWED_CHANGES = {
     "tests/admin-product-browser/run.py": "M",
-    "tests/admin-product-browser/README.md": "M",
-    ".github/workflows/admin-product-acceptance.yml": "M",
-    "tests/admin-product-browser/guard-test.py": "A",
+    "tests/admin-product-browser/guard-test.py": "M",
+    "tests/keyboard-browser/heading_runner.py": "M",
+    "tests/keyboard-browser/navbar.cjs": "M",
+    "tests/keyboard-browser/navbar-unit-test.cjs": "M"
 }
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
@@ -114,7 +115,7 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the four reviewed test paths and exact statuses")
+            "Diff must match the five reviewed test paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),

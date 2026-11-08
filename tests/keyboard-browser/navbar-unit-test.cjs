@@ -129,3 +129,36 @@ for (const badRing of [[33, 37, 41], [255, 0, 255]]) {
         ringScreenshot([255, 255, 255], [33, 37, 41], true, [[84, 40, badRing]])), /painted/); checks++;
 }
 console.log(`PASS ${checks} navbar helper/negative checks (not browser acceptance)`);
+
+// Bounded capture sequencing tests use mocks only, never a browser.
+{
+'use strict';
+const assert=require('node:assert/strict');
+const {captureStableOutline,captureReadiness}=require('./navbar.cjs');
+const reader=()=>{};
+let checks=0;
+function fake(values,shotError=false,readyValues=[{fonts:"loaded",animations:[]}]){let reads=0,shots=0,readinessReads=0;return {get shots(){return shots;},async evaluate(fn){assert.notEqual(fn.constructor.name,"AsyncFunction");assert(!/requestAnimationFrame|setTimeout|Promise/.test(fn.toString()),"No in-page asynchronous callbacks");if(fn===reader)return values[Math.min(reads++,values.length-1)];if(fn===captureReadiness)return readyValues[Math.min(readinessReads++,readyValues.length-1)];throw Error("Unexpected evaluated callback");},async screenshot(){shots++;if(shotError)throw Error('screenshot failed');return Buffer.from('synthetic');}};}
+(async()=>{
+const a={tag:'BUTTON',id:'theme',href:null,label:'Toggle theme',rect:{top:1},outline:'solid'},b={...a,rect:{top:3}};
+let p=fake([a,a,a,a,a]);let r=await captureStableOutline(p,reader,{});assert.deepEqual(r.geometry,a);assert.equal(p.shots,1);assert.equal(r.settlement.samples,3);assert.equal(r.settlement.sampling,"host-timed; not animation frames");assert.deepEqual(r.settlement.initial,a);checks++;
+p=fake([a,a,b,b,b,b]);r=await captureStableOutline(p,reader,{});assert.deepEqual(r.geometry,b);assert.equal(p.shots,1);checks++;
+p=fake([a,a,a,a,b]);await assert.rejects(captureStableOutline(p,reader,{}),/changed across screenshot/);assert.equal(p.shots,1);checks++;
+p=fake(Array.from({length:140},(_,i)=>i%2?a:b));await assert.rejects(captureStableOutline(p,reader,{}),/three matching timed geometry samples|settlement exceeded 2000ms/);assert.equal(p.shots,0);checks++;
+p=fake([a,a,a,a,a],true);await assert.rejects(captureStableOutline(p,reader,{}),/screenshot failed/);assert.equal(p.shots,1);checks++;
+let receipt;p=fake([a,a,a,a,b]);await assert.rejects(captureStableOutline(p,reader,{},x=>{receipt=x;}),/changed across screenshot/);assert.deepEqual(receipt.geometry,a);assert.deepEqual(receipt.after,b);assert.deepEqual(receipt.settlement.initial,a);assert.equal(p.shots,1);checks++;
+for(const field of ['tag','id','href','label']){const changed={...a,[field]:'different'};p=fake([a,changed,changed,changed]);await assert.rejects(captureStableOutline(p,reader,{}),/focused target changed/);assert.equal(p.shots,0);checks++;}
+p=fake([a,a,{...a,id:'different'}]);await assert.rejects(captureStableOutline(p,reader,{}),/focused target changed/);assert.equal(p.shots,0);checks++;
+p=fake([a,a,a,a,{...a,id:'different'}]);receipt=null;await assert.rejects(captureStableOutline(p,reader,{},x=>{receipt=x;}),/changed across screenshot/);assert.equal(p.shots,1);assert.equal(receipt.after.id,'different');checks++;
+const ready={fonts:'loaded',animations:[]}, busy={fonts:'loaded',animations:[{state:'running',pending:false}]};
+p=fake([a],false,[busy,busy,ready,ready,ready,ready]);r=await captureStableOutline(p,reader,{});assert.equal(r.settlement.samples,5);assert.equal(p.shots,1);checks++;
+p=fake([a],false,[ready,ready,ready,busy]);receipt=null;await assert.rejects(captureStableOutline(p,reader,{},x=>{receipt=x;}),/animation started across screenshot/);assert.deepEqual(receipt.settlement.afterReadiness,busy);assert.equal(p.shots,1);checks++;
+p=fake([a],false,[ready,ready,ready,{fonts:'loading',animations:[]}]);await assert.rejects(captureStableOutline(p,reader,{}),/fonts changed across screenshot/);assert.equal(p.shots,1);checks++;
+p=fake([a],false,[{fonts:'loading',animations:[]}]);await assert.rejects(captureStableOutline(p,reader,{}),/ready fonts\/animations|settlement exceeded 2000ms/);assert.equal(p.shots,0);checks++;
+// Evaluate the readiness function itself with synchronous inert DOM metadata; no callbacks/browser.
+const animation={playState:'running',pending:false};
+global.document={fonts:{status:'loaded'},activeElement:{getAnimations:()=>[animation],parentElement:{getAnimations:()=>[animation],parentElement:null}}};
+assert.deepEqual(captureReadiness(),{fonts:'loaded',animations:[{state:'running',pending:false}]});delete global.document;checks++;
+console.log(JSON.stringify({passed:true,checks,browserExecuted:false,scope:'mocked capture control flow only; synchronous inert readiness metadata checked; real browser unexecuted'}));
+})().catch(e=>{console.error(e);process.exitCode=1;});
+
+}

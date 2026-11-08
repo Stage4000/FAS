@@ -90,7 +90,12 @@ for field,value in [('text','changed'),('visible',False),('style',{'fontSize':'4
 base={'entries':[{'path':'src/runtime.php','mode':'100644','type':'blob','sha':'base'}]}
 tree={'src/runtime.php':{'mode':'100644','type':'blob','sha':'base'}}
 tree.update({p:{'mode':'100644','type':'blob','sha':'reviewed'} for p in h.INTEGRATION_PATHS})
+tree.update(copy.deepcopy(h.REVIEWED_OVERLAY))
 h.verify_tree(base,tree,{});check(True)
+for path in h.REVIEWED_OVERLAY:
+    for field,value in [("sha","0"*40),("mode","100755"),("type","tree")]:
+        bad=copy.deepcopy(tree);bad[path][field]=value;rejected(lambda:h.verify_tree(base,bad,{}))
+    bad=copy.deepcopy(tree);del bad[path];rejected(lambda:h.verify_tree(base,bad,{}))
 for path,entry in [('src/runtime.php',{'mode':'100644','type':'blob','sha':'drift'}),('tests/unreviewed.php',{'mode':'100644','type':'blob','sha':'new'})]:
     bad=copy.deepcopy(tree);bad[path]=entry;rejected(lambda:h.verify_tree(base,bad,{}))
 bad=copy.deepcopy(tree);del bad['src/runtime.php'];rejected(lambda:h.verify_tree(base,bad,{}))
