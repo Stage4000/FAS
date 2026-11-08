@@ -129,3 +129,27 @@ for (const badRing of [[33, 37, 41], [255, 0, 255]]) {
         ringScreenshot([255, 255, 255], [33, 37, 41], true, [[84, 40, badRing]])), /painted/); checks++;
 }
 console.log(`PASS ${checks} navbar helper/negative checks (not browser acceptance)`);
+
+// Bounded capture sequencing tests use mocks only, never a browser.
+{
+'use strict';
+const assert=require('node:assert/strict');
+const {captureStableOutline}=require('./navbar.cjs');
+const reader=()=>{};
+let checks=0;
+function fake(values,shotError=false){let reads=0,shots=0;return {get shots(){return shots;},async evaluate(fn){if(fn===reader)return values[Math.min(reads++,values.length-1)];},async screenshot(){shots++;if(shotError)throw Error('screenshot failed');return Buffer.from('synthetic');}};}
+(async()=>{
+const a={tag:'BUTTON',id:'theme',href:null,label:'Toggle theme',rect:{top:1},outline:'solid'},b={...a,rect:{top:3}};
+let p=fake([a,a,a,a,a]);let r=await captureStableOutline(p,reader,{});assert.deepEqual(r.geometry,a);assert.equal(p.shots,1);assert.equal(r.settlement.frames,2);assert.deepEqual(r.settlement.initial,a);checks++;
+p=fake([a,a,b,b,b,b]);r=await captureStableOutline(p,reader,{});assert.deepEqual(r.geometry,b);assert.equal(p.shots,1);checks++;
+p=fake([a,a,a,a,b]);await assert.rejects(captureStableOutline(p,reader,{}),/changed across screenshot/);assert.equal(p.shots,1);checks++;
+p=fake(Array.from({length:140},(_,i)=>i%2?a:b));await assert.rejects(captureStableOutline(p,reader,{}),/stabilize across three frames/);assert.equal(p.shots,0);checks++;
+p=fake([a,a,a,a,a],true);await assert.rejects(captureStableOutline(p,reader,{}),/screenshot failed/);assert.equal(p.shots,1);checks++;
+let receipt;p=fake([a,a,a,a,b]);await assert.rejects(captureStableOutline(p,reader,{},x=>{receipt=x;}),/changed across screenshot/);assert.deepEqual(receipt.geometry,a);assert.deepEqual(receipt.after,b);assert.deepEqual(receipt.settlement.initial,a);assert.equal(p.shots,1);checks++;
+for(const field of ['tag','id','href','label']){const changed={...a,[field]:'different'};p=fake([a,changed,changed,changed]);await assert.rejects(captureStableOutline(p,reader,{}),/focused target changed/);assert.equal(p.shots,0);checks++;}
+p=fake([a,a,{...a,id:'different'}]);await assert.rejects(captureStableOutline(p,reader,{}),/focused target changed/);assert.equal(p.shots,0);checks++;
+p=fake([a,a,a,a,{...a,id:'different'}]);receipt=null;await assert.rejects(captureStableOutline(p,reader,{},x=>{receipt=x;}),/changed across screenshot/);assert.equal(p.shots,1);assert.equal(receipt.after.id,'different');checks++;
+console.log(JSON.stringify({passed:true,checks,browserExecuted:false,scope:'mocked capture control flow only; browser font/animation settlement unexecuted'}));
+})().catch(e=>{console.error(e);process.exitCode=1;});
+
+}

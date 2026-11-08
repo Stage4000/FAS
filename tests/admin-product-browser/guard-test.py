@@ -16,12 +16,13 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = "8fa7661e0e3b837d559d951f79f789e96625305b"
+EXPECTED_BASELINE = "2c13eb264bc77257c62f4eb6d9f6bc1bdc0c9eed"
 EXPECTED_PATHS = {
     "tests/admin-product-browser/run.py": "M",
     "tests/admin-product-browser/guard-test.py": "M",
     "tests/keyboard-browser/heading_runner.py": "M",
-    "tests/keyboard-browser/heading-unit-test.py": "M"
+    "tests/keyboard-browser/navbar.cjs": "M",
+    "tests/keyboard-browser/navbar-unit-test.cjs": "M"
 }
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
@@ -134,7 +135,7 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-four-path-refresh", lambda repo: None, accepted=True)
+    case("exact-five-path-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
     case("extra-test", changed("tests/extra.txt"))

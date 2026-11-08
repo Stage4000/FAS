@@ -85,6 +85,7 @@ function focusedGeometry() {
         outline: s.outlineStyle, outlineWidth: parseFloat(s.outlineWidth),
         offset: parseFloat(s.outlineOffset), outlineColor: s.outlineColor,
         shadow: s.boxShadow, transition: s.transitionProperty, clipping,
+        scroll: {x: scrollX, y: scrollY, visualX: visualViewport?.offsetLeft ?? 0, visualY: visualViewport?.offsetTop ?? 0},
         viewport: {width: innerWidth, height: innerHeight}, documentWidth: document.documentElement.scrollWidth,
         theme: document.documentElement.getAttribute('data-theme') || 'light',
         forced: matchMedia('(forced-colors: active)').matches,
@@ -159,6 +160,52 @@ function assertOutline(g, screenshot) {
         }
     }
     return samples;
+}
+
+// Read-only capture synchronization. No screenshot retries or pixel-policy changes.
+async function captureStableOutline(page, geometryReader, options, record = () => {}) {
+    const initial = await page.evaluate(geometryReader);
+    const identity = g => ({tag: g.tag, id: g.id, href: g.href, label: g.label});
+    const requireIdentity = g => assert.deepEqual(identity(g), identity(initial), 'Capture focused target changed during settlement');
+    await page.evaluate(async () => {
+        let timer;
+        try {
+            await Promise.race([
+                (async () => {
+                    await document.fonts.ready;
+                    const focus = document.activeElement;
+                    const animations = new Set(focus.getAnimations({subtree: true}));
+                    for (let parent = focus.parentElement; parent; parent = parent.parentElement)
+                        for (const animation of parent.getAnimations()) animations.add(animation);
+                    await Promise.all([...animations].filter(a => a.playState === 'running' || a.pending)
+                        .map(a => a.finished));
+                })(),
+                new Promise((_, reject) => {timer = setTimeout(() => reject(new Error('Capture fonts/animation settlement exceeded 2000ms')), 2000);}),
+            ]);
+        } finally { clearTimeout(timer); }
+    });
+    const frame = () => page.evaluate(() => new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Capture animation frame unavailable')), 500);
+        requestAnimationFrame(() => {clearTimeout(timer); resolve();});
+    }));
+    let geometry = await page.evaluate(geometryReader), stable = 0, frames = 0;
+    requireIdentity(geometry);
+    const deadline = Date.now() + 2000;
+    for (let count = 0; count < 120 && stable < 2 && Date.now() < deadline; count++) {
+        await frame();
+        frames++;
+        const next = await page.evaluate(geometryReader);
+        requireIdentity(next);
+        stable = JSON.stringify(next) === JSON.stringify(geometry) ? stable + 1 : 0;
+        geometry = next;
+    }
+    assert.equal(stable, 2, 'Capture geometry must stabilize across three frames');
+    const bytes = await page.screenshot(options); // Exactly one screenshot; never retry a failed sample.
+    const after = await page.evaluate(geometryReader);
+    const settlement = {initial, frames, stableObservations: stable + 1};
+    record({geometry, after, bytes, settlement}); // Preserve both measurements even when the assertion fails.
+    assert.deepEqual(after, geometry, 'Capture geometry changed across screenshot');
+    return {geometry, after, bytes, settlement};
 }
 
 async function main() {
@@ -239,14 +286,16 @@ async function main() {
                 assert(await focused(selector), `${key} reaches ${selector}`);
             };
             const capture = async label => {
-                const geometry = await page.evaluate(focusedGeometry);
+                const filename = `${prefix}-${label}.png`;
+                let result;
+                const {geometry, bytes} = await captureStableOutline(page, focusedGeometry,
+                    {path: path.join(output, filename)}, ({geometry, after, bytes, settlement}) => {
+                        row.screenshots.push({file: filename, sha256: digest(bytes), label, url: page.url(), theme: geometry.theme});
+                        result = {label, ...geometry, captureAfter: after, settlement};
+                        row.controls.push(result);
+                    });
                 assert.equal(geometry.forced, forcedColors === 'active');
                 assert.equal(geometry.reduced, reducedMotion === 'reduce');
-                const filename = `${prefix}-${label}.png`;
-                const bytes = await page.screenshot({path: path.join(output, filename)});
-                row.screenshots.push({file: filename, sha256: digest(bytes), label, url: page.url(), theme: geometry.theme});
-                const result = {label, ...geometry};
-                row.controls.push(result);
                 result.pixels = assertOutline(geometry, bytes);
             };
             const settleCollapse = async expanded => {
@@ -290,11 +339,10 @@ async function main() {
                     await page.keyboard.press('Space');
                     assert.equal(await page.locator('html').getAttribute('data-theme'), opposite);
                     assert.equal(await page.evaluate(() => localStorage.getItem('theme')), opposite);
-                    await page.waitForTimeout(350); // Only the theme background settles; focus has no transition.
                     await capture('theme-space');
                     await page.keyboard.press('Enter');
                     assert.equal(await page.locator('html').getAttribute('data-theme'), row.initialTheme);
-                    await page.waitForTimeout(350); await capture('theme-enter');
+                    await capture('theme-enter');
                 }
                 if (mobile) {
                     for (let cycle = 1; cycle <= 3; cycle++) {
@@ -371,5 +419,5 @@ async function main() {
     process.exitCode = failures.length ? 1 : 0;
 }
 
-module.exports = {contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent};
+module.exports = {captureStableOutline, contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent};
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
