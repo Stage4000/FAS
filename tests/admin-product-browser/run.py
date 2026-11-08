@@ -28,12 +28,12 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "0094abfa7701ff52cb89c6ba28eb951262abada5"
+BASELINE = "8fa7661e0e3b837d559d951f79f789e96625305b"
 ALLOWED_CHANGES = {
     "tests/admin-product-browser/run.py": "M",
-    "tests/admin-product-browser/README.md": "M",
-    ".github/workflows/admin-product-acceptance.yml": "M",
-    "tests/admin-product-browser/guard-test.py": "A",
+    "tests/admin-product-browser/guard-test.py": "M",
+    "tests/keyboard-browser/heading_runner.py": "M",
+    "tests/keyboard-browser/heading-unit-test.py": "M"
 }
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
