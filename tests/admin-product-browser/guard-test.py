@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = "2c13eb264bc77257c62f4eb6d9f6bc1bdc0c9eed"
+EXPECTED_BASELINE = "1b30980be77f407bca085b261141aaceb24f7115"
 EXPECTED_PATHS = {
     "tests/admin-product-browser/run.py": "M",
     "tests/admin-product-browser/guard-test.py": "M",

@@ -28,10 +28,10 @@ REVIEWED_OVERLAY = {'.github/workflows/admin-product-acceptance.yml': {'mode': '
                                            'sha': 'fb27ab2cac7920e65fbb6a06c02334ef54aefcf5'},
  'tests/admin-product-browser/guard-test.py': {'mode': '100644',
                                                'type': 'blob',
-                                               'sha': 'a5000a90acc73ccc432b46969c153c301dcf4669'},
+                                               'sha': 'f6ad34fcdc07b0200df968400e5ed45b95d11424'},
  'tests/admin-product-browser/run.py': {'mode': '100644',
                                         'type': 'blob',
-                                        'sha': 'cfd04585523301df4766aaaed3ae1a3cfa17250b'},
+                                        'sha': 'bdb201b019c9247fa2cbbe9f0a23bcb11cc833a2'},
  'tests/local-image-fallback-test.php': {'mode': '100644',
                                          'type': 'blob',
                                          'sha': '4b1bda015a752451c797d6e4d918e2a5f1f6ce65'},
@@ -46,10 +46,10 @@ REVIEWED_OVERLAY = {'.github/workflows/admin-product-acceptance.yml': {'mode': '
                                              'sha': '468364bfed8f1b8d6f3cc6cc8af4637cd5b56cca'},
  'tests/keyboard-browser/navbar.cjs': {'mode': '100644',
                                        'type': 'blob',
-                                       'sha': 'b369e8101f9eafcc928ac4230242b8d1e7742c3a'},
+                                       'sha': '6fcf4b3483fbef9b79bb58548357990700241757'},
  'tests/keyboard-browser/navbar-unit-test.cjs': {'mode': '100644',
                                                  'type': 'blob',
-                                                 'sha': '9070daeaab5e397615f3607205ee54fb2988ba07'}}
+                                                 'sha': '309f70f76671fce2afd13abdf3875bf949122d86'}}
 
 def parse_tree(raw):
     entries = {}

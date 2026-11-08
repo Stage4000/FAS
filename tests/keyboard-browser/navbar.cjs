@@ -162,49 +162,45 @@ function assertOutline(g, screenshot) {
     return samples;
 }
 
-// Read-only capture synchronization. No screenshot retries or pixel-policy changes.
+// Synchronous read only: works when page-authored JavaScript/timers are disabled.
+function captureReadiness() {
+    const focus = document.activeElement;
+    const animations = new Set(focus.getAnimations({subtree: true}));
+    for (let parent = focus.parentElement; parent; parent = parent.parentElement)
+        for (const animation of parent.getAnimations()) animations.add(animation);
+    return {fonts: document.fonts.status,
+        animations: [...animations].filter(a => a.playState === 'running' || a.pending)
+            .map(a => ({state: a.playState, pending: a.pending}))};
+}
+
+// Read-only host-timed sampling, not animation-frame observations. No screenshot retries.
 async function captureStableOutline(page, geometryReader, options, record = () => {}) {
     const initial = await page.evaluate(geometryReader);
     const identity = g => ({tag: g.tag, id: g.id, href: g.href, label: g.label});
     const requireIdentity = g => assert.deepEqual(identity(g), identity(initial), 'Capture focused target changed during settlement');
-    await page.evaluate(async () => {
-        let timer;
-        try {
-            await Promise.race([
-                (async () => {
-                    await document.fonts.ready;
-                    const focus = document.activeElement;
-                    const animations = new Set(focus.getAnimations({subtree: true}));
-                    for (let parent = focus.parentElement; parent; parent = parent.parentElement)
-                        for (const animation of parent.getAnimations()) animations.add(animation);
-                    await Promise.all([...animations].filter(a => a.playState === 'running' || a.pending)
-                        .map(a => a.finished));
-                })(),
-                new Promise((_, reject) => {timer = setTimeout(() => reject(new Error('Capture fonts/animation settlement exceeded 2000ms')), 2000);}),
-            ]);
-        } finally { clearTimeout(timer); }
-    });
-    const frame = () => page.evaluate(() => new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('Capture animation frame unavailable')), 500);
-        requestAnimationFrame(() => {clearTimeout(timer); resolve();});
-    }));
-    let geometry = await page.evaluate(geometryReader), stable = 0, frames = 0;
-    requireIdentity(geometry);
-    const deadline = Date.now() + 2000;
-    for (let count = 0; count < 120 && stable < 2 && Date.now() < deadline; count++) {
-        await frame();
-        frames++;
-        const next = await page.evaluate(geometryReader);
-        requireIdentity(next);
-        stable = JSON.stringify(next) === JSON.stringify(geometry) ? stable + 1 : 0;
-        geometry = next;
+    const started = Date.now(), deadline = started + 2000;
+    let geometry, previous, readiness, stable = 0, samples = 0;
+    for (let count = 0; count < 125 && stable < 3 && Date.now() < deadline; count++) {
+        if (count) await new Promise(resolve => setTimeout(resolve, 16)); // Node timer, never in-page.
+        readiness = await page.evaluate(captureReadiness);
+        geometry = await page.evaluate(geometryReader);
+        requireIdentity(geometry);
+        samples++;
+        const ready = readiness.fonts === 'loaded' && readiness.animations.length === 0;
+        stable = ready ? (previous && JSON.stringify(previous) === JSON.stringify(geometry) ? stable + 1 : 1) : 0;
+        previous = ready ? geometry : undefined;
     }
-    assert.equal(stable, 2, 'Capture geometry must stabilize across three frames');
+    assert(Date.now() <= deadline, 'Capture settlement exceeded 2000ms');
+    assert.equal(stable, 3, 'Capture requires ready fonts/animations and three matching timed geometry samples');
     const bytes = await page.screenshot(options); // Exactly one screenshot; never retry a failed sample.
     const after = await page.evaluate(geometryReader);
-    const settlement = {initial, frames, stableObservations: stable + 1};
-    record({geometry, after, bytes, settlement}); // Preserve both measurements even when the assertion fails.
+    const afterReadiness = await page.evaluate(captureReadiness);
+    const settlement = {initial, samples, stableObservations: stable, sampleIntervalMs: 16,
+        elapsedMs: Date.now() - started, readiness, afterReadiness, sampling: 'host-timed; not animation frames'};
+    record({geometry, after, bytes, settlement}); // Preserve evidence before any postshot rejection.
     assert.deepEqual(after, geometry, 'Capture geometry changed across screenshot');
+    assert.equal(afterReadiness.fonts, 'loaded', 'Capture fonts changed across screenshot');
+    assert.equal(afterReadiness.animations.length, 0, 'Capture animation started across screenshot');
     return {geometry, after, bytes, settlement};
 }
 
@@ -419,5 +415,5 @@ async function main() {
     process.exitCode = failures.length ? 1 : 0;
 }
 
-module.exports = {captureStableOutline, contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent};
+module.exports = {captureReadiness, captureStableOutline, contrast, decodeScreenshot, parseOutlineColor, adjacentExteriorPixel, assertOutline, assertCatalogContent};
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
