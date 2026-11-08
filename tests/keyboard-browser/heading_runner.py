@@ -170,6 +170,19 @@ def cart_restoration(candidate, baseline):
 RESIDUAL_CODES = {'CART_EMPTY_STATUS','CART_SUMMARY','CART_SHIPPING','CART_PAYMENT_LABEL','CART_ITEM','SELLER_IDENTITY'}
 VARIANTS = ['candidate','baseline','cart-parent-restored','residual-restored']
 
+# Exact reviewed GBP addition only. Historical negative-control bytes stay unchanged.
+GBP_FOOTER_BEFORE_SHA256 = 'ff410cfc1ba336ddd0e363c2fe11ab491780e009ae942a69bfe90e4e2e56473a'
+GBP_FOOTER_AFTER_SHA256 = '6033339dccfe08e4117c25df9b567923c8baa3822285d1b65dd1a8b395bbf697'
+GBP_FOOTER_LINE = b'            <p><a href="https://www.google.com/maps/place/Flip+and+Strip+Parts/data=!4m2!3m1!1s0x0:0xacc822ae250ccdb1" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">Find us on Google</a></p>\n'
+
+def restore_pre_gbp_footer(data):
+    if sha256(data) != GBP_FOOTER_AFTER_SHA256 or data.count(GBP_FOOTER_LINE) != 1:
+        raise ValueError('Exact GBP footer candidate required')
+    restored = data.replace(GBP_FOOTER_LINE, b'', 1)
+    if sha256(restored) != GBP_FOOTER_BEFORE_SHA256:
+        raise ValueError('Exact pre-GBP footer required')
+    return restored
+
 def residual_restoration(candidate, verify=True):
     manifest = json.loads((Path(__file__).parent/'heading-sources.json').read_text())
     if verify: verify_candidate(manifest,candidate)
@@ -183,6 +196,8 @@ def residual_restoration(candidate, verify=True):
                 raise ValueError('Exact residual anchor required: '+code)
             restored[path] = restored[path].replace(new.encode(),old.encode())
     if verify:
+        # Strip only the pinned addition before exact historical blob checks.
+        restored['includes/footer.php'] = restore_pre_gbp_footer(restored['includes/footer.php'])
         base=json.loads((Path(__file__).parent/'heading-base-tree.json').read_text())
         released={e['path']:e['sha'] for e in base['entries']}
         for path,data in restored.items():
