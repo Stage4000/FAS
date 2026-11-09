@@ -27,6 +27,28 @@ if(($argv[1]??'')==='child'){
 }
 $root=getcwd().'/composition-synthetic-'.bin2hex(random_bytes(8));foreach([$root,$root.'/jobs',$root.'/site',$root.'/site/gallery',$root.'/site/gallery/responsive']as$p)mkdir($p,0700);
 $d=db($root.'/catalog.sqlite');chmod($root.'/catalog.sqlite',0600);$d->exec(file_get_contents(__DIR__.'/fixtures/image-auto-operation/operation-v6/fixtures/schema-empty.sql'));
+// Exact referenced table DDL from pinned repository schema; retain foreign_keys=ON.
+$d->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS warehouses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE,
+    location TEXT,
+    address_line1 TEXT,
+    address_line2 TEXT,
+    city TEXT,
+    state TEXT,
+    postal_code TEXT,
+    country_code TEXT DEFAULT 'US',
+    phone TEXT,
+    email TEXT,
+    is_default INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+SQL);
+ok($d->query('PRAGMA foreign_keys')->fetchColumn()===1);
 $url='https://i.ebayimg.com/composition.png';$selector=['kind'=>'gallery','index'=>0];$gallery=json_encode([$url],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);$d->prepare("INSERT INTO products(id,name,price,image_url,images)VALUES(7,'composition',1,'https://i.ebayimg.com/original.png',?)")->execute([$gallery]);
 $original=$d->query('SELECT * FROM products WHERE id=7')->fetch(PDO::FETCH_ASSOC);$f=new ImageOperationFrontEnd($d,true);ok($f->consume(1,quota(),time())['handed_off']===1);ok($d->query('SELECT count(*) FROM ledger_attempts')->fetchColumn()===0);
 function register(PDO$d,ImageOperationFrontEnd$f,string$url,array$selector,?string$receipt):array{$r=$d->query('SELECT revision,snapshot_sha256 FROM image_snapshot_handoff WHERE product_id=7')->fetch(PDO::FETCH_NUM);$s=['product_id'=>7,'revision'=>$r[0],'snapshot_sha256'=>$r[1],'source_selector'=>$selector,'source_url'=>$url,'intent'=>$receipt===null?'initial':'renew','receipt_preimage_sha256'=>$receipt===null?null:hash('sha256',$receipt)];$policy=array_intersect_key($s,array_flip(['product_id','revision','snapshot_sha256','source_selector','source_url']))+['state'=>'allowed','observed_at'=>time(),'reference'=>'Explicit synthetic source policy'];$out=$f->registerRemote($s,$policy,$receipt,quota(),time());ok($out['state']==='registered_and_reserved');return$out['binding'];}
@@ -37,7 +59,7 @@ $receiptPath=$root.'/site/gallery/responsive/remote-'.hash('sha256',"7\n".$url).
 // Real time advance only; never rewrite receipt expiry or pin timestamps.
 $started=time();do{usleep(100000);}while(time()<=$started);
 $second=register($d,$f,$url,$selector,$before);ok($second['revision']===$first['revision']);ok($second['operation_key']!==$first['operation_key']);ok($second['attempt_id']!==$first['attempt_id']);ok($second['receipt_preimage_sha256']===hash('sha256',$before));ok(child($root,$second)['settled']===true);
-$after=file_get_contents($receiptPath);ok($after!==$before);ok(attempt($d,$first['attempt_id'])===$firstRow);$q=$d->prepare('SELECT * FROM ledger_acquisitions WHERE attempt_id=?');$q->execute([$first['attempt_id']]);ok($q->fetchAll(PDO::FETCH_ASSOC)===$firstAcq);ok(hash_file('sha256',$firstSource)===$sourceHash);ok($d->query("SELECT count(*) FROM ledger_capacity WHERE state<>'released'")->fetchColumn()===0);$q=$d->prepare('SELECT proof_json FROM ledger_acquisitions WHERE attempt_id=?');$q->execute([$second['attempt_id']]);$secondProof=json_decode($q->fetchColumn(),true,32,JSON_THROW_ON_ERROR);$firstProof=json_decode($firstAcq[0]['proof_json'],true,32,JSON_THROW_ON_ERROR);ok($secondProof['verified_at']>$firstProof['verified_at']);ok($secondProof['valid_until']===$secondProof['verified_at']+86400);ok($d->query('SELECT count(*) FROM ledger_acquisitions')->fetchColumn()===2);ok($d->query('SELECT * FROM products WHERE id=7')->fetch(PDO::FETCH_ASSOC)===$original);
+$after=file_get_contents($receiptPath);ok($after!==$before);ok(attempt($d,$first['attempt_id'])===$firstRow);$q=$d->prepare('SELECT * FROM ledger_acquisitions WHERE attempt_id=?');$q->execute([$first['attempt_id']]);ok($q->fetchAll(PDO::FETCH_ASSOC)===$firstAcq);ok(hash_file('sha256',$firstSource)===$sourceHash);ok($d->query("SELECT count(*) FROM ledger_capacity WHERE state<>'released'")->fetchColumn()===0);$q=$d->prepare('SELECT proof_json FROM ledger_acquisitions WHERE attempt_id=?');$q->execute([$second['attempt_id']]);$secondProof=json_decode($q->fetchColumn(),true,32,JSON_THROW_ON_ERROR);$q->closeCursor();$firstProof=json_decode($firstAcq[0]['proof_json'],true,32,JSON_THROW_ON_ERROR);ok($secondProof['verified_at']>$firstProof['verified_at']);ok($secondProof['valid_until']===$secondProof['verified_at']+86400);ok($d->query('SELECT count(*) FROM ledger_acquisitions')->fetchColumn()===2);ok($d->query('SELECT * FROM products WHERE id=7')->fetch(PDO::FETCH_ASSOC)===$original);
 // Genuine third registration followed by a failed transfer holds capacity: no manual phase seeding.
 $third=register($d,$f,$url,$selector,$after);ok(child($root,$third,true)['failed_unknown']===true);ok(file_get_contents($receiptPath)===$after);ok($f->consume(1,quota(),time())['state']==='pause');ok($d->query('SELECT count(*) FROM ledger_acquisitions')->fetchColumn()===2);ok($d->query("SELECT count(*) FROM ledger_capacity WHERE state='running'")->fetchColumn()===1);ok(attempt($d,$first['attempt_id'])===$firstRow);
 echo json_encode(['status'=>'PASS','checks'=>$n,'real_pdo_gd'=>true,'source_calls'=>3,'fresh_successful_acquisitions'=>2,'unknown_retains_capacity'=>true,'process_confinement_acceptance'=>false,'network'=>false,'root'=>$root],JSON_THROW_ON_ERROR)."\n";
