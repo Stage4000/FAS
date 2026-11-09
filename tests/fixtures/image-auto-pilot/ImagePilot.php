@@ -5,7 +5,7 @@ require_once __DIR__.'/ResponsiveImage.php';
 require_once __DIR__.'/ImportedImage.php';
 require_once __DIR__.'/ImageIntakeBinding.php';
 
-/** Default-off ONE primary eBay image pilot. No schema changes or automatic retries. */
+/** Default-off ONE explicitly selected eBay image pilot. No schema changes or automatic retries. */
 class ImagePilot
 {
     public function __construct(private \PDO $db,private string $site,private string $private,private string $input,private bool $enabled=false,private bool $requireIntake=false) {}
@@ -70,7 +70,7 @@ SQL;
     }
     public function enqueue(string $id,array $record):array {
         $this->ready();$lock=self::lock($this->private.'/.worker.lock',true);$intake=null;
-        try{if(self::read($this->job($id),262144)!==null)throw new \RuntimeException('Job already exists');if($this->requireIntake||array_key_exists('intake',$record))$intake=new ImageIntakeBinding($this->private,$this->input);$this->inputCheck($record);$p=$this->product($record['product_id']);if($p['image_url']!==$record['source_url'])throw new \RuntimeException('Primary catalog source changed');
+        try{if(self::read($this->job($id),262144)!==null)throw new \RuntimeException('Job already exists');if($this->requireIntake||array_key_exists('intake',$record)||ImageSourceSelection::selector($record)['kind']==='gallery')$intake=new ImageIntakeBinding($this->private,$this->input);$this->inputCheck($record);$p=$this->product($record['product_id']);if(ImageSourceSelection::selected($p,$record)!==$record['source_url'])throw new \RuntimeException('Selected catalog source changed');
             $before=self::read($this->site.'/gallery/responsive/'.self::receiptName($record),16384);self::exclusion($before);
             $pins=$intake===null?null:$intake->verify($id,$record,$p,$before);
             $job=['version'=>1,'id'=>$id,'state'=>'queued','record'=>$record,'product'=>$p,'before_receipt'=>$before,'queued_at'=>time()];if($pins!==null)$job['intake_binding']=$pins;$this->save($id,$job);return ['id'=>$id,'state'=>'queued'];
@@ -95,8 +95,8 @@ SQL;
             $raw=self::read($this->job($id),262144);if($raw===null)throw new \RuntimeException('No queued job');$job=json_decode($raw,true,24,JSON_THROW_ON_ERROR);
             if(!is_array($job)||($job['version']??null)!==1||($job['id']??null)!==$id||!in_array($job['state']??null,['queued','running','publishing','done'],true))throw new \RuntimeException('Invalid job');
             if($job['state']!=='queued')return ['id'=>$id,'state'=>$job['state'],'retry_authorized'=>false];
-            $r=$job['record'];if($this->requireIntake||array_key_exists('intake',$r)||array_key_exists('intake_binding',$job)){$intake=new ImageIntakeBinding($this->private,$this->input);if($intake->verify($id,$r,$job['product'],$job['before_receipt'])!==($job['intake_binding']??null))throw new \RuntimeException('Intake changed since enqueue');}
-            $this->inputCheck($r);if($this->product($r['product_id'])!==$job['product'])throw new \RuntimeException('Catalog changed before claim');
+            $r=$job['record'];if($this->requireIntake||array_key_exists('intake',$r)||array_key_exists('intake_binding',$job)||ImageSourceSelection::selector($r)['kind']==='gallery'){$intake=new ImageIntakeBinding($this->private,$this->input);if($intake->verify($id,$r,$job['product'],$job['before_receipt'])!==($job['intake_binding']??null))throw new \RuntimeException('Intake changed since enqueue');}
+            $this->inputCheck($r);if(ImageSourceSelection::selected($job['product'],$r)!==$r['source_url'])throw new \RuntimeException('Selected source changed before claim');if($this->product($r['product_id'])!==$job['product'])throw new \RuntimeException('Catalog changed before claim');
             $target=$this->site.'/gallery/responsive/'.self::receiptName($r);if(self::read($target,16384)!==$job['before_receipt'])throw new \RuntimeException('Receipt changed before claim');self::exclusion($job['before_receipt']);
             $job['state']='running';$job['started_at']=time();$this->save($id,$job);$this->checkpoint('running');
             $work=$this->private.'/stage-'.$id;if(file_exists($work)||is_link($work)||!mkdir($work,0700))throw new \RuntimeException('Fresh private stage required');

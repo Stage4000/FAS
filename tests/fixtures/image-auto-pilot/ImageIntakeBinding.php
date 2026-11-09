@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Utils;
+require_once __DIR__.'/ImageSourceSelection.php';
 
 /** Read-only intake commit gate. Holds the producer's lock until explicitly released. */
 final class ImageIntakeBinding
@@ -49,7 +50,7 @@ final class ImageIntakeBinding
             || !in_array($meta['intent']??null,['initial','renew'],true)
             || ($meta['intent']==='initial' ? $before!==null : $before===null)
             || ($product['id']??null)!==($record['product_id']??null)
-            || ($product['image_url']??null)!==($record['source_url']??null)) throw new \RuntimeException('Intake catalog/preimage/identity binding');
+            || ImageSourceSelection::selected($product,$record)!==($record['source_url']??null)) throw new \RuntimeException('Intake catalog/preimage/identity binding');
         $image=$meta['image']??null;
         $types=['jpg'=>['image/jpeg',IMAGETYPE_JPEG],'png'=>['image/png',IMAGETYPE_PNG],'webp'=>['image/webp',IMAGETYPE_WEBP]];
         $ext=is_array($image)?($image['extension']??null):null;
@@ -77,6 +78,7 @@ final class ImageIntakeBinding
             $events[]=$event;
         }
         $context=['catalog_snapshot'=>$product,'receipt_preimage_sha256'=>$preimage,'source_url'=>$record['source_url'],'intent'=>$meta['intent']];
+        if(array_key_exists('source_selector',$record))$context['source_selector']=ImageSourceSelection::selector($record);
         if ($events[0]!==['state'=>'receiving','job'=>$job,'context'=>$context,'retry_authorized'=>false]) throw new \RuntimeException('Intake receiving context changed');
         foreach ([1,2] as $index) {
             self::timestamp($events[$index]['utc']??null);

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Utils;
+require_once __DIR__.'/ImageSourceSelection.php';
 
 /** Transport reports headers once, then bounded chunks. It must never follow redirects. */
 interface ImageIntakeTransport
@@ -75,7 +76,7 @@ SQL;
     private function binding(array $job): void
     {
         $p = self::snapshot($this->db, $job['product_id']);
-        if ($p !== $job['catalog_snapshot'] || $p['image_url'] !== $job['source_url']) throw new \RuntimeException('Catalog/source changed');
+        if ($p !== $job['catalog_snapshot'] || ImageSourceSelection::selected($p,$job) !== $job['source_url']) throw new \RuntimeException('Catalog/source changed');
         $raw = $this->store->receipt($job['product_id'], $job['source_url']);
         if ($raw !== null) {
             if (strlen($raw) > 16384) throw new \RuntimeException('Receipt bound');
@@ -161,7 +162,9 @@ SQL;
         self::source($job['source_url']); $this->binding($job);
         $claimed = false;
         try {
-            $this->store->claim($job['job'], ['catalog_snapshot'=>$job['catalog_snapshot'],'receipt_preimage_sha256'=>$job['receipt_preimage_sha256'],'source_url'=>$job['source_url'],'intent'=>$job['intent']]);
+            $context=['catalog_snapshot'=>$job['catalog_snapshot'],'receipt_preimage_sha256'=>$job['receipt_preimage_sha256'],'source_url'=>$job['source_url'],'intent'=>$job['intent']];
+            if(array_key_exists('source_selector',$job))$context['source_selector']=ImageSourceSelection::selector($job);
+            $this->store->claim($job['job'],$context);
             $claimed = true; $this->binding($job);
             $start = ($this->mono)(); $body = ''; $meta = null;
             $deadline = function() use ($start): void { if (($this->mono)() - $start > self::TIMEOUT_MS * 1000000) throw new \RuntimeException('Source deadline'); };
@@ -191,6 +194,7 @@ SQL;
                 'provenance'=>['basis'=>'existing_catalog','reference'=>$job['reference'],'optimization_authorized'=>true,'excluded'=>false],
                 'intake'=>['version'=>1,'job'=>$job['job'],'catalog_snapshot_sha256'=>self::snapshotHash($job['catalog_snapshot']),
                     'receipt_preimage_sha256'=>$job['receipt_preimage_sha256'],'image'=>$image,'intent'=>$job['intent']]];
+            if(array_key_exists('source_selector',$job))$record['source_selector']=ImageSourceSelection::selector($job);
             $deadline(); $this->store->ready($record); $deadline(); $this->store->event('ready',['record_sha256'=>hash('sha256',json_encode($record,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES))]);
             return $record;
         } catch (\Throwable $e) {
