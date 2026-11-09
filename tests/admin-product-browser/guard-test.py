@@ -16,11 +16,11 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = '1f9796991a133720e4ea5dd9b9f3bf9dff3176e7'
-EXPECTED_PATHS = {'cart.php': 'M', 'public/js/main.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/quantity.cjs': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/keyboard-browser/storage-identity-test.py': 'A', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'A', 'tests/keyboard-browser/storage-sources.json': 'A', 'tests/keyboard-browser/storage-unavailable.cjs': 'A', 'tests/keyboard-browser/storage_identity.py': 'A'}
-EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'f35622459159d2c83ca00aab54083ebf1388788a', 'after': 'c2d8de237a122838770bd16463638555757146dd'}, 'cart.php': {'before': 'b9641f97f54fed8ea8dba1867e4d5e0948a2baa6', 'after': '0082e0fcabbc1be3678235e2a7e9c18585e419cb'}}
-EXPECTED_BASELINE_TREE = 'af9afa13baa37839d71887cf44ba11de56524cd6'
-EXPECTED_STORAGE_BLOBS = {'cart.php': '0082e0fcabbc1be3678235e2a7e9c18585e419cb', 'public/js/main.js': 'c2d8de237a122838770bd16463638555757146dd', 'tests/keyboard-browser/heading-unit-test.py': '408f51763d2de3b6dce4c29c7b798fac415b614b', 'tests/keyboard-browser/quantity.cjs': '600ab0539566ea32e7870af6fd83cbd9ecf831a2', 'tests/keyboard-browser/run.py': 'a86338d370ab325d24773748d41a36eb79b68719', 'tests/keyboard-browser/storage-identity-test.py': '23da43ac612305e7b7d2137a5b9ee02fd38e5f85', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'f198236dccb32c3e1575114a9e3c542c52d02e8a', 'tests/keyboard-browser/storage-sources.json': 'a42fb5fb4d461878d7d3f6980379f8070541bfaa', 'tests/keyboard-browser/storage-unavailable.cjs': '8f148c9c6fae05590ccc3c0b8c1e9d3c83c01cd9', 'tests/keyboard-browser/storage_identity.py': '2073f45b92befae1838e2bea78624048da53e6ab'}
+EXPECTED_BASELINE = '89a9ab7217cef5e5fb2794afebc70c2e85323213'
+EXPECTED_PATHS = {'public/js/main.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/cart-malformed-hydration-test.cjs': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/malformed-hydration.cjs': 'A', 'tests/keyboard-browser/malformed-identity-test.cjs': 'A', 'tests/keyboard-browser/malformed-identity-test.py': 'A', 'tests/keyboard-browser/malformed-identity.cjs': 'A', 'tests/keyboard-browser/malformed-sources.json': 'A', 'tests/keyboard-browser/malformed_identity.py': 'A', 'tests/keyboard-browser/quantity.cjs': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/keyboard-browser/storage-unavailable.cjs': 'M', 'tests/keyboard-browser/storage_identity.py': 'M'}
+EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'c2d8de237a122838770bd16463638555757146dd', 'after': 'b88352baedbd514f2cc8241ea74a17d02fa38c7e'}}
+EXPECTED_BASELINE_TREE = '2159e45da8b10e80d53d8a6bde8d1924f7716cf6'
+EXPECTED_STORAGE_BLOBS = {'public/js/main.js': 'b88352baedbd514f2cc8241ea74a17d02fa38c7e', 'tests/cart-malformed-hydration-test.cjs': '261efab97ff17f698714f631b3a2a580eccbb23c', 'tests/keyboard-browser/malformed-hydration.cjs': 'ca3b01bd0e7b5ce929aa11cf6ef067288e963f8d', 'tests/keyboard-browser/malformed-identity-test.cjs': '83bf9fef0d91630a9372f4ed1f6087c57c20a420', 'tests/keyboard-browser/malformed-identity-test.py': '42674d548f9c3fe0e2dc588f511d30cdeb157c4d', 'tests/keyboard-browser/malformed-identity.cjs': '52cd30143a58da510a1e8e740b91c167b35e5525', 'tests/keyboard-browser/malformed-sources.json': '0328877491f41f0b253876a1553f44d782dab893', 'tests/keyboard-browser/malformed_identity.py': '2e19b7b6e54fa22a3db1e419c00c29626c22a12e', 'tests/keyboard-browser/quantity.cjs': 'd2f7b5d3a01b25695b826100005dfa7bd20c0942', 'tests/keyboard-browser/run.py': 'b8259116762a34f2dd2de3cba0087214c13e579b', 'tests/keyboard-browser/storage-unavailable.cjs': '745b825c1e77f325a1e7bced9652de5b4a56b1c9', 'tests/keyboard-browser/storage_identity.py': '8658e70e1e668153dad9d7b3587b582f60334ddc'}
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
 
@@ -138,19 +138,19 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-thirteen-path-storage-refresh", lambda repo: None, accepted=True)
+    case("exact-15-path-malformed-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
     case("changed-approved-main", changed("public/js/main.js"))
     case("wrong-main-preimage-pin", lambda repo: None, overrides=lambda repo: {"EXPECTED_RUNTIME": {"public/js/main.js": {"before": "0"*40, "after": repo.command("rev-parse", "HEAD:public/js/main.js").stdout.strip()}}})
     case("wrong-baseline-tree", lambda repo: None, overrides=lambda repo: {"BASELINE_TREE": "0"*40})
-    def wrong_cart_preimage(repo):
+    def wrong_main_preimage(repo):
         pins = {path: {"before": repo.command("rev-parse", repo.baseline+":"+path).stdout.strip(),
                        "after": repo.command("rev-parse", "HEAD:"+path).stdout.strip()}
                 for path in EXPECTED_RUNTIME}
-        pins["cart.php"]["before"] = "0"*40
+        pins["public/js/main.js"]["before"] = "0"*40
         return {"EXPECTED_RUNTIME": pins}
-    case("wrong-cart-preimage-pin", lambda repo: None, overrides=wrong_cart_preimage,
+    case("wrong-only-main-preimage-pin", lambda repo: None, overrides=wrong_main_preimage,
          reason="Reviewed runtime preimage mismatch")
     for scoped in EXPECTED_STORAGE_BLOBS:
         case("wrong-scoped-blob:"+scoped, changed(scoped))

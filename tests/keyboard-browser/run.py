@@ -16,6 +16,9 @@ def main():
     args = parser.parse_args()
     from heading_runner import verify_checkout
     checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['node', str(ROOT/'tests/cart-malformed-hydration-test.cjs')], check=True)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/malformed-identity-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/malformed-identity-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/storage-identity-test.py')], check=True)
     subprocess.run(['node', str(ROOT/'tests/keyboard-browser/storage-quantity-identity-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/heading-unit-test.py')], check=True)
@@ -158,6 +161,21 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                             raise RuntimeError('Synthetic storage inventory restoration failed')
                 with sqlite3.connect(site/'database/flipandstrip.db') as db:
                     db.execute('DELETE FROM ebay_seller_rating_cache')
+                # Malformed suite alone uses stock5; preserve prior suite and heading seeds.
+                with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                    malformed_original_quantity = db.execute('SELECT quantity FROM products WHERE id=1').fetchone()
+                    if malformed_original_quantity is None:
+                        raise RuntimeError('Missing synthetic id1 inventory for malformed suite')
+                    if db.execute('UPDATE products SET quantity=5 WHERE id=1').rowcount != 1:
+                        raise RuntimeError('Unexpected synthetic malformed inventory update')
+                try:
+                    results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/malformed-hydration.cjs'),
+                        origin, str(args.assets.resolve()), str(output)]).returncode)
+                finally:
+                    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                        if db.execute('UPDATE products SET quantity=? WHERE id=1', malformed_original_quantity).rowcount != 1:
+                            raise RuntimeError('Synthetic malformed inventory restoration failed')
+
                 from heading_runner import run_heading_variants
                 results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
                 if any(results):

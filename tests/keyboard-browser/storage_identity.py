@@ -1,6 +1,7 @@
 """Exact storage overlay restoration; pure bytes only, no server/browser/network."""
 from pathlib import Path
 import base64, gzip, hashlib, json
+import malformed_identity
 MANIFEST_SHA256 = '23e23bceb7d6fb04edf25356ba590f3642b7700d17e27bd06efb7cd60d8faed5'
 
 def manifest():
@@ -9,6 +10,7 @@ def manifest():
     return json.loads(raw)
 
 def restore(path, data, strict=False):
+    data = malformed_identity.restore(path, data)
     entry=manifest()['files'].get(path)
     if entry is None: return data
     digest=hashlib.sha256(data).hexdigest()
