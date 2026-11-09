@@ -16,6 +16,9 @@ def main():
     args = parser.parse_args()
     from heading_runner import verify_checkout
     checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/catalog-scroll-guard-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/catalog-scroll-policy-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/catalog-scroll-offset-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/email-restore-guard-test.py')], check=True)
     subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore-policy-test.cjs')], check=True)
     subprocess.run(['node', str(ROOT/'tests/email-restore-preservation-test.cjs')], check=True)
@@ -184,6 +187,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 from heading_runner import run_heading_variants
                 results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
                 results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore.cjs'),
+                    origin, str(args.assets.resolve()), str(output)]).returncode)
+                results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/catalog-scroll.cjs'),
                     origin, str(args.assets.resolve()), str(output)]).returncode)
                 if any(results):
                     raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')

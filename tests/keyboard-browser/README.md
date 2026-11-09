@@ -96,3 +96,30 @@ No form is submitted. Existing suites, request restrictions, workflow and source
 identity checks remain intact. The current exact-checkout gate must accept the
 reviewed new source/test identities before this suite can execute in CI; it is
 not relaxed by this change. No native browser result is claimed before that run.
+
+
+Catalog scroll regression: `catalog-scroll.cjs` runs after the unchanged heading
+and emailed-restoration suites, against the same disposable 40-item synthetic
+motorcycle inventory. Native Tab/Enter pagination is followed by native Search,
+category-preserving Clear, repeated pagination, and the mobile All Products
+category handler. Search/Clear focus is measured only after the existing delayed
+mobile and smooth scrolling settles. At 1200x777 and 390x844, both actual site
+themes and both normal/reduced motion settings are tested.
+
+The 16 scenarios comprise the exact candidate CSS and an exact CSS-only preimage
+response control. The server's stylesheet must hash to the reviewed candidate
+before either response is accepted. Every candidate focus control must be fully
+inside the viewport below the sticky header and pass five hit tests; all four
+desktop controls must detect the historical obscuration in their baseline runs.
+The suite records geometry, native focus, scroll offset, request inventory and
+screenshot hashes in catalog-scroll/report.json. The empty eBay category fixture
+is unchanged, so this does not establish live category-tree or inventory results.
+
+The new suite permits only its two exact GET document URLs and three exact
+read-only catalog fetch query strings. Other methods/APIs, external navigation
+and unexpected requests fail. Legacy suites and their request predicates remain
+unchanged, as do workflow isolation, fixture copy filters, router, provider
+exclusions, and historical heading negative-control sources. The heading gate
+normalizes only the exact reviewed one-line CSS delta for historical identity
+checks; runtime copies keep the candidate CSS. Baseline CSS is rejected as an
+actual candidate. New source/policy/identity regressions run before browser work.
