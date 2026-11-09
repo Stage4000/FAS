@@ -1,0 +1,31 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/fixtures/image-auto-operation/controller-cycle-next/ControllerQuotaWitness.php';
+use FAS\Utils\ControllerQuotaWitness;
+$n=0;function ok(bool$v):void{global$n;if(!$v)throw new RuntimeException('Check '.$n);$n++;}function refusal(callable$f):void{try{$r=$f();ok($r['state']==='hold'&&$r['observation']===null&&!$r['dispatch_authorized']);}catch(InvalidArgumentException|RuntimeException$e){if(str_starts_with($e->getMessage(),'Check '))throw$e;ok(true);}}
+$b=['job'=>str_repeat('1',32),'handoff_sha256'=>str_repeat('2',64),'package_sha256'=>str_repeat('3',64),'policy_sha256'=>str_repeat('4',64)];$a=new ControllerQuotaWitness($b['package_sha256'],$b['policy_sha256'],true);
+$r=['version'=>1,'receipt_id'=>str_repeat('5',32),'subscription'=>9001,'domain'=>'quota-fixture.invalid','active'=>true,'refresh_action'=>'synthetic-statistics-recalculate','completion'=>'positively_completed','started_at'=>1000,'completed_at'=>1005,'read_at'=>1006,'measurement_id'=>str_repeat('6',64),'completion_measurement_id'=>str_repeat('6',64),'unit_contract'=>'exact-byte-integers-v1','quota_limit'=>5368709120,'quota_used'=>1073741824,'limit_text'=>'5368709120 bytes','used_text'=>'1073741824 bytes','binding'=>$b];
+$fs=['observed_at'=>1006,'private_free'=>2147483648,'public_free'=>2147483648,'tmp_free'=>2147483648];$use=['receipt_id'=>$r['receipt_id'],'measurement_id'=>$r['measurement_id'],'started_at'=>$r['started_at'],'job'=>$b['job'],'state'=>'unused'];$project=fn($x)=>$a->project($x,$b,$fs,$use,[],1006);
+refusal(fn()=>(new ControllerQuotaWitness($b['package_sha256'],$b['policy_sha256']))->project($r,$b,$fs,$use,[],1006));$out=$project($r);ok($out['state']==='projection_ready'&&$out['observation']['observed_at']===1000&&!$out['dispatch_authorized']);
+foreach(['subscription'=>19,'domain'=>'other.example','active'=>false,'completion'=>'requested','refresh_action'=>'cached-read','completion_measurement_id'=>str_repeat('7',64),'started_at'=>1007,'completed_at'=>999,'read_at'=>1007,'unit_contract'=>'rounded-GiB','limit_text'=>'5 GB','used_text'=>'1.0 GiB','quota_used'=>'1073741824','quota_limit'=>0]as$k=>$v){$x=$r;$x[$k]=$v;refusal(fn()=>$project($x));}
+foreach(['job','handoff_sha256','package_sha256','policy_sha256']as$k){$x=$r;$x['binding'][$k]=str_repeat('a',strlen($b[$k]));refusal(fn()=>$project($x));}
+$x=$r;$x['started_at']=705;refusal(fn()=>$project($x));$x=$r;$x['started_at']=706;$u=$use;$u['started_at']=706;ok($a->project($x,$b,$fs,$u,[],1006)['observation']['observed_at']===706);
+foreach(['claimed','consumed','settled','unknown']as$state){$u=$use;$u['state']=$state;refusal(fn()=>$a->project($r,$b,$fs,$u,[],1006));}
+foreach(['reserved','running','unknown']as$state){$retained=[['job'=>str_repeat('9',32),'bytes'=>67108864,'state'=>$state]];refusal(fn()=>$a->project($r,$b,$fs,$use,$retained,1006));}
+refusal(fn()=>$a->project($r,$b,$fs,$use,[['job'=>$b['job'],'bytes'=>67108864,'state'=>'unknown']],1006));
+$f=$fs;$f['observed_at']=705;refusal(fn()=>$a->project($r,$b,$f,$use,[],1006));$f=$fs;$f['private_free']=134217727;refusal(fn()=>$a->project($r,$b,$f,$use,[],1006));
+$x=$r;$x['quota_used']=$x['quota_limit']-134217727;$x['used_text']=$x['quota_used'].' bytes';refusal(fn()=>$project($x));$x['quota_used']--;$x['used_text']=$x['quota_used'].' bytes';ok($project($x)['state']==='projection_ready');
+// A released job reservation is NOT permission to reissue its refresh cycle.
+$u=$use;$u['state']='settled';refusal(fn()=>$a->project($r,$b,$fs,$u,[],1006));
+$other=$b;$other['job']=str_repeat('a',32);$clone=$r;$clone['binding']=$other;refusal(fn()=>$a->project($clone,$other,$fs,$use,[],1006));
+$clone=$r;$clone['receipt_id']=str_repeat('b',32);refusal(fn()=>$project($clone));
+$clone=$r;$clone['started_at']=1001;refusal(fn()=>$project($clone));
+$other=$b;$other['package_sha256']=str_repeat('a',64);refusal(fn()=>$a->project($r,$other,$fs,$use,[],1006));
+// Receipt is immutable across projections: no delivery-time refresh.
+$before=hash('sha256',serialize($r));$out2=$a->project($r,$b,$fs,$use,[],1300);ok($out2['observation']['observed_at']===1000&&$before===hash('sha256',serialize($r)));refusal(fn()=>$a->project($r,$b,$fs,$use,[],1301));
+// Unchanged frontend consumes projection, then still performs its OWN atomic
+// capacity inventory. This is interface compatibility, not durable receipt CAS.
+require __DIR__.'/fixtures/image-auto-operation/front-end-vnext/ImageOperationFrontEnd.php';$dir=getcwd().'/quota-witness-'.bin2hex(random_bytes(8));mkdir($dir,0700);$d=new PDO('sqlite:'.$dir.'/catalog.sqlite',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_STRINGIFY_FETCHES=>false]);$d->exec(file_get_contents(__DIR__.'/fixtures/image-auto-operation/operation-v6/fixtures/schema-empty.sql'));$d->exec("INSERT INTO products(id,name,price,image_url)VALUES(1,'synthetic',1,'https://i.ebayimg.com/a.png')");$d->exec('PRAGMA foreign_keys=ON');$d->exec('PRAGMA busy_timeout=250');$f=new FAS\Utils\ImageOperationFrontEnd($d,true);ok($f->consume(1,$out['observation'],1006)['handed_off']===1);
+$h=$d->query('SELECT revision,snapshot_sha256 FROM image_snapshot_handoff WHERE product_id=1')->fetch(PDO::FETCH_ASSOC);$selection=['product_id'=>1,'revision'=>$h['revision'],'snapshot_sha256'=>$h['snapshot_sha256'],'source_selector'=>['kind'=>'primary'],'source_url'=>'https://i.ebayimg.com/a.png','intent'=>'initial','receipt_preimage_sha256'=>null];$policy=array_intersect_key($selection,array_flip(['product_id','revision','snapshot_sha256','source_selector','source_url']))+['state'=>'allowed','observed_at'=>1006,'reference'=>'synthetic'];$admit=$f->registerRemote($selection,$policy,null,$out['observation'],1006);ok($admit['state']==='registered_and_reserved');ok($d->query("SELECT count(*) FROM ledger_capacity WHERE bytes=67108864 AND state='reserved'")->fetchColumn()===1);$d->exec("UPDATE ledger_attempts SET phase='execution_unknown'");ok($f->consume(1,$out['observation'],1006)['state']==='pause');
+$use['state']='unknown';refusal(fn()=>$a->project($r,$b,$fs,$use,[],1006));ok(!$d->inTransaction());
+echo json_encode(['status'=>'PASS','checks'=>$n,'sqlite'=>$d->query('SELECT sqlite_version()')->fetchColumn(),'receipt_authentication'=>false,'single_use_persistence'=>false,'frontend_interface_only'=>true,'network'=>false])."\n";
