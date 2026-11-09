@@ -78,3 +78,21 @@ as the existing visual workflow, cache assets with
 NODE_PATH=/path/to/playwright/node_modules python3 tests/keyboard-browser/run.py \
   --assets /tmp/fas-visual-assets --output /tmp/fas-keyboard-output
 ```
+
+Quantity regression (draft, native acceptance pending): the runner also executes
+quantity-rendering-unit-test.cjs and quantity.cjs. The unit test runs the actual
+ShoppingCart class and complete cart.php inline script with synthetic DOM/storage
+to check rejected edits redraw the previous quantity and total, valid recovery,
+stock bounds, and preservation of unrelated fields and another cart item.
+
+The browser test uses the existing heading-policy.cjs predicates unchanged,
+the same disposable PHP fixture and presentation cache, and fresh synthetic cart
+storage at desktop/mobile widths. It clears the real number input with native
+keys and commits with Tab, then edits a valid value and uses the actual +/- buttons.
+Its negative control fulfills only the main.js response with the exact pinned
+pre-guard bytes; the candidate response must match its reviewed hash. Both source
+hashes, observations and screenshots are reported under quantity/report.json.
+No form is submitted. Existing suites, request restrictions, workflow and source
+identity checks remain intact. The current exact-checkout gate must accept the
+reviewed new source/test identities before this suite can execute in CI; it is
+not relaxed by this change. No native browser result is claimed before that run.

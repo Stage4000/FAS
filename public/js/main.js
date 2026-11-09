@@ -108,6 +108,9 @@ class ShoppingCart {
         const item = this.cart.find(item => item.id === productId);
         if (item) {
             const newQuantity = parseInt(quantity);
+            if (!Number.isFinite(newQuantity)) {
+                return;
+            }
             const stockLimit = item.stock || 999;
             const previousQuantity = item.quantity;
 
