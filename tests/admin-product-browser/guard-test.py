@@ -17,10 +17,10 @@ import tempfile
 
 
 EXPECTED_BASELINE = '61464292aeffdf7fcbd2a701f3013c368adaaeca'
-EXPECTED_PATHS = {'public/js/email-action.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/email-action-lifecycle-test.cjs': 'M', 'tests/email-restore-preservation-test.cjs': 'A', 'tests/keyboard-browser/email-restore-guard-test.py': 'A', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'A', 'tests/keyboard-browser/email-restore-sources.json': 'A', 'tests/keyboard-browser/email-restore.cjs': 'A', 'tests/keyboard-browser/email_restore_identity.py': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/run.py': 'M'}
+EXPECTED_PATHS = {'public/js/email-action.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/email-action-lifecycle-test.cjs': 'M', 'tests/email-restore-preservation-test.cjs': 'A', 'tests/growth-client-test.cjs': 'M', 'tests/keyboard-browser/email-restore-guard-test.py': 'A', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'A', 'tests/keyboard-browser/email-restore-sources.json': 'A', 'tests/keyboard-browser/email-restore.cjs': 'A', 'tests/keyboard-browser/email_restore_identity.py': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/run.py': 'M'}
 EXPECTED_RUNTIME = {'public/js/email-action.js': {'before': 'f5dace90e697365b62d4c1a9c7628ccd50a737f7', 'after': 'c21e32786ff2f352cd79d3038aadac652429c31f'}}
 EXPECTED_BASELINE_TREE = 'e1344779ff2def586675e995323f0a6bba46e393'
-EXPECTED_STORAGE_BLOBS = {'public/js/email-action.js': 'c21e32786ff2f352cd79d3038aadac652429c31f', 'tests/email-action-lifecycle-test.cjs': '3f207f98d0dda2032e63e4088853fb15a7ed76d3', 'tests/email-restore-preservation-test.cjs': '5ddf103c9e7a3d6704bc2ee8bfc0423f6f057488', 'tests/keyboard-browser/email-restore-guard-test.py': '8930c18894174155c3bb60d2ee702bc48ef4e32b', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'f1f230ba429c2b877d71e0e5202708ffcc22883e', 'tests/keyboard-browser/email-restore-sources.json': '9713e6397410caff7cbe951b3ff28e07a172ebb6', 'tests/keyboard-browser/email-restore.cjs': '675c6c108c4de4942e4aedbc62c234a37e4627e8', 'tests/keyboard-browser/email_restore_identity.py': '5ce99622bec9287ad9a6504cf9aafe64baf0cd0c', 'tests/keyboard-browser/run.py': '7a26a99e6fe66bcc6b22b91c2c74701cb70760d3'}
+EXPECTED_STORAGE_BLOBS = {'public/js/email-action.js': 'c21e32786ff2f352cd79d3038aadac652429c31f', 'tests/email-action-lifecycle-test.cjs': '3f207f98d0dda2032e63e4088853fb15a7ed76d3', 'tests/email-restore-preservation-test.cjs': '5ddf103c9e7a3d6704bc2ee8bfc0423f6f057488', 'tests/growth-client-test.cjs': '8f9c814a29dfc4678b17482415776e9bedde292f', 'tests/keyboard-browser/email-restore-guard-test.py': '8930c18894174155c3bb60d2ee702bc48ef4e32b', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'f1f230ba429c2b877d71e0e5202708ffcc22883e', 'tests/keyboard-browser/email-restore-sources.json': '9713e6397410caff7cbe951b3ff28e07a172ebb6', 'tests/keyboard-browser/email-restore.cjs': '675c6c108c4de4942e4aedbc62c234a37e4627e8', 'tests/keyboard-browser/email_restore_identity.py': '5ce99622bec9287ad9a6504cf9aafe64baf0cd0c', 'tests/keyboard-browser/run.py': '7a26a99e6fe66bcc6b22b91c2c74701cb70760d3'}
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
 
@@ -138,7 +138,7 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-12-path-email-refresh", lambda repo: None, accepted=True)
+    case("exact-13-path-email-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
     case("changed-approved-main", changed("public/js/email-action.js"))
