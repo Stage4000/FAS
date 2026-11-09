@@ -106,7 +106,7 @@ async function main() {
             const prefix = `${variant}-${width}-${siteTheme}-${motion}`;
             const row = {variant,width,height:width===390?844:777,siteTheme,motion,steps:[],detected:[],screenshots:[],fetches:[],blocked:[],errors:[],failed:[],cssRequests:0};
             rows.push(row);
-            const context = await browser.newContext({viewport:{width,height:row.height},colorScheme:siteTheme,
+            const context = await browser.newContext({viewport:{width,height:row.height},colorScheme:'light',
                 reducedMotion:motion,serviceWorkers:'block'});
             const page = await context.newPage(); page.setDefaultTimeout(10000);
             page.on('pageerror',e=>row.errors.push(e.message));
