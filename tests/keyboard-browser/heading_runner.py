@@ -1,6 +1,7 @@
 """Invoked only by the existing loopback-isolated runner; never a standalone server."""
 from pathlib import Path
 import base64, gzip, hashlib, json, re, sqlite3, subprocess
+import storage_identity
 
 EXPECTED_BASE = '686f9df992f9b6b077b2400870b5a33a3ca6d18d'
 EXPECTED_PATHS = {'index.php', 'products.php', 'api/products.php', 'product.php',
@@ -53,6 +54,8 @@ REVIEWED_OVERLAY = {'tests/product-share-fallback-test.cjs': {'mode':'100644','t
 
 
 QUANTITY_BLOBS = {'public/js/main.js': {'mode': '100644', 'type': 'blob', 'sha': 'f35622459159d2c83ca00aab54083ebf1388788a'}, 'tests/cart-quantity-validity-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '94d46849d5971eccde272e9ab44256075442a58b'}, 'tests/keyboard-browser/README.md': {'mode': '100644', 'type': 'blob', 'sha': 'c8e8cfcb9d8a0eca25aa4b46ed50ce7f4e6bb78e'}, 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'b8652474f4d77a112ffe2e72c85848875c57aeac'}, 'tests/keyboard-browser/quantity.cjs': {'mode': '100644', 'type': 'blob', 'sha': '74f88bb0b5ee7b68beb14bc6b3c986ac16222d37'}, 'tests/keyboard-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '0229703984f8a53a8657ac01ee202ddc08c3ce6b'}}
+STORAGE_BLOBS = {'public/js/main.js': {'mode': '100644', 'type': 'blob', 'sha': 'e8b8659b07fd553a99f7c16386879d5817d0d392'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': '0082e0fcabbc1be3678235e2a7e9c18585e419cb'}, 'tests/keyboard-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': 'a86338d370ab325d24773748d41a36eb79b68719'}, 'tests/keyboard-browser/quantity.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'dfd113adc19164db16a97197d26ce401a1ca1cc0'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '5f7455665f1b8e85949d38809b3c3fa7aa91d0a2'}, 'tests/keyboard-browser/storage-sources.json': {'mode': '100644', 'type': 'blob', 'sha': '5b046f10b9b42f7c7d34640d1e1384af369d2025'}, 'tests/keyboard-browser/storage-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '23da43ac612305e7b7d2137a5b9ee02fd38e5f85'}, 'tests/keyboard-browser/storage-quantity-identity-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'f198236dccb32c3e1575114a9e3c542c52d02e8a'}, 'tests/keyboard-browser/storage-unavailable.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c962d004ce4e0241f064091b39567c21e04dcea0'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '54b8d3fb3e52b24a65422e636c63a76063cb3c43'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'c75e9f23d6d173ecad36d3092f822f808b66a667'}}
+QUANTITY_BLOBS.update(STORAGE_BLOBS)
 REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
 # Normalize only the exact reviewed, non-heading clipboard correction for the
@@ -63,6 +66,7 @@ SHARE_OLD = b"                document.execCommand('copy');"
 SHARE_NEW = b"                if (!document.execCommand('copy')) {\n                    throw new Error('Clipboard copy was not accepted');\n                }"
 
 def heading_identity_bytes(path, data):
+    data = storage_identity.restore(path, data)
     if path != 'product.php' or sha256(data) != SHARE_FIXED_SHA256:
         return data
     if data.count(SHARE_NEW) != 1:
@@ -133,7 +137,8 @@ def verify_checkout(root):
     decode_manifest(manifest)
     candidate = {p:(root/p).read_bytes() for p in EXPECTED_PATHS}
     verify_candidate(manifest, candidate)
-    restore_pre_quantity_main((root/"public/js/main.js").read_bytes())
+    storage_identity.verify_runtime(root)
+    restore_pre_quantity_main(storage_identity.restore("public/js/main.js", (root/"public/js/main.js").read_bytes(), strict=True))
     base = json.loads((suite/'heading-base-tree.json').read_text())
     if base['base_commit'] != 'c7122b0e406ce5052bc87bcb443395f5a35d9618' or base['base_tree'] != '3087b90c93484dcd54df0211652b65af696b91ad':
         raise ValueError('Unexpected reference tree')
@@ -340,7 +345,8 @@ def run_heading_variants(root, site, origin, assets, output):
     suite = root / 'tests/keyboard-browser'
     manifest = json.loads((suite / 'heading-sources.json').read_text())
     baseline = decode_manifest(manifest)
-    candidate = {p: (site / p).read_bytes() for p in EXPECTED_PATHS}
+    runtime_candidate = {p: (site / p).read_bytes() for p in EXPECTED_PATHS}
+    candidate = {p: storage_identity.restore(p, data) for p, data in runtime_candidate.items()}
     verify_candidate(manifest, candidate)  # Fail closed before any heading browser starts.
     restored = cart_restoration(candidate, baseline)
     heading_output = output / 'headings'
@@ -358,6 +364,7 @@ def run_heading_variants(root, site, origin, assets, output):
     identity = {'base': EXPECTED_BASE, 'manifest_sha256': sha256((suite/'heading-sources.json').read_bytes()),
                 'source_patch_sha256': manifest['source_patch_sha256'],
                 'candidate_sha256': {p: sha256(b) for p,b in candidate.items()},
+                'storage_runtime_sha256': {p: sha256(b) for p,b in runtime_candidate.items()},
                 'baseline_sha256': {p: sha256(b) for p,b in baseline.items()},
                 'synthetic_seed_sha256': sha256(seed),
                 'checkout':verify_checkout(root),
@@ -397,7 +404,7 @@ def run_heading_variants(root, site, origin, assets, output):
             if report.is_file():
                 reports[variant] = json.loads(report.read_text())
     finally:
-        for path, data in candidate.items():
+        for path, data in runtime_candidate.items():
             (site/path).write_bytes(data)
         verify_candidate(manifest, {p: (site/p).read_bytes() for p in EXPECTED_PATHS})
     failures += evaluate_reports(reports)

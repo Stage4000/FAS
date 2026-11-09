@@ -16,11 +16,11 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = '70e7b2da0f76d56aea3a4e2597f8b9e19d43aa77'
-EXPECTED_PATHS = {'public/js/main.js': 'M', 'tests/cart-quantity-validity-test.cjs': 'A', 'tests/keyboard-browser/README.md': 'M', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'A', 'tests/keyboard-browser/quantity.cjs': 'A', 'tests/keyboard-browser/run.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M'}
-EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'e6a523116df4dc8f3fcf8b01dc3e00833a0fc3d5', 'after': 'f35622459159d2c83ca00aab54083ebf1388788a'}}
-EXPECTED_BASELINE_TREE = '661abe74355bd8339671e462ef85d13010f782a3'
-EXPECTED_QUANTITY_BLOBS = {'public/js/main.js': 'f35622459159d2c83ca00aab54083ebf1388788a', 'tests/cart-quantity-validity-test.cjs': '94d46849d5971eccde272e9ab44256075442a58b', 'tests/keyboard-browser/README.md': 'c8e8cfcb9d8a0eca25aa4b46ed50ce7f4e6bb78e', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'b8652474f4d77a112ffe2e72c85848875c57aeac', 'tests/keyboard-browser/quantity.cjs': '74f88bb0b5ee7b68beb14bc6b3c986ac16222d37', 'tests/keyboard-browser/run.py': '0229703984f8a53a8657ac01ee202ddc08c3ce6b'}
+EXPECTED_BASELINE = '1f9796991a133720e4ea5dd9b9f3bf9dff3176e7'
+EXPECTED_PATHS = {'cart.php': 'M', 'public/js/main.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/quantity.cjs': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/keyboard-browser/storage-identity-test.py': 'A', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'A', 'tests/keyboard-browser/storage-sources.json': 'A', 'tests/keyboard-browser/storage-unavailable.cjs': 'A', 'tests/keyboard-browser/storage_identity.py': 'A'}
+EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'f35622459159d2c83ca00aab54083ebf1388788a', 'after': 'e8b8659b07fd553a99f7c16386879d5817d0d392'}, 'cart.php': {'before': 'b9641f97f54fed8ea8dba1867e4d5e0948a2baa6', 'after': '0082e0fcabbc1be3678235e2a7e9c18585e419cb'}}
+EXPECTED_BASELINE_TREE = 'af9afa13baa37839d71887cf44ba11de56524cd6'
+EXPECTED_STORAGE_BLOBS = {'cart.php': '0082e0fcabbc1be3678235e2a7e9c18585e419cb', 'public/js/main.js': 'e8b8659b07fd553a99f7c16386879d5817d0d392', 'tests/keyboard-browser/heading-unit-test.py': '408f51763d2de3b6dce4c29c7b798fac415b614b', 'tests/keyboard-browser/quantity.cjs': 'dfd113adc19164db16a97197d26ce401a1ca1cc0', 'tests/keyboard-browser/run.py': 'a86338d370ab325d24773748d41a36eb79b68719', 'tests/keyboard-browser/storage-identity-test.py': '23da43ac612305e7b7d2137a5b9ee02fd38e5f85', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'f198236dccb32c3e1575114a9e3c542c52d02e8a', 'tests/keyboard-browser/storage-sources.json': '5b046f10b9b42f7c7d34640d1e1384af369d2025', 'tests/keyboard-browser/storage-unavailable.cjs': 'c962d004ce4e0241f064091b39567c21e04dcea0', 'tests/keyboard-browser/storage_identity.py': '5f7455665f1b8e85949d38809b3c3fa7aa91d0a2'}
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
 
@@ -32,7 +32,7 @@ def load_guard() -> dict:
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             name = node.targets[0].id
-            if name in {"BASELINE", "BASELINE_TREE", "ALLOWED_CHANGES", "EXPECTED_RUNTIME", "EXPECTED_QUANTITY_BLOBS"}:
+            if name in {"BASELINE", "BASELINE_TREE", "ALLOWED_CHANGES", "EXPECTED_RUNTIME", "EXPECTED_STORAGE_BLOBS"}:
                 if name in constants:
                     raise AssertionError("Duplicate guard constant")
                 constants[name] = ast.literal_eval(node.value)
@@ -40,7 +40,7 @@ def load_guard() -> dict:
             if node.decorator_list:
                 raise AssertionError("Guard decorators are forbidden")
             functions.append(node)
-    assert constants == {"BASELINE": EXPECTED_BASELINE, "BASELINE_TREE": EXPECTED_BASELINE_TREE, "ALLOWED_CHANGES": EXPECTED_PATHS, "EXPECTED_RUNTIME": EXPECTED_RUNTIME, "EXPECTED_QUANTITY_BLOBS": EXPECTED_QUANTITY_BLOBS}
+    assert constants == {"BASELINE": EXPECTED_BASELINE, "BASELINE_TREE": EXPECTED_BASELINE_TREE, "ALLOWED_CHANGES": EXPECTED_PATHS, "EXPECTED_RUNTIME": EXPECTED_RUNTIME, "EXPECTED_STORAGE_BLOBS": EXPECTED_STORAGE_BLOBS}
     assert sorted(node.name for node in functions) == ["require", "verify_candidate"]
     namespace = dict(constants, hashlib=hashlib)
     exec(compile(ast.Module(body=functions, type_ignores=[]), str(RUNNER), "exec"), namespace)
@@ -99,7 +99,7 @@ class Repository:
             return self.command(*args[1:])
         guard.update(ROOT=self.root, BASELINE=self.baseline,
                      BASELINE_TREE=self.command("rev-parse", self.baseline+"^{tree}").stdout.strip(),
-                     EXPECTED_QUANTITY_BLOBS={p: hashlib.sha1(b"blob " + str(len(b"synthetic reviewed candidate\n")).encode() + b"\0synthetic reviewed candidate\n").hexdigest() for p in EXPECTED_QUANTITY_BLOBS},
+                     EXPECTED_STORAGE_BLOBS={p: hashlib.sha1(b"blob " + str(len(b"synthetic reviewed candidate\n")).encode() + b"\0synthetic reviewed candidate\n").hexdigest() for p in EXPECTED_STORAGE_BLOBS},
                      EXPECTED_RUNTIME={p: {"before": self.command("rev-parse", self.baseline+":"+p).stdout.strip(),
                                            "after": hashlib.sha1(b"blob " + str(len(b"synthetic reviewed candidate\n")).encode() + b"\0synthetic reviewed candidate\n").hexdigest()} for p in EXPECTED_RUNTIME},
                      git=lambda *args: self.command(*args).stdout.strip(),
@@ -112,7 +112,7 @@ def main() -> None:
     assert GIT, "Installed Git required; no dependency installation is attempted"
     results = []
 
-    def case(name, modify, *, accepted=False, overrides=None):
+    def case(name, modify, *, accepted=False, overrides=None, reason=None):
         with tempfile.TemporaryDirectory(prefix="fas-admin-guard-") as temporary:
             repo = Repository(Path(temporary))
             repo.candidate()
@@ -122,6 +122,8 @@ def main() -> None:
             except RuntimeError as error:
                 if accepted:
                     raise AssertionError(name + " unexpectedly rejected") from error
+                if reason is not None:
+                    assert str(error) == reason, name + " rejected for the wrong reason: " + str(error)
                 results.append({"case": name, "expected": "reject", "passed": True})
             else:
                 assert accepted, name + " unexpectedly accepted"
@@ -136,13 +138,21 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-ten-path-quantity-refresh", lambda repo: None, accepted=True)
+    case("exact-thirteen-path-storage-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
     case("changed-approved-main", changed("public/js/main.js"))
     case("wrong-main-preimage-pin", lambda repo: None, overrides=lambda repo: {"EXPECTED_RUNTIME": {"public/js/main.js": {"before": "0"*40, "after": repo.command("rev-parse", "HEAD:public/js/main.js").stdout.strip()}}})
     case("wrong-baseline-tree", lambda repo: None, overrides=lambda repo: {"BASELINE_TREE": "0"*40})
-    for scoped in EXPECTED_QUANTITY_BLOBS:
+    def wrong_cart_preimage(repo):
+        pins = {path: {"before": repo.command("rev-parse", repo.baseline+":"+path).stdout.strip(),
+                       "after": repo.command("rev-parse", "HEAD:"+path).stdout.strip()}
+                for path in EXPECTED_RUNTIME}
+        pins["cart.php"]["before"] = "0"*40
+        return {"EXPECTED_RUNTIME": pins}
+    case("wrong-cart-preimage-pin", lambda repo: None, overrides=wrong_cart_preimage,
+         reason="Reviewed runtime preimage mismatch")
+    for scoped in EXPECTED_STORAGE_BLOBS:
         case("wrong-scoped-blob:"+scoped, changed(scoped))
         case("missing-scoped-path:"+scoped, lambda repo, scoped=scoped: (
             repo.command("rm", scoped), repo.commit("remove scoped file")))
