@@ -6,7 +6,7 @@ const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const BASELINE_SHA='da8fca43f1e10c9876b3aa6dcb6ae1ff68d927c76c719f3462629f1c62f142a8';
 const CANDIDATE_SHA='cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167';
-const STORAGE_MANIFEST_SHA='86ff4a8777c802a459313108bb516eb2b4ffdf7b304e9c004ec0ab3d584cce2a';
+const STORAGE_MANIFEST_SHA='23e23bceb7d6fb04edf25356ba590f3642b7700d17e27bd06efb7cd60d8faed5';
 function storageMain(candidate){
  const raw=fs.readFileSync(path.join(__dirname,'storage-sources.json'));
  assert.equal(digest(raw),STORAGE_MANIFEST_SHA,'exact storage identity manifest');

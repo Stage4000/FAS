@@ -1,7 +1,7 @@
 """Exact storage overlay restoration; pure bytes only, no server/browser/network."""
 from pathlib import Path
 import base64, gzip, hashlib, json
-MANIFEST_SHA256 = '86ff4a8777c802a459313108bb516eb2b4ffdf7b304e9c004ec0ab3d584cce2a'
+MANIFEST_SHA256 = '23e23bceb7d6fb04edf25356ba590f3642b7700d17e27bd06efb7cd60d8faed5'
 
 def manifest():
     raw=(Path(__file__).parent/'storage-sources.json').read_bytes()

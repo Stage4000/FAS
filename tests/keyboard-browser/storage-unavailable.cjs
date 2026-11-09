@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=require('./heading-policy.cjs');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const BASE='cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167';
-const FIX='44f6c0082d16bff5b6de4b987202630da47a6193f3c011cc4d8860de815014f2';
+const FIX='3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2';
 const CART='e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60';
 const seed=[{id:'1',name:'Synthetic cart part',sku:'SYN-1',price:10,quantity:2,stock:5,custom:{retained:true}},{id:'2',name:'Other synthetic part',price:7,quantity:1,stock:8}];
 const RAW=' '+JSON.stringify(seed)+'\n'; // Deliberately retain insignificant raw formatting.
@@ -65,7 +65,7 @@ async function main(){
    }else{
     if(mode==='read'){
      await readable(page);assert.equal(await page.locator('#empty-cart-title').innerText(),'No items added in this page session');assert.equal(await page.locator('#checkout-btn').isVisible(),false);
-     const add=page.locator('#empty-cart-message .add-to-cart').first();await add.waitFor({state:'visible'});await add.click();await qty().waitFor({state:'visible'});
+     const add=page.locator('#empty-cart-message .add-to-cart').first();await add.waitFor({state:'visible'});await add.click();await qty().waitFor({state:'visible'});assert.equal(await page.locator('.toast-notification.alert-success').count(),0,'unsaved cart must not emit success toast over persistent warning');row.unsavedSuccessToasts=0;
     }else{await qty().waitFor({state:'visible'});assert.equal(await page.locator('#cart-storage-warning').count(),0)}
     await qty().click();await qty().press('ControlOrMeta+A');await qty().press('Backspace');await qty().press('Tab');const rejected=await page.evaluate(observe);assert.equal(rejected.writes,0,'invalid edit never writes');assert.equal(rejected.events.length,mode==='read'?1:0);
     await qty().fill('3');await qty().press('Tab');let state=await page.evaluate(observe);row.steps.push({action:'native quantity 3',state});

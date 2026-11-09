@@ -138,7 +138,7 @@ class ShoppingCart {
             quantity_added: 1
         });
         // Use animation instead of notification
-        if (window.showToast) {
+        if (window.showToast && !this.storageUnavailable) {
             window.showToast('Added to cart!', 'success');
         }
     }
