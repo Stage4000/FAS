@@ -1,7 +1,7 @@
 """Disposable real-admin browser acceptance. Run only in the guarded hosted job.
 
 No production state or provider transport is used. This runner intentionally
-refuses a normal network namespace, root execution, or a changed runtime tree.
+refuses a normal network namespace, root execution, or an unreviewed runtime tree.
 """
 from __future__ import annotations
 
@@ -28,14 +28,9 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "1b30980be77f407bca085b261141aaceb24f7115"
-ALLOWED_CHANGES = {
-    "tests/admin-product-browser/run.py": "M",
-    "tests/admin-product-browser/guard-test.py": "M",
-    "tests/keyboard-browser/heading_runner.py": "M",
-    "tests/keyboard-browser/navbar.cjs": "M",
-    "tests/keyboard-browser/navbar-unit-test.cjs": "M"
-}
+BASELINE = "7513450d72009b25cc3729886772bc4564906471"
+ALLOWED_CHANGES = {'includes/footer.php': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading-sources.json': 'M', 'tests/keyboard-browser/heading.cjs': 'M'}
+EXPECTED_RUNTIME = {'includes/footer.php': {'before': 'e06bd662108bdd64fe6993117899f624c00cfcba', 'after': '2ad0d3cb8581fc09e71d307650606149c6dc7009'}}
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
     '03-import-with-protected-title', '04-description-and-repeat-import',
@@ -115,11 +110,17 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the five reviewed test paths and exact statuses")
+            "Diff must match the seven reviewed GBP paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),
-            "Reviewed test files must be regular non-executable Git blobs")
+            "Reviewed files must be regular non-executable Git blobs")
+    # Permit only the exact reviewed footer delta, never arbitrary runtime changes.
+    for path, pins in EXPECTED_RUNTIME.items():
+        require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
+                "Reviewed runtime preimage mismatch")
+        require(git("rev-parse", "HEAD:" + path) == pins["after"],
+                "Reviewed runtime candidate mismatch")
     require(not git("diff", "--name-only", "-z", "HEAD"), "Tracked working tree must be unchanged")
     require(not git("diff", "--cached", "--name-only", "-z", "HEAD"), "Tracked index must be unchanged")
     require(not git("ls-files", "--others", "-z"), "Untracked files are forbidden in the checkout")
@@ -166,7 +167,7 @@ def verify_candidate() -> dict:
             "added_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "A"),
             "modified_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "M"),
             "materialized_tracked_blobs_verified": checked, "absent_sparse_paths": absent,
-            "runtime_diff_from_baseline": []}
+            "runtime_diff_from_baseline": sorted(EXPECTED_RUNTIME)}
 
 
 def verify_assets(assets: Path) -> dict:

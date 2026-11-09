@@ -63,6 +63,19 @@ for path,changes in manifest['residual_changes'].items():
         rejected(lambda:h.residual_restoration(bad,verify=False))
 bad=dict(cart_candidate);bad['cart.php']+=b'changed';rejected(lambda:h.cart_restoration(bad,baseline))
 
+# Exact clipboard delta is normalized for historical heading identity only.
+product=(suite.parents[1]/'product.php').read_bytes()
+check(h.sha256(product)==h.SHARE_FIXED_SHA256)
+restored_product=h.heading_identity_bytes('product.php',product)
+check(h.sha256(restored_product)==h.SHARE_PREIMAGE_SHA256)
+check(h.heading_identity_bytes('other.php',product)==product)
+check(h.heading_identity_bytes('product.php',restored_product)==restored_product)
+product_manifest={'files':[next(e for e in manifest['files'] if e['path']=='product.php')]}
+h.verify_candidate(product_manifest,{'product.php':product});check(True)
+for mutation in [restored_product, product+h.SHARE_NEW, product.replace(b"execCommand('copy')",b"execCommand('cut')"), product+b'changed',product.replace(b'Clipboard copy was not accepted',b'changed'),product.replace(b'<h2',b'<h4',1)]:
+    rejected(lambda:h.verify_candidate(product_manifest,{'product.php':mutation}))
+check(h.heading_identity_bytes('product.php',product+b'changed')==product+b'changed')
+
 row=lambda key:{'key':key,'visual':[{'text':'Synthetic heading','visible':True,'style':{'fontSize':'20px'},'rect':{'x':0,'y':0,'width':100,'height':20}}]}
 empty={'rows':[row(k) for k in sorted(h.EXPECTED_KEYS)],'semantic_failures':[],'infrastructure_failures':[]}
 reports={name:copy.deepcopy(empty) for name in h.VARIANTS}

@@ -13,7 +13,8 @@ const assets = path.resolve(assetsArg), output = path.resolve(outputArg);
 const manifest = JSON.parse(fs.readFileSync(path.join(assets, 'manifest.json')));
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 for (const entry of Object.values(manifest)) assert.equal(digest(fs.readFileSync(path.join(assets, entry.file))), entry.sha256);
-const rows = [], semantic_failures = [], infrastructure_failures = [];
+const rows = [], semantic_failures = [], infrastructure_failures = [], gbp_footer = [];
+const GBP_URL = 'https://www.google.com/maps/place/Flip+and+Strip+Parts/data=!4m2!3m1!1s0x0:0xacc822ae250ccdb1';
 const surfaces = [['home','/'], ['catalog','/products'], ['empty',`/products?search=${SEARCH_EMPTY}`],
     ['product','/product/1/synthetic-test-part'], ['cart','/cart'], ['cart-populated','/cart']];
 
@@ -186,8 +187,14 @@ function observe(surface) {
                 page.on('pageerror',e=>errors.push(e.message));
                 page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()}));
                 page.on('response',r=>{if(r.status()>=400) failed.push({url:r.url(),status:r.status()});});
+                let gbpActivation = false, gbpRequests = 0;
                 await context.route('**/*',async route=>{
                     const request=route.request(),url=new URL(request.url()),type=request.resourceType();
+                    // One inert destination response, never external transport or a provider call.
+                    if(gbpActivation && request.url()===GBP_URL && request.method()==='GET' && type==='document') {
+                        assert.equal(++gbpRequests,1,'single GBP destination request');
+                        return route.fulfill({contentType:'text/html',body:'<!doctype html><title>Inert Google-link acceptance</title>'});
+                    }
                     if(allowedCatalogFetch(url,origin,request.method(),type)) {ajax.push(url.href); return route.continue();}
                     if(request.method()!=='GET'||['fetch','xhr','websocket','eventsource'].includes(type)){blocked.push(url.href);return route.abort('blockedbyclient');}
                     const cached=manifest[url.href];
@@ -234,6 +241,37 @@ function observe(surface) {
                         }
                         assert.equal(ajax.length,2,'exactly two reviewed catalog GETs');
                     } else assert.equal(ajax.length,0,'no other API activity');
+                    if(surface==='home' && path.basename(output)==='candidate') {
+                        const link=page.locator('footer a').filter({hasText:'Find us on Google'});
+                        assert.equal(await link.count(),1);
+                        assert.equal(await link.getAttribute('href'),GBP_URL);
+                        assert.equal(await link.getAttribute('target'),'_blank');
+                        assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
+                        await page.evaluate(()=>document.activeElement?.blur());
+                        let tabs=0;
+                        while(!(await link.evaluate(el=>el===document.activeElement)) && tabs<200) {
+                            await page.keyboard.press('Tab');tabs++;
+                        }
+                        const focus=await link.evaluate(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {
+                            focused:el===document.activeElement,visible:el.matches(':focus-visible'),
+                            outline:s.outlineStyle,outlineWidth:parseFloat(s.outlineWidth),
+                            bounds:r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight,
+                            unobscured:el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};});
+                        assert(tabs>0 && tabs<200 && focus.focused && focus.visible && focus.bounds && focus.unobscured);
+                        assert(focus.outline!=='none' && focus.outlineWidth>0,'visible keyboard outline');
+                        const filename=`gbp-footer-${width}-${theme}.png`;
+                        await page.screenshot({path:path.join(output,filename)});
+                        const before=page.url();gbpActivation=true;
+                        const popupPromise=page.waitForEvent('popup');
+                        await page.keyboard.press('Enter');
+                        const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');
+                        assert.equal(popup.url(),GBP_URL);assert.equal(await popup.title(),'Inert Google-link acceptance');
+                        assert.equal(gbpRequests,1);assert.equal(page.url(),before);
+                        await popup.close();gbpActivation=false;
+                        gbp_footer.push({width,theme,tabs,focus,screenshot:filename,
+                            screenshot_sha256:digest(fs.readFileSync(path.join(output,filename))),
+                            destination:GBP_URL,activation:'native Enter; isolated inert popup',external_transport:false});
+                    }
                     assert.deepEqual(blocked,[]);assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
                 } catch(error){infrastructure_failures.push({surface,width,theme,error:String(error.stack),blocked,errors,failed,ajax});}
                 finally{await context.close();}
@@ -241,7 +279,8 @@ function observe(surface) {
         }
     } finally {
         await browser.close();
-        fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({rows,semantic_failures,infrastructure_failures,presentation_assets:manifest},null,2)+'\n');
+        if(path.basename(output)==='candidate' && gbp_footer.length!==4) infrastructure_failures.push({error:'Expected all four GBP footer keyboard cases'});
+        fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({rows,semantic_failures,infrastructure_failures,gbp_footer,presentation_assets:manifest},null,2)+'\n');
     }
     // Expected semantic failures are evaluated by the coordinator, not swallowed.
     process.exitCode=infrastructure_failures.length?1:0;
