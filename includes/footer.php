@@ -45,6 +45,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
             <p><a href="https://www.tiktok.com/@user802164683" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none"><i class="fab fa-tiktok"></i> TikTok</a></p>
             <p><a href="mailto:FLIPANDSTRIPCYCLES@GMAIL.COM" class="text-white-50 text-decoration-none"><i class="fas fa-envelope"></i> FLIPANDSTRIPCYCLES@GMAIL.COM</a></p>
             <p><a href="sms:+14073085294" class="text-white-50 text-decoration-none"><i class="fas fa-mobile-alt"></i> 407 308 5294</a></p>
+            <p><a href="https://www.google.com/maps/place/Flip+and+Strip+Parts/data=!4m2!3m1!1s0x0:0xacc822ae250ccdb1" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">Find us on Google</a></p>
             <?php if ($sellerRating): ?>
                 <?php echo fasRenderSellerRatingBlock($sellerRating, 'footer'); ?>
             <?php endif; ?>

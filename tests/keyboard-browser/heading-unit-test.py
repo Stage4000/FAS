@@ -30,6 +30,16 @@ for index in range(9):
     rejected(lambda:h.decode_manifest(bad))
 bad=copy.deepcopy(manifest);bad['files'].append(bad['files'][0]);rejected(lambda:h.decode_manifest(bad))
 bad=copy.deepcopy(manifest);bad['files'][0]['path']='../config.php';rejected(lambda:h.decode_manifest(bad))
+# GBP source is exact, reversible, and cannot mask unrelated footer edits.
+footer = (suite.parents[1]/'includes/footer.php').read_bytes()
+pre_gbp = h.restore_pre_gbp_footer(footer)
+check(h.sha256(pre_gbp)==h.GBP_FOOTER_BEFORE_SHA256)
+check(pre_gbp + b'' != footer and len(footer)-len(pre_gbp)==230)
+for bad_footer in [pre_gbp, footer+b'changed', footer+h.GBP_FOOTER_LINE,
+                   footer.replace(b'Find us on Google',b'Changed link'),
+                   footer.replace(b'noopener noreferrer',b'noopener',1)]:
+    rejected(lambda:h.restore_pre_gbp_footer(bad_footer))
+
 # One valid synthetic mapping, then exactly one changed path per negative test.
 synthetic={path:('synthetic candidate '+path).encode() for path in baseline}
 synthetic_manifest=copy.deepcopy(manifest)

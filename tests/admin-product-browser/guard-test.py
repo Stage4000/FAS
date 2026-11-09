@@ -16,14 +16,9 @@ import subprocess
 import tempfile
 
 
-EXPECTED_BASELINE = "1b30980be77f407bca085b261141aaceb24f7115"
-EXPECTED_PATHS = {
-    "tests/admin-product-browser/run.py": "M",
-    "tests/admin-product-browser/guard-test.py": "M",
-    "tests/keyboard-browser/heading_runner.py": "M",
-    "tests/keyboard-browser/navbar.cjs": "M",
-    "tests/keyboard-browser/navbar-unit-test.cjs": "M"
-}
+EXPECTED_BASELINE = "7513450d72009b25cc3729886772bc4564906471"
+EXPECTED_PATHS = {'includes/footer.php': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading-sources.json': 'M', 'tests/keyboard-browser/heading.cjs': 'M'}
+EXPECTED_RUNTIME = {'includes/footer.php': {'before': 'e06bd662108bdd64fe6993117899f624c00cfcba', 'after': '2ad0d3cb8581fc09e71d307650606149c6dc7009'}}
 RUNNER = Path(__file__).with_name("run.py")
 GIT = shutil.which("git")
 
@@ -35,7 +30,7 @@ def load_guard() -> dict:
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             name = node.targets[0].id
-            if name in {"BASELINE", "ALLOWED_CHANGES"}:
+            if name in {"BASELINE", "ALLOWED_CHANGES", "EXPECTED_RUNTIME"}:
                 if name in constants:
                     raise AssertionError("Duplicate guard constant")
                 constants[name] = ast.literal_eval(node.value)
@@ -43,7 +38,7 @@ def load_guard() -> dict:
             if node.decorator_list:
                 raise AssertionError("Guard decorators are forbidden")
             functions.append(node)
-    assert constants == {"BASELINE": EXPECTED_BASELINE, "ALLOWED_CHANGES": EXPECTED_PATHS}
+    assert constants == {"BASELINE": EXPECTED_BASELINE, "ALLOWED_CHANGES": EXPECTED_PATHS, "EXPECTED_RUNTIME": EXPECTED_RUNTIME}
     assert sorted(node.name for node in functions) == ["require", "verify_candidate"]
     namespace = dict(constants, hashlib=hashlib)
     exec(compile(ast.Module(body=functions, type_ignores=[]), str(RUNNER), "exec"), namespace)
@@ -101,6 +96,8 @@ class Repository:
             assert args[0] == "git" and cwd == self.root
             return self.command(*args[1:])
         guard.update(ROOT=self.root, BASELINE=self.baseline,
+                     EXPECTED_RUNTIME={p: {"before": self.command("rev-parse", self.baseline+":"+p).stdout.strip(),
+                                           "after": hashlib.sha1(b"blob " + str(len(b"synthetic reviewed candidate\n")).encode() + b"\0synthetic reviewed candidate\n").hexdigest()} for p in EXPECTED_RUNTIME},
                      git=lambda *args: self.command(*args).stdout.strip(),
                      run_command=command)
         guard.update(overrides or {})
@@ -124,7 +121,7 @@ def main() -> None:
                 results.append({"case": name, "expected": "reject", "passed": True})
             else:
                 assert accepted, name + " unexpectedly accepted"
-                assert receipt["runtime_diff_from_baseline"] == []
+                assert receipt["runtime_diff_from_baseline"] == sorted(EXPECTED_RUNTIME)
                 assert receipt["added_paths"] == [path for path, state in EXPECTED_PATHS.items() if state == "A"]
                 assert receipt["modified_paths"] == sorted(path for path, state in EXPECTED_PATHS.items() if state == "M")
                 results.append({"case": name, "expected": "accept", "passed": True})
@@ -135,9 +132,11 @@ def main() -> None:
             repo.commit("unexpected tracked change")
         return apply
 
-    case("exact-five-path-refresh", lambda repo: None, accepted=True)
+    case("exact-seven-path-GBP-refresh", lambda repo: None, accepted=True)
     case("no-diff", lambda repo: repo.command("reset", "--hard", repo.baseline))
     case("runtime-change", changed("admin/products.php"))
+    case("changed-approved-footer", changed("includes/footer.php"))
+    case("wrong-footer-preimage-pin", lambda repo: None, overrides=lambda repo: {"EXPECTED_RUNTIME": {"includes/footer.php": {"before": "0"*40, "after": repo.command("rev-parse", "HEAD:includes/footer.php").stdout.strip()}}})
     case("extra-test", changed("tests/extra.txt"))
     case("newline-path", changed("tests/extra\npath.txt"))
     case("tab-path", changed("tests/extra\tpath.txt"))
