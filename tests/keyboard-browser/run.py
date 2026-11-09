@@ -16,6 +16,8 @@ def main():
     args = parser.parse_args()
     from heading_runner import verify_checkout
     checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/storage-identity-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/storage-quantity-identity-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/heading-unit-test.py')], check=True)
     subprocess.run(['node', str(ROOT/'tests/keyboard-browser/heading-policy-test.cjs')], check=True)
     output = args.output.resolve()
@@ -138,6 +140,22 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
                            for script in ['navbar-unit-test.cjs', 'quantity-rendering-unit-test.cjs', 'check.cjs', 'navbar.cjs', 'quantity.cjs']]
+                # This suite alone needs stock for native recommendation-add/quantity edits.
+                # Save and restore the existing disposable synthetic row exactly; all
+                # original suites above and historical heading variants below are unchanged.
+                with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                    original_quantity = db.execute('SELECT quantity FROM products WHERE id=1').fetchone()
+                    if original_quantity is None:
+                        raise RuntimeError('Missing synthetic id1 inventory for storage suite')
+                    if db.execute('UPDATE products SET quantity=5 WHERE id=1').rowcount != 1:
+                        raise RuntimeError('Unexpected synthetic storage inventory update')
+                try:
+                    results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/storage-unavailable.cjs'),
+                        origin, str(args.assets.resolve()), str(output)]).returncode)
+                finally:
+                    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                        if db.execute('UPDATE products SET quantity=? WHERE id=1', original_quantity).rowcount != 1:
+                            raise RuntimeError('Synthetic storage inventory restoration failed')
                 with sqlite3.connect(site/'database/flipandstrip.db') as db:
                     db.execute('DELETE FROM ebay_seller_rating_cache')
                 from heading_runner import run_heading_variants

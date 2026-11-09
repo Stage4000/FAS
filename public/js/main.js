@@ -5,17 +5,65 @@ class ShoppingCart {
     constructor() {
         this.cart = this.loadCart();
         this.updateCartCount();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.updateStorageWarning(), { once: true });
+        } else {
+            this.updateStorageWarning();
+        }
     }
 
     loadCart() {
-        const cart = localStorage.getItem('flipandstrip_cart');
+        let cart;
+        try {
+            cart = localStorage.getItem('flipandstrip_cart');
+        } catch (error) {
+            this.storageUnavailable = true;
+            this.savedCartUnreadable = true;
+            return [];
+        }
         return cart ? JSON.parse(cart) : [];
     }
 
     saveCart() {
-        localStorage.setItem('flipandstrip_cart', JSON.stringify(this.cart));
+        if (!this.storageUnavailable) {
+            const serializedCart = JSON.stringify(this.cart);
+            try {
+                localStorage.setItem('flipandstrip_cart', serializedCart);
+            } catch (error) {
+                this.storageUnavailable = true;
+            }
+        }
+        this.updateStorageWarning();
         this.updateCartCount();
         document.dispatchEvent(new CustomEvent('fas:cart-changed'));
+    }
+
+    updateStorageWarning() {
+        if (!this.storageUnavailable || !document.body) return;
+        let warning = document.getElementById('cart-storage-warning');
+        if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'cart-storage-warning';
+            warning.className = 'container alert alert-warning my-3';
+            warning.setAttribute('role', 'status');
+            warning.setAttribute('aria-live', 'polite');
+            warning.setAttribute('aria-atomic', 'true');
+            document.body.prepend(warning);
+        }
+        const message = this.savedCartUnreadable
+            ? 'Your saved cart could not be loaded. Any items shown are from this page session only. Changes are not being saved and will be lost when you leave or reload this page. Your previously saved cart has not been overwritten.'
+            : 'Your cart changes could not be saved. You can keep editing on this page, but changes will be lost when you leave or reload this page. Your previously saved cart has not been overwritten.';
+        if (!warning.textContent) {
+            if (!this.storageWarningPending) {
+                this.storageWarningPending = true;
+                setTimeout(() => {
+                    warning.textContent = message;
+                    this.storageWarningPending = false;
+                }, 0);
+            }
+        } else if (warning.textContent !== message) {
+            warning.textContent = message;
+        }
     }
 
     getCartSummary() {
@@ -90,7 +138,7 @@ class ShoppingCart {
             quantity_added: 1
         });
         // Use animation instead of notification
-        if (window.showToast) {
+        if (window.showToast && !this.storageUnavailable) {
             window.showToast('Added to cart!', 'success');
         }
     }

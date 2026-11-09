@@ -28,11 +28,11 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = '70e7b2da0f76d56aea3a4e2597f8b9e19d43aa77'
-ALLOWED_CHANGES = {'public/js/main.js': 'M', 'tests/cart-quantity-validity-test.cjs': 'A', 'tests/keyboard-browser/README.md': 'M', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'A', 'tests/keyboard-browser/quantity.cjs': 'A', 'tests/keyboard-browser/run.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M'}
-EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'e6a523116df4dc8f3fcf8b01dc3e00833a0fc3d5', 'after': 'f35622459159d2c83ca00aab54083ebf1388788a'}}
-BASELINE_TREE = '661abe74355bd8339671e462ef85d13010f782a3'
-EXPECTED_QUANTITY_BLOBS = {'public/js/main.js': 'f35622459159d2c83ca00aab54083ebf1388788a', 'tests/cart-quantity-validity-test.cjs': '94d46849d5971eccde272e9ab44256075442a58b', 'tests/keyboard-browser/README.md': 'c8e8cfcb9d8a0eca25aa4b46ed50ce7f4e6bb78e', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'b8652474f4d77a112ffe2e72c85848875c57aeac', 'tests/keyboard-browser/quantity.cjs': '74f88bb0b5ee7b68beb14bc6b3c986ac16222d37', 'tests/keyboard-browser/run.py': '0229703984f8a53a8657ac01ee202ddc08c3ce6b'}
+BASELINE = '1f9796991a133720e4ea5dd9b9f3bf9dff3176e7'
+ALLOWED_CHANGES = {'cart.php': 'M', 'public/js/main.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/quantity.cjs': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/keyboard-browser/storage-identity-test.py': 'A', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'A', 'tests/keyboard-browser/storage-sources.json': 'A', 'tests/keyboard-browser/storage-unavailable.cjs': 'A', 'tests/keyboard-browser/storage_identity.py': 'A'}
+EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'f35622459159d2c83ca00aab54083ebf1388788a', 'after': 'c2d8de237a122838770bd16463638555757146dd'}, 'cart.php': {'before': 'b9641f97f54fed8ea8dba1867e4d5e0948a2baa6', 'after': '0082e0fcabbc1be3678235e2a7e9c18585e419cb'}}
+BASELINE_TREE = 'af9afa13baa37839d71887cf44ba11de56524cd6'
+EXPECTED_STORAGE_BLOBS = {'cart.php': '0082e0fcabbc1be3678235e2a7e9c18585e419cb', 'public/js/main.js': 'c2d8de237a122838770bd16463638555757146dd', 'tests/keyboard-browser/heading-unit-test.py': '408f51763d2de3b6dce4c29c7b798fac415b614b', 'tests/keyboard-browser/quantity.cjs': '600ab0539566ea32e7870af6fd83cbd9ecf831a2', 'tests/keyboard-browser/run.py': 'a86338d370ab325d24773748d41a36eb79b68719', 'tests/keyboard-browser/storage-identity-test.py': '23da43ac612305e7b7d2137a5b9ee02fd38e5f85', 'tests/keyboard-browser/storage-quantity-identity-test.cjs': 'f198236dccb32c3e1575114a9e3c542c52d02e8a', 'tests/keyboard-browser/storage-sources.json': 'a42fb5fb4d461878d7d3f6980379f8070541bfaa', 'tests/keyboard-browser/storage-unavailable.cjs': '8f148c9c6fae05590ccc3c0b8c1e9d3c83c01cd9', 'tests/keyboard-browser/storage_identity.py': '2073f45b92befae1838e2bea78624048da53e6ab'}
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
     '03-import-with-protected-title', '04-description-and-repeat-import',
@@ -113,15 +113,15 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the ten reviewed quantity paths and exact statuses")
+            "Diff must match the thirteen reviewed storage paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),
             "Reviewed files must be regular non-executable Git blobs")
-    # Pin all six scoped quantity blobs, including tests/docs and runner entries.
-    for path, expected in EXPECTED_QUANTITY_BLOBS.items():
-        require(git("rev-parse", "HEAD:" + path) == expected, "Reviewed quantity blob mismatch: " + path)
-    # Permit only the exact reviewed quantity guard, never arbitrary runtime changes.
+    # Pin exact reviewed storage runtime, tests and integration blobs (guard self/source excluded to avoid cycles).
+    for path, expected in EXPECTED_STORAGE_BLOBS.items():
+        require(git("rev-parse", "HEAD:" + path) == expected, "Reviewed storage blob mismatch: " + path)
+    # Permit only the exact reviewed storage warning/runtime delta; no arbitrary runtime changes.
     for path, pins in EXPECTED_RUNTIME.items():
         require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
                 "Reviewed runtime preimage mismatch")

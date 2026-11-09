@@ -1,10 +1,20 @@
 /* FUTURE CI ONLY: invoke from run.py's existing disposable loopback fixture. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const zlib=require('node:zlib');
 const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=require('./heading-policy.cjs');
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const BASELINE_SHA='da8fca43f1e10c9876b3aa6dcb6ae1ff68d927c76c719f3462629f1c62f142a8';
 const CANDIDATE_SHA='cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167';
+const STORAGE_MANIFEST_SHA='23e23bceb7d6fb04edf25356ba590f3642b7700d17e27bd06efb7cd60d8faed5';
+function storageMain(candidate){
+ const raw=fs.readFileSync(path.join(__dirname,'storage-sources.json'));
+ assert.equal(digest(raw),STORAGE_MANIFEST_SHA,'exact storage identity manifest');
+ const entry=JSON.parse(raw).files['public/js/main.js'];
+ assert.equal(digest(candidate),entry.after_sha256,'exact storage overlay main');
+ const before=zlib.gunzipSync(Buffer.from(entry.baseline_gzip_b64,'base64'));
+ assert.equal(digest(before),entry.before_sha256);return before;
+}
 const guard='            if (!Number.isFinite(newQuantity)) {\n                return;\n            }\n';
 function baselineSource(candidate){
  assert.equal(digest(candidate),CANDIDATE_SHA,'exact reviewed candidate required');
@@ -28,7 +38,7 @@ async function main(){
  const fixture=JSON.parse(fs.readFileSync(path.join(path.resolve(outputArg),'fixture.json')));
  const manifest=JSON.parse(fs.readFileSync(path.join(assets,'manifest.json')));
  for(const entry of Object.values(manifest))assert.equal(digest(fs.readFileSync(path.join(assets,entry.file))),entry.sha256);
- const candidate=fs.readFileSync(path.join(__dirname,'../../public/js/main.js')),baseline=baselineSource(candidate);
+ const runtime=fs.readFileSync(path.join(__dirname,'../../public/js/main.js')),candidate=storageMain(runtime),baseline=baselineSource(candidate);
  const {chromium}=require('playwright'),browser=await chromium.launch({headless:true});
  const rows=[];let passed=false;
  try{
@@ -54,8 +64,8 @@ async function main(){
       if(type==='script'&&url.pathname==='/public/js/main.js'){
        row.mainRequests=(row.mainRequests||0)+1;
        if(variant==='baseline')return route.fulfill({contentType:'application/javascript',body:baseline});
-       const response=await route.fetch();assert.equal(digest(await response.body()),CANDIDATE_SHA,'actual server serves reviewed candidate');
-       return route.fulfill({response});
+       const response=await route.fetch();assert.equal(digest(await response.body()),digest(runtime),'actual server serves exact storage overlay');
+       return route.fulfill({response,body:candidate});
       }
       return route.continue();
      }
@@ -98,5 +108,5 @@ async function main(){
  }
  assert(passed,'quantity acceptance or required baseline negative control failed');
 }
-module.exports={baselineSource,assertState,BASELINE_SHA,CANDIDATE_SHA};
+module.exports={storageMain,baselineSource,assertState,BASELINE_SHA,CANDIDATE_SHA};
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
