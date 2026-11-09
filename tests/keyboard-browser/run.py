@@ -137,7 +137,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 # if one fails, and fail the job if either acceptance suite fails.
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
-                           for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
+                           for script in ['navbar-unit-test.cjs', 'quantity-rendering-unit-test.cjs', 'check.cjs', 'navbar.cjs', 'quantity.cjs']]
                 with sqlite3.connect(site/'database/flipandstrip.db') as db:
                     db.execute('DELETE FROM ebay_seller_rating_cache')
                 from heading_runner import run_heading_variants
