@@ -252,6 +252,13 @@ function observe(surface) {
                         while(!(await link.evaluate(el=>el===document.activeElement)) && tabs<200) {
                             await page.keyboard.press('Tab');tabs++;
                         }
+                        // Footer links transition all properties, including outline width.
+                        // Wait for the actual keyboard indicator; never change app styles.
+                        await page.waitForFunction(el=>{
+                            const s=getComputedStyle(el);
+                            return el===document.activeElement && el.matches(':focus-visible') &&
+                                s.outlineStyle!=='none' && parseFloat(s.outlineWidth)>0;
+                        },await link.elementHandle(),{timeout:2000});
                         const focus=await link.evaluate(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {
                             focused:el===document.activeElement,visible:el.matches(':focus-visible'),
                             outline:s.outlineStyle,outlineWidth:parseFloat(s.outlineWidth),
