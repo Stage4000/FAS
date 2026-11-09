@@ -739,7 +739,9 @@ if (shareButton) {
 
             try {
                 // Note: document.execCommand is deprecated but required for older browsers without Clipboard API
-                document.execCommand('copy');
+                if (!document.execCommand('copy')) {
+                    throw new Error('Clipboard copy was not accepted');
+                }
                 showNotification('Product link copied to clipboard!', 'success');
             } catch (err) {
                 console.error('Failed to copy URL:', err);
