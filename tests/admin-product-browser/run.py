@@ -28,11 +28,11 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = '89a9ab7217cef5e5fb2794afebc70c2e85323213'
-ALLOWED_CHANGES = {'public/js/main.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/cart-malformed-hydration-test.cjs': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/malformed-hydration.cjs': 'A', 'tests/keyboard-browser/malformed-identity-test.cjs': 'A', 'tests/keyboard-browser/malformed-identity-test.py': 'A', 'tests/keyboard-browser/malformed-identity.cjs': 'A', 'tests/keyboard-browser/malformed-sources.json': 'A', 'tests/keyboard-browser/malformed_identity.py': 'A', 'tests/keyboard-browser/quantity.cjs': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/keyboard-browser/storage-unavailable.cjs': 'M', 'tests/keyboard-browser/storage_identity.py': 'M'}
-EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'c2d8de237a122838770bd16463638555757146dd', 'after': 'b88352baedbd514f2cc8241ea74a17d02fa38c7e'}}
-BASELINE_TREE = '2159e45da8b10e80d53d8a6bde8d1924f7716cf6'
-EXPECTED_STORAGE_BLOBS = {'public/js/main.js': 'b88352baedbd514f2cc8241ea74a17d02fa38c7e', 'tests/cart-malformed-hydration-test.cjs': '261efab97ff17f698714f631b3a2a580eccbb23c', 'tests/keyboard-browser/malformed-hydration.cjs': 'ca3b01bd0e7b5ce929aa11cf6ef067288e963f8d', 'tests/keyboard-browser/malformed-identity-test.cjs': '83bf9fef0d91630a9372f4ed1f6087c57c20a420', 'tests/keyboard-browser/malformed-identity-test.py': '42674d548f9c3fe0e2dc588f511d30cdeb157c4d', 'tests/keyboard-browser/malformed-identity.cjs': '52cd30143a58da510a1e8e740b91c167b35e5525', 'tests/keyboard-browser/malformed-sources.json': '0328877491f41f0b253876a1553f44d782dab893', 'tests/keyboard-browser/malformed_identity.py': '2e19b7b6e54fa22a3db1e419c00c29626c22a12e', 'tests/keyboard-browser/quantity.cjs': 'd2f7b5d3a01b25695b826100005dfa7bd20c0942', 'tests/keyboard-browser/run.py': 'b8259116762a34f2dd2de3cba0087214c13e579b', 'tests/keyboard-browser/storage-unavailable.cjs': '745b825c1e77f325a1e7bced9652de5b4a56b1c9', 'tests/keyboard-browser/storage_identity.py': '8658e70e1e668153dad9d7b3587b582f60334ddc'}
+BASELINE = '61464292aeffdf7fcbd2a701f3013c368adaaeca'
+ALLOWED_CHANGES = {'public/js/email-action.js': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/email-action-lifecycle-test.cjs': 'M', 'tests/email-restore-preservation-test.cjs': 'A', 'tests/growth-client-test.cjs': 'M', 'tests/keyboard-browser/email-restore-guard-test.py': 'A', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'A', 'tests/keyboard-browser/email-restore-sources.json': 'A', 'tests/keyboard-browser/email-restore.cjs': 'A', 'tests/keyboard-browser/email_restore_identity.py': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/run.py': 'M'}
+EXPECTED_RUNTIME = {'public/js/email-action.js': {'before': 'f5dace90e697365b62d4c1a9c7628ccd50a737f7', 'after': 'c21e32786ff2f352cd79d3038aadac652429c31f'}}
+BASELINE_TREE = 'e1344779ff2def586675e995323f0a6bba46e393'
+EXPECTED_STORAGE_BLOBS = {'public/js/email-action.js': 'c21e32786ff2f352cd79d3038aadac652429c31f', 'tests/email-action-lifecycle-test.cjs': '3f207f98d0dda2032e63e4088853fb15a7ed76d3', 'tests/email-restore-preservation-test.cjs': '5ddf103c9e7a3d6704bc2ee8bfc0423f6f057488', 'tests/growth-client-test.cjs': '8f9c814a29dfc4678b17482415776e9bedde292f', 'tests/keyboard-browser/email-restore-guard-test.py': '8930c18894174155c3bb60d2ee702bc48ef4e32b', 'tests/keyboard-browser/email-restore-policy-test.cjs': 'f1f230ba429c2b877d71e0e5202708ffcc22883e', 'tests/keyboard-browser/email-restore-sources.json': '9713e6397410caff7cbe951b3ff28e07a172ebb6', 'tests/keyboard-browser/email-restore.cjs': '675c6c108c4de4942e4aedbc62c234a37e4627e8', 'tests/keyboard-browser/email_restore_identity.py': '5ce99622bec9287ad9a6504cf9aafe64baf0cd0c', 'tests/keyboard-browser/run.py': '7a26a99e6fe66bcc6b22b91c2c74701cb70760d3'}
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
     '03-import-with-protected-title', '04-description-and-repeat-import',
@@ -113,7 +113,7 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the 15 reviewed malformed paths and exact statuses")
+            "Diff must match the 13 reviewed email paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),

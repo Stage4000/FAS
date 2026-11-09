@@ -50,7 +50,7 @@ async function run(){
         check(f.calls.length>count,blockedMethod+' permits user retry after cooldown');
     }
     const button=node(),feedback=node(),saved=storage(),actions=[],navigations=[];
-    saved.setItem('flipandstrip_cart',JSON.stringify([{id:1,quantity:4,price:1},{id:99,quantity:1}]));
+    saved.setItem('flipandstrip_cart',JSON.stringify([{id:1,quantity:4,price:1},{id:99,quantity:1,price:7}]));
     const linkEvents={};
     const ctx={URLSearchParams,addEventListener:(name,fn)=>linkEvents[name]=fn,localStorage:saved,location:{hash:'#'+'a'.repeat(64),assign:p=>navigations.push(p)},
         document:{currentScript:{dataset:{mode:'recover'}},getElementById:id=>id==='email-action-button'?button:feedback},
@@ -66,6 +66,23 @@ async function run(){
     check(button.disabled && feedback.textContent.includes('incomplete'),'Changing to an invalid link disables the action');
     ctx.location.hash='#'+'b'.repeat(64);linkEvents.hashchange();
     check(!button.disabled && feedback.textContent==='','Changing to a valid link resets previous action state');
+    // Invalid saved data is a separate retention case, not the valid merge fixture above.
+    {
+        const missingRaw=' \n'+JSON.stringify([{id:1,quantity:4,price:1},{id:99,quantity:1}])+'\t ';
+        const missingSaved=storage(),missingButton=node(),missingFeedback=node(),missingNavigations=[];
+        missingSaved.setItem('flipandstrip_cart',missingRaw);
+        let missingWrites=0;
+        const missingCtx={URLSearchParams,addEventListener(){},
+            localStorage:{getItem:k=>missingSaved.getItem(k),setItem(k,v){missingWrites++;missingSaved.setItem(k,v);},removeItem(){assert.fail('Missing-price cart must not be removed');}},
+            location:{hash:'#'+'a'.repeat(64),assign:p=>missingNavigations.push(p)},
+            document:{currentScript:{dataset:{mode:'recover'}},getElementById:id=>id==='email-action-button'?missingButton:missingFeedback},
+            FASGrowth:{api:async()=>({items:[{id:1,quantity:2,stock:3,price:100},{id:2,quantity:1,stock:1,price:10}]})}};
+        missingCtx.window=missingCtx;vm.runInNewContext(source('email-action.js'),missingCtx);
+        await missingButton.click();
+        check(missingSaved.getItem('flipandstrip_cart')===missingRaw && missingWrites===0 && missingNavigations.length===0,
+            'Missing-price saved cart remains byte-for-byte intact without write or navigation');
+        check(/Restoration paused/.test(missingFeedback.textContent),'Missing-price saved cart reports paused restoration');
+    }
     console.log('PASS '+checks+' growth client assertions.');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

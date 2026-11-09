@@ -16,6 +16,10 @@ def main():
     args = parser.parse_args()
     from heading_runner import verify_checkout
     checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/email-restore-guard-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore-policy-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/email-restore-preservation-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/email-action-lifecycle-test.cjs')], check=True)
     subprocess.run(['node', str(ROOT/'tests/cart-malformed-hydration-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/malformed-identity-test.py')], check=True)
     subprocess.run(['node', str(ROOT/'tests/keyboard-browser/malformed-identity-test.cjs')], check=True)
@@ -32,7 +36,7 @@ def main():
         for folder in ['src', 'includes', 'public']:
             shutil.copytree(ROOT / folder, site / folder, ignore=shutil.ignore_patterns(
                 'config*.php', 'uploads', '*.log', '*.db', '*.sqlite'))
-        for name in ['index.php', 'products.php', 'product.php', '404.php', 'cart.php']:
+        for name in ['index.php', 'products.php', 'product.php', '404.php', 'cart.php', 'recover-cart.php']:
             shutil.copy2(ROOT / name, site / name)
         (site / 'api').mkdir()
         shutil.copy2(ROOT / 'api/products.php', site / 'api/products.php')
@@ -105,6 +109,7 @@ unset($_fasSapi, $_fasCacheLoaded, $_fasCacheSetting, $_fasCacheApi, $_fasCacheS
 $p=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($p==='/') {require $_SERVER['DOCUMENT_ROOT'].'/index.php'; return true;}
 if ($p==='/cart') {require $_SERVER['DOCUMENT_ROOT'].'/cart.php'; return true;}
+if ($p==='/recover-cart.php') { if ($_SERVER['REQUEST_METHOD']!=='GET' || ($_SERVER['QUERY_STRING'] ?? '')!=='') { http_response_code(404); echo 'Fixture route not found'; return true; } require $_SERVER['DOCUMENT_ROOT'].'/recover-cart.php'; return true; }
 if ($p==='/products') {require $_SERVER['DOCUMENT_ROOT'].'/products.php'; return true;}
 if (preg_match('~^/product/([0-9]+)(?:/[^/]+)?$~',$p,$m)) {
  $_GET['id']=$m[1]; require $_SERVER['DOCUMENT_ROOT'].'/product.php'; return true;
@@ -178,6 +183,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
 
                 from heading_runner import run_heading_variants
                 results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
+                results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore.cjs'),
+                    origin, str(args.assets.resolve()), str(output)]).returncode)
                 if any(results):
                     raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')
             finally:
