@@ -40,6 +40,14 @@ for bad_footer in [pre_gbp, footer+b'changed', footer+h.GBP_FOOTER_LINE,
                    footer.replace(b'noopener noreferrer',b'noopener',1)]:
     rejected(lambda:h.restore_pre_gbp_footer(bad_footer))
 
+# Quantity overlay pins precede the generic integration-file exception.
+main_bytes=(suite.parents[1]/'public/js/main.js').read_bytes()
+pre_quantity=h.restore_pre_quantity_main(main_bytes)
+check(h.sha256(pre_quantity)==h.QUANTITY_BEFORE_SHA256)
+for bad_main in [pre_quantity, main_bytes+b'changed', main_bytes+h.QUANTITY_GUARD,
+                 main_bytes.replace(b'Number.isFinite(newQuantity)',b'Number.isNaN(newQuantity)')]:
+    rejected(lambda:h.restore_pre_quantity_main(bad_main))
+
 # One valid synthetic mapping, then exactly one changed path per negative test.
 synthetic={path:('synthetic candidate '+path).encode() for path in baseline}
 synthetic_manifest=copy.deepcopy(manifest)

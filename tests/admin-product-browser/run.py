@@ -28,9 +28,11 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "7513450d72009b25cc3729886772bc4564906471"
-ALLOWED_CHANGES = {'includes/footer.php': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M', 'tests/keyboard-browser/heading-sources.json': 'M', 'tests/keyboard-browser/heading.cjs': 'M'}
-EXPECTED_RUNTIME = {'includes/footer.php': {'before': 'e06bd662108bdd64fe6993117899f624c00cfcba', 'after': '2ad0d3cb8581fc09e71d307650606149c6dc7009'}}
+BASELINE = '70e7b2da0f76d56aea3a4e2597f8b9e19d43aa77'
+ALLOWED_CHANGES = {'public/js/main.js': 'M', 'tests/cart-quantity-validity-test.cjs': 'A', 'tests/keyboard-browser/README.md': 'M', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'A', 'tests/keyboard-browser/quantity.cjs': 'A', 'tests/keyboard-browser/run.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/heading-unit-test.py': 'M'}
+EXPECTED_RUNTIME = {'public/js/main.js': {'before': 'e6a523116df4dc8f3fcf8b01dc3e00833a0fc3d5', 'after': 'f35622459159d2c83ca00aab54083ebf1388788a'}}
+BASELINE_TREE = '661abe74355bd8339671e462ef85d13010f782a3'
+EXPECTED_QUANTITY_BLOBS = {'public/js/main.js': 'f35622459159d2c83ca00aab54083ebf1388788a', 'tests/cart-quantity-validity-test.cjs': '94d46849d5971eccde272e9ab44256075442a58b', 'tests/keyboard-browser/README.md': 'c8e8cfcb9d8a0eca25aa4b46ed50ce7f4e6bb78e', 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': 'b8652474f4d77a112ffe2e72c85848875c57aeac', 'tests/keyboard-browser/quantity.cjs': '74f88bb0b5ee7b68beb14bc6b3c986ac16222d37', 'tests/keyboard-browser/run.py': '0229703984f8a53a8657ac01ee202ddc08c3ce6b'}
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
     '03-import-with-protected-title', '04-description-and-repeat-import',
@@ -100,6 +102,7 @@ def assert_isolation() -> dict:
 
 def verify_candidate() -> dict:
     require(git("rev-parse", BASELINE + "^{commit}") == BASELINE, "Approved baseline unavailable")
+    require(git("rev-parse", BASELINE + "^{tree}") == BASELINE_TREE, "Approved baseline tree mismatch")
     require(run_command(["git", "merge-base", "--is-ancestor", BASELINE, "HEAD"], cwd=ROOT).returncode == 0,
             "Approved baseline must be an ancestor")
     # NUL framing and disabled rename detection make paths/statuses unambiguous.
@@ -110,12 +113,15 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the seven reviewed GBP paths and exact statuses")
+            "Diff must match the ten reviewed quantity paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),
             "Reviewed files must be regular non-executable Git blobs")
-    # Permit only the exact reviewed footer delta, never arbitrary runtime changes.
+    # Pin all six scoped quantity blobs, including tests/docs and runner entries.
+    for path, expected in EXPECTED_QUANTITY_BLOBS.items():
+        require(git("rev-parse", "HEAD:" + path) == expected, "Reviewed quantity blob mismatch: " + path)
+    # Permit only the exact reviewed quantity guard, never arbitrary runtime changes.
     for path, pins in EXPECTED_RUNTIME.items():
         require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
                 "Reviewed runtime preimage mismatch")

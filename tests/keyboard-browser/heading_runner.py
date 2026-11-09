@@ -28,10 +28,10 @@ REVIEWED_OVERLAY = {'tests/product-share-fallback-test.cjs': {'mode':'100644','t
                                            'sha': 'fb27ab2cac7920e65fbb6a06c02334ef54aefcf5'},
  'tests/admin-product-browser/guard-test.py': {'mode': '100644',
                                                'type': 'blob',
-                                               'sha': 'e648c67339d37b3ac413570d0712d3deef488751'},
+                                               'sha': '701c31c3632810cab4feda26b60094f31efdc9d0'},
  'tests/admin-product-browser/run.py': {'mode': '100644',
                                         'type': 'blob',
-                                        'sha': '6798f1342d9f9f62fe6f74240524c7d33e620dd6'},
+                                        'sha': '71a58d8ddb50a9676ff81a517f3d8f9990fb5317'},
  'tests/local-image-fallback-test.php': {'mode': '100644',
                                          'type': 'blob',
                                          'sha': '4b1bda015a752451c797d6e4d918e2a5f1f6ce65'},
@@ -52,6 +52,9 @@ REVIEWED_OVERLAY = {'tests/product-share-fallback-test.cjs': {'mode':'100644','t
                                                  'sha': '309f70f76671fce2afd13abdf3875bf949122d86'}}
 
 
+QUANTITY_BLOBS = {'public/js/main.js': {'mode': '100644', 'type': 'blob', 'sha': 'f35622459159d2c83ca00aab54083ebf1388788a'}, 'tests/cart-quantity-validity-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '94d46849d5971eccde272e9ab44256075442a58b'}, 'tests/keyboard-browser/README.md': {'mode': '100644', 'type': 'blob', 'sha': 'c8e8cfcb9d8a0eca25aa4b46ed50ce7f4e6bb78e'}, 'tests/keyboard-browser/quantity-rendering-unit-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'b8652474f4d77a112ffe2e72c85848875c57aeac'}, 'tests/keyboard-browser/quantity.cjs': {'mode': '100644', 'type': 'blob', 'sha': '74f88bb0b5ee7b68beb14bc6b3c986ac16222d37'}, 'tests/keyboard-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '0229703984f8a53a8657ac01ee202ddc08c3ce6b'}}
+REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
+
 # Normalize only the exact reviewed, non-heading clipboard correction for the
 # historical heading identity controls. Runtime copies retain the actual fix.
 SHARE_FIXED_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
@@ -67,6 +70,18 @@ def heading_identity_bytes(path, data):
     restored = data.replace(SHARE_NEW, SHARE_OLD)
     if sha256(restored) != SHARE_PREIMAGE_SHA256:
         raise ValueError('Clipboard restoration must equal exact preimage')
+    return restored
+
+QUANTITY_BEFORE_SHA256 = 'da8fca43f1e10c9876b3aa6dcb6ae1ff68d927c76c719f3462629f1c62f142a8'
+QUANTITY_AFTER_SHA256 = 'cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167'
+QUANTITY_GUARD = b'            if (!Number.isFinite(newQuantity)) {\n                return;\n            }\n'
+
+def restore_pre_quantity_main(data):
+    if sha256(data) != QUANTITY_AFTER_SHA256 or data.count(QUANTITY_GUARD) != 1:
+        raise ValueError('Exact reviewed quantity guard required')
+    restored = data.replace(QUANTITY_GUARD, b'')
+    if sha256(restored) != QUANTITY_BEFORE_SHA256:
+        raise ValueError('Quantity restoration must equal exact pinned preimage')
     return restored
 
 def parse_tree(raw):
@@ -104,7 +119,7 @@ def verify_tree(base, current, source_manifest):
     for path, blob in source_manifest.items():
         expected[path] = {'mode':'100644','type':'blob','sha':blob}
     for path in set(expected) | set(current):
-        if path in INTEGRATION_PATHS:
+        if path in INTEGRATION_PATHS and path not in QUANTITY_BLOBS:
             if path not in current or current[path]['mode'] != '100644' or current[path]['type'] != 'blob':
                 raise ValueError('Missing/nonregular reviewed integration path: '+path)
         elif expected.get(path) != current.get(path):
@@ -118,6 +133,7 @@ def verify_checkout(root):
     decode_manifest(manifest)
     candidate = {p:(root/p).read_bytes() for p in EXPECTED_PATHS}
     verify_candidate(manifest, candidate)
+    restore_pre_quantity_main((root/"public/js/main.js").read_bytes())
     base = json.loads((suite/'heading-base-tree.json').read_text())
     if base['base_commit'] != 'c7122b0e406ce5052bc87bcb443395f5a35d9618' or base['base_tree'] != '3087b90c93484dcd54df0211652b65af696b91ad':
         raise ValueError('Unexpected reference tree')
