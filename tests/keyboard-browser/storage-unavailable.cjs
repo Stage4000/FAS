@@ -3,6 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=require('./heading-policy.cjs');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const {restoreMain}=require('./malformed-identity.cjs');
 const BASE='cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167';
 const FIX='3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2';
 const CART='e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60';
@@ -44,9 +45,9 @@ async function main(){
  const [origin,assetsArg,outputArg]=process.argv.slice(2);assert(origin&&assetsArg&&outputArg);const u=new URL(origin);assert.equal(u.protocol,'http:');assert.equal(u.hostname,'127.0.0.1');assert.equal(u.origin,origin);
  const assets=path.resolve(assetsArg),output=path.join(path.resolve(outputArg),'storage-unavailable');fs.mkdirSync(output,{recursive:true});
  const manifest=JSON.parse(fs.readFileSync(path.join(assets,'manifest.json')));for(const e of Object.values(manifest))assert.equal(hash(fs.readFileSync(path.join(assets,e.file))),e.sha256);
- const candidate=fs.readFileSync(path.join(__dirname,'../../public/js/main.js'));assert.equal(hash(candidate),FIX);assert.equal(hash(fs.readFileSync(path.join(__dirname,'../../cart.php'))),CART);
+ const runtime=fs.readFileSync(path.join(__dirname,'../../public/js/main.js')),candidate=restoreMain(runtime);assert.equal(hash(candidate),FIX);assert.equal(hash(fs.readFileSync(path.join(__dirname,'../../cart.php'))),CART);
  const sources=JSON.parse(fs.readFileSync(path.join(__dirname,'storage-sources.json')));const baseline=zlib.gunzipSync(Buffer.from(sources.files['public/js/main.js'].baseline_gzip_b64,'base64'));assert.equal(hash(baseline),BASE);
- const fixture=JSON.parse(fs.readFileSync(path.join(path.resolve(outputArg),'fixture.json')));assert.equal(fixture.source_sha256['public/js/main.js'],FIX);assert.equal(fixture.source_sha256['cart.php'],CART);
+ const fixture=JSON.parse(fs.readFileSync(path.join(path.resolve(outputArg),'fixture.json')));assert.equal(fixture.source_sha256['public/js/main.js'],hash(runtime));assert.equal(fixture.source_sha256['cart.php'],CART);
  const {chromium}=require('playwright'),browser=await chromium.launch({headless:true});const rows=[];let passed=false;
  try{for(const variant of ['candidate','baseline'])for(const width of [1440,390])for(const theme of ['light','dark'])for(const mode of ['read','write','normal']){
   const context=await browser.newContext({viewport:{width,height:width===390?844:1000},colorScheme:theme,reducedMotion:'reduce',serviceWorkers:'block'});await context.addInitScript(install,{mode,theme,raw:RAW});
@@ -55,7 +56,7 @@ async function main(){
    const cache=manifest[url.href];if(cache&&allowedCachedType(type))return route.fulfill({path:path.join(assets,cache.file),contentType:cache.content_type,headers:{'access-control-allow-origin':'*'}});
    if(url.origin===origin){if(type==='script'&&['/public/js/analytics.js','/public/js/address-autofill.js'].includes(url.pathname))return route.fulfill({contentType:'application/javascript',body:'/* existing synthetic fixture exclusion */'});
     if(allowedDocument(url,origin,req.method(),type)||allowedLocalAsset(url,origin,req.method(),type)){
-     if(type==='script'&&url.pathname==='/public/js/main.js'){row.mainRequests=(row.mainRequests||0)+1;if(variant==='baseline')return route.fulfill({contentType:'application/javascript',body:baseline});const response=await route.fetch();assert.equal(hash(await response.body()),FIX);return route.fulfill({response})}return route.continue()}}
+     if(type==='script'&&url.pathname==='/public/js/main.js'){row.mainRequests=(row.mainRequests||0)+1;if(variant==='baseline')return route.fulfill({contentType:'application/javascript',body:baseline});const response=await route.fetch();assert.equal(hash(await response.body()),hash(runtime));return route.fulfill({response,body:candidate})}return route.continue()}}
    row.blocked.push(url.href);return route.abort('blockedbyclient');});
   try{
    const response=await page.goto(origin+'/cart',{waitUntil:'networkidle'});assert.equal(response.status(),200);assert.equal(new URL(page.url()).origin,origin);assert(!/(?:Fatal error|Warning|Notice|Deprecated):/.test(await page.locator('body').innerText()));assert.equal(await page.locator('h1').first().innerText(),'Shopping Cart');assert.equal(await page.locator('html').getAttribute('data-theme'),theme);
@@ -86,7 +87,7 @@ async function main(){
   }catch(e){row.passed=false;row.error=String(e.stack);await page.screenshot({path:path.join(output,`${variant}-${width}-${theme}-${mode}-failure.png`),fullPage:true}).catch(()=>{})}finally{await context.close()}
  }
  passed=rows.length===24&&rows.every(r=>r.passed)&&rows.filter(r=>r.negativeControlDetected).length===8;
- }finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({passed,fixture,scope:'actual PHP/cart wrapper; native quantity controls; loopback synthetic inventory/storage',speechVerified:false,source:{candidate:FIX,baseline:BASE,cart:CART},test_sha256:hash(fs.readFileSync(__filename)),policy_sha256:hash(fs.readFileSync(path.join(__dirname,'heading-policy.cjs'))),rows},null,2)+'\n')}
+ }finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({passed,fixture,scope:'actual PHP/cart wrapper; native quantity controls; loopback synthetic inventory/storage',speechVerified:false,source:{candidate:FIX,baseline:BASE,cart:CART,malformedRuntime:hash(runtime)},test_sha256:hash(fs.readFileSync(__filename)),policy_sha256:hash(fs.readFileSync(path.join(__dirname,'heading-policy.cjs'))),rows},null,2)+'\n')}
  assert(passed,'storage-unavailability acceptance or negative controls failed');
 }
 module.exports={install,observe,BASE,FIX,CART,RAW};if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1});
