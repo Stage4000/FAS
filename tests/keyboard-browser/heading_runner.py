@@ -64,6 +64,14 @@ STORAGE_BLOBS.update(MALFORMED_BLOBS)
 QUANTITY_BLOBS.update(STORAGE_BLOBS)
 REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
+# Exact catalog focus test additions; legacy identities and controls stay pinned.
+CATALOG_SCROLL_BLOBS = {'tests/keyboard-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '75ad7e455e8dfced062d568eb1defd0bee40241a'}, 'tests/keyboard-browser/README.md': {'mode': '100644', 'type': 'blob', 'sha': '567982a7ebf4a4ef8a42ce5c5c3eb7cd53888f91'}, 'tests/catalog-scroll-offset-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'bd822d1f3cee43f13cec01e151685ad88134da58'}, 'tests/keyboard-browser/catalog-scroll.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c189ae8cee2b45af2ef9c51d677415415ba39203'}, 'tests/keyboard-browser/catalog-scroll-identity.cjs': {'mode': '100644', 'type': 'blob', 'sha': '42aac464164ce8231fe6ff0e81445a5b2db48bdd'}, 'tests/keyboard-browser/catalog-scroll-policy.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7716c602d7640c58286964940b2f69f8a5150256'}, 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '29c05ea25c44544ffc1fd1653aea83e1e8474b03'}, 'tests/keyboard-browser/catalog-scroll-guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '821bd44f751b11830931ed67b1a34a5157206f10'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': 'f2640f478469406dfc7da988499f7f7324e662a9'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'bc7600987469c3fb34dec0122ada6723c0b0cc78'}}
+EMAIL_BLOBS.update(CATALOG_SCROLL_BLOBS)
+MALFORMED_BLOBS.update(EMAIL_BLOBS)
+STORAGE_BLOBS.update(MALFORMED_BLOBS)
+QUANTITY_BLOBS.update(STORAGE_BLOBS)
+REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
+
 # Normalize only the exact reviewed, non-heading clipboard correction for the
 # historical heading identity controls. Runtime copies retain the actual fix.
 SHARE_FIXED_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
@@ -71,8 +79,24 @@ SHARE_PREIMAGE_SHA256 = 'e0283b86a81c7c5631f556f7671abe5ae838e7e475772990ea39b43
 SHARE_OLD = b"                document.execCommand('copy');"
 SHARE_NEW = b"                if (!document.execCommand('copy')) {\n                    throw new Error('Clipboard copy was not accepted');\n                }"
 
+# The sole runtime delta is normalized only for historical heading identity.
+CATALOG_SCROLL_BEFORE_SHA256 = 'a93225a27b120a97b80fcedb5537d1c033e1214024388721096b3ac6105682b5'
+CATALOG_SCROLL_AFTER_SHA256 = 'e95cade954370b5b003f4d7d863135c4920eb81ef8b582fb76c8c22d955c6ca3'
+CATALOG_SCROLL_OLD = b'#main-content { scroll-margin-top: 6rem; }'
+CATALOG_SCROLL_NEW = b'#main-content, #productsContent { scroll-margin-top: 6rem; }'
+
+def restore_pre_catalog_scroll(data):
+    if sha256(data) != CATALOG_SCROLL_AFTER_SHA256 or data.count(CATALOG_SCROLL_NEW) != 1:
+        raise ValueError('Exact reviewed catalog CSS required')
+    restored = data.replace(CATALOG_SCROLL_NEW, CATALOG_SCROLL_OLD, 1)
+    if sha256(restored) != CATALOG_SCROLL_BEFORE_SHA256:
+        raise ValueError('Catalog CSS restoration must equal exact pinned preimage')
+    return restored
+
 def heading_identity_bytes(path, data):
     data = storage_identity.restore(path, data)
+    if path == 'public/css/style.css' and sha256(data) == CATALOG_SCROLL_AFTER_SHA256:
+        return restore_pre_catalog_scroll(data)
     if path != 'product.php' or sha256(data) != SHARE_FIXED_SHA256:
         return data
     if data.count(SHARE_NEW) != 1:
@@ -166,7 +190,7 @@ def verify_checkout(root):
             if path.is_file(): copied.append(path)
     copied += [root/p for p in INTEGRATION_PATHS]
     copied += [root/p for p in current if p.startswith('tests/keyboard-browser/')]
-    copied += [root/p for p in ['recover-cart.php', 'tests/email-action-lifecycle-test.cjs', 'tests/growth-client-test.cjs', 'tests/email-restore-preservation-test.cjs','tests/cart-malformed-hydration-test.cjs','checkout.php','public/js/shipping-estimator.js','tests/fixtures/security-catalog.sql','tests/homepage-visual/prepare-assets.py',
+    copied += [root/p for p in ['tests/catalog-scroll-offset-test.cjs','recover-cart.php', 'tests/email-action-lifecycle-test.cjs', 'tests/growth-client-test.cjs', 'tests/email-restore-preservation-test.cjs','tests/cart-malformed-hydration-test.cjs','checkout.php','public/js/shipping-estimator.js','tests/fixtures/security-catalog.sql','tests/homepage-visual/prepare-assets.py',
                               'gallery/hero-image.png','gallery/favicons/favicon.png']]
     for path in copied:
         name=str(path.relative_to(root)); data=path.read_bytes()
@@ -194,6 +218,8 @@ def decode_manifest(manifest):
 
 def verify_candidate(manifest, candidate):
     for entry in manifest['files']:
+        if entry['path'] == 'public/css/style.css' and entry['candidate_sha256'] == CATALOG_SCROLL_BEFORE_SHA256 and sha256(candidate[entry['path']]) != CATALOG_SCROLL_AFTER_SHA256:
+            raise ValueError('Exact reviewed catalog CSS candidate required')
         if entry['path'] == 'product.php' and entry['candidate_sha256'] == SHARE_PREIMAGE_SHA256 and sha256(candidate['product.php']) != SHARE_FIXED_SHA256:
             raise ValueError('Exact reviewed clipboard candidate required')
         if sha256(heading_identity_bytes(entry['path'], candidate[entry['path']])) != entry['candidate_sha256']:
