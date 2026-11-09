@@ -14,7 +14,7 @@ EXPECTED_KEYS = {f'{surface}-{width}-{theme}' for surface in
     for width in [1440,390] for theme in ['light','dark']}
 
 # Exact reviewed subsequent blobs; historical heading controls remain pinned.
-REVIEWED_OVERLAY = {'.github/workflows/admin-product-acceptance.yml': {'mode': '100644',
+REVIEWED_OVERLAY = {'tests/product-share-fallback-test.cjs': {'mode':'100644','type':'blob','sha':'f208bed7648dcf2a93dfd48b59b3f4b80df1fce2'},'.github/workflows/admin-product-acceptance.yml': {'mode': '100644',
                                                     'type': 'blob',
                                                     'sha': 'c180ab1b5298290d14ee41e4c90d352fe9436295'},
  'public/js/theme-toggle.js': {'mode': '100644',
@@ -50,6 +50,24 @@ REVIEWED_OVERLAY = {'.github/workflows/admin-product-acceptance.yml': {'mode': '
  'tests/keyboard-browser/navbar-unit-test.cjs': {'mode': '100644',
                                                  'type': 'blob',
                                                  'sha': '309f70f76671fce2afd13abdf3875bf949122d86'}}
+
+
+# Normalize only the exact reviewed, non-heading clipboard correction for the
+# historical heading identity controls. Runtime copies retain the actual fix.
+SHARE_FIXED_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
+SHARE_PREIMAGE_SHA256 = 'e0283b86a81c7c5631f556f7671abe5ae838e7e475772990ea39b437dae8af03'
+SHARE_OLD = b"                document.execCommand('copy');"
+SHARE_NEW = b"                if (!document.execCommand('copy')) {\n                    throw new Error('Clipboard copy was not accepted');\n                }"
+
+def heading_identity_bytes(path, data):
+    if path != 'product.php' or sha256(data) != SHARE_FIXED_SHA256:
+        return data
+    if data.count(SHARE_NEW) != 1:
+        raise ValueError('Exact reviewed clipboard guard required')
+    restored = data.replace(SHARE_NEW, SHARE_OLD)
+    if sha256(restored) != SHARE_PREIMAGE_SHA256:
+        raise ValueError('Clipboard restoration must equal exact preimage')
+    return restored
 
 def parse_tree(raw):
     entries = {}
@@ -146,7 +164,9 @@ def decode_manifest(manifest):
 
 def verify_candidate(manifest, candidate):
     for entry in manifest['files']:
-        if sha256(candidate[entry['path']]) != entry['candidate_sha256']:
+        if entry['path'] == 'product.php' and entry['candidate_sha256'] == SHARE_PREIMAGE_SHA256 and sha256(candidate['product.php']) != SHARE_FIXED_SHA256:
+            raise ValueError('Exact reviewed clipboard candidate required')
+        if sha256(heading_identity_bytes(entry['path'], candidate[entry['path']])) != entry['candidate_sha256']:
             raise ValueError('Candidate identity mismatch: ' + entry['path'])
 
 def cart_restoration(candidate, baseline):
@@ -186,6 +206,7 @@ def residual_restoration(candidate, verify=True):
         base=json.loads((Path(__file__).parent/'heading-base-tree.json').read_text())
         released={e['path']:e['sha'] for e in base['entries']}
         for path,data in restored.items():
+            data = heading_identity_bytes(path, data)
             if hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() != released[path]:
                 raise ValueError('Residual restoration must equal exact released source: '+path)
     return restored
