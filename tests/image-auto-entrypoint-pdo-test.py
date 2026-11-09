@@ -75,7 +75,11 @@ def check(value, label):
     checks += 1
 
 def command(root, script, args=(), shim=False, expect_ok=True):
-    cmd=[PHP,'-d','allow_url_fopen=0','-d','allow_url_include=0','-d','memory_limit=128M','-d',f'disable_functions={DISABLED}','-d',f'open_basedir={root}','-d',f'sys_temp_dir={root}/private/tmp']
+    # Match the existing POSIX fixture tests: ancestor ownership checks must stat
+    # outside the leaf fixture. Do not impose a leaf-only PHP open_basedir here.
+    # The unchanged network-isolated workflow and disabled network/process
+    # functions remain in force. Production wrapper compatibility is UNVERIFIED.
+    cmd=[PHP,'-d','allow_url_fopen=0','-d','allow_url_include=0','-d','memory_limit=128M','-d',f'disable_functions={DISABLED}','-d',f'sys_temp_dir={root}/private/tmp']
     if shim: cmd += ['-d',f'auto_prepend_file={root}/synthetic-curl.php']
     result=subprocess.run(cmd+[str(root/script),*args],cwd=root,capture_output=True,text=True,timeout=30,env={'PATH':'/usr/bin:/bin','LC_ALL':'C','TMPDIR':str(root/'private/tmp')})
     if expect_ok and result.returncode!=0: raise AssertionError(f'{script} {args} failed: {result.stdout}\n{result.stderr}')
