@@ -55,7 +55,16 @@ async function main(){
  assert.equal(native.dpr/before.dpr,4,'native browser zoom must be 400%');assert.equal(native.w,303);assert.equal(native.h,199);assert.equal(native.scale,1,'not pinch/page scale zoom');
  const focused=sel=>page.locator(sel).evaluate(el=>el===document.activeElement);
  async function seek(sel,key='Tab'){for(let i=0;i<80;i++){if(await focused(sel))return;await page.keyboard.press(key);}throw Error('Keyboard did not reach '+sel);}
+ async function openingReceipt(stage,method){
+  rows.push({case:'opening-diagnostic',stage,method,diagnosticOnly:true,state:await page.evaluate(()=>{
+   const nav=document.querySelector('.navbar'),toggle=document.querySelector('.navbar-toggler'),active=document.activeElement;
+   const rect=e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height};};
+   return {scrollY,viewport:innerHeight,nav:rect(nav),toggle:rect(toggle),active:{tag:active.tagName,id:active.id,classes:active.className,rect:rect(active)},
+    expanded:toggle.getAttribute('aria-expanded'),bannerPresent:!!document.querySelector('#banner-1'),rootBehavior:getComputedStyle(document.documentElement).scrollBehavior};
+  })});
+ }
  async function open(method,scrolled=false){
+ await openingReceipt('before-seek-or-click',method);
  if(method==='pointer'){
   const r=await page.locator('.navbar-toggler').boundingBox(),v=await page.evaluate(()=>({w:innerWidth,h:innerHeight}));
   assert(r&&r.x>=0&&r.y>=0&&r.x+r.width<=v.w&&r.y+r.height<=v.h,'pointer toggler already in view; no auto-scroll rescue');
@@ -63,11 +72,14 @@ async function main(){
   await page.mouse.click(r.x+r.width/2,r.y+r.height/2);
  }else{
   await seek('.navbar-toggler');if(scrolled)assert(await page.evaluate(()=>scrollY>0),'toggler focus retains nonzero page scroll');
+  await openingReceipt('after-seek-before-enter',method);
   await page.keyboard.press('Enter');
  }
+ await openingReceipt('after-activation-before-wait',method);
  await pause(450);assert.equal(await page.locator('.navbar-toggler').getAttribute('aria-expanded'),'true');
  const geometry=await page.locator('.navbar').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,viewport:innerHeight,scrollY,position:getComputedStyle(el).position};});
  rows.push({case:'open-'+method,geometry});
+ await openingReceipt('after-open-wait',method);
  if(variant==='candidate'){assert.equal(geometry.position,'sticky');assert(geometry.top>=-.5&&geometry.bottom<=geometry.viewport+.5,'opened menu remains inside viewport before any focus traversal');if(scrolled)assert(geometry.scrollY>0);}
  }
 
@@ -86,17 +98,18 @@ async function main(){
   rows.push({case:'negative-control',expected_failure_detected:true});assert.equal(blocked.length,0);assert.equal(errors.length,0);passed=true;return;
  }
  const selectors=['.navbar .nav-link[href="/"]','.navbar .nav-link[href="/products"]','.navbar .nav-link[href="/about"]','.navbar .nav-link[href="/contact"]','.navbar .nav-link[href="/cart"]','.navbar .nav-link[aria-label="Facebook"]','.navbar .nav-link[aria-label="Instagram"]','.navbar .nav-link[aria-label="TikTok"]','#navbarThemeToggle'];
- for(const theme of ['light','dark'])for(const motion of ['reduce','no-preference'])for(const banners of ['present','dismissed']){
+ for(const theme of ['light','dark'])for(const motion of ['reduce','no-preference'])for(const banners of ['present','dismissed'])for(const method of ['keyboard','pointer']){
   await page.emulateMedia({colorScheme:theme,reducedMotion:motion});
   await page.goto(origin+'/products');await page.waitForLoadState('networkidle');
   await page.evaluate(t=>{localStorage.setItem('theme',t);},theme);await page.reload();await page.waitForLoadState('networkidle');assert.equal(await page.locator('html').getAttribute('data-theme'),theme,'actual theme matches row');
-  // Dismiss only through the real control. Fresh page session restores the seeded banner via sessionStorage clear below.
+  // Initialize each method independently; dismissal uses only the real close control.
   if(banners==='dismissed'){const b=page.locator('#banner-1 .btn-close');if(await b.isVisible())await b.click();await pause(400);assert(!await page.locator('#banner-1').isVisible());}
   else assert(await page.locator('#banner-1').isVisible(),'seeded banner present');
-  for(const method of ['keyboard','pointer']){
+  rows.push({case:`${theme}-${motion}-${banners}-${method}-initial-state`,bannerVisible:await page.locator('#banner-1').isVisible()});
    // Wheel produces genuine nonzero document scroll while the menu remains collapsed.
    await page.mouse.move(290,180);await page.mouse.wheel(0,700);await pause(250);
    assert(await page.evaluate(()=>scrollY>0),'open at nonzero page scroll');
+   assert.equal(await page.locator('#banner-1').isVisible(),banners==='present','actual banner state immediately before method open');
    await open(method,true);
    const prefix=`${theme}-${motion}-${banners}-${method}`;
    for(let i=0;i<selectors.length;i++){await seek(selectors[i]);await capture(prefix+'-nav'+i);}
@@ -120,11 +133,11 @@ async function main(){
    assert.equal(page.url(),origin+'/','Home navigation committed before Back');
    await page.goBack({waitUntil:'networkidle'});
    assert.equal(page.url(),origin+'/products','Back restored the catalog');
-   rows.push({case:prefix+'-home-and-back',home:origin+'/',back:page.url()});await pause(450);
+   const backBannerVisible=await page.locator('#banner-1').isVisible();
+   rows.push({case:prefix+'-home-and-back',home:origin+'/',back:page.url(),bannerVisible:backBannerVisible});await pause(450);
    if(await page.locator('.navbar-toggler').getAttribute('aria-expanded')==='true'){await seek('.navbar-toggler');await page.keyboard.press('Enter');await pause(450);}
-   await open('keyboard');await seek('#navbarThemeToggle');await capture(prefix+'-back');
+   await open('keyboard');await seek('#navbarThemeToggle');await capture(prefix+'-back-banner-'+(backBannerVisible?'present':'dismissed'));
    await seek('.navbar-toggler','Shift+Tab');await page.keyboard.press('Enter');await pause(450);
-  }
   await page.evaluate(()=>{sessionStorage.clear();localStorage.removeItem('banner_dismissed_1');});
  }
  // Native skip link while the mobile scrollport is expanded: no focus/scroll repair.
@@ -164,6 +177,14 @@ async function main(){
    fs.writeFileSync(path.join(output,'POST-FAILURE-DIAGNOSTIC-NOT-ACCEPTANCE.png'),Buffer.from(shot.data,'base64'));
    rows.push({case:'post-failure-diagnostic',acceptance:false,originalError:error.message,
     method:'raw Page.captureScreenshot without clip; not used by any acceptance assertion',metrics});
+   // Read-only time series after failure; original failure remains final, never retried.
+   for(let sample=0;sample<5;sample++){
+    await pause(200);
+    rows.push({case:'post-failure-scroll-sample',acceptance:false,sample,state:await page.evaluate(()=>{
+     const n=document.querySelector('.navbar').getBoundingClientRect(),a=document.activeElement,r=a.getBoundingClientRect();
+     return {scrollY,navTop:n.top,navBottom:n.bottom,active:{tag:a.tagName,id:a.id,top:r.top,bottom:r.bottom}};
+    })});
+   }
   }catch(diagnosticError){
    rows.push({case:'post-failure-diagnostic',acceptance:false,originalError:error.message,error:diagnosticError.message});
   }finally{
