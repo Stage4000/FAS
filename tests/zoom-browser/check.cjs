@@ -26,12 +26,29 @@ async function main(){
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(origin+'/products');await page.waitForLoadState('networkidle');
  const wins=x('search','--onlyvisible','--class','chromium').split('\n').filter(Boolean);assert.equal(wins.length,1,'one headed Chromium window');const win=wins[0];
+ async function windowReceipt(label){
+  const receipt={case:label,diagnosticOnly:true,selectedWindow:win};rows.push(receipt);
+  let session;
+  try{
+   receipt.xFocus=x('getwindowfocus');receipt.xFocusRaw=x('getwindowfocus','-f');
+   receipt.windowTitle=x('getwindowname',win);receipt.windowGeometry=x('getwindowgeometry','--shell',win);
+   receipt.visibleChromiumWindows=x('search','--onlyvisible','--class','chromium').split('\n').filter(Boolean);
+   receipt.page=await page.evaluate(()=>({url:location.href,title:document.title,visibility:document.visibilityState,
+    focused:document.hasFocus(),width:innerWidth,height:innerHeight,outerWidth,outerHeight,dpr:devicePixelRatio,
+    activeTag:document.activeElement?.tagName,activeId:document.activeElement?.id}));
+   session=await context.newCDPSession(page);receipt.layoutMetrics=await session.send('Page.getLayoutMetrics');
+  }catch(error){receipt.diagnosticError=error.message;}
+  finally{if(session)await session.detach().catch(()=>{});}
+ }
+ await windowReceipt('window-before-focus');
  x('windowfocus','--sync',win);x('key','--clearmodifiers','ctrl+0');await pause(200);
+ await windowReceipt('window-after-focus-reset');
  const original=await page.evaluate(()=>({w:innerWidth,h:innerHeight,dpr:devicePixelRatio,outer:outerHeight}));assert.equal(original.dpr,1);
  // Actual browser window sizing at 100%, then Chrome UI zoom shortcuts. Never CSS zoom/CDP page scale.
  x('windowsize','--sync',win,'1212',String(796+original.outer-original.h));await pause(200);
  const before=await page.evaluate(()=>({w:innerWidth,h:innerHeight,dpr:devicePixelRatio}));assert.equal(before.w,1212);assert.equal(before.h,796);
- for(let i=0;i<8;i++){x('key','--clearmodifiers','ctrl+plus');await pause(80);}
+ await windowReceipt('window-before-native-zoom');
+ for(let i=0;i<8;i++){x('key','--clearmodifiers','ctrl+plus');await pause(80);await windowReceipt('window-after-plus-'+(i+1));}
  await pause(400);
  const native=await page.evaluate(()=>({w:innerWidth,h:innerHeight,dpr:devicePixelRatio,scale:visualViewport.scale}));
  rows.push({case:'native400',before,after:native,method:'headed Chromium OS Ctrl+plus x8; not viewport emulation'});
