@@ -9,6 +9,7 @@ namespace FAS\Models;
 require_once __DIR__.'/../utils/ReviewedProductFacts.php';
 require_once __DIR__.'/../utils/StoreCategoryHierarchy.php';
 require_once __DIR__.'/../utils/ProductSyncOwnership.php';
+require_once __DIR__.'/../utils/WebsitePrice.php';
 
 class Product
 {
@@ -465,6 +466,35 @@ class Product
 
     private function writeProductUpdate($id, $data, bool $fromEbay)
     {
+        $ready = \FAS\Utils\WebsitePrice::installed($this->db);
+        $ownTransaction = $fromEbay && $ready && !$this->db->inTransaction();
+        if ($ownTransaction) $this->db->beginTransaction();
+        try {
+            if ($fromEbay && $ready) {
+                $this->db->exec('UPDATE website_price_meta SET version=version WHERE id=1');
+                $data = \FAS\Utils\WebsitePrice::sync($this->db, (int)$id, $data);
+            } elseif (!$fromEbay && $ready) {
+                $current = $this->getById($id, true);
+                if ($current && !empty($current['ebay_item_id'])) {
+                    foreach (['price','sale_price'] as $field) {
+                        if (array_key_exists($field,$data) && (float)($data[$field] ?? 0) !== (float)($current[$field] ?? 0)) {
+                            throw new \DomainException('Use the separate website price controls for imported products.');
+                        }
+                        unset($data[$field]);
+                    }
+                }
+            }
+            $result = $this->writeProductFields($id, $data, $fromEbay);
+            if ($ownTransaction) $this->db->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $this->db->inTransaction()) $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    private function writeProductFields($id, $data, bool $fromEbay)
+    {
         $ownershipReady = $fromEbay ? \FAS\Utils\ProductSyncOwnership::installed($this->db) : false;
         if ($fromEbay && !$ownershipReady) {
             // A missing migration must not silently permit destructive text imports.
@@ -703,7 +733,8 @@ class Product
         $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $timestampExpression = $driver === 'sqlite' ? "datetime('now')" : 'CURRENT_TIMESTAMP';
         $select = $this->db->prepare("SELECT id, price FROM products WHERE id = ? AND is_active = 1");
-        $update = $this->db->prepare("UPDATE products SET sale_price = ?, updated_at = {$timestampExpression} WHERE id = ? AND is_active = 1");
+        $overrideGuard = \FAS\Utils\WebsitePrice::installed($this->db) ? ' AND website_override_cents IS NULL' : '';
+        $update = $this->db->prepare("UPDATE products SET sale_price = ?, updated_at = {$timestampExpression} WHERE id = ? AND is_active = 1{$overrideGuard}");
         $updated = 0;
 
         $this->db->beginTransaction();
@@ -1018,6 +1049,9 @@ class Product
      */
     public function syncFromEbay($ebayData, $ebayAPI = null)
     {
+        if (\FAS\Utils\WebsitePrice::installed($this->db)) {
+            \FAS\Utils\WebsitePrice::cents(is_float($ebayData['price']) ? (string)$ebayData['price'] : $ebayData['price'], $ebayData['currency'] ?? null);
+        }
         $existing = $this->getByEbayId($ebayData['id']);
 
         // Priority 1: Use eBay's Brand and MPN fields if available (most reliable)
@@ -1168,6 +1202,7 @@ class Product
             'name' => $ebayData['title'],
             'description' => $description,
             'price' => $ebayData['price'],
+            'currency' => $ebayData['currency'] ?? null,
             'quantity' => $ebayData['quantity'] ?? 1,
             'category' => $category,
             'manufacturer' => $manufacturer,
@@ -1242,7 +1277,19 @@ class Product
                 $productData['show_on_website'] = 0;
                 error_log("[Product Sync] New item {$ebayData['id']} missing dimensions/weight - hiding from website");
             }
-            return $this->create($productData);
+            if (!\FAS\Utils\WebsitePrice::installed($this->db)) return $this->create($productData);
+            $ownsTransaction = !$this->db->inTransaction();
+            if ($ownsTransaction) $this->db->beginTransaction();
+            try {
+                $id = $this->create($productData);
+                if (!$id) throw new \RuntimeException('Product creation failed.');
+                \FAS\Utils\WebsitePrice::sync($this->db, (int)$id, $productData);
+                if ($ownsTransaction) $this->db->commit();
+                return $id;
+            } catch (\Throwable $e) {
+                if ($ownsTransaction && $this->db->inTransaction()) $this->db->rollBack();
+                throw $e;
+            }
         }
     }
 
@@ -2216,6 +2263,7 @@ class Product
     AND sale_price != ''
     AND (sale_price + 0) > 0
     AND (sale_price + 0) < (price + 0)";
+    if (\FAS\Utils\WebsitePrice::installed($this->db)) $sql .= ' AND website_override_cents IS NULL';
     $params = [];
 
     if (!empty($excludeIds)) {
@@ -2261,3 +2309,4 @@ class Product
     return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }
+

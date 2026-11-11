@@ -22,7 +22,7 @@ async function fixture({mode='success',saved=null,eligible=true}={}) {
   document.documentElement={attributes:{'data-theme':'light'},getAttribute(name){return this.attributes[name]||null;},setAttribute(name,value){this.attributes[name]=value;}};
   document.querySelectorAll=()=>[input];document.createElement=()=>new Element();
   const storage=new Map();if(saved)storage.set('fas_applepay_pending_v1',JSON.stringify(saved));
-  const state={ready:true,checkout_mode:'cart',items:[{product_id:'1',quantity:2}],first_name:'Test',last_name:'Buyer',email:'test@example.invalid',phone:'',notes:'',coupon_code:'',
+  const state={ready:true,checkout_mode:'cart',items:[{product_id:'1',quantity:2,unit_price:'10.00'}],first_name:'Test',last_name:'Buyer',email:'test@example.invalid',phone:'',notes:'',coupon_code:'',
     address:{address1:'100 Test Road',address2:'',city:'Test City',state:'CA',zip:'90001',country:'US'},shipping_quote:'c'.repeat(32),shipping_index:0,expected_total:'25.00'};
   state.shipping_snapshot={address:{...state.address},items:state.items.map(x=>({...x}))};
   const calls=[],paid=[],sheets=[],shippingChanges=[];const server={mode,charged:mode==='already_paid'};
@@ -63,6 +63,7 @@ async function test(name,fn){await fn();scenarios++;console.log(`PASS ${name}`);
    const f=await fixture();await f.button.fire('click');assert.equal(f.ctx.lastSession.begun,true);assert.equal(f.input.disabled,true);
    await f.authorize();assert.equal(f.paid.length,1);assert.equal(f.paid[0].same,true);assert.equal(f.sheets.at(-1),0);
    assert.deepEqual(f.calls.map(x=>x.action),['create','capture']);assert.equal(f.calls.some(c=>'token' in c),false);assert.equal(f.storage.size,0);
+   assert.deepEqual(f.calls[0].items,[{product_id:'1',quantity:2,unit_price:'10.00'}]);
  });
  await test('cancellation restores inputs and does not create an order',async()=>{
    const f=await fixture();await f.button.fire('click');f.ctx.lastSession.oncancel();assert.equal(f.input.disabled,false);assert.equal(f.paypalHost.inert,false);assert.equal(f.calls.length,0);

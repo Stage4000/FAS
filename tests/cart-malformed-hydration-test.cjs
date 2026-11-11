@@ -3,13 +3,13 @@
 const path=require('node:path'),zlib=require('node:zlib'),crypto=require('node:crypto');
 const digest=b=>crypto.createHash('sha256').update(b).digest('hex');
 const flag=process.argv.indexOf('--source-root'),root=path.resolve(flag<0?path.join(__dirname,'..'):process.argv[flag+1]);
-const source=fs.readFileSync(path.join(root,'public/js/main.js'),'utf8');assert.equal(digest(source),'d4ed1e5bc6e6eef56b50bac94065609602773788e04868bdbf18173fbfb2046e');
+const source=fs.readFileSync(path.join(root,'public/js/main.js'),'utf8');assert.equal(digest(source),'8fc4d478a2add6d15b57be157ea30635279404e1d1c253c415598c60760379a5');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'tests/keyboard-browser/malformed-sources.json')));
 const before=zlib.gunzipSync(Buffer.from(manifest.files['public/js/main.js'].baseline_gzip_b64,'base64')).toString('utf8');assert.equal(digest(before),'3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2');
-const capBlock="                const cappedQuantity = Number(stockLimit);\n                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {\n                    return;\n                }\n                item.quantity = cappedQuantity;";assert.equal(source.split(capBlock).length,2);const guardOnly=source.replace(capBlock,'                item.quantity = stockLimit;');assert.equal(digest(guardOnly),'f2a8bb3dc24e98bedf2eeb1cbadcf27f58ff5ab946e80afdc4b974317f969458');
+const capBlock="                const cappedQuantity = Number(stockLimit);\n                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {\n                    return;\n                }\n                item.quantity = cappedQuantity;";assert.equal(source.split(capBlock).length,2);const guardOnly=source.replace(capBlock,'                item.quantity = stockLimit;');assert.equal(digest(guardOnly),'7aaaac9edf13b79a0b25822123d36d58316153e16bce8019b82a509632e46495');
 const sources={baseline:before,candidate:source,'hydration-only':guardOnly};
-const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60');
-const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'3bca0a62c24cd35249d37dc5a9e54cf7bb15b54258da1f8496bf95539501c888');
+const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'7d2c8206012354831953cf826a1616b71295fb0a34691567ffd5b2787d7727a2');
+const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'13a271ba632903376d737526520f14636a09f04ed5401ba80b0ab07cf7d531ae');
 const shippingSource=fs.readFileSync(path.join(root,'public/js/shipping-estimator.js'),'utf8');assert.equal(digest(shippingSource),'246cf147b1e467abc143ce00c963b44396428684bb20b67f688aa59628093156');
 let malformedReport,stockReport;
 const seed=[{id:'1',name:'Synthetic <part>',sku:'SYN',price:10,quantity:2,stock:5,custom:{retain:true}},{id:'2',name:'Other',price:7,quantity:1,stock:8}];

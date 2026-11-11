@@ -65,13 +65,30 @@ function fixture($shippingConfig='easyship'): array {
     $configResolver=is_callable($shippingConfig) ? $shippingConfig
         : static fn(): array => shippingFixtureConfig($shippingConfig);
     $s=new ApplePayService($db,$pp,fn($p)=>$p['sale_price']??$p['price'],fn($code,$sub)=>$code==='SAVE'?200:throw new CheckoutProblem('invalid_coupon','Test coupon invalid'),'live',$configResolver,$GLOBALS['testWallet']);
-    $in=['items'=>[['product_id'=>'1','quantity'=>2]],'email'=>'test@example.invalid','first_name'=>'Test','last_name'=>'Buyer',
+    $in=['items'=>[['product_id'=>'1','quantity'=>2,'unit_price'=>'10.00']],'email'=>'test@example.invalid','first_name'=>'Test','last_name'=>'Buyer',
         'address'=>['address1'=>'100 Test Road','address2'=>'','city'=>'Test City','state'=>'CA','zip'=>'90001','country'=>'US'],
         'shipping_quote'=>str_repeat('c',32),'shipping_index'=>0,'expected_total'=>'25.00'];
     $q=['cart'=>C::cart($in['items']),'address'=>C::address($in['address']), 'rates'=>[['total_charge'=>5.00,'courier_id'=>123,'courier_name'=>'Test','service_name'=>'Ground','provider'=>'easyship']], 'expires'=>time()+600];
     return [$s,$pp,$db,$in,$q,bin2hex(random_bytes(16)),hash('sha256','testowner')];
 }
 function value(PDO $db,string $sql) { return $db->query($sql)->fetchColumn(); }
+// Frozen pre-per-item contract: already-created orders used this request hash.
+function legacyWalletHash(array $in): string {
+    return hash('sha256',json_encode([
+        'cart'=>C::cart($in['items']), 'address'=>C::address($in['address']),
+        'email'=>trim($in['email']), 'name'=>trim($in['first_name']).' '.trim($in['last_name']),
+        'phone'=>trim($in['phone']??''), 'notes'=>trim($in['notes']??''),
+        'coupon'=>strtoupper(trim($in['coupon_code']??'')), 'shipping_quote'=>trim($in['shipping_quote']),
+        'shipping_index'=>(int)$in['shipping_index'], 'expected_total'=>C::cents($in['expected_total']),
+    ],JSON_THROW_ON_ERROR));
+}
+function noWalletCreateEffects(PDO $db,FakePayPal $p): void {
+    check($p->createCalls===0 && $p->captureCalls===0,'no provider call on price rejection');
+    check((int)value($db,'SELECT COUNT(*) FROM orders')===0,'no local order on price rejection');
+    check((int)value($db,'SELECT COUNT(*) FROM order_items')===0,'no local order items on price rejection');
+    check((int)value($db,'SELECT COUNT(*) FROM applepay_attempts')===0,'no payment attempt on price rejection');
+    check((int)value($db,'SELECT quantity FROM products WHERE id=1')===10,'no inventory change on price rejection');
+}
 scenario('integer money and input validation', function(){
     check(C::cents('12.34')===1234,'cents'); check(C::money(1234)==='12.34','money');check(C::cents('0.1')===10,'fraction padding');
     foreach (['-1','1.001','1e2','01.00',1,1.5,'NaN'] as $bad) throws(fn()=>C::cents($bad),'invalid_amount');
@@ -80,8 +97,8 @@ scenario('integer money and input validation', function(){
     check(C::allowed(['enabled'=>false])===false,'off default');
     $_SESSION=['fas_applepay_csrf'=>'known']; C::requireCsrf('known'); throws(fn()=>C::requireCsrf('wrong'),'session_expired');
 });
-scenario('success is bound, idempotent, and uses catalog prices',function(){
-    [$s,$p,$db,$in,$q,$id,$owner]=fixture(); $in['items'][0]['unit_price']=0.01;
+scenario('success is bound, idempotent, and uses accepted catalog prices',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
     $r=$s->create($id,$owner,$in,$q);check($r['state']==='created','create state');check($r['amount']==='25.00','price authoritative');
     $same=$s->create($id,$owner,$in,null);check($same['paypal_order_id']===$r['paypal_order_id']&&$p->createCalls===1,'create idempotent');
     $p->approve($r['paypal_order_id']);$paid=$s->capture($id,$owner);check($paid['state']==='paid','completed');
@@ -90,6 +107,73 @@ scenario('success is bound, idempotent, and uses catalog prices',function(){
     check(value($db,'SELECT provider FROM order_shipping')==='easyship','selected shipping provider stored');
     check(value($db,'SELECT courier_id FROM order_shipping')==='123','legacy numeric courier identifier is preserved');
     check($p->captureKeys[0]==='apx-'.$id,'stable capture key');
+});
+scenario('offsetting item price changes require fresh per-item acceptance despite an unchanged total',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    $in['items']=[['product_id'=>'1','quantity'=>1,'unit_price'=>'10.00'],
+        ['product_id'=>'2','quantity'=>1,'unit_price'=>'15.00']];
+    $in['expected_total']='30.00';$q['cart']=C::cart($in['items']);
+    $db->exec('UPDATE products SET price=20 WHERE id=1');
+    $db->exec('UPDATE products SET sale_price=5 WHERE id=2');
+    throws(fn()=>$s->create($id,$owner,$in,$q),'price_changed');
+    noWalletCreateEffects($db,$p);
+    $in['items'][0]['unit_price']='20.00';$in['items'][1]['unit_price']='5.00';
+    $created=$s->create($id,$owner,$in,$q);
+    check($created['amount']==='30.00','same aggregate accepts only after both displayed prices are refreshed');
+    check((float)value($db,'SELECT unit_price FROM order_items WHERE product_id=1')===20.0,'first accepted price stored');
+    check((float)value($db,'SELECT unit_price FROM order_items WHERE product_id=2')===5.0,'second accepted price stored');
+});
+scenario('new wallet attempts require plain decimal prices on every item and consistent duplicates',function(){
+    foreach ([null,true,10,10.0,'','NaN','Infinity','1e1','-10.00','010.00','10.001','USD 10.00',[],new stdClass()] as $bad) {
+        [$s,$p,$db,$in,$q,$id,$owner]=fixture();$in['items'][0]['unit_price']=$bad;
+        throws(fn()=>$s->create($id,$owner,$in,$q),'invalid_amount');noWalletCreateEffects($db,$p);
+    }
+    foreach (['missing','mixed_duplicate','conflicting_duplicate'] as $bad) {
+        [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+        if ($bad==='missing') unset($in['items'][0]['unit_price']);
+        else {
+            $in['items'][0]['quantity']=1;$in['items'][]=['id'=>1,'quantity'=>'1'];
+            if ($bad==='conflicting_duplicate') $in['items'][1]['unit_price']='10.01';
+        }
+        throws(fn()=>$s->create($id,$owner,$in,$q),'invalid_amount');noWalletCreateEffects($db,$p);
+    }
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();
+    $in['items']=[['id'=>1,'quantity'=>'1','unit_price'=>'10.0'],['product_id'=>'1','quantity'=>1,'unit_price'=>'10.00']];
+    $s->create($id,$owner,$in,$q);
+    check((int)value($db,'SELECT COUNT(*) FROM order_items')===1,'matching duplicates aggregate to one immutable item');
+    check((int)value($db,'SELECT quantity FROM order_items')===2,'public ID and quantity forms keep duplicate aggregation');
+});
+scenario('new-attempt recovery binds accepted item prices and keeps its created order immutable',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();$created=$s->create($id,$owner,$in,$q);
+    $db->exec('UPDATE products SET price=99 WHERE id=1');
+    $recovered=$s->create($id,$owner,$in,null);
+    check($recovered['paypal_order_id']===$created['paypal_order_id'] && $recovered['amount']==='25.00','same attempt recovers its original amount after catalog repricing');
+    check((float)value($db,'SELECT unit_price FROM order_items')===10.0,'created order item remains unchanged');
+    $bad=$in;$bad['items'][0]['unit_price']='99.00';
+    throws(fn()=>$s->create($id,$owner,$bad,null),'changed_checkout');
+    $bad=$in;unset($bad['items'][0]['unit_price']);
+    throws(fn()=>$s->create($id,$owner,$bad,null),'changed_checkout');
+    check($p->createCalls===1 && (int)value($db,'SELECT COUNT(*) FROM orders')===1,'changed accepted prices never start another provider or local order');
+    $p->approve($created['paypal_order_id']);check($s->capture($id,$owner)['state']==='paid','existing amount remains capturable');
+    check((float)value($db,'SELECT total_amount FROM orders')===25.0,'existing order total remains immutable');
+});
+scenario('legacy hash recovery preserves an uncertain created order with or without newly supplied prices',function(){
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();$p->lostCreate=true;
+    try {$s->create($id,$owner,$in,$q);} catch (PayPalFailure $e) {}
+    $stmt=$db->prepare('UPDATE applepay_attempts SET request_hash=? WHERE id=?');$stmt->execute([legacyWalletHash($in),$id]);
+    $db->exec('UPDATE products SET price=99 WHERE id=1');
+    $legacy=$in;unset($legacy['items'][0]['unit_price']);
+    $recovered=$s->create($id,$owner,$legacy,null);
+    check($recovered['amount']==='25.00' && count($p->orders)===1,'legacy uncertain create recovers the original provider order');
+    $in['items'][0]['unit_price']='99.00';
+    check($s->create($id,$owner,$in,null)['paypal_order_id']===$recovered['paypal_order_id'],'updated client can recover legacy order without repricing it');
+    check((float)value($db,'SELECT unit_price FROM order_items')===10.0,'legacy snapshot retains original unit price');
+    check($p->createCalls===2 && (int)value($db,'SELECT COUNT(*) FROM orders')===1,'recovery uses the original idempotency key and single local order');
+    $bad=$legacy;$bad['email']='other@example.invalid';throws(fn()=>$s->create($id,$owner,$bad,null),'changed_checkout');
+    throws(fn()=>$s->create($id,'wrong-owner',$legacy,null),'not_found');
+    throws(fn()=>$s->create(bin2hex(random_bytes(16)),$owner,$legacy,$q),'invalid_amount');
+    $p->approve($recovered['paypal_order_id']);check($s->capture($id,$owner)['state']==='paid','legacy recovery still completes original payment');
+    check((float)value($db,'SELECT total_amount FROM orders')===25.0,'legacy payment keeps original order total');
 });
 scenario('direct carrier selection and packing are kept before payment',function(){
     [$s,$p,$db,$in,$q,$id,$owner]=fixture('direct');
@@ -155,7 +239,7 @@ scenario('provider mode changes reject stale new wallet quotes but preserve exis
         'Shipping configuration failure leaves no wallet order or provider request');
 });
 scenario('coupon and sale price are calculated server-side',function(){
-    [$s,$p,$db,$in,$q,$id,$owner]=fixture();$in['items']=[['product_id'=>2,'quantity'=>1]];$q['cart']=C::cart($in['items']);$in['coupon_code']='SAVE';$in['expected_total']='18.00';
+    [$s,$p,$db,$in,$q,$id,$owner]=fixture();$in['items']=[['product_id'=>2,'quantity'=>1,'unit_price'=>'15.00']];$q['cart']=C::cart($in['items']);$in['coupon_code']='SAVE';$in['expected_total']='18.00';
     $r=$s->create($id,$owner,$in,$q);$p->approve($r['paypal_order_id']);$s->capture($id,$owner);$s->capture($id,$owner);
     check((float)value($db,'SELECT subtotal FROM orders')===15.0,'sale price');check((int)value($db,'SELECT times_used FROM coupons')===1,'coupon once');
 });

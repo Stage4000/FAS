@@ -10,9 +10,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
 }
 
 header('Content-Type: application/json');
+header('Cache-Control: private, no-store');
 
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/models/Product.php';
+require_once __DIR__ . '/../includes/sale-helper.php';
 
 use FAS\Config\Database;
 use FAS\Models\Product;
@@ -50,7 +52,8 @@ try {
     
     echo json_encode([
         'exists' => true,
-        'active' => (bool)$product['is_active']
+        'active' => (bool)$product['is_active'] && (bool)$product['show_on_website'] && (int)$product['quantity'] > 0,
+        'unit_price_cents' => (int)round(getProductEffectivePrice($product)['effective_price'] * 100)
     ]);
     
 } catch (Exception $e) {

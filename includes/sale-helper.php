@@ -120,7 +120,7 @@ function getEffectivePrice(float $price, ?float $individualSalePrice): array
         $onSale         = true;
         $saleLabel      = htmlspecialchars($siteLabel);
     } elseif ($siteSalePrice !== null && $onSale) {
-        // Site sale is active but individual price is already lower —
+        // Site sale is active but individual price is already lower â€”
         // prefer the site-wide label so the banner is consistent.
         $saleLabel = htmlspecialchars($siteLabel);
     }
@@ -131,4 +131,19 @@ function getEffectivePrice(float $price, ?float $individualSalePrice): array
         'on_sale'         => $onSale,
         'sale_label'      => $saleLabel,
     ];
+}
+
+
+/** An explicit override is the exact website unit price; existing coupon policy is separate. */
+function getProductEffectivePrice(array $product): array
+{
+    if (isset($product['website_override_cents'])) {
+        $cents = $product['website_override_cents'];
+        if (!is_numeric($cents) || (int)$cents < 1 || (int)$cents > 99999999
+            || (string)(int)$cents !== (string)$cents) throw new RuntimeException('Invalid website override.');
+        $price = (int)$cents / 100;
+        return ['original_price'=>$price,'effective_price'=>$price,'on_sale'=>false,'sale_label'=>''];
+    }
+    return getEffectivePrice((float)($product['price'] ?? 0),
+        isset($product['sale_price']) ? (float)$product['sale_price'] : null);
 }

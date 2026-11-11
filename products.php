@@ -388,7 +388,7 @@ style="cursor: pointer;">
                                         <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                                     <?php endif; ?>
                                     <?php
-                                    $priceInfo = getEffectivePrice((float)$product['price'], !empty($product['sale_price']) ? (float)$product['sale_price'] : null);
+                                    $priceInfo = getProductEffectivePrice($product);
                                     if ($priceInfo['on_sale']):
                                     ?>
 <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>

@@ -10,7 +10,7 @@ function fas_growth(): \FAS\Marketing\Growth {
     $config=require __DIR__.'/../src/config/config.php';
     return $growth=\FAS\Marketing\Growth::open(\FAS\Config\Database::getInstance()->getConnection(),$config['site']??[],static function(array $p): array {
         $identifiers=\FAS\Utils\ProductIdentifierOutput::forProduct($p,(string)($p['manufacturer']??''),(string)($p['model']??''));
-        return ['price'=>getEffectivePrice((float)$p['price'],isset($p['sale_price'])?(float)$p['sale_price']:null)['effective_price'],
+        return ['price'=>getProductEffectivePrice($p)['effective_price'],
             'free_shipping'=>\FAS\Utils\ShippingRules::productQualifiesForFreeShipping($p),
             'image'=>fasProductImagePath($p['image_url']??null),'image_alt'=>\FAS\Utils\ProductAltText::forProductImage($p),
             'manufacturer'=>$identifiers['brand'],'source'=>(string)($p['source']??'')];

@@ -33,6 +33,7 @@ use FAS\Models\Warehouse;
 use FAS\Utils\ShippingRules;
 use FAS\Utils\ProductEditor;
 use FAS\Utils\ProductSyncOwnership;
+use FAS\Utils\WebsitePrice;
 
 // Configuration constants
 define('MAX_ADDITIONAL_IMAGES', 10);
@@ -78,6 +79,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_remove_image']))
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
+            case 'website_price':
+                $action = 'edit';
+                $productId = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+                try {
+                    if (!$productId || ($_POST['confirm_website_price'] ?? '') !== '1') throw new DomainException('Confirm the price change before saving.');
+                    WebsitePrice::save($db, (int)$productId, is_string($_POST['price_snapshot'] ?? null) ? $_POST['price_snapshot'] : '',
+                        (int)($_SESSION['admin_id'] ?? 0), is_string($_POST['price_action'] ?? null) ? $_POST['price_action'] : '',
+                        $_POST['website_amount'] ?? null, $_POST['website_currency'] ?? null);
+                    $success = 'Price source saved. The website uses it now; existing orders are unchanged.';
+                } catch (DomainException $e) {
+                    http_response_code(409); $error = $e->getMessage();
+                } catch (Throwable $e) {
+                    http_response_code(503); $error = 'Price save could not be confirmed. Reload and check before retrying.';
+                    error_log('Website price save failed: '.$e->getMessage());
+                }
+                break;
             case 'create':
             case 'update':
                 // Load the POST target before handling any editable imported values.
@@ -713,6 +730,7 @@ if ($action === 'list') {
 
     <?php elseif ($action === 'create' || $action === 'edit'): ?>
     <!-- Product Form -->
+    <?php if ($success): ?><div class="alert alert-success" role="status"><?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
     <div class="admin-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
                 <h1 class="mb-4">
                     <i class="fas fa-box me-2"></i><?php echo $action === 'create' ? 'Add' : 'Edit'; ?> Product
@@ -729,6 +747,9 @@ if ($action === 'list') {
                 </div>
             <?php endif; ?>
 
+            <?php if ($product && !empty($product['ebay_item_id'])): ?>
+                <?php require __DIR__.'/website-price-form.php'; ?>
+            <?php endif; ?>
             <div class="card">
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
@@ -739,7 +760,7 @@ if ($action === 'list') {
                             <input type="hidden" name="edit_snapshot" value="<?= htmlspecialchars($editSnapshot, ENT_QUOTES, 'UTF-8') ?>">
                             <div class="alert <?= $ownershipReady ? 'alert-info' : 'alert-warning' ?>">
                                 <?php if ($ownershipReady): ?>
-                                    Names and descriptions already present when protection was enabled are retained; this does not mean they were manually edited. Later changes are protected too. Price and stock still follow eBay.
+                                    Names and descriptions already present when protection was enabled are retained; this does not mean they were manually edited. Later changes are protected too. Stock follows eBay. Use the separate price controls for a website price override.
                                     Published text in <a href="product-content.php?id=<?= (int)$product['id'] ?>">Content review</a> remains separate and takes priority on the storefront.
                                 <?php else: ?>
                                     Website edit protection is unavailable. Saving is disabled until maintenance is complete.
@@ -778,7 +799,7 @@ if ($action === 'list') {
                                             <label class="form-label">Price *</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" name="price" step="0.01" required
+                                                <input type="number" class="form-control" name="price" step="0.01" required <?= $product && !empty($product['ebay_item_id']) && WebsitePrice::installed($db) ? 'readonly' : '' ?>
                                                        value="<?php echo $product ? $product['price'] : ''; ?>">
                                             </div>
                                         </div>
@@ -788,7 +809,7 @@ if ($action === 'list') {
                                             <label class="form-label">Sale Price</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" name="sale_price" step="0.01"
+                                                <input type="number" class="form-control" name="sale_price" step="0.01" <?= $product && !empty($product['ebay_item_id']) && WebsitePrice::installed($db) ? 'readonly' : '' ?>
                                                        value="<?php echo $product && $product['sale_price'] ? $product['sale_price'] : ''; ?>">
                                             </div>
                                         </div>
@@ -1418,4 +1439,5 @@ document.addEventListener('admin:updated', initProducts);
 </script>
 </body>
 </html>
+
 

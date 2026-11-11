@@ -17,8 +17,7 @@ final class ApplePayFactory
         $coupon = new \FAS\Models\Coupon($db);
         return new ApplePayService($db, new WalletPayPalClient($config['paypal']),
             static function (array $product): float {
-                $price = \getEffectivePrice((float)$product['price'],
-                    !empty($product['sale_price']) ? (float)$product['sale_price'] : null);
+                $price = \getProductEffectivePrice($product);
                 return (float)$price['effective_price'];
             },
             static function (string $code, int $subtotal) use ($coupon): int {

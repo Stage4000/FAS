@@ -1494,7 +1494,8 @@ window.FASApplePayOptions = {
         return {
             ready: isFormReadyForPayment(),
             checkout_mode: getCheckoutMode(),
-            items: getCheckoutItems().map(item => ({ product_id: String(item.id), quantity: item.quantity })),
+            items: getCheckoutItems().map(item => ({ product_id: String(item.id), quantity: item.quantity,
+                unit_price: Number(item.price).toFixed(2) })),
             first_name: field('first_name'), last_name: field('last_name'), email: field('email'),
             phone: field('phone'), notes: field('notes'),
             address: { address1: field('address1'), address2: field('address2'), city: field('city'),

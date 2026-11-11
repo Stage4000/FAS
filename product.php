@@ -129,10 +129,7 @@ if (!empty($product['description'])) {
 }
 
 // Compute effective price (applies site-wide sale or individual sale_price)
-$priceInfo = getEffectivePrice(
-    (float) $product['price'],
-    !empty($product['sale_price']) ? (float) $product['sale_price'] : null
-);
+$priceInfo = getProductEffectivePrice($product);
 
 // Add price
 $descriptionParts[] = 'Price: $' . number_format($priceInfo['effective_price'], 2);

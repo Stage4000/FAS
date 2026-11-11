@@ -144,7 +144,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<script>
+<div id="cart-price-review" class="container alert alert-warning" role="status" hidden></div><script src="/public/js/cart-pricing.js"></script><script>
 // Cart page specific JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     displayCartItems();

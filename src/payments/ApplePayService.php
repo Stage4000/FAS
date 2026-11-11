@@ -82,7 +82,7 @@ final class ApplePayService
             throw $e;
         }
     }
-    private function request(array $input): array
+    private function request(array $input, bool $requireUnitPrices = true): array
     {
         if (!is_array($input['items'] ?? null) || !is_array($input['address'] ?? null)) {
             throw new CheckoutProblem('invalid_input', 'Invalid checkout details.', 400);
@@ -95,8 +95,27 @@ final class ApplePayService
         if ((!is_int($index) && !is_string($index)) || !preg_match('/^(0|[1-9][0-9]{0,2})$/D', (string)$index)) {
             throw new CheckoutProblem('invalid_shipping', 'Choose a shipping method.', 400);
         }
-        return [
-            'cart' => ApplePayContext::cart($input['items']),
+        $cart = ApplePayContext::cart($input['items']);
+        $unitPrices = [];
+        $missingPrices = 0;
+        foreach ($input['items'] as $item) {
+            if (!array_key_exists('unit_price', $item)) {
+                $missingPrices++;
+                continue;
+            }
+            $productId = (int)($item['product_id'] ?? $item['id']);
+            $unit = ApplePayContext::cents($item['unit_price']);
+            if (isset($unitPrices[$productId]) && $unitPrices[$productId] !== $unit) {
+                throw new CheckoutProblem('invalid_amount', 'Conflicting displayed prices for the same product.', 400);
+            }
+            $unitPrices[$productId] = $unit;
+        }
+        if ($missingPrices > 0 && ($requireUnitPrices || $unitPrices !== [])) {
+            throw new CheckoutProblem('invalid_amount', 'Review the current price of every cart item before paying.', 400);
+        }
+        ksort($unitPrices, SORT_NUMERIC);
+        $request = [
+            'cart' => $cart,
             'address' => ApplePayContext::address($input['address']),
             'email' => $email,
             'name' => ApplePayContext::text($input['first_name'] ?? '', 100) . ' '
@@ -108,6 +127,10 @@ final class ApplePayService
             'shipping_index' => (int)$index,
             'expected_total' => ApplePayContext::cents($input['expected_total'] ?? null),
         ];
+        // Legacy attempts lack this field in their immutable request hash. Only
+        // recovery may omit it; a new attempt must accept every displayed price.
+        if ($unitPrices !== []) $request['unit_prices'] = $unitPrices;
+        return $request;
     }
 
     public function create(string $id, string $owner, array $input, ?array $quote): array
@@ -115,12 +138,15 @@ final class ApplePayService
         if (!preg_match('/^[a-f0-9]{32}$/D', $id)) {
             throw new CheckoutProblem('invalid_reference', 'Invalid payment reference.', 400);
         }
-        $request = $this->request($input);
-        $hash = hash('sha256', json_encode($request, JSON_THROW_ON_ERROR));
         $existing = $this->run('SELECT id FROM applepay_attempts WHERE id = ?', [$id])->fetchColumn();
+        $request = $this->request($input, !$existing);
+        $hash = hash('sha256', json_encode($request, JSON_THROW_ON_ERROR));
         if ($existing) {
             $a = $this->attempt($id, $owner);
-            if (!hash_equals($a['request_hash'], $hash)) {
+            $legacyRequest = $request;
+            unset($legacyRequest['unit_prices']);
+            $legacyHash = hash('sha256', json_encode($legacyRequest, JSON_THROW_ON_ERROR));
+            if (!hash_equals($a['request_hash'], $hash) && !hash_equals($a['request_hash'], $legacyHash)) {
                 throw new CheckoutProblem('changed_checkout', 'This payment attempt belongs to different checkout details.');
             }
             $this->securityGate('recovery', $id);
@@ -152,6 +178,9 @@ final class ApplePayService
                 throw new CheckoutProblem('unavailable', 'An item is no longer available. Review your cart.');
             }
             $unit = ApplePayContext::catalogCents(($this->priceResolver)($p));
+            if ($request['unit_prices'][$productId] !== $unit) {
+                throw new CheckoutProblem('price_changed', 'An item price changed. Refresh your cart and recalculate shipping before paying.');
+            }
             $items[] = ['product_id' => $productId, 'product_name' => $p['name'],
                 'product_sku' => $p['sku'] ?? '', 'quantity' => $qty, 'unit_cents' => $unit];
             $subtotal += $unit * $qty;
@@ -168,6 +197,16 @@ final class ApplePayService
         ApplePayContext::money($total);
         $now = time();
         $this->transaction(function () use ($id, $owner, $hash, $request, $items, $subtotal, $shipping, $discount, $total, $rate, $quote, $now) {
+            // A peer may have committed this attempt after our initial unlocked read.
+            // Do not insert another order or call the provider while that creator is in flight.
+            if ($this->run('SELECT id FROM applepay_attempts WHERE id = ?', [$id])->fetchColumn()) {
+                $concurrent = $this->attempt($id, $owner);
+                if (!hash_equals($concurrent['request_hash'], $hash)) {
+                    throw new CheckoutProblem('changed_checkout', 'This payment attempt belongs to different checkout details.');
+                }
+                throw new CheckoutProblem('payment_in_progress',
+                    'This payment attempt already exists. Check its payment status before trying again.', 409);
+            }
             // Per-session abuse limit; deployment should also rate-limit this endpoint at the proxy.
             $count = $this->run('SELECT COUNT(*) FROM applepay_attempts WHERE owner_hash = ? AND created_at > ?',
                 [$owner, $now - 3600])->fetchColumn();

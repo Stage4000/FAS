@@ -27,7 +27,32 @@ class ShoppingCart {
         } catch (error) {
             return this.preserveMalformedCart();
         }
-        return this.isUsableSavedCart(parsedCart) ? parsedCart : this.preserveMalformedCart();
+        if (!this.isUsableSavedCart(parsedCart)) return this.preserveMalformedCart();
+        const stored = cart;
+        const items = parsedCart;
+        // Explicit price acceptance lives separately so it cannot overwrite a
+        // quantity/add/remove saved by another tab. Any different saved cart
+        // makes the old acceptance inapplicable.
+        let acceptance;
+        try { acceptance = JSON.parse(localStorage.getItem('flipandstrip_cart_price_acceptance_v1')); }
+        catch (_) { return items; }
+        if (!acceptance || acceptance.version !== 1 || acceptance.currency !== 'USD' || acceptance.cart !== stored ||
+            !Array.isArray(items) || items.some(item => !item || typeof item !== 'object') ||
+            !Array.isArray(acceptance.prices) || !acceptance.prices.length) return items;
+        const ids = new Set();
+        for (const price of acceptance.prices) {
+            if (!price || typeof price.id !== 'string' || ids.has(price.id) ||
+                !Number.isSafeInteger(price.before) || price.before < 0 ||
+                !Number.isSafeInteger(price.after) || price.after < 1) return items;
+            ids.add(price.id);
+            const matching = items.filter(item => item && String(item.id) === price.id);
+            if (matching.length !== 1 || Math.round(Number(matching[0].price) * 100) !== price.before) return items;
+        }
+        const accepted = items.map(item => {
+            const price = acceptance.prices.find(candidate => candidate.id === String(item.id));
+            return price ? {...item, price: price.after / 100} : item;
+        });
+        return this.isUsableSavedCart(accepted) ? accepted : items;
     }
 
     preserveMalformedCart() {

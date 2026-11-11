@@ -23,7 +23,7 @@ async function fixture({mode='success', saved=null, eligible=true, ready=true, e
   document.getElementById=id=>({'googlepay-payment':root,'checkout-form':form,'paypal-button-container':paypalHost}[id]);
   document.querySelectorAll=()=>[input];
   const storage=new Map(saved?[['fas_googlepay_pending_v1',JSON.stringify(saved)]]:[]);
-  const state={ready,items:[{product_id:'1',quantity:2}],checkout_mode:'cart',first_name:'Test',last_name:'Buyer',email:'test@example.invalid',
+  const state={ready,items:[{product_id:'1',quantity:2,unit_price:'10.00'}],checkout_mode:'cart',first_name:'Test',last_name:'Buyer',email:'test@example.invalid',
     phone:'',notes:'',coupon_code:'',address:{address1:'100 Test Road',address2:'',city:'Test City',state:'CA',zip:'90001',country:'US'},
     shipping_quote:'c'.repeat(32),shipping_index:0,expected_total:'25.00'};
   state.shipping_snapshot={address:{...state.address},items:state.items.map(x=>({...x}))};
@@ -81,6 +81,7 @@ async function test(name,fn) { await fn();count++;console.log('PASS '+name); }
     assert.equal((await f.authorize()).transactionState,'SUCCESS');assert.equal(f.paid.length,0);
     f.sheets[0].resolve({});await tick();assert.equal(f.paid.length,1);assert.equal(f.paid[0].same,true);
     assert.deepEqual(f.calls.map(x=>x.action),['create','capture']);assert(!JSON.stringify(f.calls).includes('TEST-TOKEN'));
+    assert.deepEqual(f.calls[0].items,[{product_id:'1',quantity:2,unit_price:'10.00'}]);
     assert.equal(f.storage.size,0);assert.equal(f.sdkCalls[0].paymentMethodData.tokenizationData.token,'TEST-TOKEN');
   });
   await test('Google SDK may load before or after checkout readiness',async()=>{

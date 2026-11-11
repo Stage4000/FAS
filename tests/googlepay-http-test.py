@@ -89,10 +89,20 @@ try:
     check(request('/api/googlepay.php',{'action':'invalid'},auth)[0]==400,'invalid action rejected')
     check(request('/api/paypal-webhook.php',{'id':'WH-FAKE','event_type':'PAYMENT.CAPTURE.COMPLETED'},
         {'Content-Type':'application/json'})[0]==401,'unsigned webhook cannot complete orders')
-    data={'action':'create','attempt_id':'a'*32,'items':[{'product_id':'1','quantity':2}],
+    data={'action':'create','attempt_id':'a'*32,'items':[{'product_id':'1','quantity':2,'unit_price':'10.00'}],
         'email':'test@example.invalid','first_name':'Test','last_name':'Buyer',
         'address':{'address1':'100 Test Road','address2':'','city':'Test City','state':'CA','zip':'90001','country':'US'},
         'shipping_quote':'c'*32,'shipping_index':0,'expected_total':'25.00'}
+    for price in [None, 10, '10.001', '0.01']:
+        item={'product_id':'1','quantity':2}
+        if price is not None: item['unit_price']=price
+        code,bad,_=request('/api/googlepay.php',dict(data,items=[item]),auth)
+        check(code==(409 if price=='0.01' else 400)
+            and bad['code']==('price_changed' if price=='0.01' else 'invalid_amount'),
+            'missing, malformed or stale displayed unit price rejected before create')
+    with sqlite3.connect(SITE/'database/flipandstrip.db') as db:
+        check(db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0,'unit-price rejects create no local orders')
+    check(not list(SITE.glob('ORDER*.json')),'unit-price rejects never call provider create')
     code,bad,_=request('/api/googlepay.php',dict(data,expected_total='0.01'),auth)
     check(code==409 and bad['code']=='total_changed','tampered total rejected before create')
     code,created,_=request('/api/googlepay.php',data,auth)

@@ -54,10 +54,7 @@ function fasProductCard(array $product, string $columnClass = 'col-lg-3 col-md-6
     $displayIdentifiers = \FAS\Utils\ProductIdentifierOutput::forProduct($product, (string)($product['manufacturer'] ?? ''), (string)($product['model'] ?? ''));
     $imageUrl = \FAS\Utils\ProductListingImage::forProduct($product);
     $imageAltText = ProductAltText::forProductImage($product);
-    $priceInfo = getEffectivePrice(
-        (float)($product['price'] ?? 0),
-        !empty($product['sale_price']) ? (float)$product['sale_price'] : null
-    );
+    $priceInfo = getProductEffectivePrice($product);
     $category = fasProductCategoryLabel($product);
     $productFreeShipping = ShippingRules::productQualifiesForFreeShipping($product);
     $stock = isset($product['quantity']) ? (int)$product['quantity'] : 999;

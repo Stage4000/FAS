@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/../includes/sale-helper.php';
 /**
  * Shipping API Endpoint
  * Get shipping rates with first-party free-shipping rules.
@@ -41,14 +42,7 @@ function fasShippingRatesError(int $statusCode, string $message): void
 
 function fasShippingProductPrice(array $product): float
 {
-    $price = (float)($product['price'] ?? 0);
-    $salePrice = !empty($product['sale_price']) ? (float)$product['sale_price'] : null;
-
-    if ($salePrice !== null && $salePrice > 0 && $salePrice < $price) {
-        return $salePrice;
-    }
-
-    return $price;
+    return getProductEffectivePrice($product)['effective_price'];
 }
 
 function fasShippingCatalogItem(array $item, array $product): array

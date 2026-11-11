@@ -853,7 +853,7 @@ class EbayAPI
                 'condition' => '', // Will be fetched from GetItem API
                 'price' => $item['SellingStatus']['CurrentPrice'] ?? '0',
                 'quantity' => $quantity,
-                'currency' => 'USD',
+                'currency' => $item['Currency'] ?? null,
                 'image' => !empty($allImages) ? $allImages[0] : null,
                 'images' => $allImages,
                 'url' => $item['ViewItemURL'] ?? '',
@@ -1146,7 +1146,7 @@ class EbayAPI
                     'id' => $item['sku'] ?? '',
                     'title' => $item['product']['title'] ?? 'Untitled',
                     'price' => $item['product']['aspects']['Price'][0] ?? '0',
-                    'currency' => 'USD', // Default, actual currency may be in offers
+                    'currency' => null, // Inventory aspects do not establish an offer currency.
                     'image' => $item['product']['imageUrls'][0] ?? null,
                     'url' => '', // Inventory API doesn't provide listing URL directly
                     'condition' => $item['condition'] ?? 'USED',

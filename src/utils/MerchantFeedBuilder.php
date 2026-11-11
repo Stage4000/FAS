@@ -8,6 +8,7 @@ namespace FAS\Utils;
 use FAS\Models\Product;
 
 require_once __DIR__ . '/Seo.php';
+require_once __DIR__.'/../../includes/sale-helper.php';
 require_once __DIR__ . '/ProductCondition.php';
 require_once __DIR__ . '/ProductIdentifierOutput.php';
 require_once __DIR__ . '/ShippingRules.php';
@@ -264,7 +265,7 @@ class MerchantFeedBuilder
             $salePrice = (float) $product['sale_price'];
         }
 
-    $priceInfo = getEffectivePrice($basePrice, $salePrice);
+    $priceInfo = getProductEffectivePrice($product);
     return is_array($priceInfo) ? $priceInfo : [
     'original_price' => $basePrice,
     'effective_price' => $basePrice,

@@ -37,6 +37,10 @@ ErrorDocument 404 /404.php
     RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
     RewriteRule ^(products(?:/[A-Za-z0-9_-]+)*|about|contact|cart|checkout)/+$ /$1 [R=301,L]
 
+    # Preserve the legacy feed URL while resolving prices from the current catalog.
+    # Keep this before the existing-file guard, including during a staged file rollout.
+    RewriteRule ^google-merchant-feed\.txt$ google-merchant-feed.php [L]
+
     # Don't rewrite existing files and directories (includes images, CSS, JS, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace FAS\Marketing;
+require_once __DIR__.'/../../includes/sale-helper.php';
 require_once __DIR__.'/../security/SecurityStore.php';
 
 /** Consent-based email signup and cart recovery. Inventory remains authoritative. */
@@ -130,8 +131,7 @@ final class Growth
         $stmt=$this->inventory->prepare('SELECT * FROM products WHERE id=? AND is_active=1 AND show_on_website=1 AND quantity>0');
         foreach($quantities as $id=>$qty) {
             $stmt->execute([$id]);$p=$stmt->fetch(\PDO::FETCH_ASSOC);if(!$p)continue;
-            $price=(float)$p['price'];$sale=(float)($p['sale_price']??0);
-            if($sale>0 && $sale<$price)$price=$sale;
+            $price=\getProductEffectivePrice($p)['effective_price'];
             $image=(string)($p['image_url']??'/gallery/default.jpg');
             if(!preg_match('~^(?:https://|/(?!/))~',$image))$image='/gallery/default.jpg';
             $item=['id'=>(int)$p['id'],'name'=>(string)$p['name'],'price'=>$price,'quantity'=>min($qty,(int)$p['quantity']),

@@ -105,7 +105,7 @@ $freeShippingCount = 0;
 $saleCount = 0;
 
 foreach ($products as $product) {
-    $priceInfo = getEffectivePrice((float)($product['price'] ?? 0), !empty($product['sale_price']) ? (float)$product['sale_price'] : null);
+    $priceInfo = getProductEffectivePrice($product);
     if (!empty($priceInfo['on_sale'])) {
         $saleCount++;
     }
@@ -310,7 +310,7 @@ body[data-theme="dark"] .table th {
 <tr>
 <td>
 <div class="fw-semibold"><?php echo mfhSafe($product['name'] ?? 'Untitled product'); ?></div>
-<div class="small feed-health-muted">SKU: <?php echo mfhSafe($product['sku'] ?? ''); ?> · <?php echo mfhSafe($product['manufacturer'] ?? ''); ?> <?php echo mfhSafe($product['model'] ?? ''); ?></div>
+<div class="small feed-health-muted">SKU: <?php echo mfhSafe($product['sku'] ?? ''); ?> Â· <?php echo mfhSafe($product['manufacturer'] ?? ''); ?> <?php echo mfhSafe($product['model'] ?? ''); ?></div>
 </td>
 <td>
 <div class="d-flex flex-wrap gap-1">

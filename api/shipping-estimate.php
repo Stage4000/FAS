@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/../includes/sale-helper.php';
 /**
  * Pre-checkout shipping estimator.
  *
@@ -42,14 +43,7 @@ function fasShippingEstimateError(int $statusCode, string $message): void
 
 function fasShippingEstimatePrice(array $product): float
 {
-    $price = (float)($product['price'] ?? 0);
-    $salePrice = !empty($product['sale_price']) ? (float)$product['sale_price'] : null;
-
-    if ($salePrice !== null && $salePrice > 0 && $salePrice < $price) {
-        return $salePrice;
-    }
-
-    return $price;
+    return getProductEffectivePrice($product)['effective_price'];
 }
 
 function fasShippingEstimateCatalogItem(array $item, array $product): array

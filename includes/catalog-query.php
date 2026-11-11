@@ -94,7 +94,7 @@ function fasCatalogCollection(\PDO $db, \FAS\Models\Product $model, string $coll
             }));
         } elseif ($collection === 'sale') {
             $all = array_values(array_filter($all, function ($product) {
-                return getEffectivePrice((float)$product['price'], !empty($product['sale_price']) ? (float)$product['sale_price'] : null)['on_sale'];
+                return getProductEffectivePrice($product)['on_sale'];
             }));
         } elseif ($collection !== 'recent') {
             throw new \InvalidArgumentException('Unknown catalog collection');

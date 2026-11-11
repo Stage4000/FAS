@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace FAS\Payments;
 
 require_once __DIR__.'/ApplePayContext.php';
+require_once __DIR__.'/../../includes/sale-helper.php';
 
 /** Reprices the classic checkout from inventory and coupon records. */
 final class CheckoutPricing
@@ -41,9 +42,7 @@ final class CheckoutPricing
                 || (int)$product['quantity']<$item['quantity']) {
                 throw new CheckoutProblem('unavailable', 'An item is no longer available. Review your cart.');
             }
-            $price=(float)($product['price'] ?? 0);
-            $sale=(float)($product['sale_price'] ?? 0);
-            if ($sale>0 && $sale<$price) $price=$sale;
+            $price=\getProductEffectivePrice($product)['effective_price'];
             $unit=ApplePayContext::catalogCents($price);
             if ($unit!==ApplePayContext::catalogCents($item['unit_price'])) {
                 throw new CheckoutProblem('total_changed', 'An item price changed. Refresh your cart before paying.');
