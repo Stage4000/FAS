@@ -43,6 +43,11 @@ jobs:
           python3 tests/zoom-browser/guard-test.py
           python3 -c 'import sys; sys.path.insert(0,"tests/zoom-browser"); from guard import verify_candidate; print(verify_candidate())'
           node --check tests/zoom-browser/check.cjs
+      - name: Cache exact baseline CSS object before network isolation
+        run: |
+          set -euo pipefail
+          baseline_css=b6c36199b40dc6af75d6a5433671b01cf9c8b052
+          test "$(git cat-file blob "$baseline_css" | git hash-object --stdin)" = "$baseline_css"
       - name: Install existing official browser test dependencies
         run: |
           set -euo pipefail

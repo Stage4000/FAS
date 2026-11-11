@@ -21,7 +21,7 @@
     }
   },
   "reviewed_blobs": {
-    ".github/workflows/zoom-browser.yml": "d080b0f67b5a10e53028508aa85db6939e939ec2",
+    ".github/workflows/zoom-browser.yml": "e84d85651c2d9e730e7cb1dc62db18c3391b063a",
     "tests/zoom-browser/README.md": "cc56277e3d1cad8c1f2058f7725ee0630590f57e",
     "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
     "tests/zoom-browser/check.cjs": "f4acde8a1b97dd2966671854729cf2362ee31473",
