@@ -2,6 +2,8 @@ import sqlite3
 def seed_seller(site):
     # Disposable database only; real helper/model getLatest uses this exact schema.
     with sqlite3.connect(site/'database/flipandstrip.db') as db:
+        # Home analytics reads this column even when synthetic orders are empty.
+        db.execute('ALTER TABLE orders ADD COLUMN created_at TEXT')
         db.execute("CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    store_name TEXT NOT NULL UNIQUE,\n    seller_name TEXT,\n    feedback_score INTEGER,\n    positive_feedback_percent REAL,\n    store_url TEXT,\n    last_fetched_at TEXT,\n    last_error TEXT,\n    created_at TEXT DEFAULT (datetime('now')),\n    updated_at TEXT DEFAULT (datetime('now'))\n);")
         if db.execute('SELECT count(*) FROM ebay_seller_rating_cache').fetchone()[0]:
             raise ValueError('Expected empty synthetic seller cache')

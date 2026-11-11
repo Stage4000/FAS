@@ -109,8 +109,12 @@ async function main(){
    // Close/open repeat without synthetic focus or scroll corrections.
    await seek('.navbar-toggler','Shift+Tab');await page.keyboard.press('Enter');await pause(450);assert.equal(await page.locator('.navbar-toggler').getAttribute('aria-expanded'),'false');
    await open('keyboard');await seek('#navbarThemeToggle');await capture(prefix+'-repeat');
-   await seek('.navbar .nav-link[href="/"]','Shift+Tab');await page.keyboard.press('Enter');await page.waitForLoadState('networkidle');
-   await page.goBack();await page.waitForLoadState('networkidle');await pause(450);
+   await seek('.navbar .nav-link[href="/"]','Shift+Tab');
+   await Promise.all([page.waitForURL(origin+'/',{waitUntil:'networkidle'}),page.keyboard.press('Enter')]);
+   assert.equal(page.url(),origin+'/','Home navigation committed before Back');
+   await page.goBack({waitUntil:'networkidle'});
+   assert.equal(page.url(),origin+'/products','Back restored the catalog');
+   rows.push({case:prefix+'-home-and-back',home:origin+'/',back:page.url()});await pause(450);
    if(await page.locator('.navbar-toggler').getAttribute('aria-expanded')==='true'){await seek('.navbar-toggler');await page.keyboard.press('Enter');await pause(450);}
    await open('keyboard');await seek('#navbarThemeToggle');await capture(prefix+'-back');
    await seek('.navbar-toggler','Shift+Tab');await page.keyboard.press('Enter');await pause(450);
