@@ -479,6 +479,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>Currency</OutputSelector>';
         $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';
@@ -534,6 +535,7 @@ class EbayAPI
         $xml .= '<OutputSelector>PictureDetails</OutputSelector>';
         $xml .= '<OutputSelector>SellingStatus</OutputSelector>';
         $xml .= '<OutputSelector>Quantity</OutputSelector>';
+        $xml .= '<OutputSelector>Currency</OutputSelector>';
         $xml .= '<OutputSelector>ConditionID</OutputSelector>';
         $xml .= '<OutputSelector>ConditionDisplayName</OutputSelector>';
         $xml .= '<OutputSelector>ListingType</OutputSelector>';

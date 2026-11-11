@@ -132,6 +132,7 @@ function eshRetryItem(PDO $db, EbaySyncHealth $syncHealth, array $config, string
         'id' => $ebayItemId,
         'title' => $title,
         'price' => $price,
+        'currency' => $rawItem['Currency'] ?? null,
         'quantity' => $quantity,
         'image' => $details['image'] ?? null,
         'images' => $details['images'] ?? [],
