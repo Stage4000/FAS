@@ -1,5 +1,8 @@
 name: Scoped native zoom navigation acceptance
 on:
+  push:
+    branches:
+      - 'fix/mobile-zoom-scrollport-20261111'
   workflow_dispatch:
   pull_request:
     paths:
