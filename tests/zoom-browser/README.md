@@ -9,7 +9,8 @@ suites are not integrated into this scoped job and are not claimed as passing.
 
 Run only through `.github/workflows/zoom-browser.yml` on the exact reviewed
 candidate. There is no local namespace/browser fallback. Pure guard fixtures
-are safe offline: `PYTHONDONTWRITEBYTECODE=1 python3 tests/zoom-browser/guard-test.py`.
+are safe offline: `PYTHONDONTWRITEBYTECODE=1 python3 tests/zoom-browser/guard-test.py`
+and `node tests/zoom-browser/oracle-test.cjs`.
 
 The hosted job verifies the baseline ancestor/tree, exact changed path/status
 set, exact runtime before/after Git blobs, reviewed harness blobs and all
@@ -45,8 +46,11 @@ post-open geometry before traversal, all nine links/buttons with full outline
 pixel/contrast checks, page exit/reentry, repeated toggles, Home navigation/back,
 expanded skip and same-document expanded catalog fragment navigation with nonzero-scroll assertions, and actual window991/992/991
 resize while expanded plus normal-zoom theme-control outline captures at100% around the991.98px breakpoint. Noninteger physical window widths
-are not claimed. Viewport screenshots use CSS pixel scale for the inherited
-outline-pixel oracle; receipt records still prove native DPR4.
+are not claimed. Viewport screenshots retain raw physical pixels from one no-clip CDP capture,
+without caret/style/viewport mutation. The outline oracle verifies dimensions
+against native DPR and maps CSS geometry to physical pixels before choosing the
+first fully external adjacent pixel. Receipts prove native DPR4. A separate
+post-failure image is diagnostic only and never satisfies acceptance.
 
 Each focused screenshot settles fonts/animations plus three matching host-timed
 geometry samples and checks geometry again after capture. Navigation controls

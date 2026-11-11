@@ -10,6 +10,7 @@
     "tests/zoom-browser/fixture_seed.py": "A",
     "tests/zoom-browser/guard-test.py": "A",
     "tests/zoom-browser/guard.py": "A",
+    "tests/zoom-browser/oracle-test.cjs": "A",
     "tests/zoom-browser/outline.cjs": "A",
     "tests/zoom-browser/run.py": "A",
     "tests/zoom-browser/sources.json": "A"
@@ -21,13 +22,14 @@
     }
   },
   "reviewed_blobs": {
-    ".github/workflows/zoom-browser.yml": "e84d85651c2d9e730e7cb1dc62db18c3391b063a",
-    "tests/zoom-browser/README.md": "cc56277e3d1cad8c1f2058f7725ee0630590f57e",
+    ".github/workflows/zoom-browser.yml": "cf0271dbabb32970dd88b4f80d5b0baea8c72794",
+    "tests/zoom-browser/README.md": "6c1b9c67a4b8a0e836acae45fe646e43fb14db1d",
     "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
-    "tests/zoom-browser/check.cjs": "7dae2be5ec1760554fda6ba48c147d941856681a",
+    "tests/zoom-browser/check.cjs": "38232d4f5470b62b73051c70cd892b02848f64f6",
     "tests/zoom-browser/fixture_seed.py": "f838d633f98c366070f4a49b72791d676a7defe4",
     "tests/zoom-browser/guard-test.py": "df12d9da41b1ef2b9060569aad1187454200e196",
-    "tests/zoom-browser/outline.cjs": "7fdbcd7f6453146e37f6efcd802ec7b2c793ae1e",
+    "tests/zoom-browser/oracle-test.cjs": "aa8252d28ebc67b99762f1f665c3a7f3853940ff",
+    "tests/zoom-browser/outline.cjs": "27cf5ef0bffb593aa97f659a37525f929b6a0639",
     "tests/zoom-browser/run.py": "71b0035b275b041a0a4470fa43f50dd37d53fe06"
   }
 }

@@ -56,7 +56,7 @@ async function main(){
 
  async function capture(label,strict=true){
   let receipt;
-  const {geometry,bytes}=await captureStableOutline(page,focusedGeometry,{path:path.join(output,label+'.png'),scale:'css'},r=>{receipt={case:label,geometry:r.geometry,after:r.after,settlement:r.settlement};rows.push(receipt);});
+  const {geometry,bytes}=await captureStableOutline(page,focusedGeometry,{path:path.join(output,label+'.png'),scale:'device'},r=>{receipt={case:label,geometry:r.geometry,after:r.after,settlement:r.settlement};rows.push(receipt);});
   if(strict)receipt.outlineSamples=assertOutline(geometry,bytes);
   return geometry;
  }

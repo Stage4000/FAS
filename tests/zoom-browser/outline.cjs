@@ -86,7 +86,7 @@ function focusedGeometry() {
         offset: parseFloat(s.outlineOffset), outlineColor: s.outlineColor,
         shadow: s.boxShadow, transition: s.transitionProperty, clipping,
         scroll: {x: scrollX, y: scrollY, visualX: visualViewport?.offsetLeft ?? 0, visualY: visualViewport?.offsetTop ?? 0},
-        viewport: {width: innerWidth, height: innerHeight}, documentWidth: document.documentElement.scrollWidth,
+        viewport: {width: innerWidth, height: innerHeight}, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth,
         theme: document.documentElement.getAttribute('data-theme') || 'light',
         forced: matchMedia('(forced-colors: active)').matches,
         reduced: matchMedia('(prefers-reduced-motion: reduce)').matches};
@@ -136,7 +136,9 @@ function assertOutline(g, screenshot) {
             assert(r.top - outer >= clip.top - 0.5 && r.bottom + outer <= clip.bottom + 0.5, 'outline not vertically clipped');
     }
     const png = decodeScreenshot(screenshot);
-    assert.equal(png.width, g.viewport.width); assert.equal(png.height, g.viewport.height);
+    assert([1, 4].includes(g.dpr), 'reviewed native DPR is 1 or 4');
+    assert.equal(png.width, g.viewport.width * g.dpr); assert.equal(png.height, g.viewport.height * g.dpr);
+    const physical = point => point.map(value => value * g.dpr);
     const {rgb, alpha} = parseOutlineColor(g.outlineColor, g.forced), samples = [];
     // Sample three straight-edge points on each side, avoiding rounded corners.
     for (const fraction of [1 / 3, 0.5, 2 / 3]) {
@@ -145,9 +147,9 @@ function assertOutline(g, screenshot) {
             ['left', distance => [r.left - distance, y]], ['right', distance => [r.right + distance, y]],
             ['top', distance => [x, r.top - distance]], ['bottom', distance => [x, r.bottom + distance]],
         ]) {
-            const ring = png.pixel(...point(g.offset + g.outlineWidth / 2));
-            const outsideCoordinate = adjacentExteriorPixel(point(outer), side);
-            const inner = png.pixel(...point(g.offset / 2)), outside = png.pixel(...outsideCoordinate);
+            const ring = png.pixel(...physical(point(g.offset + g.outlineWidth / 2)));
+            const outsideCoordinate = adjacentExteriorPixel(physical(point(outer)), side);
+            const inner = png.pixel(...physical(point(g.offset / 2))), outside = png.pixel(...outsideCoordinate);
             // Compare the actual paint with the system RGBA color composited
             // over both neighboring samples. Contrast still uses actual pixels.
             const expected = [inner, outside].map(background => rgb.map((value, i) =>
@@ -206,6 +208,24 @@ async function captureLayoutMetrics(page) {
     }
 }
 
+// Capture the real physical viewport, without Playwright's native-zoom clip conversion.
+// No style, device-metric, zoom, caret or animation overrides; exactly one capture.
+async function capturePhysicalViewport(page, options) {
+    assert.deepEqual(Object.keys(options).sort(), ['path', 'scale']);
+    assert.equal(options.scale, 'device');
+    const session = await page.context().newCDPSession(page);
+    try {
+        const result = await session.send('Page.captureScreenshot', {
+            format: 'png', captureBeyondViewport: false
+        });
+        const bytes = Buffer.from(result.data, 'base64');
+        fs.writeFileSync(options.path, bytes);
+        return bytes;
+    } finally {
+        await session.detach();
+    }
+}
+
 // Read-only host-timed sampling, not animation-frame observations. No screenshot retries.
 async function captureStableOutline(page, geometryReader, options, record = () => {}) {
     const metricsBefore = await captureLayoutMetrics(page);
@@ -226,13 +246,17 @@ async function captureStableOutline(page, geometryReader, options, record = () =
     }
     assert(Date.now() <= deadline, 'Capture settlement exceeded 2000ms');
     assert.equal(stable, 3, 'Capture requires ready fonts/animations and three matching timed geometry samples');
-    const bytes = await page.screenshot(options); // Exactly one screenshot; never retry a failed sample.
+    const bytes = await capturePhysicalViewport(page, options); // Exactly one screenshot; never retry a failed sample.
     const after = await page.evaluate(geometryReader);
     const afterReadiness = await page.evaluate(captureReadiness);
     const metricsAfter = await captureLayoutMetrics(page);
     const settlement = {initial, samples, stableObservations: stable, sampleIntervalMs: 16,
         elapsedMs: Date.now() - started, readiness, afterReadiness, metricsBefore, metricsAfter, sampling: 'host-timed; not animation frames'};
     record({geometry, after, bytes, settlement}); // Preserve evidence before any postshot rejection.
+    const png = decodeScreenshot(bytes);
+    assert([1, 4].includes(geometry.dpr), 'reviewed native DPR is 1 or 4');
+    assert.equal(png.width, geometry.viewport.width * geometry.dpr, 'physical screenshot width');
+    assert.equal(png.height, geometry.viewport.height * geometry.dpr, 'physical screenshot height');
     assert.deepEqual(after, geometry, 'Capture geometry changed across screenshot');
     assert.equal(afterReadiness.fonts, 'loaded', 'Capture fonts changed across screenshot');
     assert.equal(afterReadiness.animations.length, 0, 'Capture animation started across screenshot');

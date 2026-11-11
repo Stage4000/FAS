@@ -43,6 +43,7 @@ jobs:
           python3 tests/zoom-browser/guard-test.py
           python3 -c 'import sys; sys.path.insert(0,"tests/zoom-browser"); from guard import verify_candidate; print(verify_candidate())'
           node --check tests/zoom-browser/check.cjs
+          node tests/zoom-browser/oracle-test.cjs
       - name: Cache exact baseline CSS object before network isolation
         run: |
           set -euo pipefail
