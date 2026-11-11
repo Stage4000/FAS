@@ -25,7 +25,7 @@
     ".github/workflows/zoom-browser.yml": "cf0271dbabb32970dd88b4f80d5b0baea8c72794",
     "tests/zoom-browser/README.md": "6c1b9c67a4b8a0e836acae45fe646e43fb14db1d",
     "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
-    "tests/zoom-browser/check.cjs": "d8237724324f5b3443b7b008e0ab10818ab41d21",
+    "tests/zoom-browser/check.cjs": "fa515b83bb2a9d08eabc983145e64394ca787e2a",
     "tests/zoom-browser/fixture_seed.py": "88ca59dccf9f8169b84a052a91fa4897eeff078b",
     "tests/zoom-browser/guard-test.py": "df12d9da41b1ef2b9060569aad1187454200e196",
     "tests/zoom-browser/oracle-test.cjs": "aa8252d28ebc67b99762f1f665c3a7f3853940ff",

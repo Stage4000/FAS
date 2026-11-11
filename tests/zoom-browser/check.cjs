@@ -107,7 +107,7 @@ async function main(){
   else assert(await page.locator('#banner-1').isVisible(),'seeded banner present');
   rows.push({case:`${theme}-${motion}-${banners}-${method}-initial-state`,bannerVisible:await page.locator('#banner-1').isVisible()});
    // Wheel produces genuine nonzero document scroll while the menu remains collapsed.
-   await page.mouse.move(290,180);await page.mouse.wheel(0,700);await pause(250);
+   await page.mouse.move(290,180);await page.mouse.wheel(0,700*native.dpr);await pause(250);
    assert(await page.evaluate(()=>scrollY>0),'open at nonzero page scroll');
    assert.equal(await page.locator('#banner-1').isVisible(),banners==='present','actual banner state immediately before method open');
    await open(method,true);
