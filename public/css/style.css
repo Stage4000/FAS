@@ -1844,3 +1844,29 @@ footer a:hover {
     transition: none;
 }
 
+
+/* Keep a short-viewport mobile menu sticky, but leave room for page focus.
+   Scroll the whole navbar: the brand/toggler can themselves wrap at high zoom. */
+@media (max-width: 991.98px) {
+    .navbar.sticky-top:has(#navbarNav.show, #navbarNav.collapsing) {
+        max-height: 50vh;
+        max-height: 50dvh;
+        overflow-y: auto;
+        scroll-padding-block: 8px;
+        scroll-behavior: auto;
+    }
+    .navbar.sticky-top:has(#navbarNav.show, #navbarNav.collapsing) > .container-fluid {
+        /* Real trailing space keeps the last outline inside the scrollport. */
+        padding-block: 8px;
+    }
+    html:has(.navbar.sticky-top #navbarNav.show, .navbar.sticky-top #navbarNav.collapsing) {
+        scroll-padding-top: calc(50vh + 8px);
+        scroll-padding-top: calc(50dvh + 8px);
+    }
+    html:has(.navbar.sticky-top #navbarNav.show, .navbar.sticky-top #navbarNav.collapsing)
+        :is(#main-content, #productsContent) {
+        /* Root padding already supplies the open-menu offset. Do not add the
+           normal 6rem anchor margin again in a short viewport. */
+        scroll-margin-block-start: 0;
+    }
+}

@@ -1,0 +1,75 @@
+name: Scoped native zoom navigation acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'public/css/style.css'
+      - 'tests/zoom-browser/**'
+      - '.github/workflows/zoom-browser.yml'
+permissions:
+  contents: read
+jobs:
+  zoom-navigation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.php
+            /src/
+            !/src/config/config*.php
+            !/src/config/shipping.php
+            !/src/config/applepay.php
+            !/src/config/googlepay.php
+            /includes/
+            /api/products.php
+            /public/
+            /tests/
+            /gallery/hero-image.png
+            /gallery/favicons/favicon.png
+            /.github/workflows/zoom-browser.yml
+      - name: Pure guard tests and exact reviewed checkout verification
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 tests/zoom-browser/guard-test.py
+          python3 -c 'import sys; sys.path.insert(0,"tests/zoom-browser"); from guard import verify_candidate; print(verify_candidate())'
+          node --check tests/zoom-browser/check.cjs
+      - name: Install existing official browser test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring php-gd iproute2 util-linux xvfb xauth xdotool
+          npm install --prefix "$RUNNER_TEMP/fas-zoom-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-zoom-browsers" "$RUNNER_TEMP/fas-zoom-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache existing allowlisted public presentation dependencies
+        run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-zoom-assets"
+      - name: Native zoom baseline negative control and candidate in loopback namespace
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-zoom-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              NODE_PATH="$4/fas-zoom-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-zoom-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              xvfb-run -a -s "-screen 0 1600x1200x24 -nolisten tcp" \
+              bash tests/zoom-browser/accept.sh "$4"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Upload synthetic screenshots and geometry receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-zoom-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/fas-zoom-output/
+          if-no-files-found: error
+          retention-days: 7

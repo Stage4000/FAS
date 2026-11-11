@@ -1,0 +1,33 @@
+{
+  "baseline": "a1e761f1c0a9c475d258d4ea7f4d5da54daaceb7",
+  "baseline_tree": "373e0021212cd79739e28eef0c03ed342c8726e8",
+  "allowed_changes": {
+    "public/css/style.css": "M",
+    ".github/workflows/zoom-browser.yml": "A",
+    "tests/zoom-browser/README.md": "A",
+    "tests/zoom-browser/accept.sh": "A",
+    "tests/zoom-browser/check.cjs": "A",
+    "tests/zoom-browser/fixture_seed.py": "A",
+    "tests/zoom-browser/guard-test.py": "A",
+    "tests/zoom-browser/guard.py": "A",
+    "tests/zoom-browser/outline.cjs": "A",
+    "tests/zoom-browser/run.py": "A",
+    "tests/zoom-browser/sources.json": "A"
+  },
+  "runtime": {
+    "public/css/style.css": {
+      "before": "b6c36199b40dc6af75d6a5433671b01cf9c8b052",
+      "after": "8ce5394b0fde3f578ccadea65d41a2af08ad19ec"
+    }
+  },
+  "reviewed_blobs": {
+    ".github/workflows/zoom-browser.yml": "078e0158c8094988e35b5e1068f9fcd775e5cac8",
+    "tests/zoom-browser/README.md": "cc56277e3d1cad8c1f2058f7725ee0630590f57e",
+    "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
+    "tests/zoom-browser/check.cjs": "f4acde8a1b97dd2966671854729cf2362ee31473",
+    "tests/zoom-browser/fixture_seed.py": "f838d633f98c366070f4a49b72791d676a7defe4",
+    "tests/zoom-browser/guard-test.py": "df12d9da41b1ef2b9060569aad1187454200e196",
+    "tests/zoom-browser/outline.cjs": "cf10d964e1499a0c1d96308f29da2a072753b3bd",
+    "tests/zoom-browser/run.py": "71b0035b275b041a0a4470fa43f50dd37d53fe06"
+  }
+}
