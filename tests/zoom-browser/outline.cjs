@@ -168,13 +168,47 @@ function captureReadiness() {
     const animations = new Set(focus.getAnimations({subtree: true}));
     for (let parent = focus.parentElement; parent; parent = parent.parentElement)
         for (const animation of parent.getAnimations()) animations.add(animation);
-    return {fonts: document.fonts.status,
+    const targetInfo = target => target instanceof Element
+        ? {tag: target.tagName, id: target.id, classes: target.getAttribute('class')}
+        : null;
+    const ancestors = [];
+    for (let element = focus; element; element = element.parentElement) {
+        const style = getComputedStyle(element);
+        ancestors.push({...targetInfo(element), opacity: style.opacity,
+            visibility: style.visibility, display: style.display, transform: style.transform});
+    }
+    return {fonts: document.fonts.status, visibility: document.visibilityState,
+        documentFocused: document.hasFocus(), ancestors,
+        viewport: {width: innerWidth, height: innerHeight, dpr: devicePixelRatio,
+            scrollX, scrollY, visual: {width: visualViewport.width, height: visualViewport.height,
+                scale: visualViewport.scale, pageLeft: visualViewport.pageLeft,
+                pageTop: visualViewport.pageTop, offsetLeft: visualViewport.offsetLeft,
+                offsetTop: visualViewport.offsetTop}},
         animations: [...animations].filter(a => a.playState === 'running' || a.pending)
-            .map(a => ({state: a.playState, pending: a.pending}))};
+            .map(a => ({state: a.playState, pending: a.pending,
+                type: a.constructor.name, id: a.id,
+                name: a.animationName ?? null, property: a.transitionProperty ?? null,
+                target: targetInfo(a.effect?.target), pseudoElement: a.effect?.pseudoElement ?? null,
+                currentTime: a.currentTime, startTime: a.startTime, playbackRate: a.playbackRate,
+                timing: a.effect?.getComputedTiming() ?? null,
+                keyframeProperties: [...new Set((a.effect?.getKeyframes() ?? [])
+                    .flatMap(frame => Object.keys(frame)))]
+                    .filter(key => !['offset', 'computedOffset', 'easing', 'composite'].includes(key))}))};
+}
+
+// Read-only protocol diagnostics. Never set device metrics, page scale or viewport.
+async function captureLayoutMetrics(page) {
+    const session = await page.context().newCDPSession(page);
+    try {
+        return await session.send('Page.getLayoutMetrics');
+    } finally {
+        await session.detach();
+    }
 }
 
 // Read-only host-timed sampling, not animation-frame observations. No screenshot retries.
 async function captureStableOutline(page, geometryReader, options, record = () => {}) {
+    const metricsBefore = await captureLayoutMetrics(page);
     const initial = await page.evaluate(geometryReader);
     const identity = g => ({tag: g.tag, id: g.id, href: g.href, label: g.label});
     const requireIdentity = g => assert.deepEqual(identity(g), identity(initial), 'Capture focused target changed during settlement');
@@ -195,8 +229,9 @@ async function captureStableOutline(page, geometryReader, options, record = () =
     const bytes = await page.screenshot(options); // Exactly one screenshot; never retry a failed sample.
     const after = await page.evaluate(geometryReader);
     const afterReadiness = await page.evaluate(captureReadiness);
+    const metricsAfter = await captureLayoutMetrics(page);
     const settlement = {initial, samples, stableObservations: stable, sampleIntervalMs: 16,
-        elapsedMs: Date.now() - started, readiness, afterReadiness, sampling: 'host-timed; not animation frames'};
+        elapsedMs: Date.now() - started, readiness, afterReadiness, metricsBefore, metricsAfter, sampling: 'host-timed; not animation frames'};
     record({geometry, after, bytes, settlement}); // Preserve evidence before any postshot rejection.
     assert.deepEqual(after, geometry, 'Capture geometry changed across screenshot');
     assert.equal(afterReadiness.fonts, 'loaded', 'Capture fonts changed across screenshot');

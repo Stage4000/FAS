@@ -24,10 +24,10 @@
     ".github/workflows/zoom-browser.yml": "e84d85651c2d9e730e7cb1dc62db18c3391b063a",
     "tests/zoom-browser/README.md": "cc56277e3d1cad8c1f2058f7725ee0630590f57e",
     "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
-    "tests/zoom-browser/check.cjs": "f4acde8a1b97dd2966671854729cf2362ee31473",
+    "tests/zoom-browser/check.cjs": "7dae2be5ec1760554fda6ba48c147d941856681a",
     "tests/zoom-browser/fixture_seed.py": "f838d633f98c366070f4a49b72791d676a7defe4",
     "tests/zoom-browser/guard-test.py": "df12d9da41b1ef2b9060569aad1187454200e196",
-    "tests/zoom-browser/outline.cjs": "cf10d964e1499a0c1d96308f29da2a072753b3bd",
+    "tests/zoom-browser/outline.cjs": "7fdbcd7f6453146e37f6efcd802ec7b2c793ae1e",
     "tests/zoom-browser/run.py": "71b0035b275b041a0a4470fa43f50dd37d53fe06"
   }
 }

@@ -125,6 +125,24 @@ async function main(){
 
  }
  assert.equal(blocked.length,0);assert.equal(errors.length,0);passed=true;
+ }catch(error){
+  // One post-failure diagnostic only. Never retry acceptance or feed this image to its oracle.
+  let diagnosticSession;
+  try{
+   const page=context?.pages()[0];
+   if(!page)throw Error('No page available for post-failure diagnostic');
+   diagnosticSession=await context.newCDPSession(page);
+   const metrics=await diagnosticSession.send('Page.getLayoutMetrics');
+   const shot=await diagnosticSession.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+   fs.writeFileSync(path.join(output,'POST-FAILURE-DIAGNOSTIC-NOT-ACCEPTANCE.png'),Buffer.from(shot.data,'base64'));
+   rows.push({case:'post-failure-diagnostic',acceptance:false,originalError:error.message,
+    method:'raw Page.captureScreenshot without clip; not used by any acceptance assertion',metrics});
+  }catch(diagnosticError){
+   rows.push({case:'post-failure-diagnostic',acceptance:false,originalError:error.message,error:diagnosticError.message});
+  }finally{
+   if(diagnosticSession)await diagnosticSession.detach().catch(()=>{});
+  }
+  throw error;
  }finally{
   if(context)await context.close();if(browser)await browser.close();
   fs.writeFileSync(path.join(output,'zoom-report.json'),JSON.stringify({variant,passed,rows,blocked,errors,production_verified:false},null,2)+'\n');
