@@ -23,6 +23,7 @@ FILES = [
     "src/utils/ReviewedProductFacts.php",
     "src/utils/StoreCategoryHierarchy.php",
     "src/utils/ProductSyncOwnership.php",
+    "src/utils/WebsitePrice.php",
     "src/utils/SqliteSchemaDefinition.php",
     "src/integrations/PayPalAPI.php",
     "src/payments/PayPalWebhookSetup.php",
@@ -54,9 +55,12 @@ return [
         port = listener.getsockname()[1]
     with (site / "server.log").open("w") as log:
         server = subprocess.Popen(
-            ["php", "-S", f"127.0.0.1:{port}", "-t", str(site)],
+            ["php", "-d", "allow_url_fopen=0", "-d", "opcache.enable=0", "-d",
+             "disable_functions=mail,curl_exec,curl_multi_exec,fsockopen,pfsockopen,stream_socket_client",
+             "-S", f"127.0.0.1:{port}", "-t", str(site)],
             cwd=site,
-            env=os.environ.copy(),
+            env={**{key: value for key, value in os.environ.items() if not key.startswith("FAS_")},
+                 "ANALYTICS_IP_GEO_ENABLED": "0"},
             stdout=log,
             stderr=log,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
@@ -71,6 +75,12 @@ return [
             else:
                 raise RuntimeError("Fixture server did not start")
 
+            class NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self, *args):
+                    raise AssertionError("Fixture must not redirect or contact another origin")
+
+            client = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
+
             def post(event):
                 request = urllib.request.Request(
                     f"http://127.0.0.1:{port}/api/paypal-webhook.php",
@@ -78,11 +88,18 @@ return [
                     headers={"Content-Type": "application/json"},
                 )
                 try:
-                    response = urllib.request.urlopen(request, timeout=15)
+                    response = client.open(request, timeout=15)
                 except urllib.error.HTTPError as error:
                     response = error
                 with response:
-                    return response.status, json.load(response)
+                    raw = response.read().decode("utf-8", errors="replace")
+                    try:
+                        return response.status, json.loads(raw)
+                    except json.JSONDecodeError as error:
+                        raise AssertionError(
+                            f"Webhook fixture returned non-JSON HTTP {response.status}: {raw[:2000]}\n"
+                            + (site / "server.log").read_text()[-4000:]
+                        ) from error
 
             probe = {"id": "FAS-READINESS-0123456789abcdef", "event_type": "FAS.WEBHOOK.READINESS"}
             status, body = post(probe)

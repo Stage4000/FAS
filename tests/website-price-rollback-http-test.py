@@ -1,18 +1,20 @@
 """Forward-compatible emergency withdrawal against synthetic local PHP/SQLite only.
 
-Current-main regression baseline: c947aea8dedf69edfeac07de754ebe1f4adebe74.
+Pinned regression baseline: c947aea8dedf69edfeac07de754ebe1f4adebe74.
 This pinned source is not a production preimage or deployment authorization.
 
 Restores exactly the pinned current-main admin/products.php in a disposable copy,
 retaining current price/sync/cart/wallet/feed code and current data. This is not
 a host/OPcache/worker/Apache/provider acceptance test or a polished rollback UI.
 Usage: python tests/website-price-rollback-http-test.py [pinned-main-admin-preimage] [pinned-main-model-preimage]
-The default preimage is bundled pinned-main-baseline/admin/products.php, or
-the sibling ../pinned-main-baseline/admin/products.php in the task workspace. It must
-match the pinned current-main SHA256; a live/customer backup must never be used.
+By default, both exact sources are loaded from the bundled compressed JSON fixture.
+Explicit file arguments remain supported, but must match the pinned SHA256 values;
+a live/customer backup must never be used. Both inputs are verified before setup.
 """
 from pathlib import Path
 from contextlib import closing
+import base64
+import gzip
 import hashlib
 import html
 import http.cookiejar
@@ -32,13 +34,28 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
-BUNDLED_PREIMAGE = ROOT / 'pinned-main-baseline/admin/products.php'
-PREIMAGE = Path(sys.argv[1]) if len(sys.argv) > 1 else (BUNDLED_PREIMAGE if BUNDLED_PREIMAGE.exists() else ROOT.parent / 'pinned-main-baseline/admin/products.php')
-MODEL_PREIMAGE = Path(sys.argv[2]) if len(sys.argv) > 2 else PREIMAGE.parents[1] / 'src/models/Product.php'
 PINNED_MAIN_ADMIN_SHA256 = '953e876b663518046ad347dff44d145ca939cae9e8b71f0280c6adf82c7b85e3'
 PINNED_MAIN_MODEL_SHA256 = '5f1ce6c1e5119e53db7158ca3b92bfa4378c57c1bb8e9da5bf74f79e5e69ae9c'
-if not PREIMAGE.is_file() or hashlib.sha256(PREIMAGE.read_bytes()).hexdigest() != PINNED_MAIN_ADMIN_SHA256:
-    raise RuntimeError('Supply the exact pinned current-main admin preimage; no live backup is accepted.')
+if len(sys.argv) > 3:
+    raise RuntimeError('Use at most the pinned admin and model preimage paths.')
+if len(sys.argv) > 1:
+    admin_path = Path(sys.argv[1])
+    model_path = Path(sys.argv[2]) if len(sys.argv) > 2 else admin_path.parents[1] / 'src/models/Product.php'
+    admin_preimage = admin_path.read_bytes()
+    model_preimage = model_path.read_bytes()
+else:
+    fixture = json.loads((ROOT / 'tests/fixtures/website-price-rollback-preimages.json').read_text())
+    if (fixture.get('repository') != 'Stage4000/FAS'
+            or fixture.get('commit') != 'c947aea8dedf69edfeac07de754ebe1f4adebe74'
+            or set(fixture.get('files', {})) != {'admin/products.php', 'src/models/Product.php'}):
+        raise RuntimeError('Rollback fixture provenance or source paths do not match the pinned baseline.')
+    admin_preimage = gzip.decompress(base64.b64decode(fixture['files']['admin/products.php']['gzip_base64'], validate=True))
+    model_preimage = gzip.decompress(base64.b64decode(fixture['files']['src/models/Product.php']['gzip_base64'], validate=True))
+for data, expected, label in [
+        (admin_preimage, PINNED_MAIN_ADMIN_SHA256, 'admin'),
+        (model_preimage, PINNED_MAIN_MODEL_SHA256, 'Product model')]:
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise RuntimeError('Exact pinned ' + label + ' preimage required; no live backup is accepted.')
 
 BASE = Path(tempfile.mkdtemp(prefix='fas-price-rollback-', dir=ROOT.parent))
 SITE = BASE / 'site'
@@ -310,7 +327,7 @@ assert.equal(values.flipandstrip_cart,base);assert.ok(values.flipandstrip_cart_p
     for name in ['cart.php', 'checkout.php']:
         shutil.copy2(ROOT / name, SITE / name)
     runtime_hashes = {name: hashlib.sha256((SITE / name).read_bytes()).hexdigest() for name in retained_files}
-    shutil.copyfile(PREIMAGE, SITE / 'admin/products.php')
+    (SITE / 'admin/products.php').write_bytes(admin_preimage)
     check(hashlib.sha256((SITE / 'admin/products.php').read_bytes()).hexdigest() == PINNED_MAIN_ADMIN_SHA256,
           'Only admin/products.php restored to its exact pinned current-main bytes')
     check(state() == before, 'File-only emergency withdrawal preserves all synthetic DB rows exactly')
@@ -389,12 +406,9 @@ assert.equal(values.flipandstrip_cart,base);assert.ok(values.flipandstrip_cart_p
           'Source advancement and original price audit preserved through all rollback checks')
 
     # Negative control is a different disposable site/DB, never the active fixture.
-    old_model = MODEL_PREIMAGE
-    if not old_model.is_file() or hashlib.sha256(old_model.read_bytes()).hexdigest() != PINNED_MAIN_MODEL_SHA256:
-        raise RuntimeError('Exact pinned current-main Product preimage required for disposable negative control')
     negative = BASE / 'old-model-negative-control'
     shutil.copytree(SITE, negative)
-    shutil.copyfile(old_model, negative / 'src/models/Product.php')
+    (negative / 'src/models/Product.php').write_bytes(model_preimage)
     negative_db = negative / 'database/fixture.sqlite'
     php(driver, negative, negative_db, 'sync', '199.00', '26')
     with closing(sqlite3.connect(negative_db)) as db:

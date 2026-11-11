@@ -13,7 +13,11 @@ assert.equal(entry.after_sha256,'deb4f3c54961ae84ae2fcb37f714ef1369a08b8de802ed0
 assert.equal(sourceManifest.loader_sha256,'d4ed1e5bc6e6eef56b50bac94065609602773788e04868bdbf18173fbfb2046e');
 assert.equal(digest(original),entry.before_sha256);
 assert.equal(digest(rebuilt),entry.after_sha256);
-assert.equal(digest(loaderSource),sourceManifest.loader_sha256);
+// The historical loader pin above remains provenance for the restoration fix.
+// Pricing adds a separately stored acceptance overlay without changing the
+// saved-cart predicate. Pin the reviewed integrated loader as well; all exact
+// writer/predicate checks and behavioral negatives below still apply.
+assert.equal(digest(loaderSource),'8fc4d478a2add6d15b57be157ea30635279404e1d1c253c415598c60760379a5');
 function checkPredicate(source){const actual=source.slice(source.indexOf('    function isUsableCartSnapshot(cart) {'),source.indexOf('    function hasDistinctMergeKeys'));const expected=loaderSource.slice(loaderSource.indexOf('    isUsableSavedCart(cart) {'),loaderSource.indexOf('    saveCart()'));assert.equal(actual.replace('    function isUsableCartSnapshot','    isUsableSavedCart'),expected)}
 function accepted(raw){const c={window:{},document:{readyState:'complete',body:null,getElementById:()=>null},localStorage:{getItem:()=>raw,setItem(){assert.fail('loader must not write')}}};vm.runInNewContext(loaderSource.split('// Initialize cart')[0]+'\nthis.Cart=ShoppingCart',c);const cart=new c.Cart;return {held:!!cart.savedCartMalformed,items:JSON.parse(JSON.stringify(cart.cart))}}
 const storageKey='flipandstrip_cart',neighbor={id:99,name:'Synthetic local neighbor',price:7,quantity:2,stock:8,extra:{keep:['all',1]}},restored={id:1,name:'Synthetic catalog item',price:10,quantity:2,stock:3};
