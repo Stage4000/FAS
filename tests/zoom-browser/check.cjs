@@ -101,9 +101,15 @@ async function main(){
    const prefix=`${theme}-${motion}-${banners}-${method}`;
    for(let i=0;i<selectors.length;i++){await seek(selectors[i]);await capture(prefix+'-nav'+i);}
    // One real Tab must exit the menu into content, and content must be clear of sticky nav.
+   rows.push({case:prefix+'-before-exit',target:await page.locator('#categoryToggle').evaluate(e=>{
+    const r=e.getBoundingClientRect(),s=getComputedStyle(e),root=getComputedStyle(document.documentElement);
+    return {top:r.top,bottom:r.bottom,height:innerHeight,scrollY,marginTop:s.scrollMarginTop,marginBottom:s.scrollMarginBottom,
+     rootPaddingTop:root.scrollPaddingTop,rootPaddingBottom:root.scrollPaddingBottom};
+   })});
    await page.keyboard.press('Tab');await pause(250);
    const settledExit=await capture(prefix+'-exit-focus',false);assert(settledExit.focusVisible&&settledExit.unobscured,'page focus visibly unobscured');
-   const exit=await page.evaluate(()=>{const e=document.activeElement,r=e.getBoundingClientRect(),n=document.querySelector('.navbar').getBoundingClientRect();return {outside:!e.closest('.navbar'),top:r.top,bottom:r.bottom,navBottom:n.bottom,height:innerHeight,outline:parseFloat(getComputedStyle(e).outlineWidth)+Math.max(0,parseFloat(getComputedStyle(e).outlineOffset))};});
+   // Reserve at least the category toggle's 4px Bootstrap focus shadow.
+   const exit=await page.evaluate(()=>{const e=document.activeElement,r=e.getBoundingClientRect(),n=document.querySelector('.navbar').getBoundingClientRect();return {outside:!e.closest('.navbar'),top:r.top,bottom:r.bottom,navBottom:n.bottom,height:innerHeight,shadow:getComputedStyle(e).boxShadow,outline:Math.max(4,parseFloat(getComputedStyle(e).outlineWidth)+Math.max(0,parseFloat(getComputedStyle(e).outlineOffset)))};});
    rows.push({case:prefix+'-exit',...exit});assert(exit.outside);assert(exit.top-exit.outline>=exit.navBottom-.5&&exit.bottom+exit.outline<=exit.height,'page focus outside sticky nav');
    await seek('#navbarThemeToggle','Shift+Tab');await capture(prefix+'-reverse');
    // Close/open repeat without synthetic focus or scroll corrections.

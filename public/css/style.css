@@ -1862,6 +1862,7 @@ footer a:hover {
     html:has(.navbar.sticky-top #navbarNav.show, .navbar.sticky-top #navbarNav.collapsing) {
         scroll-padding-top: calc(50vh + 8px);
         scroll-padding-top: calc(50dvh + 8px);
+        scroll-padding-bottom: 8px;
     }
     html:has(.navbar.sticky-top #navbarNav.show, .navbar.sticky-top #navbarNav.collapsing)
         :is(#main-content, #productsContent) {

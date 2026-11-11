@@ -18,18 +18,18 @@
   "runtime": {
     "public/css/style.css": {
       "before": "b6c36199b40dc6af75d6a5433671b01cf9c8b052",
-      "after": "8ce5394b0fde3f578ccadea65d41a2af08ad19ec"
+      "after": "db6b7d8c78176825ea8c470050f146160f85c433"
     }
   },
   "reviewed_blobs": {
     ".github/workflows/zoom-browser.yml": "cf0271dbabb32970dd88b4f80d5b0baea8c72794",
     "tests/zoom-browser/README.md": "6c1b9c67a4b8a0e836acae45fe646e43fb14db1d",
     "tests/zoom-browser/accept.sh": "532071f421fff394b9cea72e7d350f22f232b066",
-    "tests/zoom-browser/check.cjs": "0c3f4078bc6b9e6c5f5c5f6a942876f3c1e8ade9",
+    "tests/zoom-browser/check.cjs": "79f4d6db29dd611f25da133892d394bd665671a9",
     "tests/zoom-browser/fixture_seed.py": "88ca59dccf9f8169b84a052a91fa4897eeff078b",
     "tests/zoom-browser/guard-test.py": "df12d9da41b1ef2b9060569aad1187454200e196",
     "tests/zoom-browser/oracle-test.cjs": "aa8252d28ebc67b99762f1f665c3a7f3853940ff",
-    "tests/zoom-browser/outline.cjs": "27cf5ef0bffb593aa97f659a37525f929b6a0639",
+    "tests/zoom-browser/outline.cjs": "6ec7a09d4c31cf92d41d84a10dec8d5293b99f59",
     "tests/zoom-browser/run.py": "71b0035b275b041a0a4470fa43f50dd37d53fe06"
   }
 }
