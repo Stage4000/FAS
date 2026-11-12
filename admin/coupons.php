@@ -31,7 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'create':
                 try {
-                    $couponModel->create($_POST);
+                    // Unchecked HTML checkboxes are omitted; do not inherit the model's active default.
+                    $data = $_POST;
+                    $data['is_active'] = ($_POST['is_active'] ?? null) === '1' ? 1 : 0;
+                    $couponModel->create($data);
                     $success = 'Coupon created successfully!';
                 } catch (Exception $e) {
                     $error = 'Error creating coupon: ' . $e->getMessage();
