@@ -7,6 +7,7 @@ on:
       - 'manuals/**'
       - 'src/manuals/**'
       - 'scripts/manuals-intake-inventory.py'
+      - 'scripts/manuals-intake-capacity.py'
       - 'admin/manuals*.php'
       - 'includes/manual-reader.php'
       - 'public/js/manual-reader*.mjs'
@@ -76,10 +77,12 @@ jobs:
             /public/vendor/pdfjs-6.5.438/
             /scripts/manuals-maintenance.php
             /scripts/manuals-intake-inventory.py
+            /scripts/manuals-intake-capacity.py
             /docs/manuals-lazy-page-text.md
             /docs/manuals-swipe-ownership.md
             /docs/manuals-pending-load.md
             /docs/manuals-intake-inventory.md
+            /docs/manuals-intake-capacity.md
             /docs/manuals-fullsite-integration.md
             /docs/manuals-reader-navigation.md
             /docs/manuals-system.md
