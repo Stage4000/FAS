@@ -13,6 +13,8 @@ checks before entering delivery. Every new request is checked again. Revocation
 or withdrawal blocks subsequent requests; bytes already received cannot be
 recalled, and an already authorized response is not continuously reauthorized.
 
+The application contract applies to the normalized value exposed by PHP as
+`$_SERVER['HTTP_RANGE']`, after the web server/SAPI has parsed the request.
 For an authorized, intact, nonempty PDF of N bytes:
 
 - GET without Range returns **200**, Content-Length N, and the exact full original.
@@ -33,6 +35,39 @@ For an authorized, intact, nonempty PDF of N bytes:
 - Other methods remain **405** with `Allow: GET, HEAD`, after the existing route
   gates. Denied authorization/publication requests retain their normal 302, 403,
   or 404 and disclose no range headers or PDF bytes.
+
+### Duplicate physical fields and the SAPI boundary
+
+PHP does not necessarily expose the original number of physical Range fields.
+A server/SAPI can combine duplicates with a comma or retain only one value.
+The application rejects the combined multipart value with 416. If the SAPI has
+already discarded another field and exposes one valid range, the unchanged
+application returns 206 for exactly that authorized slice. It cannot detect or
+reject a physical field it never received. This does not widen authorization.
+Explicit comma-separated multipart input remains an unconditional 416.
+
+The synthetic HTTP test now observes PHP's Range value on the **same request**
+that immediately includes the unchanged public endpoint. Both field orders are
+checked. Only exact first-field retention, last-field retention or ordered comma
+combination are recognized. Missing, rewritten or unexpected observations fail.
+The retained single range must match its exact bytes, Content-Range,
+Content-Length and every safety header. Combined input must return an empty 416
+with the exact unsatisfied range/length and the same safety headers. A fixed-enum
+receipt records the PHP version, normalization kind, observed status/length and
+verification booleans without arbitrary headers, bodies or cookies.
+
+The hosted PHP 8.3.6 run failed the earlier unconditional duplicate-field 416
+assertion, but did not retain its actual response. Its precise normalization is
+therefore still unobserved. Disposable local probes of the available PHP 8.3.36
+and 8.4.24 CLI servers both combine the two fields, preserving their order. These
+later versions do not prove what PHP 8.3.6 or a production proxy will do.
+
+**Deployment gate:** verify the actual reverse proxy/web server/SAPI chain's
+handling of duplicate physical fields before enabling ranges. If rejecting every
+duplicate physical Range field is required, enforce and test that rule upstream
+before fields are collapsed. Application-only rejection cannot guarantee it.
+Do not infer raw-header guarantees from the synthetic PHP built-in server. No
+proxy, host setting or runtime code was changed by this test-contract correction.
 
 The 200, 206 and 416 delivery responses carry:
 
@@ -105,7 +140,8 @@ Completed locally against PHP 8.4.24:
   native I/O failure/short-read output and error-handler restoration checks.
 - All 44 pre-existing backend checks.
 - 103 range HTTP checks, including exact bodies/headers, full-file reconstruction,
-  HEAD, If-Range, malformed/repeated/multipart ranges, active session closure,
+  HEAD, If-Range, malformed/multipart ranges, same-request normalization of both
+  duplicate-field orders, active session closure,
   release holds, rights restriction/unverified status, explicit withdrawal,
   account deactivation, token revocation and outside-slice tampering.
 - All 51 pre-existing synthetic HTTP checks.

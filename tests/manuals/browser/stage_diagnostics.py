@@ -37,11 +37,28 @@ def runtime_receipt(value):
     return result
 
 
+def normalization_receipt(value):
+    """Only controlled cases, fixed enums and exact-response checks are retained."""
+    if not isinstance(value,dict) or value.get('case') not in ('forward','reverse'):return None
+    def integer(x,low,high):return x if isinstance(x,int) and not isinstance(x,bool) and low<=x<=high else None
+    version=value.get('php_version')
+    result={'php_version':version if isinstance(version,str) and re.fullmatch(r'\d+\.\d+\.\d+',version) else None,
+            'sapi':value.get('sapi') if value.get('sapi') in ('cli-server','apache2handler','fpm-fcgi') else 'other',
+            'case':value['case'],
+            'kind':value.get('kind') if value.get('kind') in ('combined','single-first','single-last','unrecognized') else 'unrecognized',
+            'observed_status':integer(value.get('observed_status'),100,599),
+            'expected_status':value.get('expected_status') if value.get('expected_status') in (206,416) else None,
+            'response_bytes':integer(value.get('response_bytes'),0,52428800)}
+    for key in ('status_matches','length_matches','range_matches','body_matches','safety_headers_match'):
+        result[key]=value.get(key) is True
+    return result
+
+
 def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
     known=sorted(set(source_paths),key=len,reverse=True)
     out,out_bytes,out_cut=tail(stdout);err,err_bytes,err_cut=tail(stderr)
     text=out+'\n'+err
-    events=[];frames=[];receipt=None
+    events=[];frames=[];receipt=None;normalization=[]
     def event(name):
         if name not in events and len(events)<MAX_EVENTS:events.append(name)
     if re.search(r"No module named ['\"]reportlab(?:\.[A-Za-z_][A-Za-z0-9_]*)*['\"]",text):event('reportlab_module_missing')
@@ -67,11 +84,18 @@ def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
         if line.startswith('FAS_RUNTIME_RECEIPT '):
             try:receipt=runtime_receipt(json.loads(line[len('FAS_RUNTIME_RECEIPT '):]))
             except (ValueError,TypeError):event('malformed_runtime_receipt')
+        if line.startswith('FAS_RANGE_NORMALIZATION_RECEIPT '):
+            try:
+                note=normalization_receipt(json.loads(line[len('FAS_RANGE_NORMALIZATION_RECEIPT '):]))
+                if note is None:event('malformed_normalization_receipt')
+                elif len(normalization)<4:normalization.append(note)
+            except (ValueError,TypeError):event('malformed_normalization_receipt')
     result={'exit_code':exit_code if isinstance(exit_code,int) else None,'timed_out':bool(timed_out),
             'stdout_bytes':out_bytes,'stderr_bytes':err_bytes,'input_tail_truncated':out_cut or err_cut,
             'events':events,'source_frames':frames,
             'pass_lines_in_retained_tail':sum(1 for line in text.splitlines() if line.startswith('PASS '))}
     if receipt is not None:result['runtime']=receipt
+    if normalization:result['range_normalization']=normalization
     # All content above is fixed labels, known source paths, counts or sanitized versions.
     assert len(json.dumps(result).encode())<=8192,'Structured diagnostics exceeded their fixed budget'
     return result

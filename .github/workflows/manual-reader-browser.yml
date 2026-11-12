@@ -62,6 +62,7 @@ jobs:
           /usr/bin/python3 tests/manuals/browser/guard-test.py
           /usr/bin/python3 tests/manuals/browser/process-session-test.py
           /usr/bin/python3 tests/manuals/browser/stage-diagnostics-test.py
+          /usr/bin/python3 tests/manuals/browser/range-normalization-test.py
           node tests/manuals/browser/response-policy-test.cjs
           node tests/manuals/reader-state-test.cjs
           node tests/manuals/reader-failure-test.cjs

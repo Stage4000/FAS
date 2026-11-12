@@ -50,6 +50,20 @@ result=summarize('FAS_RUNTIME_RECEIPT '+json.dumps(spoof),'',known)
 check(secret not in json.dumps(result) and result['runtime']['python_executable']=='other','Runtime receipt schema drops unknown or unsafe values')
 result=summarize('FAS_RUNTIME_RECEIPT {broken','',known)
 check('malformed_runtime_receipt' in result['events'],'Malformed receipt becomes fixed diagnostic category')
+normal={'php_version':'8.3.6','sapi':'cli-server','case':'forward','kind':'single-last','observed_status':206,'expected_status':206,'response_bytes':2,'status_matches':True,'length_matches':True,'range_matches':True,'body_matches':True,'safety_headers_match':True}
+result=summarize('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps(normal),'',known)
+check(result['range_normalization']==[normal],'Exact fixed-enum same-request normalization receipt retained')
+normal.update(observed_status=500,status_matches=False,body_matches=False,raw_header=secret,body=secret,cookie=secret)
+result=summarize('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps(normal),'',known)
+check(result['range_normalization'][0]['observed_status']==500 and not result['range_normalization'][0]['body_matches'],'Unexpected server status stays visible as failed verification')
+check(secret not in json.dumps(result),'Normalization receipt drops raw header/body/cookie fields')
+normal.update(php_version=secret,sapi=secret,kind=secret,response_bytes=secret)
+result=summarize('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps(normal),'',known)
+check(secret not in json.dumps(result) and result['range_normalization'][0]['kind']=='unrecognized','Normalization unknown values cannot leak arbitrary strings')
+result=summarize('\n'.join('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps(normal) for _ in range(30)),'',known)
+check(len(result['range_normalization'])==4 and len(json.dumps(result))<8192,'Normalization receipt count is bounded')
+result=summarize('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps({'case':secret}),'',known)
+check('malformed_normalization_receipt' in result['events'] and secret not in json.dumps(result),'Unknown normalization case fails closed without raw output')
 php={'php_version':'8.3.12','extensions':{n:True for n in ['pdo_sqlite','sqlite3','fileinfo','mbstring','dom','json','session']},'sqlite_json':True}
 with mock.patch('dependency_check.subprocess.run',return_value=subprocess.CompletedProcess([],0,json.dumps(php),'')):
     with mock.patch.dict(sys.modules,{'reportlab':None}):

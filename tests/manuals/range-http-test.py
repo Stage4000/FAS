@@ -10,6 +10,8 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+sys.dont_write_bytecode = True
+from browser.range_normalization import PAIRS, read_duplicate_observation
 
 OUT = Path(sys.argv[1]).resolve()
 BASE = sys.argv[2]
@@ -87,14 +89,48 @@ for path, who in [(public, anon), (private, admin)]:
     result = request(path, {'Range': 'bytes=0-9'}, method='POST', who=who, data={})
     check(result[0] == 405 and result[1].get('Allow') == 'GET, HEAD' and result[2] == b'', 'Range cannot bypass method allowlist ' + path)
 
-connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=15)
-connection.putrequest('GET', public)
-connection.putheader('Range', 'bytes=0-1')
-connection.putheader('Range', 'bytes=4-5')
-connection.endheaders()
-response = connection.getresponse()
-check(response.status == 416 and response.getheader('Content-Length') == '0' and response.read() == b'', 'Repeated Range fields cannot smuggle multipart content')
-connection.close()
+# Observe $_SERVER['HTTP_RANGE'] on the SAME request that enters the unchanged
+# endpoint. SAPI/proxies may combine physical fields or retain only one; the
+# application cannot reconstruct a discarded field. Missing/unknown forms fail.
+range_probe = OUT / 'site/fixture-range-normalization.php'
+range_marker = OUT / 'range-normalization-observation.json'
+range_notes = []
+range_probe.write_text("<?php file_put_contents(" + repr(str(range_marker))
+    + ",json_encode(['php_version'=>PHP_VERSION,'sapi'=>PHP_SAPI,'case'=>$_GET['probe_case']??null,'range'=>$_SERVER['HTTP_RANGE']??null]));"
+    + "require __DIR__.'/manuals/file.php';")
+try:
+    for case, fields in PAIRS.items():
+        range_marker.unlink(missing_ok=True)
+        connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=15)
+        try:
+            connection.putrequest('GET', '/fixture-range-normalization.php?id=1&probe_case='+case)
+            for field in fields:
+                connection.putheader('Range', field)
+            connection.endheaders()
+            response = connection.getresponse()
+            status, headers, body = response.status, dict(response.headers), response.read()
+        finally:
+            connection.close()
+        # Missing, malformed or stale markers remain failures, but must not hide
+        # a SAPI-level rejection's already-observed status and response length.
+        observed, plan = read_duplicate_observation(case, range_marker, size)
+        expected_body = (b'' if plan['status']==416 else source[plan['start']:plan['end']+1]) if plan else None
+        note = {'php_version':observed.get('php_version'),'sapi':observed.get('sapi'),'case':case,
+                'kind':plan['kind'] if plan else 'unrecognized','observed_status':status,
+                'expected_status':plan['status'] if plan else None,'response_bytes':len(body),
+                'status_matches':bool(plan and status==plan['status']),
+                'length_matches':bool(plan and headers.get('Content-Length')==str(plan['length'])),
+                'range_matches':bool(plan and headers.get('Content-Range')==plan['content_range']),
+                'body_matches':bool(plan and body==expected_body),'safety_headers_match':safe_headers(headers)}
+        range_notes.append(note)
+        # Only fixed enums/counts/verification booleans survive the stage sanitizer.
+        # Never print the received arbitrary header, PDF bytes, cookies or HTML.
+        print('FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps(note,sort_keys=True),flush=True)
+        assert all(note[key] for key in ['status_matches','length_matches','range_matches','body_matches','safety_headers_match']), 'Same-request duplicate Range response violates the observed single/combined contract'
+    check(True, 'Both duplicate field orders match exact observed single slices or empty combined 416')
+finally:
+    range_probe.unlink(missing_ok=True)
+    range_marker.unlink(missing_ok=True)
 
 # Verify independent sequential requests reconstruct the exact original without overfetch.
 pieces = []
@@ -188,5 +224,6 @@ finally:
 check(request(public, {'Range': 'bytes=0-7'})[2] == original[:8], 'Untampered original remains readable after integrity test')
 
 (OUT / 'range-http-results.json').write_text(json.dumps({'passed': len(checks), 'checks': checks,
+    'range_normalization':range_notes,
     'scope': 'Synthetic loopback HTTP only; actual AdminAuth, repository and endpoints; no browser or production acceptance'}, indent=2))
 print(len(checks), 'range HTTP checks passed')

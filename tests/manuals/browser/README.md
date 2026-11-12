@@ -75,13 +75,23 @@ It failed in `range-backend-http` before any browser launch. That runner discard
 stage stdout/stderr, so the retained evidence does not establish the cause.
 Apt packages and PATH-selected interpreters could differ; this is a hypothesis,
 not a diagnosed runtime defect. The revised job aligns explicit executables with
-distribution packages and records the preflight. It still needs a hosted rerun.
+distribution packages and records the preflight. Its hosted result is below.
+
+The second hosted run at `3bd7e7f6844aa11b7cd327f5e74d43a8a24b8891`
+passed the explicit Python 3.12.3 / ReportLab 4.1.0 / PHP 8.3.6 dependency
+preflight and reached 235 PASS lines. Its failure is now located at the old
+physical duplicate-Range assertion. The response/normalized field was not yet
+retained. The updated test observes normalization on that same endpoint request,
+requires exact single-slice 206 or combined 416 behavior, and fails missing or
+unexpected forms. It preserves the unconditional comma-separated 416 cases.
+See `docs/manuals-range-delivery.md` for the separate upstream deployment gate.
 
 Every stage now retains bounded structured diagnostics on success, nonzero exit
 and timeout: exit code, byte counts, truncation status, fixed error categories,
 known repository-relative traceback locations and sanitized dependency receipts.
 At most 64 KiB from each output stream is inspected, with at most 16 categories,
-12 source frames and 8 KiB of resulting diagnostics. No raw output, exception or
+12 source frames, four fixed-enum range-normalization receipts and 8 KiB of
+resulting diagnostics. No raw output, exception or
 assertion message, HTML/body, cookie, token, authorization header, configuration,
 database or secret-bearing absolute path is uploaded. Unknown receipt fields and
 values are dropped. Output cleanup/reaping still occurs before fixture removal.
@@ -147,8 +157,8 @@ be erased from the browser. No manual release or production rollout is implied.
 ## Local v2 verification checkpoint
 
 The source-only integration has passed 15 source-guard regressions, 17 process
-lifecycle checks, 20 exact-denial policy checks, 22 sanitized-stage/dependency
-checks, 73 range/descriptor checks,
+lifecycle checks, 20 exact-denial policy checks, 28 sanitized-stage/dependency checks, 32 normalization-oracle checks,
+73 range/descriptor checks,
 44 backend checks, 51 original HTTP checks, 103 range HTTP checks, 52 strict
 open_basedir checks (which also rerun the HTTP suites), and 43 strict reader
 fixture HTTP checks with display_errors on and an empty PHP log. The 237 reader
@@ -163,6 +173,8 @@ for this diagnostic revision. All 16 browser groups remain unrun.
 - `python3 tests/manuals/browser/process-session-test.py`: synthetic process-tree,
   detached-child, timeout, signal and cleanup tests only.
 - `node tests/manuals/browser/response-policy-test.cjs`: exact-denial negative checks.
+- `python3 tests/manuals/browser/range-normalization-test.py`: strict expectations
+  for first/last retention, combined fields and unknown/missing observations.
 - `python3 tests/manuals/browser/stage-diagnostics-test.py`: bounded sanitization,
   dependency failures and actual subprocess failure/timeout receipts.
 - `node tests/manuals/reader-search-test.cjs`: deterministic DOM/PDF search stubs.
