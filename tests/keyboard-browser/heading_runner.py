@@ -69,12 +69,17 @@ CATALOG_SCROLL_BLOBS = {'tests/keyboard-browser/run.py': {'mode': '100644', 'typ
 # Exact reviewed shipping amount guard and existing main rotor facts.
 # Only these pinned bytes are added; no generic source exemption.
 SHIPPING_AMOUNT_BLOBS = {'src/shipping/CarrierRates.php': {'mode': '100644', 'type': 'blob', 'sha': '1de6765d76ab0ea11961971f9c70d53c8c019100'}, 'tests/shipping-parcel-total-boundary-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'cf8d410001a652d4ecaf9817fdb2820335771513'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '492c113939693adcd50c2701a96fbe8132418e81'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '34311572806f6794eee7313cda9728a363ed67e1'}, 'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}}
-CATALOG_SCROLL_BLOBS.update(SHIPPING_AMOUNT_BLOBS)
+# The existing browser sparse checkout intentionally omits docs/. Keep this
+# document pinned in the committed-tree inventory, not the materialized catalog
+# files exercised by catalog-scroll-guard-test.py. All runtime/test pins remain.
+CATALOG_SCROLL_BLOBS.update({path: entry for path, entry in SHIPPING_AMOUNT_BLOBS.items()
+                             if path != 'docs/reviewed-product-facts.md'})
 EMAIL_BLOBS.update(CATALOG_SCROLL_BLOBS)
 MALFORMED_BLOBS.update(EMAIL_BLOBS)
 STORAGE_BLOBS.update(MALFORMED_BLOBS)
 QUANTITY_BLOBS.update(STORAGE_BLOBS)
 REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
+REVIEWED_OVERLAY.update(SHIPPING_AMOUNT_BLOBS)
 
 # Normalize only the exact reviewed, non-heading clipboard correction for the
 # historical heading identity controls. Runtime copies retain the actual fix.
