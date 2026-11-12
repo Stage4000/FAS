@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import importlib.util
 sys.dont_write_bytecode = True
 from reportlab.pdfgen import canvas
 from reportlab.lib.pdfencrypt import StandardEncryption
@@ -31,6 +32,12 @@ def build(out, php):
         "],'manuals'=>['storage_path'=>" + repr(str(out/'private')) + ",'public_enabled'=>true]];")
     for folder in ['home','tmp','uploads']:
         (out/folder).mkdir()
+    spec=importlib.util.spec_from_file_location('raster_fixture',Path(__file__).with_name('raster-fixture.py'))
+    raster=importlib.util.module_from_spec(spec);spec.loader.exec_module(raster)
+    raster_info=raster.make(out)
+    assert 47*1024*1024<raster_info['bytes']<50*1024*1024
+    (out/raster_info['file']).rename(out/'raster.pdf');raster_info['file']='raster.pdf'
+    (out/'raster-info.json').write_text(json.dumps(raster_info))
     specs = [('long',180), ('nontext',2), ('encrypted',2)]
     for name, count in specs:
         options = {'encrypt':StandardEncryption('synthetic-locked',canPrint=1)} if name == 'encrypted' else {}
@@ -53,7 +60,7 @@ def build(out, php):
 require __DIR__.'/site/src/manuals/bootstrap.php';
 $repo=new FAS\\Manuals\\ManualLibrary(manualsDatabase(),fn()=>true);
 $ids=['book'=>1];
-foreach(['long','nontext','encrypted','malformed'] as $name){
+foreach(['long','nontext','encrypted','malformed','raster'] as $name){
  $input=FAS\\Manuals\\ManualLibrary::blank();
  $input['title']='SYNTHETIC '.$name; $input['manufacturer']='Fixture Works';
  $input['rights']='cleared'; $input['rights_note']='Original generated test material'; $input['reviewed']=true;
@@ -113,6 +120,7 @@ http_response_code(404);echo 'Outside synthetic fixture route allowlist.';
              'generated_sha256':{rel:hashlib.sha256((out/rel).read_bytes()).hexdigest() for rel in generated},
              'layout':'Actual reader markup, CSS, JS and backend; shared site header/footer are adapters.',
              'nontext':'Vector-only pages, not proof of real scanned-image compatibility.',
+             'raster':raster_info,
              'cached_bytes':'Rights/session loss blocks subsequent requests, not bytes already downloaded.'}
     (out/'browser-fixture.json').write_text(json.dumps(receipt,indent=2))
     return receipt

@@ -307,6 +307,29 @@ test('16-empty-search-replaces-running-search',async p=>{
   assert.equal(await p.locator('[data-search-status]').textContent(),'Enter a word or part number.');
 });
 
+test('image-heavy-large-file-canvas-release',async(p,ctx)=>{
+  const info=JSON.parse(fs.readFileSync(path.join(fixture,'raster-info.json')));
+  assert(info.bytes>47*1024*1024&&info.bytes<50*1024*1024);assert.equal(info.pages,49);
+  // Hold references deliberately: prove backing-store release independent of GC.
+  await ctx.addInitScript(()=>{const original=Document.prototype.createElement;const canvases=[];window.__fasCanvases=canvases;Document.prototype.createElement=function(name,...rest){const e=original.call(this,name,...rest);if(String(name).toLowerCase()==='canvas')canvases.push(e);return e;};});
+  const started=Date.now();const responsePromise=p.waitForResponse(r=>new URL(r.url()).pathname==='/manuals/file.php');
+  await open(p,ids.raster);const response=await responsePromise;assert.equal(response.status(),200);assert.equal(Number(response.headers()['content-length']),info.bytes);
+  await ready(p,[1],49);
+  const snapshots=[];
+  async function retained(label){const result=await p.evaluate(()=>{const all=window.__fasCanvases.filter(c=>c.getAttribute('aria-hidden')==='true');const active=all.filter(c=>c.width>0&&c.height>0);const detached=active.filter(c=>!c.isConnected);return{tracked:all.length,active:active.length,detached:detached.length,pixels:active.reduce((n,c)=>n+c.width*c.height,0)};});assert.equal(result.detached,0,'settled detached page canvases must be released');assert(result.active<=2,'at most visible spread backing stores retained');assert(result.pixels<=16020000,'spread backing pixels bounded');snapshots.push({label,...result});}
+  await retained('cover');
+  for(const number of [2,24,48]){await jump(p,number);await ready(p,[number,number+1],49);if(number===2){for(let i=0;i<6;i++){await p.locator('[data-zoom-in]').click();await ready(p,[2,3],49);}assert.equal(await p.locator('[data-zoom]').textContent(),'250%');}const pagePixels=await pixels(p);assert(pagePixels.every(c=>c.colors>8),'real raster data rendered');await retained('spread-'+number);}
+  await p.locator('[data-layout]').click();await ready(p,[48],49);await retained('single-page');
+  assert.equal(await p.locator('[data-paper][hidden] canvas').evaluate(c=>c.width*c.height),0,'hidden second canvas backing cleared');
+  await jump(p,1);await ready(p,[1],49);await retained('return-cover');
+  await screenshot(p,'large-raster-cover');
+  await p.evaluate(()=>dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false})));
+  await p.waitForFunction(()=>window.__fasCanvases.filter(c=>c.getAttribute('aria-hidden')==='true').every(c=>c.width===0&&c.height===0));
+  snapshots.push({label:'permanent-pagehide',released:true});
+  assert(snapshots.some(x=>x.pixels>15000000),'high-DPR zoom must exercise near-cap backing allocation');
+  summary.measurements.push({label:'synthetic-image-heavy-file',bytes:info.bytes,pages:info.pages,elapsedMs:Date.now()-started,snapshots,limits:'Backing canvas dimensions only; not worker/native/GPU/total memory or production timing.'});
+},{deviceScaleFactor:2});
+
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
   browser=await chromium.launch({headless:true});summary.browser=browser.version();

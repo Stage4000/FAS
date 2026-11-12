@@ -55,7 +55,7 @@ async function initialize(root) {
   const status = $('[data-status]'), stage = $('[data-stage]'), book = $('[data-book]');
   const papers = [...root.querySelectorAll('[data-paper]')];
   const controls = ['[data-prev]', '[data-next]', '[data-page]', '[data-go]', '[data-layout]', '[data-zoom-in]', '[data-zoom-out]', '[data-fit]', '[data-search-submit]'];
-  let loadingTask = null, loadError = null;
+  let loadingTask = null, loadError = null, disposed = false;
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   let renders = [], animations = [], motionOff = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
@@ -101,8 +101,11 @@ async function initialize(root) {
     $('[data-zoom-out]').disabled = zoom <= .75;
     $('[data-zoom-in]').disabled = zoom >= 2.5;
   };
+  // Resizing to zero releases pixels without waiting for detached DOM garbage collection.
+  const releaseCanvas = canvas => { canvas.width = 0; canvas.height = 0; };
   async function draw(requested, turn = false, updateHash = true) {
-    if (!pdf) return;
+    if (!pdf || disposed) return;
+    const ownedCanvases = new Set();
     const oldPage = page, token = ++renderEpoch;
     renders.forEach(task => { try { task.cancel(); } catch (_) {} }); renders = []; stopAnimations();
     const targetPage = Math.max(1, Math.min(pdf.numPages, requested));
@@ -124,11 +127,14 @@ async function initialize(root) {
         // Cap backing pixels and DPR to stop large or malicious pages exhausting memory.
         const dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(8000000 / (viewport.width * viewport.height)));
         const canvas = document.createElement('canvas');
+        ownedCanvases.add(canvas);
         canvas.width = Math.max(1, Math.ceil(viewport.width * dpr)); canvas.height = Math.max(1, Math.ceil(viewport.height * dpr));
         canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
         canvas.setAttribute('aria-hidden','true');
         const task = docs[i].render({canvasContext: canvas.getContext('2d', {alpha: false}), viewport, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null, annotationMode: pdfjs.AnnotationMode.DISABLE});
-        renders.push(task); await task.promise;
+        renders.push(task);
+        // Never clear a canvas until its render promise has settled, even on cancellation.
+        try { await task.promise; } finally { renders = renders.filter(active => active !== task); }
         staged.push(canvas);
       }
       if (token !== renderEpoch) return;
@@ -139,7 +145,9 @@ async function initialize(root) {
       if (token !== renderEpoch) return;
       papers.forEach((paper, i) => {
         paper.hidden = !staged[i];
-        if (staged[i]) { paper.querySelector('canvas').replaceWith(staged[i]); paper.querySelector('[data-page-label]').textContent = selected[i]; }
+        const previous = paper.querySelector('canvas');
+        if (staged[i]) { previous.replaceWith(staged[i]); ownedCanvases.delete(staged[i]); paper.querySelector('[data-page-label]').textContent = selected[i]; }
+        releaseCanvas(previous);
       });
       page = targetPage;
       visiblePages = selected;
@@ -172,6 +180,9 @@ async function initialize(root) {
       setControls();
       say(`Page ${targetPage} could not be rendered.${visiblePages.length ? ` Still showing ${visiblePages.join('–')}.` : ''} Try another page, or download the original PDF.`);
       stage.removeAttribute('aria-busy');
+    } finally {
+      // Uncommitted canvases include earlier pages when a later page fails or supersedes.
+      ownedCanvases.forEach(releaseCanvas);
     }
   }
   const navigate = (requested, turn = true, updateHash = true) => { pageInputEdited = false; return draw(requested, turn, updateHash); };
@@ -224,7 +235,7 @@ async function initialize(root) {
     pdf=await task.promise;
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
     controls.forEach(selector=>{$(selector).disabled=false;});
+    window.addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();loadingTask?.destroy();});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
-    window.addEventListener('pagehide',event=>{if(event.persisted)return;renderEpoch++;searchEpoch++;observer.disconnect();stopAnimations();textCache.close();loadingTask?.destroy();});
   }catch(error){say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }
