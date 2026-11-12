@@ -31,6 +31,18 @@ await page.locator('#manual-mfg').fill('Example Motors');await Promise.all([page
 const absent='No such <manufacturer> & exact';await page.locator('#manual-mfg').fill(absent);await Promise.all([page.waitForURL(u=>u.searchParams.get('manufacturer')===absent),page.locator('.manual-catalog-search button').click()]);assert.equal(await page.locator('#manual-mfg').inputValue(),absent);assert.equal(await page.locator('.manual-card').count(),0);assert(await page.locator('.manual-empty').isVisible());assert.equal(await page.locator('manufacturer').count(),0);assert(await page.locator('#manual-manufacturers option').count()<=100);assert.equal(await page.locator('#manual-mfg').getAttribute('aria-describedby'),'manual-mfg-help');assert(await page.locator('#manual-mfg-help').isVisible());
 await page.locator('.manual-catalog-search > a').click();await page.waitForURL(base+'/manuals/');assert.equal(await page.locator('#manual-mfg').inputValue(),'');assert.equal(await page.locator('.manual-card').count(),6);
 }
+if(kind==='admin-list'){
+const form=page.locator('form[role="search"]');assert.equal(await form.getAttribute('aria-label'),'Search manual drafts');
+await page.locator('#manual-query').fill('SYNTHETIC long');await page.locator('#manual-manufacturer').fill('Fixture Works');
+await Promise.all([page.waitForURL(u=>u.searchParams.get('q')==='SYNTHETIC long'),page.locator('#manual-query').press('Enter')]);
+assert.equal(await page.locator('.manual-table-wrap tbody tr').count(),1);assert.match(await page.locator('.manual-table-wrap').textContent(),/SYNTHETIC long/);assert.equal(await page.locator('#manual-manufacturer').inputValue(),'Fixture Works');
+await page.locator('#manual-query').fill('No such <manual> & exact');await form.locator('button').click();await page.waitForURL(u=>u.searchParams.get('q')==='No such <manual> & exact');
+assert.equal(await page.locator('#manual-query').inputValue(),'No such <manual> & exact');assert.match(await page.locator('.manual-table-wrap').textContent(),/No manuals match these filters/);assert.equal(await page.locator('manual').count(),0);
+assert.equal((await page.goto(base+'/admin/manuals.php?q=SYNTHETIC&manufacturer=Fixture%20Works&page=999')).status(),200);
+assert.equal(await page.locator('#manual-query').inputValue(),'SYNTHETIC');assert.equal(await page.locator('#manual-manufacturer').inputValue(),'Fixture Works');assert.match(await page.locator('nav[aria-label="Manual pages"]').textContent(),/Page 1 of 1/);assert.equal(await page.locator('.manual-table-wrap tbody tr').count(),5);
+await page.getByRole('link',{name:'Clear filters',exact:true}).click();await page.waitForURL(base+'/admin/manuals.php');assert.equal(await page.locator('#manual-query').inputValue(),'');assert.equal(await page.locator('#manual-manufacturer').inputValue(),'');assert.equal(await page.locator('.manual-table-wrap tbody tr').count(),6);
+assert(await page.locator('#manual-manufacturers option').count()<=100);assert(await page.locator('#manual-search-help').isVisible());assert(await page.locator('#manual-manufacturer-help').isVisible());entry.adminSearch={keyboardSubmit:true,literalTextPreserved:true,emptyState:true,obsoletePageClamped:true,clearRestoresSix:true};
+}
 if(kind==='admin-upload'){
 const posts=[];page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/admin/manuals-edit.php')posts.push(r.url());});
 await page.locator('[name="title"]').fill('Preserved synthetic upload title');await page.locator('[name="manufacturer"]').fill('Synthetic Maker');

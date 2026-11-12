@@ -59,3 +59,10 @@ The added hosted race case holds the first real worker GetTextContent message un
 Search yields a browser task after each eight processed pages, before extracting the next page, then checks cancellation ownership again. This lets Stop, replacement searches and departure events run even when all extracted text resolves immediately from the bounded cache. Results, complete text, rights and the 50-hit limit are unchanged. The interval bounds pages between opportunities, not the duration of a single page or a production latency guarantee.
 
 Focused state tests cover cached scheduling, cancellation/replacement ownership, departure and complete results. A hosted real-PDF case warms all 49 pages in the existing bounded text cache, schedules Stop in a browser task during the next search, verifies cancellation precedes completion without further worker extraction, and completes a restart. Actual hosted execution is required before claiming this acceptance passes.
+
+
+## Private admin discovery
+
+Authenticated catalog search now uses draft title/manufacturer/model/year metadata with literal AND-token matching and an exact manufacturer filter. Suggestions are capped at 100 without restricting off-list names. GET filters survive paging; obsolete pages clamp to the last result page. This does not search PDF text or private rights evidence. Public search, CRUD, PDF storage and release controls are unchanged.
+
+The isolated pipeline runs 55 new backend checks and 40 actual-auth HTTP checks, including filter-preserving pagination and controlled invalid input. Shared-shell browser cases exercise keyboard submission, combined filters, escaped unmatched text, an obsolete page, clear/reset and retained help in both themes and viewport sizes. Browser multi-page navigation is not separately claimed; the 65-record HTTP fixture covers pagination. No actual client manuals or live data are involved.

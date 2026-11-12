@@ -14,8 +14,8 @@
     "admin/manuals-edit.php": "dde8d43b9b3cd83271d3395cb40b2bbc9ec7b72d",
     "admin/manuals-file.php": "70b402c0330625fe7a250c81bf3b8e5ef2c3a505",
     "admin/manuals-preview.php": "ba32474c66f5eb089b10d01db6a49a7af5ed8f22",
-    "admin/manuals.php": "726c5df9ea8c5bac0c30e49178151d08a385a61b",
-    "docs/manuals-fullsite-integration.md": "c6192dd9c9d7c0fc3fb16e40bbdfc7f69d8bfead",
+    "admin/manuals.php": "7d4bf7a89c520f2925141beed0036fb74a303f60",
+    "docs/manuals-fullsite-integration.md": "2401419681ddb953c039b7907a1589277b023748",
     "docs/manuals-open-basedir.md": "745b46d1ab2bda31d0f46ff9168f2e30bd54a2ae",
     "docs/manuals-range-delivery.md": "649d61ac090e1b6da026bc08e5952d2309875c21",
     "docs/manuals-reader-navigation.md": "f6d51107e5dda8a3c206ff39d0cf3654989a7e39",
@@ -254,7 +254,7 @@
     "scripts/manuals-maintenance.php": "7edd46a346bdd48ed5338d62d58e53741747ebdb",
     "src/config/Database.php": "e2e9a6baac2ffb305a642176432fd00af4f93974",
     "src/manuals/ManualByteRange.php": "f6ce5973f1e4ca33da27e51641fefbff82874384",
-    "src/manuals/ManualLibrary.php": "da7bfd6e6a5ccfd448f1267928874ce2255c4eb6",
+    "src/manuals/ManualLibrary.php": "165487299dd7d6b5685897bc3ca9e26b6d124556",
     "src/manuals/bootstrap.php": "8d973edd1906d3b3cd9182311ebf506db68510b8",
     "src/security/ClientIp.php": "47a5905fad895a870de71744f0b7fed482fe8c69",
     "src/security/SecurityStore.php": "dd197c255f67b6827aff99a68d97e6989ce6b7ad",
@@ -271,7 +271,7 @@
     "tests/manuals/browser/check.cjs": "549c9db88ed58265233372535b32c90bfc9963b9",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
-    "tests/manuals/browser/fullsite-check.cjs": "4a68e6f52e70a3aabee70438186745e51650f23c",
+    "tests/manuals/browser/fullsite-check.cjs": "db94ca916c28479e70691dfde0df56de00f4663e",
     "tests/manuals/browser/fullsite-pins.json": "dc060589213c622fee4cd21a376d20c50978e627",
     "tests/manuals/browser/guard-test.py": "de704cd75eb04caa0ffb800235ae5447ddba33b2",
     "tests/manuals/browser/prepare-assets.py": "b9dbad7a2d3143c42b4db84638997eddd20c950b",
@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "e737a1bd774412865c724e5aaedb23014537e628",
+    "tests/manuals/browser/run.py": "3338f66d0dc1f770b7c6049dd136e3592a53f65f",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -319,7 +319,9 @@
     "scripts/manuals-intake-inventory.py": "bf49459bed4033ad85020a1141cef49a468a84ed",
     "tests/manuals/intake-inventory-test.py": "ac352612ad9227c39365c3fd7109172ac3ff2859",
     "docs/manuals-intake-inventory.md": "e8cebd32c18e69ba04125d7b61e82742e3bb5902",
-    "tests/manuals/editor-upload-preflight-test.cjs": "995a297e13890082dd8cbf2e50a687a5d7e8af32"
+    "tests/manuals/editor-upload-preflight-test.cjs": "995a297e13890082dd8cbf2e50a687a5d7e8af32",
+    "tests/manuals/admin-search-test.php": "4b02ea5799c8acf0ecc3ff5713bc963db50aa5ff",
+    "tests/manuals/admin-search-http-test.py": "cc47f3b2c7e1546d578c6cf2525544a7f5fdb572"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -605,6 +607,8 @@
     "scripts/manuals-intake-inventory.py": "A",
     "tests/manuals/intake-inventory-test.py": "A",
     "docs/manuals-intake-inventory.md": "A",
-    "tests/manuals/editor-upload-preflight-test.cjs": "A"
+    "tests/manuals/editor-upload-preflight-test.cjs": "A",
+    "tests/manuals/admin-search-test.php": "A",
+    "tests/manuals/admin-search-http-test.py": "A"
   }
 }

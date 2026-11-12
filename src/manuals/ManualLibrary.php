@@ -215,11 +215,24 @@ final class ManualLibrary
         $r['id']=(int)$r['id']; $r['revision']=(int)$r['revision']; return $r;
     }
     public function getAdmin(int $id,int $actor): ?array { $this->ready();$this->allowed($actor,'read'); return $this->find($id); }
-    public function listAdmin(int $actor,int $offset=0): array {
+    public function listAdmin(int $actor,int $offset=0,string $query='',string $manufacturer=''): array {
         $this->ready(); $this->allowed($actor,'read');
-        if ($offset<0 || $offset>1000000) throw new \InvalidArgumentException('Invalid offset.');
-        $q=$this->db->prepare('SELECT id FROM main.manuals ORDER BY updated_at DESC,id DESC LIMIT 30 OFFSET ?'); $q->bindValue(1,$offset,\PDO::PARAM_INT);$q->execute();
-        return ['items'=>array_map(function($id){return $this->find((int)$id);},$q->fetchAll(\PDO::FETCH_COLUMN)),'total'=>(int)$this->db->query('SELECT count(*) FROM main.manuals')->fetchColumn()];
+        if(!preg_match('//u',$query) || !preg_match('//u',$manufacturer) || mb_strlen($query)>160 || mb_strlen($manufacturer)>80 || $offset<0 || $offset>1000000)throw new \InvalidArgumentException('Search is too long or page is invalid.');
+        $terms=preg_split('/\s+/u',trim($query),-1,PREG_SPLIT_NO_EMPTY);
+        if(count($terms)>12)throw new \InvalidArgumentException('Use no more than twelve search terms.');
+        // Admin discovery searches draft metadata only, never private rights evidence.
+        $facet=$this->db->query("SELECT json_extract(draft_json,'$.manufacturer') AS name,count(*) AS total FROM main.manuals GROUP BY name ORDER BY name COLLATE NOCASE,name LIMIT 101")->fetchAll(\PDO::FETCH_ASSOC);
+        $facetsTruncated=count($facet)>100; if($facetsTruncated)array_pop($facet);
+        $where='1=1';$params=[];
+        if($manufacturer!==''){$where.=" AND json_extract(draft_json,'$.manufacturer')=?";$params[]=$manufacturer;}
+        foreach($terms as $term) {
+            $where.=" AND (json_extract(draft_json,'$.title') || ' ' || json_extract(draft_json,'$.manufacturer') || ' ' || json_extract(draft_json,'$.model') || ' ' || json_extract(draft_json,'$.years')) LIKE ? ESCAPE '\\'";
+            $params[]='%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],$term).'%';
+        }
+        $q=$this->db->prepare("SELECT count(*) FROM main.manuals WHERE $where");$q->execute($params);$total=(int)$q->fetchColumn();
+        $q=$this->db->prepare("SELECT id FROM main.manuals WHERE $where ORDER BY updated_at DESC,id DESC LIMIT 30 OFFSET ?");
+        foreach($params as $i=>$p)$q->bindValue($i+1,$p);$q->bindValue(count($params)+1,$offset,\PDO::PARAM_INT);$q->execute();
+        return ['items'=>array_map(function($id){return $this->find((int)$id);},$q->fetchAll(\PDO::FETCH_COLUMN)),'total'=>$total,'manufacturers'=>$facet,'manufacturers_truncated'=>$facetsTruncated];
     }
     public function create(array $input,array $file,int $actor,string $requestKey): array {
         $this->ready();$this->allowed($actor,'create'); $data=self::validate($input);

@@ -73,6 +73,8 @@ def main():
         stage('search-yield',['node','tests/manuals/reader-search-yield-test.cjs'],env,30)
         stage('intake-inventory',[sys.executable,'tests/manuals/intake-inventory-test.py'],env,30)
         stage('upload-preflight',['node','tests/manuals/editor-upload-preflight-test.cjs'],env,30)
+        stage('admin-search',[php,'tests/manuals/admin-search-test.php'],env,30)
+        stage('admin-search-http',[sys.executable,'tests/manuals/admin-search-http-test.py'],env,90)
         stage('canvas-lifecycle',['node','tests/manuals/reader-canvas-lifecycle-test.cjs'],env,30)
         stage('reader-lifecycle',['node','tests/manuals/reader-lifecycle-test.cjs'],env,30)
         stage('reader-text-cache',['node','tests/manuals/reader-cache-test.cjs'],env,30)
