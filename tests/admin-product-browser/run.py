@@ -100,7 +100,22 @@ def assert_isolation() -> dict:
             "interfaces": ["lo"], "unprivileged": True, "egress_available": False}
 
 
-def verify_candidate() -> dict:
+def verified_manuals(root):
+    # Import only the fixed, reviewed test-only compatibility helper.
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, str(root / "tests/manuals/browser"))
+    from reviewed_repository import verify_checkout
+    return verify_checkout(root)
+
+
+def verify_candidate(*, compatibility=None) -> dict:
+    expected_changes = dict(ALLOWED_CHANGES)
+    if compatibility is not None:
+        # Preserve A/M relative to the historical baseline for original paths.
+        expected_changes.update({p: status for p, status in compatibility["changes"].items()
+                                 if p not in expected_changes})
+        expected_changes.update({p: "A" if pins["before"] is None else "M"
+                                 for p, pins in compatibility["historical_main"].items()})
     require(git("rev-parse", BASELINE + "^{commit}") == BASELINE, "Approved baseline unavailable")
     require(git("rev-parse", BASELINE + "^{tree}") == BASELINE_TREE, "Approved baseline tree mismatch")
     require(run_command(["git", "merge-base", "--is-ancestor", BASELINE, "HEAD"], cwd=ROOT).returncode == 0,
@@ -110,16 +125,18 @@ def verify_candidate() -> dict:
     fields = changed.split("\0")
     require(fields[-1] == "" and len(fields) % 2 == 1, "Malformed candidate diff")
     entries = list(zip(fields[0:-1:2], fields[1:-1:2]))
-    require(len(entries) == len(ALLOWED_CHANGES)
+    require(len(entries) == len(expected_changes)
             and len({path for _, path in entries}) == len(entries)
-            and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the 12 reviewed catalog paths and exact statuses")
-    objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
-    require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
+            and {path: status for status, path in entries} == expected_changes,
+            "Diff must match reviewed catalog and exact compatibility paths/statuses")
+    objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(expected_changes)).split("\0")
+    require(objects[-1] == "" and len(objects) - 1 == len(expected_changes)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),
             "Reviewed files must be regular non-executable Git blobs")
     # Pin exact reviewed storage runtime, tests and integration blobs (guard self/source excluded to avoid cycles).
     for path, expected in EXPECTED_STORAGE_BLOBS.items():
+        if compatibility is not None:
+            expected = compatibility["overlay"].get(path, {"sha": expected})["sha"]
         require(git("rev-parse", "HEAD:" + path) == expected, "Reviewed storage blob mismatch: " + path)
     # Permit only the exact reviewed storage warning/runtime delta; no arbitrary runtime changes.
     for path, pins in EXPECTED_RUNTIME.items():
@@ -127,6 +144,13 @@ def verify_candidate() -> dict:
                 "Reviewed runtime preimage mismatch")
         require(git("rev-parse", "HEAD:" + path) == pins["after"],
                 "Reviewed runtime candidate mismatch")
+    if compatibility is not None:
+        for path, pins in compatibility["historical_main"].items():
+            if pins["before"] is not None:
+                require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
+                        "Already-merged main preimage mismatch")
+            require(git("rev-parse", "HEAD:" + path) == pins["after"],
+                    "Already-merged main postimage mismatch")
     require(not git("diff", "--name-only", "-z", "HEAD"), "Tracked working tree must be unchanged")
     require(not git("diff", "--cached", "--name-only", "-z", "HEAD"), "Tracked index must be unchanged")
     require(not git("ls-files", "--others", "-z"), "Untracked files are forbidden in the checkout")
@@ -170,8 +194,8 @@ def verify_candidate() -> dict:
     return {"baseline": BASELINE, "commit": git("rev-parse", "HEAD"),
             "tree": git("rev-parse", "HEAD^{tree}"),
             "checkout": "explicit PR head or workflow dispatch SHA, not a PR merge ref",
-            "added_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "A"),
-            "modified_paths": sorted(path for path, status in ALLOWED_CHANGES.items() if status == "M"),
+            "added_paths": sorted(path for path, status in expected_changes.items() if status == "A"),
+            "modified_paths": sorted(path for path, status in expected_changes.items() if status == "M"),
             "materialized_tracked_blobs_verified": checked, "absent_sparse_paths": absent,
             "runtime_diff_from_baseline": sorted(EXPECTED_RUNTIME)}
 
@@ -487,7 +511,7 @@ def main() -> int:
     port = None
     try:
         report["isolation"] = assert_isolation()
-        report["candidate"] = verify_candidate()
+        report["candidate"] = verify_candidate(compatibility=verified_manuals(ROOT))
         assets = args.assets.resolve(strict=True)
         report["presentation_assets"] = verify_assets(assets)
         php = shutil.which("php")

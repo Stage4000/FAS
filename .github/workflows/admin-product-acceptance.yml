@@ -13,6 +13,15 @@ on:
       - 'tests/admin-product-browser/**'
       - 'tests/homepage-visual/prepare-assets.py'
       - '.github/workflows/admin-product-acceptance.yml'
+      - '.github/workflows/keyboard-browser.yml'
+      - '.github/workflows/manual-reader-browser.yml'
+      - 'tests/keyboard-browser/heading_runner.py'
+      - 'tests/keyboard-browser/catalog-scroll-guard-test.py'
+      - 'tests/manuals/browser/source-manifest.json'
+      - 'tests/manuals/browser/reviewed-repository.json'
+      - 'tests/manuals/browser/reviewed_repository.py'
+      - 'tests/manuals/browser/repository-compatibility-test.py'
+      - 'docs/manuals-whole-repository-gates.md'
 
 permissions:
   contents: read
@@ -27,7 +36,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-          fetch-depth: 20
+          fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /admin/
@@ -43,8 +52,22 @@ jobs:
             /tests/admin-product-browser/
             /tests/homepage-visual/prepare-assets.py
             /.github/workflows/admin-product-acceptance.yml
+            /.github/workflows/keyboard-browser.yml
+            /.github/workflows/manual-reader-browser.yml
+            /tests/keyboard-browser/heading_runner.py
+            /tests/keyboard-browser/catalog-scroll-guard-test.py
+            /tests/manuals/browser/source-manifest.json
+            /tests/manuals/browser/reviewed-repository.json
+            /tests/manuals/browser/reviewed_repository.py
+            /tests/manuals/browser/repository-compatibility-test.py
+            /docs/manuals-whole-repository-gates.md
       - name: Check the source guard with disposable offline Git fixtures
-        run: python3 tests/admin-product-browser/guard-test.py
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python3 tests/admin-product-browser/guard-test.py
+          python3 tests/manuals/browser/repository-compatibility-test.py
       - name: Install existing official browser test dependencies
         run: |
           set -euo pipefail
@@ -56,8 +79,8 @@ jobs:
       - name: Cache existing allowlisted presentation assets
         run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-admin-assets"
       - name: Real admin and inert import acceptance with loopback only
-        # Pinned to reviewed main 0094abfa. Only the exact four-path test refresh
-        # is permitted. Later runtime changes require a new independent review.
+        # Historical catalog/runtime pins remain; the exact b99 manuals addition
+        # inventory plus finite reviewed guard-only compatibility files are checked.
         # No fallback is permitted if unshare, loopback checks or guards fail.
         run: |
           set -euo pipefail

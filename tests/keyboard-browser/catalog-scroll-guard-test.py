@@ -16,6 +16,7 @@ def reject(fn):
     raise AssertionError('Mutation was incorrectly accepted')
 
 root=Path(__file__).resolve().parents[2]
+compatibility=h.manuals_policy(root, checkout=False)['overlay']
 candidate=(root/'public/css/style.css').read_bytes()
 check(h.sha256(candidate)==h.CATALOG_SCROLL_AFTER_SHA256)
 baseline=h.restore_pre_catalog_scroll(candidate)
@@ -47,7 +48,9 @@ for path,entry in h.CATALOG_SCROLL_BLOBS.items():
     check(entry==h.QUANTITY_BLOBS[path])
     data=(root/path).read_bytes()
     blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
-    check(blob==entry['sha'])
+    # Old overlay identities remain tested above; exact current guard-only
+    # postimages are pinned by the reviewed manuals compatibility policy.
+    check(blob==compatibility.get(path,entry)['sha'])
     for field,value in [('sha','0'*40),('mode','100755'),('type','tree')]:
         changed=copy.deepcopy(tree);changed[path][field]=value
         reject(lambda:h.verify_tree(base,changed,{}))

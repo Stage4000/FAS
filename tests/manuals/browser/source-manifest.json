@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "18480f5b3a82db0c0642dd6208c25f70c0f0278f",
+    ".github/workflows/manual-reader-browser.yml": "8439574b22fad724d8688c79aaa966e7f88c939f",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -344,7 +344,16 @@
     "docs/manuals-outline.md": "e51ebe79315f03af880d298a9d5811e1f7fbb14e",
     "tests/manuals/reader-load-control-test.cjs": "0ca1ed4c61a38e1418c6e84b865105cebef6c397",
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
-    "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60"
+    "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
+    ".github/workflows/admin-product-acceptance.yml": "06b56441ac3bcbc75a2983f49fd774204ec154e1",
+    ".github/workflows/keyboard-browser.yml": "069f80b600725fb7838f34c1500a3c15d5927625",
+    "tests/admin-product-browser/run.py": "829ac582ef9ee5a813b1ddb1d37f379bf0518812",
+    "tests/keyboard-browser/heading_runner.py": "71ecd282993ba63a369c726d92cdbaaf6e8d0134",
+    "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
+    "tests/manuals/browser/reviewed-repository.json": "58cccc5330f02e3dc02e9529b6599d302e039f91",
+    "tests/manuals/browser/reviewed_repository.py": "5e312f71b0577b5ecd46ff3f570e123de74e7c48",
+    "tests/manuals/browser/repository-compatibility-test.py": "1ddb1c4afbfc80ef43ee8bc112e349215a8dcadf",
+    "docs/manuals-whole-repository-gates.md": "20e0cb45c265ac42ec3d42afc6ce8ed31feb8acf"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -655,6 +664,15 @@
     "docs/manuals-outline.md": "A",
     "tests/manuals/reader-load-control-test.cjs": "A",
     "docs/manuals-load-control.md": "A",
-    "tests/manuals/reader-search-focus-test.cjs": "A"
+    "tests/manuals/reader-search-focus-test.cjs": "A",
+    ".github/workflows/admin-product-acceptance.yml": "M",
+    ".github/workflows/keyboard-browser.yml": "M",
+    "tests/admin-product-browser/run.py": "M",
+    "tests/keyboard-browser/heading_runner.py": "M",
+    "tests/keyboard-browser/catalog-scroll-guard-test.py": "M",
+    "tests/manuals/browser/reviewed-repository.json": "A",
+    "tests/manuals/browser/reviewed_repository.py": "A",
+    "tests/manuals/browser/repository-compatibility-test.py": "A",
+    "docs/manuals-whole-repository-gates.md": "A"
   }
 }
