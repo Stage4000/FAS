@@ -28,7 +28,6 @@ class CommitProbePDO extends PDO {
         return $result;
     }
     public function inTransaction():bool {return $this->emulateLegacyTracking&&$this->sqlOwned ? false : parent::inTransaction();}
-    public function nativeTransactionActive():bool {return parent::inTransaction();}
     public function commit():bool {
         $this->pdoCommits++;
         if($this->emulateLegacyTracking&&$this->sqlOwned)throw new PDOException('There is no active transaction (emulated legacy PDO tracking).');
@@ -50,9 +49,29 @@ function fixture(bool $legacy=false):array {
 function storage(string $root):ManualStorage {return new ManualStorage($root.'/private',$root.'/site');}
 function files(string $root):array {$r=glob($root.'/private/*.pdf');sort($r);return $r;}
 function caught(callable $action):Throwable {try{$action();}catch(Throwable $e){return $e;}throw new RuntimeException('Expected an exception.');}
-function writerAvailable(string $root):bool {
+// PHP 8.3 SQLite does not track SQL BEGIN through PDO::inTransaction(). Do not
+// bypass the legacy emulator to use newer PDO bookkeeping as a test oracle.
+// Observe committed rows and real writer reservations on a separate connection.
+function observer(string $root):PDO {
     $other=new PDO('sqlite:'.$root.'/catalog.sqlite',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$other->exec('PRAGMA busy_timeout=0');
-    try{$other->exec('BEGIN IMMEDIATE');$other->exec('ROLLBACK');return true;}catch(PDOException $e){return false;}
+    return $other;
+}
+function catalogRows(PDO $db):array {return $db->query('SELECT * FROM manuals ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);}
+function committedCounts(string $root):array {
+    $other=observer($root);
+    return [(int)$other->query('SELECT count(*) FROM manuals')->fetchColumn(),(int)$other->query('SELECT count(*) FROM manual_history')->fetchColumn()];
+}
+function completionCalls(CommitProbePDO $db):array {return [$db->sqlCommits,$db->sqlRollbacks,$db->pdoCommits,$db->pdoRollbacks];}
+function writerAvailable(string $root):bool {
+    $other=observer($root);
+    try{$other->exec('BEGIN IMMEDIATE');}
+    catch(PDOException $e){
+        // Only SQLITE_BUSY proves contention. An unrelated probe failure must
+        // fail the test rather than impersonating a caller-owned writer lock.
+        if((int)($e->errorInfo[1]??0)!==5)throw $e;
+        return false;
+    }
+    $other->exec('ROLLBACK');return true;
 }
 function upload(string $root,PDO $db,ManualLibrary $repo,array $input,string $key):array {
     $store=storage($root);
@@ -80,7 +99,7 @@ check(files($root)===[] && (int)$db->query('SELECT count(*) FROM manuals')->fetc
 $db->exec('DROP TRIGGER synthetic_audit_failure');
 $db->failBeforeCommit=true;
 rejects(fn()=>upload($root,$db,$repo,$input,str_repeat('d',48)),'Synthetic failure immediately before commit propagates');
-check(files($root)===[] && !$db->inTransaction() && (int)$db->query('SELECT count(*) FROM manuals')->fetchColumn()===0,'Failed commit with confirmed rollback safely releases its file');
+check(files($root)===[] && writerAvailable($root) && catalogRows($db)===[] && committedCounts($root)===[0,0],'Failed commit with confirmed rollback safely releases its file');
 $db->failAfterCommit=true;
 rejects(fn()=>upload($root,$db,$repo,$input,str_repeat('e',48)),'Lost acknowledgment after a real commit propagates');
 check(count(files($root))===1 && (int)$db->query('SELECT count(*) FROM manuals')->fetchColumn()===1,'Uncertain commit is resolved by references and keeps committed original');
@@ -107,7 +126,7 @@ $store->settleNewFiles($db);check(!is_file($path),'Known unreferenced file can b
 [$root,$db,$repo,$input]=fixture();$first=upload($root,$db,$repo,$input,str_repeat('3',48));$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $db->exec("UPDATE manuals SET file_json='invalid json'");
 rejects(fn()=>$store->settleNewFiles($db),'Malformed reference data makes cleanup fail closed');
-check(count(files($root))===2 && !$db->inTransaction(),'Reference-check error retains both old and pending originals and releases the lock');
+check(count(files($root))===2 && writerAvailable($root),'Reference-check error retains both old and pending originals and releases the lock');
 $q=$db->prepare('UPDATE manuals SET file_json=?');$q->execute([json_encode($first['file'])]);$store->settleNewFiles($db);
 check(count(files($root))===1,'Cleanup resumes only after valid reference evidence is available');
 
@@ -143,10 +162,10 @@ check(ManualStorage::MAX_BYTES===52428800,'50 MiB intake ceiling unchanged');
 [$root,$db,$repo,$input]=fixture(true);$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $pdoCommits=$db->pdoCommits;$pdoRollbacks=$db->pdoRollbacks;
 $first=$repo->create($input,$file,1,str_repeat('a',48));
-check(!$db->nativeTransactionActive()&&writerAvailable($root),'Legacy tracking: successful create ends its SQL transaction and frees the writer lock');
+check(writerAvailable($root)&&committedCounts($root)===[1,1],'Legacy tracking: successful create commits row and history visibly and frees the writer lock');
 check($db->sqlCommits===1&&$db->pdoCommits===$pdoCommits,'Legacy tracking: create completes through SQL COMMIT, not PDO commit');
 $store->settleNewFiles($db);
-check(!$db->nativeTransactionActive()&&writerAvailable($root)&&count(files($root))===1,'Legacy tracking: referenced-file settlement commits and releases its lock');
+check(writerAvailable($root)&&committedCounts($root)===[1,1]&&count(files($root))===1,'Legacy tracking: referenced-file settlement commits and releases its lock');
 $store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $retry=$repo->create($input,$file,1,str_repeat('a',48));
 check($retry['id']===$first['id']&&writerAvailable($root),'Legacy tracking: duplicate branch also completes its SQL transaction');
@@ -154,7 +173,7 @@ $store->settleNewFiles($db);
 check(count(files($root))===1&&writerAvailable($root),'Legacy tracking: unused duplicate settlement removes only its own file and frees its lock');
 $store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $error=caught(fn()=>$repo->create(array_replace($input,['title'=>'Conflict']),$file,1,str_repeat('a',48)));
-check($error instanceof DomainException&&writerAvailable($root)&&!$db->nativeTransactionActive(),'Legacy tracking: conflicting create rolls back through SQL and releases its lock');
+check($error instanceof DomainException&&writerAvailable($root)&&committedCounts($root)===[1,1],'Legacy tracking: conflicting create rolls back through SQL and releases its lock');
 $store->settleNewFiles($db);
 check($db->pdoRollbacks===$pdoRollbacks&&count(files($root))===1,'Legacy tracking: owned error cleanup never relies on PDO rollback');
 
@@ -162,40 +181,52 @@ check($db->pdoRollbacks===$pdoRollbacks&&count(files($root))===1,'Legacy trackin
 $db->exec("CREATE TRIGGER synthetic_auto_rollback BEFORE INSERT ON manual_history BEGIN SELECT RAISE(ROLLBACK,'Synthetic automatic rollback'); END");
 $error=caught(fn()=>$repo->create($input,$file,1,str_repeat('b',48)));
 check(strpos($error->getMessage(),'Synthetic automatic rollback')!==false,'Automatic SQLite rollback preserves the original operation error');
-check(!$db->nativeTransactionActive()&&writerAvailable($root),'Automatic rollback does not leave a writer locked out');
+check(writerAvailable($root)&&catalogRows($db)===[]&&committedCounts($root)===[0,0],'Automatic rollback leaves no pending row, committed row or writer lock');
 $store->settleNewFiles($db);check(files($root)===[],'Settlement after automatic rollback removes the known unused copy');
 
 foreach(['pdo','sql'] as $callerMode){
     [$root,$db,$repo,$input]=fixture(true);$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
+    $path=$root.'/private/'.$file['key'];$before=file_get_contents($path);
     if($callerMode==='pdo')$db->beginTransaction();else $db->exec('BEGIN IMMEDIATE');
     $db->exec("INSERT INTO manuals(revision,request_key,draft_json,file_json,created_at,updated_at) VALUES(1,'caller-owned','{}','{}','test','test')");
-    $rollbacks=$db->sqlRollbacks;
+    $callerRows=catalogRows($db);$completions=completionCalls($db);
+    check(count($callerRows)===1&&committedCounts($root)===[0,0]&&!writerAvailable($root),
+        'Caller '.$callerMode.' transaction starts with private pending rows and a real writer reservation');
     caught(fn()=>$repo->create($input,$file,1,str_repeat('c',48)));
-    check($db->nativeTransactionActive()&&$db->sqlRollbacks===$rollbacks&&(int)$db->query('SELECT count(*) FROM manuals')->fetchColumn()===1,
+    check(completionCalls($db)===$completions&&catalogRows($db)===$callerRows&&committedCounts($root)===[0,0]&&!writerAvailable($root),
         'Caller '.$callerMode.' transaction survives failed nested create without rollback');
     caught(fn()=>$store->settleNewFiles($db));
-    check($db->nativeTransactionActive()&&$db->sqlRollbacks===$rollbacks&&count(files($root))===1&&!writerAvailable($root),
+    check(completionCalls($db)===$completions&&catalogRows($db)===$callerRows&&committedCounts($root)===[0,0]
+        &&files($root)===[$path]&&file_get_contents($path)===$before&&!writerAvailable($root),
         'Caller '.$callerMode.' transaction and fresh bytes survive refused settlement');
     if($callerMode==='pdo')$db->rollBack();else $db->exec('ROLLBACK');
+    $completions[$callerMode==='pdo'?3:1]++;
+    check(completionCalls($db)===$completions&&catalogRows($db)===[]&&committedCounts($root)===[0,0]
+        &&writerAvailable($root)&&file_get_contents($path)===$before,
+        'Caller '.$callerMode.' owner rollback alone removes the pending row and releases its writer reservation');
     $store->settleNewFiles($db);
-    check(writerAvailable($root)&&files($root)===[],'Caller '.$callerMode.' transaction is resolved only by its owner before settlement resumes');
+    check(writerAvailable($root)&&files($root)===[]&&committedCounts($root)===[0,0],'Caller '.$callerMode.' transaction is resolved only by its owner before settlement resumes');
 }
 
 foreach(['create','settlement'] as $operation){
     [$root,$db,$repo,$input]=fixture(true);$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
     $other=new PDO('sqlite:'.$root.'/catalog.sqlite',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$other->exec('BEGIN IMMEDIATE');
-    $db->exec('PRAGMA busy_timeout=0');$rollbacks=$db->sqlRollbacks;
+    $db->exec('PRAGMA busy_timeout=0');$completions=completionCalls($db);
     $error=caught($operation==='create'?fn()=>$repo->create($input,$file,1,str_repeat('d',48)):fn()=>$store->settleNewFiles($db));
-    check(stripos($error->getMessage(),'locked')!==false&&$db->sqlRollbacks===$rollbacks&&!$db->nativeTransactionActive()&&count(files($root))===1,
+    check(stripos($error->getMessage(),'locked')!==false&&completionCalls($db)===$completions&&committedCounts($root)===[0,0]
+        &&count(files($root))===1&&hash_file('sha256',files($root)[0])===$file['sha256']&&!writerAvailable($root),
         'Failed BEGIN for '.$operation.' claims no ownership and preserves the pending file');
-    $other->exec('ROLLBACK');$store->settleNewFiles($db);
+    $other->exec('ROLLBACK');
+    check(writerAvailable($root)&&catalogRows($db)===[],
+        'Failed BEGIN for '.$operation.' leaves no extra writer lock or pending row after the competing owner rolls back');
+    $store->settleNewFiles($db);
     check(writerAvailable($root)&&files($root)===[],'Settlement recovers after the '.$operation.' BEGIN lock is released');
 }
 
 [$root,$db,$repo,$input]=fixture(true);$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $db->failBeforeCommit=true;
 $error=caught(fn()=>$repo->create($input,$file,1,str_repeat('e',48)));
-check($error->getMessage()==='Synthetic failure before SQL COMMIT.'&&!$db->nativeTransactionActive()&&writerAvailable($root),'Legacy tracking: pre-COMMIT failure rolls back and releases the lock');
+check($error->getMessage()==='Synthetic failure before SQL COMMIT.'&&writerAvailable($root)&&catalogRows($db)===[]&&committedCounts($root)===[0,0],'Legacy tracking: pre-COMMIT failure rolls back and releases the lock');
 $store->settleNewFiles($db);check(files($root)===[],'Legacy tracking: confirmed failed COMMIT has no referenced original to retain');
 $store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);$db->failAfterCommit=true;
 $error=caught(fn()=>$repo->create($input,$file,1,str_repeat('f',48)));
@@ -211,7 +242,7 @@ foreach(['before','after'] as $when){
     $repo->create($input,$file,1,str_repeat('1',48));
     if($when==='before')$db->failBeforeCommit=true;else $db->failAfterCommit=true;
     $error=caught(fn()=>$store->settleNewFiles($db));
-    check(strpos($error->getMessage(),'SQL COMMIT')!==false&&writerAvailable($root)&&!$db->nativeTransactionActive(),
+    check(strpos($error->getMessage(),'SQL COMMIT')!==false&&writerAvailable($root)&&committedCounts($root)===[1,1],
         'Settlement '.$when.'-COMMIT failure is reported without retaining its writer lock');
     check(count(files($root))===1&&hash_file('sha256',files($root)[0])===$file['sha256'],
         'Settlement '.$when.'-COMMIT failure preserves the referenced original bytes');
@@ -219,12 +250,21 @@ foreach(['before','after'] as $when){
 
 [$root,$db,$repo,$input]=fixture(true);$store=storage($root);$file=$store->importLocal($root.'/input.pdf',true);
 $db->exec("CREATE TRIGGER synthetic_abort BEFORE INSERT ON manual_history BEGIN SELECT RAISE(ABORT,'Synthetic original create error'); END");
-$db->failRollback=true;
+$db->failRollback=true;$rollbacks=$db->sqlRollbacks;$path=$root.'/private/'.$file['key'];$before=file_get_contents($path);
 $error=caught(fn()=>$repo->create($input,$file,1,str_repeat('2',48)));
-check(strpos($error->getMessage(),'Synthetic original create error')!==false&&$db->nativeTransactionActive(),'Unavailable rollback preserves the original create error and exposes an unresolved SQL transaction');
-$rollbacks=$db->sqlRollbacks;caught(fn()=>$store->settleNewFiles($db));
-check(count(files($root))===1&&$db->sqlRollbacks===$rollbacks&&$db->nativeTransactionActive(),'Unresolved rollback makes settlement preserve files without taking over that transaction');
-$db->exec('ROLLBACK');$store->settleNewFiles($db);
+$pendingRows=catalogRows($db);
+check(strpos($error->getMessage(),'Synthetic original create error')!==false&&$db->sqlRollbacks===$rollbacks+1
+    &&count($pendingRows)===1&&committedCounts($root)===[0,0]&&!writerAvailable($root),
+    'Unavailable rollback preserves the original create error and exposes an unresolved SQL transaction');
+$completions=completionCalls($db);caught(fn()=>$store->settleNewFiles($db));
+check(files($root)===[$path]&&file_get_contents($path)===$before&&completionCalls($db)===$completions
+    &&catalogRows($db)===$pendingRows&&committedCounts($root)===[0,0]&&!writerAvailable($root),
+    'Unresolved rollback makes settlement preserve files without taking over that transaction');
+$db->exec('ROLLBACK');$completions[1]++;
+check(completionCalls($db)===$completions&&catalogRows($db)===[]&&committedCounts($root)===[0,0]
+    &&writerAvailable($root)&&file_get_contents($path)===$before,
+    'Explicit SQL rollback removes the unresolved row and releases its reservation without changing pending bytes');
+$store->settleNewFiles($db);
 check(files($root)===[]&&writerAvailable($root),'After explicit transaction recovery, settlement can safely resume');
 
 // A failed descriptor check must never overwrite SQL transaction ownership.
@@ -242,10 +282,10 @@ foreach(['closed','invalid'] as $descriptorState){
         ucfirst($descriptorState).' descriptor preserves the original identity-check error');
     check(is_file($path)&&file_get_contents($path)===$before,
         ucfirst($descriptorState).' descriptor leaves its original bytes intact');
-    check($db->sqlRollbacks===$rollbacks+1&&!$db->nativeTransactionActive()&&writerAvailable($root),
+    check($db->sqlRollbacks===$rollbacks+1&&writerAvailable($root)&&committedCounts($root)===[0,0],
         ucfirst($descriptorState).' descriptor rolls back its owned SQL transaction and releases the writer lock');
     $retryError=caught(fn()=>$store->settleNewFiles($db));
-    check($retryError->getMessage()===$error->getMessage()&&!$db->nativeTransactionActive()&&writerAvailable($root)&&file_get_contents($path)===$before,
+    check($retryError->getMessage()===$error->getMessage()&&writerAvailable($root)&&committedCounts($root)===[0,0]&&file_get_contents($path)===$before,
         ucfirst($descriptorState).' descriptor repeated failure preserves bytes and never leaks a writer lock');
 }
 

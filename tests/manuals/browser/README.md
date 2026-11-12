@@ -225,7 +225,7 @@ old search. Its regression failed before the change and passed afterward.
 The `upload-storage` stage runs `tests/manuals/run-upload-storage-tests.py`
 inside the same fresh loopback-only kernel namespace, with the exact pinned
 `/usr/bin/php8.3` runtime. It must pass before the strict filesystem suite and
-reader fixture/browser. It includes 81 storage checks in each native and
+reader fixture/browser. It includes 88 storage checks in each native and
 emulated-legacy PDO mode, 16 concurrent-process checks in each mode, and 15
 actual synthetic multipart checks, plus the existing backend/range/HTTP suites.
 The native mode on the hosted runtime is mandatory; emulation does not replace
@@ -237,3 +237,14 @@ the job scratch tree until verified process cleanup.
 This protects idempotent uploads from leaving redundant successful-retry
 copies, without globally deduplicating, sweeping old files, changing the
 upload limit, publishing a manual, or altering the public release flag.
+
+The fifth hosted run on `4730cd0abec510d1148cb5ccdb21085bc3b19315`
+passed the 271 range/backend/HTTP checks, then stopped after 54 storage assertions.
+A caller-transaction test used PDO bookkeeping as its oracle even for SQL BEGIN.
+PHP 8.3.6 does not report SQL-started SQLite transactions through inTransaction().
+The old test reproduces that failure under faithful legacy emulation. The
+corrected checks use a separate connection's committed-row visibility, a known
+SQLITE_BUSY writer conflict, unchanged pending data and files, completion-call
+counters, and explicit caller rollback/recovery. Unrelated database errors are
+not classified as a lock. Runtime transaction code remains unchanged. The full
+upload stage now contains 494 assertions; actual hosted acceptance is pending.

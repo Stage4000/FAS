@@ -136,7 +136,7 @@ server. It terminates the server and leaves evidence in the printed directory.
 
 Coverage:
 
-- 81 storage checks, each run in native and emulated legacy-tracking modes:
+- 88 storage checks, each run in native and emulated legacy-tracking modes:
   exact/conflicting retries, audit/SQL-commit failures, lost commit
   acknowledgment, revoked authorization, shared references, unresolved
   transactions, bad references, descriptor/path substitutions, old-file
@@ -158,8 +158,26 @@ These checks execute on local **PHP 8.4.24**. The legacy-tracking PDO subclasses
 emulate the identified older-driver behavior; they are **not an actual PHP 8.3
 storage pass**. The available local PHP 8.3.36 build has no PDO/SQLite extensions.
 Review and the exact hosted **PHP 8.3.6** integration run remain required before
-acceptance/publication.
+production acceptance or release. Draft-source publication is only for the
+explicitly authorized isolated tests.
 
 Only synthetic newly created files were removed in testing. No actual manual,
-production database, source publication, deployment or browser acceptance is
-part of this result.
+production database, deployment or browser acceptance is part of these local
+results.
+
+
+### Transaction-oracle correction after hosted testing
+
+The first actual PHP 8.3.6 storage run reached 54 assertions before an incorrect
+positive `PDO::inTransaction()` assumption in the test failed. The driver does
+not expose SQL-started SQLite transactions through that bookkeeping method.
+The original helper bypassed the legacy emulation, and reproducing that older
+behavior gives the same failure. Application runtime bytes were not changed.
+
+The revised test proves transaction ownership through independent committed-row
+visibility, a competing writer receiving SQLite native error 5 (SQLITE_BUSY),
+unchanged local pending data and original bytes, and no unrequested completion
+call. It then requires explicit owner rollback before cleanup resumes. Lost or
+unavailable rollback cases use the same physical evidence. Other PDO errors
+propagate instead of masquerading as lock contention. The complete hosted
+storage stage must still pass; local emulation is not a substitute.
