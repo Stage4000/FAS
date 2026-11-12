@@ -116,6 +116,9 @@ with (OUT / 'server.log').open('w') as log:
             result = subprocess.run([sys.executable, 'tests/manuals/'+name, str(OUT), base], cwd=ROOT, env=ENV,
                                     text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             (OUT / (name+'.results.txt')).write_text(result.stdout)
+            # Relay only into the outer stage pipe. The hosted runner captures
+            # and sanitizes it; raw child output is never an uploaded artifact.
+            print(result.stdout, end='', flush=True)
             check(result.returncode == 0, name+' passes with display_errors on and unchanged strict open_basedir')
             if name == 'http-test.py':
                 check(not errors.exists() or errors.read_text() == '', 'All 51 baseline HTTP checks leave a completely clean PHP error log')

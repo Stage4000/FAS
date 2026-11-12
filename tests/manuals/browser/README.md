@@ -86,6 +86,20 @@ requires exact single-slice 206 or combined 416 behavior, and fails missing or
 unexpected forms. It preserves the unconditional comma-separated 416 cases.
 See `docs/manuals-range-delivery.md` for the separate upstream deployment gate.
 
+The third hosted run at `af4cbd57585828b110cbc890c763f1c980997d6d`
+proves that PHP 8.3.6 retains the first physical Range field in both orders.
+Both responses were exactly the authorized two-byte 206 slices with every safety
+header verified. All 271 range/backend/HTTP checks passed. The next stage passed
+43 strict constructor/log checks, then its first nested `http-test.py` failed.
+That child output was not previously relayed, so the precise HTTP failure remains
+unknown. The strict suite now relays its captured child stream into the already
+captured outer stage pipe before the unchanged assertion. The top-level sanitizer
+retains only bounded known source frames, counts and fixed categories/receipts.
+A synthetic nested-assertion regression executes the actual collector block and
+proves the inner HTTP frame survives while HTML, credentials, cookies and database
+payloads do not reach the report. Restrictions, logging and pass criteria remain
+unchanged. A hosted rerun must identify the HTTP failure before any runtime fix.
+
 Every stage now retains bounded structured diagnostics on success, nonzero exit
 and timeout: exit code, byte counts, truncation status, fixed error categories,
 known repository-relative traceback locations and sanitized dependency receipts.
@@ -157,7 +171,7 @@ be erased from the browser. No manual release or production rollout is implied.
 ## Local v2 verification checkpoint
 
 The source-only integration has passed 15 source-guard regressions, 17 process
-lifecycle checks, 20 exact-denial policy checks, 28 sanitized-stage/dependency checks, 32 normalization-oracle checks,
+lifecycle checks, 20 exact-denial policy checks, 33 sanitized-stage/dependency checks, 32 normalization-oracle checks,
 73 range/descriptor checks,
 44 backend checks, 51 original HTTP checks, 103 range HTTP checks, 52 strict
 open_basedir checks (which also rerun the HTTP suites), and 43 strict reader

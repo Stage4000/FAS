@@ -17,7 +17,7 @@ def check(value,label):
     global checks
     assert value,label;checks+=1;print('PASS '+label)
 
-known=['tests/manuals/prepare-fixture.py','tests/manuals/range-http-test.py','src/manuals/ManualByteRange.php']
+known=['tests/manuals/http-test.py','tests/manuals/open-basedir-test.py','tests/manuals/prepare-fixture.py','tests/manuals/range-http-test.py','src/manuals/ManualByteRange.php']
 secret='SYNTHETIC-DO-NOT-RETAIN-SECRET'
 raw='''Traceback (most recent call last):
   File "/private/account/tests/manuals/prepare-fixture.py", line 4, in <module>
@@ -89,4 +89,30 @@ with tempfile.TemporaryDirectory(prefix='fas-stage-diagnostic-') as temp:
     item=report['stages'][0]
     check(item['status']=='timed_out' and item['diagnostics']['timed_out'],'Actual timeout retains partial diagnostics')
     check(item['process_cleanup']['all_reaped'] and 'reportlab_module_missing' in item['diagnostics']['events'],'Timeout process is reaped before sanitized evidence retained')
+# Execute the actual nested collector from open-basedir-test.py, not a copied
+# imitation. Only its first synthetic HTTP child runs; no PHP/server/browser.
+with tempfile.TemporaryDirectory(prefix='fas-nested-diagnostic-') as temp:
+    root=Path(temp);child=root/'tests/manuals/http-test.py';child.parent.mkdir(parents=True)
+    payload='<html><input name="csrf_token" value="'+secret+'"></html> Set-Cookie: PHPSESSID='+secret+' Authorization: Bearer '+secret+' password="'+secret+'" database=/private/'+secret+'.sqlite'
+    child.write_text('print("PASS synthetic nested HTTP")\nraise AssertionError('+repr(payload)+')\n')
+    source=Path(__file__).resolve().parents[1]/'open-basedir-test.py'
+    outer="""import ast,os,subprocess,sys
+from pathlib import Path
+ROOT=Path.cwd();OUT=ROOT/'private-results';OUT.mkdir();ENV=dict(os.environ);base='http://127.0.0.1:1'
+def check(condition,label):
+    assert condition,label
+source=Path(SOURCE_PATH)
+tree=ast.parse(source.read_text())
+loops=[n for n in ast.walk(tree) if isinstance(n,ast.For) and isinstance(n.target,ast.Name) and n.target.id=='name' and isinstance(n.iter,ast.List) and [x.value for x in n.iter.elts]==['http-test.py','range-http-test.py']]
+assert len(loops)==1
+exec(compile(ast.Module(body=loops,type_ignores=[]),str(source),'exec'))
+""".replace('SOURCE_PATH',repr(str(source)))
+    report={'stages':[]};jobs=[]
+    try:execute_stage('synthetic-nested-http',[sys.executable,'-c',outer],{'PATH':os.environ['PATH']},5,root,report,jobs,known);raise AssertionError('Expected nested failure')
+    except RuntimeError as error:check(str(error)=='Isolated stage failed: synthetic-nested-http','Nested HTTP failure remains a failed stage with a fixed label')
+    item=report['stages'][0];diagnostics=item['diagnostics'];encoded=json.dumps(report)
+    check({'source':'tests/manuals/http-test.py','line':2} in diagnostics['source_frames'],'Actual inner HTTP assertion frame survives the nested collector and sanitizer')
+    check(any(frame['source']=='tests/manuals/open-basedir-test.py' for frame in diagnostics['source_frames']) and diagnostics['pass_lines_in_retained_tail']==1,'Outer assertion and nested progress remain attributable')
+    check(secret not in encoded and all(value not in encoded for value in ['<html>','csrf_token','Set-Cookie','PHPSESSID','Authorization','password=','database=','/private/']),'Nested assertion HTML, cookie, token, password and database payloads never enter report')
+    check(item['status']=='failed' and diagnostics['exit_code']==1 and item['process_cleanup']['all_reaped'] and len(encoded.encode())<8192,'Nested subprocess failure is reaped and bounded without being softened')
 print(f'{checks} sanitized-stage/dependency checks passed. No browser launched.')

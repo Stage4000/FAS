@@ -56,11 +56,13 @@ with the exact unsatisfied range/length and the same safety headers. A fixed-enu
 receipt records the PHP version, normalization kind, observed status/length and
 verification booleans without arbitrary headers, bodies or cookies.
 
-The hosted PHP 8.3.6 run failed the earlier unconditional duplicate-field 416
-assertion, but did not retain its actual response. Its precise normalization is
-therefore still unobserved. Disposable local probes of the available PHP 8.3.36
-and 8.4.24 CLI servers both combine the two fields, preserving their order. These
-later versions do not prove what PHP 8.3.6 or a production proxy will do.
+The third hosted run at `af4cbd57585828b110cbc890c763f1c980997d6d`
+observed PHP 8.3.6 retaining the first physical Range field in both orders. Each
+response was the exact authorized two-byte 206 slice with all safety headers
+verified; the complete 271-check range/backend/HTTP stage passed. Disposable
+local probes of PHP 8.3.36 and 8.4.24 instead combine the fields in order. These
+observed built-in-server behaviors do not establish how the production reverse
+proxy/web server/SAPI chain handles duplicates; that deployment gate remains.
 
 **Deployment gate:** verify the actual reverse proxy/web server/SAPI chain's
 handling of duplicate physical fields before enabling ranges. If rejecting every
