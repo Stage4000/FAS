@@ -110,8 +110,8 @@ rejects(fn() => $repo->listPublished(), 'altered fetch mode rejected',LogicExcep
 $db->setAttribute(PDO::ATTR_STRINGIFY_FETCHES,false);
 
 foreach (["\0", "\x01", "\x7f", "\xc0\xaf"] as $bad) { rejects(fn() => BlogContent::validate(['title'=>$bad]), 'invalid text encoding/control rejected',InvalidArgumentException::class); }
-check(BlogContent::validate(['title'=>str_repeat('??',160)])['title'] === str_repeat('??',160), 'length limit counts unicode characters');
-rejects(fn() => BlogContent::validate(['title'=>str_repeat('??',161)]),'unicode length over limit rejected',InvalidArgumentException::class);
+check(BlogContent::validate(['title'=>str_repeat('🎨',160)])['title'] === str_repeat('🎨',160), 'length limit counts unicode characters');
+rejects(fn() => BlogContent::validate(['title'=>str_repeat('🎨',161)]),'unicode length over limit rejected',InvalidArgumentException::class);
 rejects(fn() => BlogContent::validate(['body'=>str_repeat('a',60001)]),'body limit enforced',InvalidArgumentException::class);
 foreach (['/gallery/../x.jpg','/gallery/x.svg','https://example.com/x.jpg','/gallery//x.jpg','/gallery/x.jpg?x=1'] as $bad) { rejects(fn() => BlogContent::validate(['cover_image'=>$bad]), 'unsafe cover path rejected',InvalidArgumentException::class); }
 check(BlogContent::validate(['cover_image'=>'/gallery/sub/photo-01.WEBP'])['cover_image'] === '/gallery/sub/photo-01.WEBP','valid gallery path retained');

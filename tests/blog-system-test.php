@@ -20,8 +20,8 @@ blogCheck(BlogContent::validate([])===BlogContent::empty(), 'Incomplete draft al
 foreach (['title','slug','excerpt','body','author_name'] as $field) { blogReject(static function() use($field):void { BlogContent::validate(blogInput([$field=>'']),true); },InvalidArgumentException::class,'Required publish field '.$field); }
 foreach (['Bad-Slug','trailing-','-leading','two--hyphens','../escape','feed','hello world',str_repeat('a',121)] as $slug) { blogReject(static function() use($slug):void { BlogContent::validate(blogInput(['slug'=>$slug])); },InvalidArgumentException::class,'Invalid slug'); }
 foreach (['title'=>160,'excerpt'=>320,'body'=>60000,'author_name'=>80,'seo_title'=>110,'seo_description'=>160,'cover_alt'=>160] as $field=>$limit) {
-    blogCheck(BlogContent::validate([$field=>str_repeat('�',$limit)])[$field]===str_repeat('�',$limit),'Unicode exact limit '.$field);
-    blogReject(static function() use($field,$limit):void { BlogContent::validate([$field=>str_repeat('�',$limit+1)]); },InvalidArgumentException::class,'Unicode over limit');
+    blogCheck(BlogContent::validate([$field=>str_repeat('é',$limit)])[$field]===str_repeat('é',$limit),'Unicode exact limit '.$field);
+    blogReject(static function() use($field,$limit):void { BlogContent::validate([$field=>str_repeat('é',$limit+1)]); },InvalidArgumentException::class,'Unicode over limit');
     blogReject(static function() use($field):void { BlogContent::validate([$field=>[]]); },InvalidArgumentException::class,'Array field rejected');
 }
 foreach (["\xff", "bad\0text", "bad\x1ftext"] as $bad) { blogReject(static function() use($bad):void { BlogContent::validate(['body'=>$bad]); },InvalidArgumentException::class,'Invalid/control text'); }

@@ -51,8 +51,8 @@ foreach([
  ['text'=>'x','style'=>'color:red'],['text'=>'x','href'=>'javascript:alert(1)'],['text'=>'x','href'=>'data:text/html,hi'],['text'=>'x','href'=>'//evil.invalid'],['text'=>'x','href'=>'/\\evil.invalid'],
  ['text'=>'x','href'=>'https://user:pass@example.invalid'],['text'=>'x','href'=>str_repeat('a',2001)],
 ]as$run){richReject(static function()use($run):void{BlogRichDocument::validate(richDoc([richP([$run])]));},'Invalid run rejected');}
-richCheck(BlogRichDocument::validate(richDoc([richP([['text'=>str_repeat('�',60000)]])]))['blocks'][0]['children'][0]['text']===str_repeat('�',60000),'Visible Unicode text limit inclusive');
-richCheck(BlogRichDocument::fromMarkdown(str_repeat('??',60000))['blocks'][0]['children'][0]['text']===str_repeat('??',60000),'Four-byte legacy text retains complete content');
+richCheck(BlogRichDocument::validate(richDoc([richP([['text'=>str_repeat('é',60000)]])]))['blocks'][0]['children'][0]['text']===str_repeat('é',60000),'Visible Unicode text limit inclusive');
+richCheck(BlogRichDocument::fromMarkdown(str_repeat('😀',60000))['blocks'][0]['children'][0]['text']===str_repeat('😀',60000),'Four-byte legacy text retains complete content');
 $longList=BlogRichDocument::fromMarkdown(implode("\n",array_fill(0,101,'- item')));richCheck(count($longList['blocks'])===2&&count($longList['blocks'][0]['items'])===100&&count($longList['blocks'][1]['items'])===1,'Long legacy bullet list splits without losing items');
 richReject(static function():void{BlogRichDocument::validate(richDoc([richP([['text'=>str_repeat('x',30001)],['text'=>str_repeat('x',30000)]])]));},'Aggregate text limit');
 richReject(static function():void{BlogRichDocument::validate(richDoc(array_fill(0,501,richP([]))));},'Block limit');
@@ -72,6 +72,6 @@ $changed=$input;$changed['body']=richJson(richDoc([richP([['text'=>'A PRIVATE dr
 richCheck($repo->findPublished('rich-fixture')===$public,'Rich draft edit never changes snapshot');
 $repo->save($post['id'],3,'withdraw',[],7);richCheck($repo->findPublished('rich-fixture')===null,'Rich withdrawal hides article');
 // Random literal formatting punctuation cannot acquire executable structure.
-mt_srand(1203);$alphabet=['<','>','&','"',"'",'[',']','(',')','#','-','*','_','\\','�','x'];
+mt_srand(1203);$alphabet=['<','>','&','"',"'",'[',']','(',')','#','-','*','_','\\','é','x'];
 for($i=0;$i<100;$i++){$text='';for($j=0;$j<40;$j++)$text.=$alphabet[mt_rand(0,count($alphabet)-1)];$rendered=BlogRichDocument::render(richDoc([richP([['text'=>$text]])]));richCheck($rendered==='<p>'.htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')."</p>\n",'Literal fuzz stays escaped');}
 echo "Blog rich document: {$checks} assertions passed.\n";

@@ -88,8 +88,8 @@ rbReject(fn()=>BlogRichDocument::validate(rbDocument([['type'=>'paragraph','chil
 rbReject(fn()=>BlogRichDocument::validate(rbDocument([['type'=>'paragraph','children'=>array_fill(0,1001,['text'=>'x'])],['type'=>'paragraph','children'=>array_fill(0,1000,['text'=>'x'])]])),'run bound spans blocks');
 rbCheck(count(BlogRichDocument::validate(rbDocument([['type'=>'bullet_list','items'=>array_fill(0,100,[['text'=>'x']])]]))['blocks'][0]['items'])===100,'exact list item boundary');
 rbReject(fn()=>BlogRichDocument::validate(rbDocument([['type'=>'ordered_list','items'=>array_fill(0,101,[['text'=>'x']])]])),'excessive list items rejected');
-rbCheck(preg_match_all('/./us',BlogRichDocument::validate(rbDocument([rbParagraph(str_repeat('�',60000))]))['blocks'][0]['children'][0]['text'])===60000,'Unicode length counts characters');
-rbCheck(BlogRichDocument::validate(rbDocument([rbParagraph(str_repeat('??',60000))]))['blocks'][0]['children'][0]['text']===str_repeat('??',60000),'exact four-byte Unicode text boundary fits rich envelope');
+rbCheck(preg_match_all('/./us',BlogRichDocument::validate(rbDocument([rbParagraph(str_repeat('é',60000))]))['blocks'][0]['children'][0]['text'])===60000,'Unicode length counts characters');
+rbCheck(BlogRichDocument::validate(rbDocument([rbParagraph(str_repeat('🎨',60000))]))['blocks'][0]['children'][0]['text']===str_repeat('🎨',60000),'exact four-byte Unicode text boundary fits rich envelope');
 $oversizeRuns=array_fill(0,201,['text'=>'x','href'=>'https://example.com/'.str_repeat('a',1980)]);
 rbReject(fn()=>BlogRichDocument::validate(rbDocument([['type'=>'paragraph','children'=>$oversizeRuns]])),'serialized rich size enforced including repeated link metadata');
 
@@ -139,7 +139,7 @@ foreach([
     "## Heading\n\nText [link](https://example.com/?a=1&b=2) and [bad](javascript:alert)",
     "- First\n- Second\n\n### End\nMore\nlines",
     "### H\n- [one](/one)\n- literal [broken](https://example.com/a(b))\ntext",
-    "Unicode caf� ?? [label �](/gallery/a.jpg)",
+    "Unicode café 🎨 [label é](/gallery/a.jpg)",
 ] as $markdown){
     $converted=BlogRichDocument::fromMarkdown($markdown);
     $legacy=BlogContent::render($markdown);$rich=BlogRichDocument::render($converted);
@@ -147,7 +147,7 @@ foreach([
 }
 $longList=BlogRichDocument::fromMarkdown(implode("\n",array_fill(0,101,'- Keep every item')));
 rbCheck(substr_count(BlogRichDocument::render($longList),'<li>Keep every item</li>')===101,'legacy long list conversion preserves every item across bounded blocks');
-rbCheck(BlogRichDocument::fromMarkdown(str_repeat('??',60000))['blocks'][0]['children'][0]['text']===str_repeat('??',60000),'maximum Unicode legacy paragraph converts without loss');
+rbCheck(BlogRichDocument::fromMarkdown(str_repeat('🎨',60000))['blocks'][0]['children'][0]['text']===str_repeat('🎨',60000),'maximum Unicode legacy paragraph converts without loss');
 rbReject(fn()=>BlogRichDocument::fromMarkdown(implode("\n\n",array_fill(0,501,'Paragraph'))),'legacy over-limit block conversion fails explicitly rather than truncating');
 
 // Storage projection and snapshot safety with mixed legacy/rich posts.
