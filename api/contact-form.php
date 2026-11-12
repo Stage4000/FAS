@@ -90,8 +90,14 @@ if (!empty($config['turnstile']['enabled']) && !empty($config['turnstile']['secr
     }
     
     $verifyResult = json_decode($verifyResponse, true);
-    
-    if (!$verifyResult['success']) {
+    if (!is_array($verifyResult) || !array_key_exists('success', $verifyResult)
+        || !is_bool($verifyResult['success'])) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Unable to verify security token']);
+        exit;
+    }
+
+    if ($verifyResult['success'] === false) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Security verification failed. Please try again.']);
         exit;
