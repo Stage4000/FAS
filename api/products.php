@@ -95,7 +95,7 @@ ob_start();
 <div class="row mb-4">
     <div class="col-md-6">
         <h1 class="fw-bold">
-<?php if ($search): ?>
+<?php if ($search !== null && $search !== ''): ?>
 Search Results for "<?php echo htmlspecialchars($search); ?>"
 <?php elseif ($manufacturer || $fitmentModel): ?>
 <?php echo htmlspecialchars(trim(($manufacturer ?? '') . ' ' . ($fitmentModel ?? ''))); ?> Parts
@@ -139,7 +139,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
             <label for="product-search" class="visually-hidden">Search products</label>
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
-                <?php if ($search): ?>
+                <?php if ($search !== null && $search !== ''): ?>
                     <?php
                         $clearUrl = '/products';
                         $clearParams = [];

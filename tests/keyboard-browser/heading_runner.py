@@ -74,7 +74,7 @@ REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
 
 # Exact reviewed catalog overlay; absent sparse paths retain committed-tree pins.
-CATALOG_REVIEW_BLOBS = {'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'products.php': {'mode': '100644', 'type': 'blob', 'sha': '61f69dce352988f4d4b861e829b98bebbd4aa7e4'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '6918b8c402957a54b2c79b7e094031e78733a1d3'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '3f15191e0654cbc80005f710a0beeeee14de17cd'}, 'tests/catalog-loader-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '44244918933b5bd8220c5c202403b2a8742f8a50'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}, 'tests/catalog-focus-restoration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'ea5b7eaf6e5ff513ccf8b82827bdfacc45a5de0f'}, 'tests/catalog-heading-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '27a6b30a7310849c9ce4f27e3833c398e370b2bf'}, 'tests/saved-search-rendering-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'afb8575f7ed86101a96f510526863c210622941d'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'e57d1b3aad20283525d7bb159bc9a9d55563b659'}, 'tests/product-gallery-selection-test.php': {'mode': '100644', 'type': 'blob', 'sha': '6fb8ea818e9cb3ce6e3653d303c9e0874d8068a2'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'ba6a66467fb54ab388a7b517308838e900cd50b6'}, 'tests/product-gallery-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2a27ceb5ed77bb36b8b88d4594836a5e914fbf4d'}}
+CATALOG_REVIEW_BLOBS = {'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'products.php': {'mode': '100644', 'type': 'blob', 'sha': '35571501a7a828d3f53cc9f30ccc7d79632d08a4'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '261ac04ab55a2bfda0d88ada196c793f789849f5'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '8b92e02b00d8fabb6d96bc86b6ee69d2338f1b52'}, 'tests/catalog-loader-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '44244918933b5bd8220c5c202403b2a8742f8a50'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}, 'tests/catalog-focus-restoration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'ea5b7eaf6e5ff513ccf8b82827bdfacc45a5de0f'}, 'tests/catalog-heading-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '31f2a60d5d4646c54521d0776f7f960be019983c'}, 'tests/saved-search-rendering-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'afb8575f7ed86101a96f510526863c210622941d'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'e57d1b3aad20283525d7bb159bc9a9d55563b659'}, 'tests/product-gallery-selection-test.php': {'mode': '100644', 'type': 'blob', 'sha': '6fb8ea818e9cb3ce6e3653d303c9e0874d8068a2'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'ba6a66467fb54ab388a7b517308838e900cd50b6'}, 'tests/product-gallery-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2a27ceb5ed77bb36b8b88d4594836a5e914fbf4d'}, 'api/products.php': {'mode': '100644', 'type': 'blob', 'sha': '357aaf382cd2b201e2b0169d20a6f071da21251e'}, 'tests/catalog-zero-search-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'c56d9d6668d3b9684c61c940b7317e94fb3fcb90'}}
 CATALOG_SCROLL_BLOBS.update({path: entry for path, entry in CATALOG_REVIEW_BLOBS.items() if path not in ('docs/reviewed-product-facts.md',)})
 EMAIL_BLOBS.update(CATALOG_REVIEW_BLOBS)
 MALFORMED_BLOBS.update(EMAIL_BLOBS)
@@ -131,7 +131,26 @@ def restore_pre_gallery_selection(data):
         raise ValueError('Gallery restoration must equal exact prior clipboard source')
     return restored
 
+ZERO_SEARCH_HASHES = {
+    'products.php': ('66b7ab25fa1bc328bc845518ee6cf9d2efa7575ee7e7c5eeb49d850499a81ce1', CATALOG_REVIEWED_SHA256),
+    'api/products.php': ('d91ac82a3978dc9f5e3040023dfad33200feb5f98e89ee96c5f971c551b6ebbb', '1b1b9e3751bc24c944aff87ed2007fa78fbb40f4d1b2676c3b4a5575181db22f'),
+}
+ZERO_SEARCH_OLD = b'if ($search):'
+ZERO_SEARCH_NEW = b"if ($search !== null && $search !== ''):"
+
+def restore_pre_zero_search(path, data):
+    if path not in ZERO_SEARCH_HASHES or sha256(data) != ZERO_SEARCH_HASHES[path][0]:
+        raise ValueError('Exact reviewed zero-search renderer required')
+    if data.count(ZERO_SEARCH_NEW) != 2:
+        raise ValueError('Exact two zero-search presentation substitutions required')
+    restored = data.replace(ZERO_SEARCH_NEW, ZERO_SEARCH_OLD)
+    if sha256(restored) != ZERO_SEARCH_HASHES[path][1]:
+        raise ValueError('Zero-search restoration must equal exact published preimage')
+    return restored
+
 def heading_identity_bytes(path, data):
+    if path in ZERO_SEARCH_HASHES and sha256(data) == ZERO_SEARCH_HASHES[path][0]:
+        data = restore_pre_zero_search(path, data)
     if path == 'product.php' and sha256(data) == GALLERY_FIXED_SHA256:
         data = restore_pre_gallery_selection(data)
     if path == 'products.php' and sha256(data) == CATALOG_REVIEWED_SHA256:
@@ -260,7 +279,9 @@ def decode_manifest(manifest):
 
 def verify_candidate(manifest, candidate):
     for entry in manifest['files']:
-        if entry['path'] == 'products.php' and entry['candidate_sha256'] == CATALOG_PREIMAGE_SHA256 and sha256(candidate[entry['path']]) != CATALOG_REVIEWED_SHA256:
+        if entry['path'] == 'api/products.php' and entry['candidate_sha256'] == ZERO_SEARCH_HASHES['api/products.php'][1] and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['api/products.php'][0]:
+            raise ValueError('Exact reviewed zero-search API renderer required')
+        if entry['path'] == 'products.php' and entry['candidate_sha256'] == CATALOG_PREIMAGE_SHA256 and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['products.php'][0]:
             raise ValueError('Exact reviewed catalog candidate required')
         if entry['path'] == 'public/css/style.css' and entry['candidate_sha256'] == CATALOG_SCROLL_BEFORE_SHA256 and sha256(candidate[entry['path']]) != CATALOG_SCROLL_AFTER_SHA256:
             raise ValueError('Exact reviewed catalog CSS candidate required')
