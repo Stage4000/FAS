@@ -1,0 +1,38 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/fixtures/image-handoff-migration/ImageHandoffMigration.php';
+if(!extension_loaded('pdo_sqlite'))throw new RuntimeException('Real PDO SQLite required; never skip');
+final class MigrationFaultPDO extends PDO {
+ public int $failExec=0;public int $execCount=0;public string $commitFault='';public string $rollbackFault='';
+ public function exec(string $statement):int|false {$r=parent::exec($statement);if($this->failExec>0 && ++$this->execCount===$this->failExec)throw new RuntimeException('Injected after DDL');return $r;}
+ public function commit():bool {if($this->commitFault==='before')throw new RuntimeException('Injected before commit');if($this->commitFault==='false')return false;if($this->commitFault==='after'){parent::commit();throw new RuntimeException('Injected lost commit response');}return parent::commit();}
+ public function rollBack():bool {if($this->rollbackFault==='false')return false;if($this->rollbackFault==='throw')throw new RuntimeException('Injected rollback failure');return parent::rollBack();}
+}
+$n=0;
+function ok(bool $v,string $m):void{global $n;if(!$v)throw new RuntimeException($m);$n++;}
+function error(callable $f):Throwable{try{$f();}catch(Throwable $e){return $e;}throw new RuntimeException('Unexpected success');}
+function db():PDO{$d=new MigrationFaultPDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$d->exec(file_get_contents(__DIR__.'/../database/schema.sqlite.sql'));$m=json_decode(file_get_contents(__DIR__.'/fixtures/image-handoff-migration/schema-v2.json'),true,512,JSON_THROW_ON_ERROR);foreach($m['ddl']as$sql)$d->exec($sql);$d->exec("INSERT INTO image_handoff_version VALUES(1,2,'no-replace-v2')");$d->exec("INSERT INTO products(id,name,price,image_url) VALUES(1,'synthetic',1,'/a.jpg'),(2,'pending',1,'/b.jpg')");$payload='{"synthetic":"preserved bytes"}';$q=$d->prepare('INSERT INTO image_snapshot_handoff VALUES(1,1,?,?)');$q->execute([$payload,hash('sha256',$payload)]);$d->exec('UPDATE image_product_dirty SET acknowledged_revision=1 WHERE product_id=1');return $d;}
+function data(PDO $d):array{return [$d->query('SELECT * FROM products ORDER BY id')->fetchAll(PDO::FETCH_NUM),$d->query('SELECT * FROM image_product_dirty ORDER BY product_id')->fetchAll(PDO::FETCH_NUM),$d->query('SELECT * FROM image_snapshot_handoff ORDER BY product_id,revision')->fetchAll(PDO::FETCH_NUM)];}
+function version(PDO $d):int{return(int)$d->query('SELECT version FROM image_handoff_version')->fetchColumn();}
+foreach([0,1]as$foreign){$d=db();$d->exec('PRAGMA foreign_keys='.$foreign);$before=data($d);$receipt=ImageHandoffMigration::upgrade($d,2);ok(version($d)===3,'upgraded version');ok(data($d)===$before,'exact data retained');ok($d->query('SELECT * FROM image_handoff_cursor')->fetchAll(PDO::FETCH_NUM)===[[1,0,0]],'fresh cursor');ok($d->query('SELECT * FROM image_handoff_quarantine')->fetchAll(PDO::FETCH_NUM)===[],'fresh quarantine');ImageHandoffMigration::reverseUnused($d,2,$receipt['queue_sha256']);ok(version($d)===2&&data($d)===$before,'unused reversal exact');}
+$d=db();$before=data($d);error(fn()=>ImageHandoffMigration::upgrade($d,1));ok(version($d)===2&&data($d)===$before&&!$d->inTransaction(),'bound fails before DDL');
+foreach(["CREATE TRIGGER unknown AFTER UPDATE ON products BEGIN SELECT 1; END","CREATE TEMP TRIGGER unknown AFTER UPDATE ON main.products BEGIN SELECT 1; END","CREATE UNIQUE INDEX unknown ON products(sku)","CREATE INDEX odd_name ON image_handoff_version(contract)","CREATE TABLE external_ref(id INTEGER PRIMARY KEY, v INTEGER REFERENCES image_handoff_version(singleton) ON DELETE CASCADE)"]as$sql){$d=db();$d->exec($sql);$before=data($d);error(fn()=>ImageHandoffMigration::upgrade($d,2));ok(version($d)===2&&data($d)===$before,'unknown schema/dependency rejected');}
+foreach(["INSERT INTO image_handoff_quarantine VALUES(2,1,'field_bounds')","UPDATE image_handoff_cursor SET upper_id=2,last_id=1","UPDATE products SET image_url='/changed.jpg' WHERE id=2"]as$sql){$d=db();$receipt=ImageHandoffMigration::upgrade($d,2);$d->exec($sql);$before=data($d);error(fn()=>ImageHandoffMigration::reverseUnused($d,2,$receipt['queue_sha256']));ok(version($d)===3&&data($d)===$before,'post-upgrade activity prevents reversal');}
+$d=db();$d->exec("UPDATE image_snapshot_handoff SET snapshot_sha256='".str_repeat('0',64)."'");$e=error(fn()=>ImageHandoffMigration::upgrade($d,2));ok($e->getMessage()==='Stored snapshot hash mismatch'&&version($d)===2,'corrupt snapshot fails closed');
+$d=db();$d->beginTransaction();error(fn()=>ImageHandoffMigration::upgrade($d,2));ok($d->inTransaction(),'outer transaction preserved');$d->rollBack();
+$d=db();$receipt=ImageHandoffMigration::upgrade($d,2);error(fn()=>ImageHandoffMigration::upgrade($d,2));ok(version($d)===3,'repeat upgrade rejected');error(fn()=>ImageHandoffMigration::reverseUnused($d,2,str_repeat('0',64)));ok(version($d)===3,'wrong receipt no reversal');
+foreach(['up','down']as$direction){$d=db();$d->exec('PRAGMA foreign_keys=ON');$receipt=null;if($direction==='down')$receipt=ImageHandoffMigration::upgrade($d,2);$d->exec('CREATE TABLE "quoted dep"(id INTEGER PRIMARY KEY,v INTEGER REFERENCES "IMAGE_HANDOFF_VERSION"(singleton) ON DELETE CASCADE)');$d->exec('INSERT INTO "quoted dep" VALUES(1,1)');$e=error(fn()=>$direction==='up'?ImageHandoffMigration::upgrade($d,2):ImageHandoffMigration::reverseUnused($d,2,$receipt['queue_sha256']));ok($e->getMessage()==='External migration foreign-key dependency','exact mixed-case quoted FK rejection');ok($d->query('SELECT * FROM "quoted dep"')->fetchAll(PDO::FETCH_NUM)===[[1,1]],'dependent row never cascades');}
+function catalog(PDO $d):array{return $d->query('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')->fetchAll(PDO::FETCH_NUM);}
+foreach(['up','down'] as $direction){
+ for($at=1;$at<=($direction==='up'?6:5);$at++){
+  $d=db();$receipt=null;if($direction==='down')$receipt=ImageHandoffMigration::upgrade($d,2);$before=data($d);$schema=catalog($d);$d->failExec=$at;$d->execCount=0;
+  $e=error(fn()=>$direction==='up'?ImageHandoffMigration::upgrade($d,2):ImageHandoffMigration::reverseUnused($d,2,$receipt['queue_sha256']));ok($e->getMessage()==='Injected after DDL','exact statement fault');ok(!$d->inTransaction()&&catalog($d)===$schema&&data($d)===$before,'all DDL and data roll back atomically');
+ }
+ foreach(['before','false','after'] as $fault){
+  $d=db();$receipt=null;if($direction==='down')$receipt=ImageHandoffMigration::upgrade($d,2);$before=data($d);$schema=catalog($d);$d->commitFault=$fault;
+  $e=error(fn()=>$direction==='up'?ImageHandoffMigration::upgrade($d,2):ImageHandoffMigration::reverseUnused($d,2,$receipt['queue_sha256']));ok($e->getMessage()===match($fault){'before'=>'Injected before commit','false'=>'Commit unconfirmed; reconcile before retry','after'=>'Injected lost commit response'},'exact commit fault');
+  ok(!$d->inTransaction()&&data($d)===$before,'commit fault retains all data');ok(version($d)===($fault==='after'?($direction==='up'?3:2):($direction==='up'?2:3)),'inspect actual committed contract');if($fault!=='after')ok(catalog($d)===$schema,'failed commit restores exact schema');
+ }
+}
+foreach(['false','throw'] as $fault){$d=db();$before=data($d);$d->failExec=1;$d->rollbackFault=$fault;$e=error(fn()=>ImageHandoffMigration::upgrade($d,2));ok($e->getMessage()==='Rollback unconfirmed; reconcile before retry'&&$e->getPrevious()?->getMessage()==='Injected after DDL','rollback uncertainty retains original cause');ok($d->inTransaction(),'unconfirmed cleanup still observable');$d->rollbackFault='';ok($d->rollBack()&&version($d)===2&&data($d)===$before,'explicit test cleanup restores v2');}
+echo "PASS $n migration checks\n";
