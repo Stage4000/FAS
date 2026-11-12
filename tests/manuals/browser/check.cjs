@@ -201,6 +201,50 @@ test('06-accessible-text-search-and-results',async p=>{
   await screenshot(p,'desktop-search-and-text');
 });
 
+for(const mode of ['stop','complete']) test(`search-terminal-focus-${mode}`,async(p,ctx)=>{
+  // Hold one real worker request, then forward its exact message and receiver.
+  // No fabricated text or PDF.js methods: the shipped worker extracts the PDF.
+  await ctx.addInitScript(()=>{
+    const send=Worker.prototype.postMessage;let held=null,released=false;
+    window.__fasSearchFocusCalls=0;
+    Worker.prototype.postMessage=function(message,...args){
+      if(message?.action==='GetTextContent'){
+        window.__fasSearchFocusCalls++;
+        if(!released&&!held){held={worker:this,message,args};return;}
+      }
+      return send.call(this,message,...args);
+    };
+    window.__fasSearchFocusHeld=()=>!!held;
+    window.__fasReleaseSearchFocus=()=>{released=true;const h=held;held=null;if(h)send.call(h.worker,h.message,...h.args);};
+  });
+  try{
+    await open(p);await ready(p,[1]);
+    await p.locator('.manual-search:has([data-search-form]) summary').click();
+    await p.locator('[data-search-input]').fill('ZX-526');await p.locator('[data-search-submit]').click();
+    await p.waitForFunction(()=>window.__fasSearchFocusHeld());
+    assert.equal(await p.evaluate(()=>window.__fasSearchFocusCalls),1);
+    await p.locator('[data-search-cancel]').focus();
+    if(mode==='stop')await p.keyboard.press('Enter');
+    await p.evaluate(()=>window.__fasReleaseSearchFocus());
+    const expected=mode==='stop'?'Search stopped. Results found so far are below.':'1 matching page.';
+    await p.waitForFunction(value=>document.querySelector('[data-search-status]').textContent===value,expected);
+    assert(await p.locator('[data-search-cancel]').isHidden());
+    assert(await p.locator('[data-search-status]').evaluate(e=>document.activeElement===e),'terminal focus reaches visible explanation');
+    assert.equal(await p.locator('[data-search-status]').getAttribute('tabindex'),'-1');
+    if(mode==='stop'){
+      await p.waitForTimeout(100);
+      assert.equal(await p.locator('[data-search-results] li').count(),0);
+      assert.equal(await p.evaluate(()=>window.__fasSearchFocusCalls),1,'stopped search does not advance after held result');
+    }else{
+      assert.match(await p.locator('[data-search-results]').textContent(),/Page 5/);
+      assert.equal(await p.evaluate(()=>window.__fasSearchFocusCalls),7,'complete search uses every actual PDF page');
+    }
+    assert.equal(await p.locator('[data-search-status]').textContent(),expected);
+    await screenshot(p,`search-terminal-focus-${mode}`);
+    summary.measurements.push({label:`search-terminal-focus-${mode}`,focusedExplanation:true,realWorkerExtraction:true});
+  }finally{await p.evaluate(()=>window.__fasReleaseSearchFocus?.()).catch(()=>{});}
+});
+
 test('07-search-stop-and-replacement',async p=>{
   await open(p,ids.long);await ready(p,[1],180);
   await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');

@@ -386,12 +386,23 @@ async function initialize(root) {
   const observer=new ResizeObserver(()=>{const width=stage.clientWidth;if(Math.abs(width-lastWidth)<2)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>draw(page),120);});observer.observe(stage);
   const full=$('[data-fullscreen]');
   if(document.fullscreenEnabled&&root.requestFullscreen){full.hidden=false;full.addEventListener('click',async()=>{try{if(document.fullscreenElement===root)await document.exitFullscreen();else await root.requestFullscreen();}catch(_){say('Full screen is unavailable in this browser.');}});document.addEventListener('fullscreenchange',()=>{full.textContent=document.fullscreenElement===root?'Exit full screen':'Full screen';draw(page);});}
-  $('[data-search-cancel]').addEventListener('click',()=>{searchEpoch++;$('[data-search-cancel]').hidden=true;$('[data-search-status]').textContent='Search stopped. Results found so far are below.';});
+  const searchCancel = $('[data-search-cancel]'), searchStatus = $('[data-search-status]');
+  const finishSearch = () => {
+    const ownedFocus = !disposed && document.activeElement === searchCancel;
+    searchCancel.hidden = true;
+    if (ownedFocus) searchStatus.focus?.();
+  };
+  searchCancel.addEventListener('click',()=>{
+    if (disposed || searchCancel.hidden) return;
+    searchEpoch++;
+    searchStatus.textContent='Search stopped. Results found so far are below.';
+    finishSearch();
+  });
   $('[data-search-form]').addEventListener('submit',async event=>{
-    event.preventDefault();if(!pdf)return;
+    event.preventDefault();if(!pdf||disposed)return;
     const term=$('[data-search-input]').value.trim().toLocaleLowerCase(), token=++searchEpoch;
     $('[data-search-results]').replaceChildren();
-    if(!term){$('[data-search-cancel]').hidden=true;$('[data-search-status]').textContent='Enter a word or part number.';return;}
+    if(!term){searchStatus.textContent='Enter a word or part number.';finishSearch();return;}
     $('[data-search-cancel]').hidden=false;let hits=0,hasText=false;
     try{
       for(let n=1;n<=pdf.numPages;n++){
@@ -406,13 +417,13 @@ async function initialize(root) {
         if(n===pdf.numPages)$('[data-search-status]').textContent=hits?`${hits} matching page${hits===1?'':'s'}.`:hasText?'No matching document text found.':'This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.';
       }
     }catch(_){if(token===searchEpoch)$('[data-search-status]').textContent='Search could not finish. You can still turn pages or download the PDF.';}
-    finally{if(token===searchEpoch)$('[data-search-cancel]').hidden=true;}
+    finally{if(token===searchEpoch)finishSearch();}
   });
   // Register before awaiting the document: a large pending load is still owned
   // by this view and must be released on permanent departure.
   const disposeReader = () => {
     if (disposed) return;
-    disposed=true; finishLoading(); renderEpoch++; searchEpoch++; clearTimeout(resizeTimer);
+    disposed=true; finishLoading(); renderEpoch++; searchEpoch++; finishSearch(); clearTimeout(resizeTimer);
     renders.forEach(task=>{try{task.cancel();}catch(_){}});
     papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));
     observer.disconnect(); stopAnimations(); textCache.close(); pendingText.clear(); pageResources.close();

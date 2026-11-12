@@ -82,6 +82,7 @@ def main():
         stage('outline-model',['node','tests/manuals/reader-outline-test.cjs'],env,30)
         stage('outline-navigation',['node','tests/manuals/reader-outline-integration.cjs'],env,30)
         stage('load-control',['node','tests/manuals/reader-load-control-test.cjs'],env,30)
+        stage('search-focus',['node','tests/manuals/reader-search-focus-test.cjs'],env,30)
         stage('upload-preflight',['node','tests/manuals/editor-upload-preflight-test.cjs'],env,30)
         stage('admin-search',[php,'tests/manuals/admin-search-test.php'],env,30)
         stage('admin-search-http',[sys.executable,'tests/manuals/admin-search-http-test.py'],env,90)
