@@ -31,7 +31,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-          fetch-depth: 30
+          fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /src/manuals/
