@@ -157,7 +157,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="row mb-4">
                 <div class="col-md-6">
                     <h1 class="fw-bold">
-<?php if ($search): ?>
+<?php if ($search !== null && $search !== ''): ?>
 Search Results for "<?php echo htmlspecialchars($search); ?>"
 <?php elseif ($manufacturer || $fitmentModel): ?>
 <?php echo htmlspecialchars(trim(($manufacturer ?? '') . ' ' . ($fitmentModel ?? ''))); ?> Parts
@@ -201,7 +201,7 @@ Search Results for "<?php echo htmlspecialchars($search); ?>"
                         <label for="product-search" class="visually-hidden">Search products</label>
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Search products..." id="product-search" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>">
-                            <?php if ($search): ?>
+                            <?php if ($search !== null && $search !== ''): ?>
                                 <?php
                                     $clearUrl = '/products';
                                     $clearParams = [];
@@ -566,16 +566,41 @@ document.getElementById('categoryToggle').addEventListener('click', function() {
 
 const savedSearchStorageKey = 'fas_saved_product_searches';
 
-function getSavedSearches() {
+function savedSearchUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
     try {
-        return JSON.parse(localStorage.getItem(savedSearchStorageKey) || '[]').filter(item => item && item.url && item.label);
+        const url = new URL(value, window.location.origin);
+        // Match catalog routes, not other same-origin pages or executable schemes.
+        const catalogPath = /^\/products(?:\/[a-z0-9_-]+|\/(?:(?:motorcycle|atv|boat|automotive|gifts|other)\/)?make\/[a-z0-9-]+(?:\/[a-z0-9-]+)?)?\/?$/i;
+        if (!['http:', 'https:'].includes(url.protocol) || url.origin !== window.location.origin || url.username || url.password
+            || !(catalogPath.test(url.pathname) || url.pathname === '/products.php')) {
+            return null;
+        }
+        return url.pathname + url.search + url.hash;
     } catch (error) {
-        return [];
+        return null;
+    }
+}
+
+function getSavedSearches(forMutation = false) {
+    try {
+        const searches = JSON.parse(localStorage.getItem(savedSearchStorageKey) || '[]');
+        if (!Array.isArray(searches)) return forMutation ? null : [];
+        return searches.filter(item => item && typeof item.label === 'string' && item.label.trim())
+            .map(item => ({label: item.label, url: savedSearchUrl(item.url), saved_at: item.saved_at}))
+            .filter(item => item.url).slice(0, 8);
+    } catch (error) {
+        return forMutation ? null : [];
     }
 }
 
 function setSavedSearches(searches) {
-    localStorage.setItem(savedSearchStorageKey, JSON.stringify(searches.slice(0, 8)));
+    try {
+        localStorage.setItem(savedSearchStorageKey, JSON.stringify(searches.slice(0, 8)));
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
 
 function currentSavedSearch() {
@@ -590,9 +615,11 @@ function currentSavedSearch() {
     const keyword = params.get('search');
     const fitment = [params.get('manufacturer'), params.get('model')].filter(Boolean).join(' ');
     const label = keyword ? `Search: ${keyword}` : (fitment || title || 'Saved parts search');
+    const url = savedSearchUrl(fasCatalogNavigationUrl(params));
+    if (!url) return null;
     return {
         label,
-        url: fasCatalogNavigationUrl(params),
+        url,
         saved_at: Date.now()
     };
 }
@@ -602,20 +629,32 @@ function renderSavedSearches() {
     if (!container) return;
 
     const searches = getSavedSearches();
-    container.innerHTML = '';
+    container.textContent = '';
 
     if (searches.length === 0) {
-        container.innerHTML = '<span class="small text-muted">No saved searches yet.</span>';
+        const empty = document.createElement('span');
+        empty.className = 'small text-muted';
+        empty.textContent = 'No saved searches yet.';
+        container.appendChild(empty);
         return;
     }
 
     searches.forEach((search, index) => {
         const wrapper = document.createElement('span');
         wrapper.className = 'btn-group btn-group-sm saved-search-pill';
-        wrapper.innerHTML = `
-            <a class="btn btn-outline-danger" href="${search.url}">${search.label}</a>
-            <button class="btn btn-outline-secondary saved-search-remove" type="button" data-saved-search-index="${index}" aria-label="Remove saved search">&times;</button>
-        `;
+        const link = document.createElement('a');
+        link.className = 'btn btn-outline-danger';
+        link.href = search.url;
+        link.textContent = search.label;
+        const remove = document.createElement('button');
+        remove.className = 'btn btn-outline-secondary saved-search-remove';
+        remove.type = 'button';
+        remove.dataset.savedSearchIndex = String(index);
+        remove.dataset.savedSearchUrl = search.url;
+        remove.setAttribute('aria-label', 'Remove saved search');
+        remove.textContent = '\u00d7';
+        wrapper.appendChild(link);
+        wrapper.appendChild(remove);
         container.appendChild(wrapper);
     });
 }
@@ -629,9 +668,17 @@ document.addEventListener('click', event => {
             return;
         }
 
-        const searches = getSavedSearches().filter(item => item.url !== savedSearch.url);
+        const existing = getSavedSearches(true);
+        if (existing === null) {
+            saveButton.blur();
+            return;
+        }
+        const searches = existing.filter(item => item.url !== savedSearch.url);
         searches.unshift(savedSearch);
-        setSavedSearches(searches);
+        if (!setSavedSearches(searches)) {
+            saveButton.blur();
+            return;
+        }
         renderSavedSearches();
         if (window.fasAnalytics && typeof window.fasAnalytics.track === 'function') {
             window.fasAnalytics.track('saved_search_saved', {
@@ -649,12 +696,15 @@ document.addEventListener('click', event => {
 
     const removeButton = event.target.closest('.saved-search-remove');
     if (removeButton) {
-        const index = Number.parseInt(removeButton.dataset.savedSearchIndex || '-1', 10);
-        const searches = getSavedSearches();
-        if (index >= 0) {
+        const url = savedSearchUrl(removeButton.dataset.savedSearchUrl);
+        if (url === null) return;
+        const searches = getSavedSearches(true);
+        if (searches === null) return;
+        // Another tab may have changed the list since this button was rendered.
+        const index = searches.findIndex(item => item.url === url);
+        if (index >= 0 && index < searches.length) {
             searches.splice(index, 1);
-            setSavedSearches(searches);
-            renderSavedSearches();
+            if (setSavedSearches(searches)) renderSavedSearches();
         }
     }
 });
@@ -789,13 +839,25 @@ attachCategoryHandlers();
 
 // Load products and sidebar via AJAX
 let catalogRequestController;
-async function loadProductsAndSidebar(params) {
+async function loadProductsAndSidebar(params, focusId = null) {
     if (catalogRequestController) catalogRequestController.abort();
     const controller = new AbortController();
     catalogRequestController = controller;
     const content = document.getElementById('productsContent');
+    const requestedUrl = window.location.href;
+    const activeElement = document.activeElement;
+    const restoreFocus = focusId && (activeElement?.id === focusId
+        || (focusId === 'product-search' && activeElement?.closest('#search-form')));
+    let focusMoved = false;
+    const cancelFocusRestore = () => { focusMoved = true; };
+    const focusEvents = ['focusin', 'pointerdown', 'keydown'];
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
     try {
+        // Do not reclaim focus after the user moves on while results load.
+        if (restoreFocus) {
+            focusEvents.forEach(type => document.addEventListener(type, cancelFocusRestore, true));
+            window.addEventListener('blur', cancelFocusRestore);
+        }
         const response = await fetch('/api/products.php?' + params.toString() + '&include_sidebar=1', {signal: controller.signal});
         if (!response.ok) throw new Error('Catalog request failed');
         const data = await response.json();
@@ -819,10 +881,22 @@ async function loadProductsAndSidebar(params) {
         attachModelFilterHandler();
         renderSavedSearches();
         if (window.fasAnalytics?.refreshProductImpressions) window.fasAnalytics.refreshProductImpressions();
+        // Filter setup replaces its nodes, so focus only the final control.
+        if (restoreFocus && !focusMoved && controller === catalogRequestController
+            && window.location.href === requestedUrl && document.hasFocus()
+            && (!document.activeElement || document.activeElement === document.body)) {
+            const target = document.getElementById(focusId);
+            if (target && !target.disabled) target.focus({preventScroll: true});
+        }
     } catch (error) {
         if (error.name === 'AbortError' || controller !== catalogRequestController) return;
         // Ordinary navigation remains the fallback when the optional AJAX request fails.
         window.location.assign(window.location.href);
+    } finally {
+        if (restoreFocus) {
+            focusEvents.forEach(type => document.removeEventListener(type, cancelFocusRestore, true));
+            window.removeEventListener('blur', cancelFocusRestore);
+        }
     }
 }
 
@@ -877,7 +951,7 @@ function handleManufacturerChange() {
     // Update URL and load products
     const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
-    loadProductsAndSidebar(params);
+    loadProductsAndSidebar(params, 'manufacturerFilter');
 }
 
 function handleModelChange() {
@@ -895,7 +969,7 @@ function handleModelChange() {
 
     const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
-    loadProductsAndSidebar(params);
+    loadProductsAndSidebar(params, 'modelFilter');
 }
 
 // Attach manufacturer filter handler
@@ -945,7 +1019,7 @@ document.addEventListener('submit', function(e) {
     // Update URL and load products
     const newUrl = fasCatalogNavigationUrl(params);
     window.history.pushState({}, '', newUrl);
-    loadProductsAndSidebar(params);
+    loadProductsAndSidebar(params, 'product-search');
 });
 
 // Initial pagination handlers

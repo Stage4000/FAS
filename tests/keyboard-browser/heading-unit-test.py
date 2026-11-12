@@ -74,7 +74,8 @@ bad=dict(cart_candidate);bad['cart.php']+=b'changed';rejected(lambda:h.cart_rest
 
 # Exact clipboard delta is normalized for historical heading identity only.
 product=(suite.parents[1]/'product.php').read_bytes()
-check(h.sha256(product)==h.SHARE_FIXED_SHA256)
+check(h.sha256(product)==h.GALLERY_FIXED_SHA256)
+check(h.sha256(h.restore_pre_gallery_selection(product))==h.SHARE_FIXED_SHA256)
 restored_product=h.heading_identity_bytes('product.php',product)
 check(h.sha256(restored_product)==h.SHARE_PREIMAGE_SHA256)
 check(h.heading_identity_bytes('other.php',product)==product)
