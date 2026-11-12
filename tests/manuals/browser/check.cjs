@@ -330,6 +330,33 @@ test('image-heavy-large-file-canvas-release',async(p,ctx)=>{
   summary.measurements.push({label:'synthetic-image-heavy-file',bytes:info.bytes,pages:info.pages,elapsedMs:Date.now()-started,snapshots,limits:'Backing canvas dimensions only; not worker/native/GPU/total memory or production timing.'});
 },{deviceScaleFactor:2});
 
+test('concurrent-display-search-text-dedup',async(p,ctx)=>{
+  // Hold exactly one real worker text request to make two consumers overlap.
+  await ctx.addInitScript(()=>{
+    const send=Worker.prototype.postMessage;let held=null,released=false;
+    window.__fasTextRequests=[];
+    Worker.prototype.postMessage=function(message,...args){
+      if(message?.action==='GetTextContent'){
+        window.__fasTextRequests.push(message.data.pageIndex);
+        if(message.data.pageIndex===0&&!released&&!held){held={worker:this,message,args};return;}
+      }
+      return send.call(this,message,...args);
+    };
+    window.__fasTextHeld=()=>!!held;
+    window.__fasReleaseText=()=>{released=true;const h=held;held=null;if(h)send.call(h.worker,h.message,...h.args);};
+  });
+  await open(p);await ready(p,[1]);await p.waitForFunction(()=>window.__fasTextHeld());
+  await p.locator('.manual-search summary').click();
+  await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
+  await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='Searching page 1 of 7…');
+  assert.equal(await p.evaluate(()=>window.__fasTextRequests.filter(n=>n===0).length),1,'display and search must share one pending extraction');
+  await p.evaluate(()=>window.__fasReleaseText());
+  await p.waitForFunction(()=>document.querySelector('[data-search-cancel]').hidden);
+  assert(await p.locator('[data-search-results] li').count()>0);await textReady(p,1);
+  const counts=await p.evaluate(()=>window.__fasTextRequests.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{}));
+  assert.equal(counts[0],1);summary.measurements.push({label:'concurrent-page-text',workerRequestsByPageIndex:counts,limitation:'First worker message held to force race; actual shipped worker performs extraction after release.'});
+});
+
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
   browser=await chromium.launch({headless:true});summary.browser=browser.version();

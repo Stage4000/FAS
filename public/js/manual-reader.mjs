@@ -79,12 +79,20 @@ async function initialize(root) {
     const animation = element.animate(frames, options); animations.push(animation);
     try { await animation.finished; } catch (_) { /* A newer navigation owns the view. */ }
   };
+  const pendingText = new Map();
   const textFor = async number => {
+    if (disposed) throw new Error('The reader is closed.');
     if (textCache.has(number)) return textCache.get(number);
-    const p = await pdf.getPage(number), content = await p.getTextContent();
-    const text = content.items.filter(x => typeof x.str === 'string').map(x => x.str + (x.hasEOL ? '\n' : ' ')).join('');
-    // No document text is persisted; oversized entries bypass the bounded cache.
-    textCache.set(number, text); return text;
+    if (pendingText.has(number)) return pendingText.get(number);
+    const task = (async () => {
+      const p = await pdf.getPage(number), content = await p.getTextContent();
+      const text = content.items.filter(x => typeof x.str === 'string').map(x => x.str + (x.hasEOL ? '\n' : ' ')).join('');
+      // No document text is persisted; oversized entries bypass the bounded cache.
+      textCache.set(number, text); return text;
+    })();
+    pendingText.set(number, task);
+    try { return await task; }
+    finally { pendingText.delete(number); }
   };
   const setControls = () => {
     const first = spreadStart(page, spread());
@@ -235,7 +243,7 @@ async function initialize(root) {
     pdf=await task.promise;
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
     controls.forEach(selector=>{$(selector).disabled=false;});
-    window.addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();loadingTask?.destroy();});
+    window.addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();loadingTask?.destroy();});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
   }catch(error){say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }
