@@ -4,6 +4,48 @@ import * as pdfjs from '../vendor/pdfjs-6.5.438/pdf.mjs';
 // No annotation layer, embedded actions, form widgets, or PDF JavaScript runs here.
 const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;
 pdfjs.GlobalWorkerOptions.workerSrc = `${vendor}pdf.worker.mjs`;
+// Retain a bounded navigation index, never PDF links, actions or raw outline trees.
+export function manualOutline(items) {
+  const entries = [], stack = [{items: Array.isArray(items) ? items : [], index: 0, depth: 0}];
+  let truncated = false;
+  while (stack.length) {
+    const frame = stack.at(-1);
+    if (frame.index >= frame.items.length) { stack.pop(); continue; }
+    if (entries.length >= 500) { truncated = true; break; }
+    const item = frame.items[frame.index++];
+    if (!item || typeof item !== 'object') { entries.push({title: 'Untitled section', depth: frame.depth, dest: null}); continue; }
+    const rawTitle = typeof item.title === 'string' ? item.title.trim() : '';
+    let title = rawTitle ? rawTitle.slice(0, 200) : 'Untitled section';
+    if (rawTitle.length > 200 && /[\uD800-\uDBFF]$/.test(title)) title = title.slice(0, -1);
+    if (rawTitle.length > 200) truncated = true;
+    let dest = null;
+    if (!item.url && !item.unsafeUrl && !item.action) {
+      if (typeof item.dest === 'string' && item.dest.length > 0 && item.dest.length <= 1024) dest = item.dest;
+      else if (Array.isArray(item.dest)) {
+        const target = item.dest[0];
+        if (Number.isSafeInteger(target) && target >= 0) dest = [target];
+        else if (target && Number.isSafeInteger(target.num) && target.num >= 0 && Number.isSafeInteger(target.gen) && target.gen >= 0) dest = [{num: target.num, gen: target.gen}];
+      }
+    }
+    entries.push({title, depth: frame.depth, dest});
+    if (Array.isArray(item.items) && item.items.length) {
+      if (frame.depth >= 11) truncated = true;
+      else stack.push({items: item.items, index: 0, depth: frame.depth + 1});
+    }
+  }
+  return {entries, truncated};
+}
+export async function outlinePage(pdf, dest) {
+  if (typeof dest === 'string') dest = await pdf.getDestination(dest);
+  if (!Array.isArray(dest) || !dest.length) throw new Error('No internal destination');
+  const target = dest[0];
+  let index;
+  if (Number.isSafeInteger(target) && target >= 0) index = target;
+  else if (target && Number.isSafeInteger(target.num) && target.num >= 0 && Number.isSafeInteger(target.gen) && target.gen >= 0) index = await pdf.getPageIndex({num: target.num, gen: target.gen});
+  if (!Number.isSafeInteger(index) || index < 0 || index >= pdf.numPages) throw new Error('Invalid internal page');
+  return index + 1;
+}
+
 // Keep render resources for visible pages only. PDF.js cleanup defers internally
 // while its own render work is active; our leases also cover overlapping draws.
 export function createPageResourceTracker() {
@@ -161,6 +203,48 @@ async function initialize(root) {
     if (!textIsOpen()) { textEpoch++; textPlaceholder(visiblePages); return; }
     if (pdf && visiblePages.length) displayText([...visiblePages], renderEpoch);
   });
+  const outlinePanel = $('[data-outline]');
+  const outlineStatus = $('[data-outline-status]'), outlineList = $('[data-outline-list]');
+  let outlineStarted = false, outlineEpoch = 0, outlinePending = false, outlineSummary = '';
+  const cancelOutlineSelection = () => {
+    outlineEpoch++;
+    if (outlinePending) { outlinePending = false; outlineStatus.textContent = outlineSummary; }
+  };
+  const loadOutline = async () => {
+    if (!outlinePanel?.open || !pdf || disposed || outlineStarted) return;
+    outlineStarted = true;
+    outlineStatus.textContent = 'Loading table of contents…';
+    try {
+      const result = manualOutline(await pdf.getOutline());
+      if (disposed) return;
+      const fragment = document.createDocumentFragment();
+      result.entries.forEach(entry => {
+        const li = document.createElement('li'), button = document.createElement('button');
+        button.type = 'button'; button.textContent = `${entry.depth ? '↳ '.repeat(entry.depth) : ''}${entry.title}`;
+        button.disabled = !entry.dest;
+        if (!entry.dest) button.title = 'No supported internal page destination';
+        button.addEventListener('click', async () => {
+          if (disposed || !entry.dest || !outlinePanel.open) return;
+          const token = ++outlineEpoch, owner = renderEpoch;
+          outlinePending = true; outlineStatus.textContent = 'Finding section…';
+          try {
+            const selected = await outlinePage(pdf, entry.dest);
+            if (disposed || !outlinePanel.open || token !== outlineEpoch || owner !== renderEpoch) return;
+            outlinePending = false; outlineStatus.textContent = `Opening page ${selected}.`;
+            navigate(selected); stage.focus();
+          } catch (_) {
+            if (!disposed && outlinePanel.open && token === outlineEpoch && owner === renderEpoch) { outlinePending = false; outlineStatus.textContent = 'This section’s page could not be found. Use page numbers or document search instead.'; }
+          }
+        });
+        li.append(button); fragment.append(li);
+      });
+      outlineList.replaceChildren(fragment);
+      outlineStatus.textContent = outlineSummary = !result.entries.length ? 'This PDF has no embedded table of contents. Use page numbers or document search.' : result.truncated ? 'Showing up to 500 entries, 12 levels and 200 characters per heading. Use document search for omitted content.' : `${result.entries.length} section${result.entries.length === 1 ? '' : 's'}. Only internal page destinations are available.`;
+    } catch (_) {
+      if (!disposed) outlineStatus.textContent = 'The table of contents could not be loaded. Page navigation and document search remain available.';
+    }
+  };
+  outlinePanel?.addEventListener('toggle', () => { if (!outlinePanel.open) cancelOutlineSelection(); else loadOutline(); });
   const setControls = () => {
     const first = spreadStart(page, spread());
     $('[data-prev]').disabled = first === 1;
@@ -180,6 +264,7 @@ async function initialize(root) {
   const releaseCanvas = canvas => { canvas.width = 0; canvas.height = 0; };
   async function draw(requested, turn = false, updateHash = true) {
     if (!pdf || disposed) return;
+    cancelOutlineSelection();
     const ownedCanvases = new Set();
     let ownedPages = [];
     const oldPage = page, token = ++renderEpoch;
@@ -323,6 +408,7 @@ async function initialize(root) {
     if(disposed)return;
     pdf=loaded;
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
+    loadOutline();
     controls.forEach(selector=>{$(selector).disabled=false;});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
   }catch(error){if(disposed)return;say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}

@@ -59,6 +59,30 @@ async function measure(p,label){
   summary.measurements.push({label,...value});
 }
 
+test('embedded-table-of-contents',async p=>{
+  await p.addInitScript(()=>{
+    window.__outlineRequests=0;
+    const send=Worker.prototype.postMessage;
+    Worker.prototype.postMessage=function(message,...args){
+      if(message?.action==='GetOutline') window.__outlineRequests++;
+      return Reflect.apply(send,this,[message,...args]);
+    };
+  });
+  await open(p);await ready(p,[1]);
+  assert.equal(await p.evaluate(()=>window.__outlineRequests),0,'closed contents makes no worker outline request');
+  await p.locator('[data-outline] summary').focus();await p.keyboard.press('Enter');
+  await p.waitForFunction(()=>document.querySelectorAll('[data-outline-list] button').length===7);
+  assert.equal(await p.evaluate(()=>window.__outlineRequests),1);
+  assert.equal(await p.locator('[data-outline-list] button').first().textContent(),'Workshop reference');
+  await p.locator('[data-outline-list] button').last().focus();await p.keyboard.press('Enter');await ready(p,[6,7]);
+  assert.equal(await p.locator('[data-page]').inputValue(),'7','last outline destination resolves exactly to page 7');
+  await p.locator('[data-outline] summary').click();await p.locator('[data-outline] summary').click();
+  assert.equal(await p.evaluate(()=>window.__outlineRequests),1,'reopen retains bounded index');
+  await p.locator('[data-outline-list] button').first().click();await ready(p,[1]);
+  assert.equal(await p.evaluate(()=>window.__outlineRequests),1,'reopen remains cached after native toggle and navigation settle');
+  await screenshot(p,'embedded-contents');
+});
+
 test('01-desktop-spreads-and-real-render',async p=>{
   await open(p);await ready(p,[1]);
   assert(await p.locator('[data-prev]').isDisabled());

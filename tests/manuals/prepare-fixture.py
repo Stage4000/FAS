@@ -49,6 +49,8 @@ with sqlite3.connect(SITE/'fixture.sqlite') as db:
 (SITE/'fixture-logout.php').write_text("<?php session_start();session_destroy();echo 'Synthetic logout';")
 pdf=OUT/'synthetic-workshop.pdf';c=canvas.Canvas(str(pdf),pagesize=(612,792));c.setTitle('Synthetic FAS workshop book')
 for n in range(1,8):
+    c.bookmarkPage(f"section-{n}")
+    c.addOutlineEntry("Workshop reference" if n == 1 else f"Chapter {n-1}", f"section-{n}", level=0 if n == 1 else 1, closed=False)
     c.setFillColor(HexColor('#faf7ef'));c.rect(0,0,612,792,fill=1,stroke=0)
     c.setFillColor(HexColor('#db0335'));c.rect(0,750,612,42,fill=1,stroke=0)
     c.setFillColor(HexColor('#242629'));c.setFont('Helvetica-Bold',12);c.drawString(40,710,'FLIP & STRIP  /  SYNTHETIC WORKSHOP REFERENCE')

@@ -82,6 +82,7 @@ jobs:
             /scripts/manuals-intake-manifest.php
             /docs/manuals-lazy-page-text.md
             /docs/manuals-page-resources.md
+            /docs/manuals-outline.md
             /docs/manuals-swipe-ownership.md
             /docs/manuals-pending-load.md
             /docs/manuals-intake-inventory.md

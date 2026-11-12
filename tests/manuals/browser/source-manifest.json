@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "af641cbbff248881e3beadcd5ff91291970dfe4c",
+    ".github/workflows/manual-reader-browser.yml": "702288ad882359892f2b01eebaa0add3cfa09b4f",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -28,7 +28,7 @@
     "includes/ebay-seller-rating.php": "ed862631680f1b8fd1feb59edfb071097c57adc3",
     "includes/footer.php": "2ad0d3cb8581fc09e71d307650606149c6dc7009",
     "includes/header.php": "b8ecc74f67f306afa142339b1641fc916a624e2c",
-    "includes/manual-reader.php": "38b9cc205a323754ffcb74e229289c2e00a92c9b",
+    "includes/manual-reader.php": "782c41760a32f76600d10c96a22575a39eace91a",
     "includes/security.php": "94442221ba6f9097afab504768e7c841b82a2e43",
     "manuals/file.php": "a90a4cf12ea4183483dc71c39ffae1aedba37de4",
     "manuals/index.php": "f61c4f09d7ad325785c9e7ca5eb7ab8f16fb6cf1",
@@ -41,8 +41,8 @@
     "public/js/growth.js": "87dac7559458d16f9adc755dc404d535beeeb9eb",
     "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
     "public/js/manual-editor.js": "b1a93b0debbabc81e5719d775b6d95aaa2d24c53",
-    "public/js/manual-reader-loader.mjs": "c481eab5f24005e398bd6a6804356483074cd64f",
-    "public/js/manual-reader.mjs": "990871118916b7c6a45b402ffddde412f03c1989",
+    "public/js/manual-reader-loader.mjs": "6f4efd2eb1e7c0fea6b4d5a1a4d90e940af34064",
+    "public/js/manual-reader.mjs": "0703381d1f3132917024afd167d96b91c9b25272",
     "public/js/runtime-guard.js": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97",
     "public/js/theme-toggle.js": "34430acbe4b431f680c686cd40f52be41a1484bc",
     "public/js/timezone.js": "789840c70d84c0486a86ebe4a03a4684184d42bc",
@@ -268,7 +268,7 @@
     "src/utils/Timezone.php": "b0074c7dccfebcae5ee84db633b81967086941b3",
     "tests/manuals/backend-test.php": "cb0ace1b44b6a4019d32b5205a39f37c309f789a",
     "tests/manuals/browser/README.md": "bead506ec7c36e22d29094fc351cda731344451a",
-    "tests/manuals/browser/check.cjs": "59eb2538561ba6efb28b694e94652cf65bee49a3",
+    "tests/manuals/browser/check.cjs": "3a897bc61246a6fe82eea7c1d6fd947b69e5f9b9",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
     "tests/manuals/browser/fullsite-check.cjs": "46442aac6885abd600ea9d25775f0fd483647672",
@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "e42094c71c2defe1500ad31bcdbe8f40f95ea0e4",
+    "tests/manuals/browser/run.py": "c9eba81989a5db3ef88eba83721f51538fdfc51a",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -299,7 +299,7 @@
     "tests/manuals/hash-bound-test.php": "f6db3be09862a10900ff830540b900337aa4ebc9",
     "tests/manuals/http-test.py": "6f567d8620ed5539b3695aa0d530d58a5260b3df",
     "tests/manuals/open-basedir-test.py": "d11b25ea2f0910174e03ab979617bf0e7d991657",
-    "tests/manuals/prepare-fixture.py": "008deb300b3d7a375129d7fd204e2b26ddc8713b",
+    "tests/manuals/prepare-fixture.py": "855b98ba3e76c549bcd18489db8478d24d053d1b",
     "tests/manuals/range-http-test.py": "47179b700a0b9e849b230943aab11cdd11833820",
     "tests/manuals/range-test.php": "3c00defd330a8182c2aad84de2d60eba89826111",
     "tests/manuals/reader-cache-test.cjs": "4ba0dbc9400a7838ea9b6155171f36a0734427b4",
@@ -338,7 +338,10 @@
     "docs/manuals-intake-manifest.md": "91cc4f004c2afd220c17e7d8af8c3edd0462860b",
     "tests/manuals/reader-page-resources-test.cjs": "faebf2e6e670ae3add5619a60a993f8a6d06878d",
     "tests/manuals/reader-page-resources-integration.cjs": "f9f920b57ceab8d7efcaede9d2c9f7341a031763",
-    "docs/manuals-page-resources.md": "cca4872cdc27da43901263a0fa965f80aa9fcc13"
+    "docs/manuals-page-resources.md": "cca4872cdc27da43901263a0fa965f80aa9fcc13",
+    "tests/manuals/reader-outline-test.cjs": "b7c296bcb7e178b3796606ef76b09fd894c38a9a",
+    "tests/manuals/reader-outline-integration.cjs": "e1bdc85e185e961657eefbd93d58dc53a8491319",
+    "docs/manuals-outline.md": "e51ebe79315f03af880d298a9d5811e1f7fbb14e"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -643,6 +646,9 @@
     "docs/manuals-intake-manifest.md": "A",
     "tests/manuals/reader-page-resources-test.cjs": "A",
     "tests/manuals/reader-page-resources-integration.cjs": "A",
-    "docs/manuals-page-resources.md": "A"
+    "docs/manuals-page-resources.md": "A",
+    "tests/manuals/reader-outline-test.cjs": "A",
+    "tests/manuals/reader-outline-integration.cjs": "A",
+    "docs/manuals-outline.md": "A"
   }
 }
