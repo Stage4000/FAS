@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Product.php';
@@ -11,6 +12,7 @@ use FAS\Models\Coupon;
 use FAS\Models\Product;
 use FAS\Utils\Seo;
 use FAS\Utils\Timezone;
+use FAS\Utils\CSRF;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
@@ -91,6 +93,7 @@ function siAverage(array $values): float
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    CSRF::validateRequest();
     try {
         $postAction = $_POST['action'] ?? '';
 
@@ -116,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif ($postAction === 'create_coupon_campaign') {
             $discount = max(1, min(90, (int)($_POST['discount'] ?? 0)));
-            $campaignCode = strtoupper(preg_replace('/[^A-Z0-9]/', '', (string)($_POST['campaign_code'] ?? 'OLDSTOCK' . $discount)));
+            $campaignCode = preg_replace('/[^A-Z0-9]/', '', strtoupper((string)($_POST['campaign_code'] ?? 'OLDSTOCK' . $discount)));
             $expiresAt = trim((string)($_POST['expires_at'] ?? ''));
             $expiresAt = $expiresAt !== '' ? (Timezone::fromUserInput($expiresAt) ?? $expiresAt) : '';
 
@@ -454,6 +457,7 @@ $defaultExpiry = Timezone::toUserDateTime('+14 days', 'Y-m-d\TH:i');
                         </div>
 
                         <form method="POST" class="stale-campaign-form">
+                            <?= CSRF::tokenField() ?>
                             <input type="hidden" name="action" value="create_coupon_campaign">
                             <input type="hidden" name="discount" value="<?php echo (int)$campaign['discount']; ?>">
                             <div class="row g-2">
@@ -482,6 +486,7 @@ $defaultExpiry = Timezone::toUserDateTime('+14 days', 'Y-m-d\TH:i');
         </div>
     <?php endif; ?>
     <form method="POST" id="staleMarkdownForm">
+        <?= CSRF::tokenField() ?>
         <input type="hidden" name="action" value="apply_markdowns">
         <div class="card stale-card shadow-sm">
             <div class="card-body">

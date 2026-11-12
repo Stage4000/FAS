@@ -126,16 +126,22 @@ $headers = "From: $siteName <$mailFrom>\r\n";
 $headers .= "Reply-To: $email\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
-// Send email and capture result
-$mailSent = mail($to, $emailSubject, $emailBody, $headers, "-f$mailFrom");
+// Only acknowledge a message after the local mail transport accepts it.
+try {
+    $mailSent = mail($to, $emailSubject, $emailBody, $headers, "-f$mailFrom");
+} catch (Throwable $e) {
+    $mailSent = false;
+}
 
 // Log email failures to help diagnose delivery issues
 if (!$mailSent) {
     error_log("Contact form: Failed to send email notification for submission from $email");
+    http_response_code(503);
+    echo json_encode(['success' => false, 'message' => 'Your message could not be sent. Please try again.']);
+    exit;
 }
 
-// Return success to user regardless of email status (form was submitted successfully)
-// The main goal is to acknowledge the form submission
+// Mail acceptance is not a guarantee of recipient delivery.
 echo json_encode([
     'success' => true,
     'message' => 'Thank you for your message! We will get back to you soon.'

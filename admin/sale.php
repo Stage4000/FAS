@@ -37,14 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $value = min(99, $value);
         }
 
-        $startsAt = !empty($_POST['starts_at']) ? Timezone::fromUserInput($_POST['starts_at']) : null;
-        $endsAt   = !empty($_POST['ends_at'])   ? Timezone::fromUserInput($_POST['ends_at'])   : null;
+        $startInput = $_POST['starts_at'] ?? '';
+        $endInput = $_POST['ends_at'] ?? '';
+        $startProvided = !is_string($startInput) || trim($startInput) !== '';
+        $endProvided = !is_string($endInput) || trim($endInput) !== '';
+        $startsAt = is_string($startInput) && $startProvided ? Timezone::fromUserInput($startInput) : null;
+        $endsAt = is_string($endInput) && $endProvided ? Timezone::fromUserInput($endInput) : null;
 
-        // Validate datetime values
-        if ($startsAt !== null && strtotime($startsAt) === false) {
+        // A failed parse must not silently clear a supplied schedule.
+        if ($startProvided && $startsAt === null) {
             $error = 'Invalid "Starts At" date/time.';
-        } elseif ($endsAt !== null && strtotime($endsAt) === false) {
+        } elseif ($endProvided && $endsAt === null) {
             $error = 'Invalid "Ends At" date/time.';
+        } elseif ($startsAt !== null && $endsAt !== null
+            && Timezone::toUtcTimestamp($endsAt) < Timezone::toUtcTimestamp($startsAt)) {
+            $error = 'End time must not be earlier than start time.';
         } else {
 
         $sale = [
@@ -74,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $saleIsLive = false;
 if (!empty($sale['enabled'])) {
     $now       = time();
-    $startOk   = empty($sale['starts_at']) || (($ts = strtotime($sale['starts_at'])) !== false && $ts <= $now);
-    $endOk     = empty($sale['ends_at'])   || (($ts = strtotime($sale['ends_at']))   !== false && $ts >= $now);
+    $startOk   = empty($sale['starts_at']) || (($ts = Timezone::toUtcTimestamp($sale['starts_at'])) !== null && $ts <= $now);
+    $endOk     = empty($sale['ends_at'])   || (($ts = Timezone::toUtcTimestamp($sale['ends_at']))   !== null && $ts >= $now);
     $saleIsLive = $startOk && $endOk;
 }
 ?>
