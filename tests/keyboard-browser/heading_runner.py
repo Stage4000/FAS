@@ -74,7 +74,7 @@ REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
 
 # Exact reviewed catalog overlay; absent sparse paths retain committed-tree pins.
-CATALOG_REVIEW_BLOBS = {'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'products.php': {'mode': '100644', 'type': 'blob', 'sha': '61f69dce352988f4d4b861e829b98bebbd4aa7e4'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7a3be1af3d52d2ee549a371fdfdde8270153cae1'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '3c9cf58b4be6dcb5adc372269e1bad9fbd9bfd99'}, 'tests/catalog-loader-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '44244918933b5bd8220c5c202403b2a8742f8a50'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}, 'tests/catalog-focus-restoration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'ea5b7eaf6e5ff513ccf8b82827bdfacc45a5de0f'}, 'tests/catalog-heading-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '27a6b30a7310849c9ce4f27e3833c398e370b2bf'}, 'tests/saved-search-rendering-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'afb8575f7ed86101a96f510526863c210622941d'}}
+CATALOG_REVIEW_BLOBS = {'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'products.php': {'mode': '100644', 'type': 'blob', 'sha': '61f69dce352988f4d4b861e829b98bebbd4aa7e4'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '6918b8c402957a54b2c79b7e094031e78733a1d3'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '3f15191e0654cbc80005f710a0beeeee14de17cd'}, 'tests/catalog-loader-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '44244918933b5bd8220c5c202403b2a8742f8a50'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}, 'tests/catalog-focus-restoration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'ea5b7eaf6e5ff513ccf8b82827bdfacc45a5de0f'}, 'tests/catalog-heading-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '27a6b30a7310849c9ce4f27e3833c398e370b2bf'}, 'tests/saved-search-rendering-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'afb8575f7ed86101a96f510526863c210622941d'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'e57d1b3aad20283525d7bb159bc9a9d55563b659'}, 'tests/product-gallery-selection-test.php': {'mode': '100644', 'type': 'blob', 'sha': '6fb8ea818e9cb3ce6e3653d303c9e0874d8068a2'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'ba6a66467fb54ab388a7b517308838e900cd50b6'}, 'tests/product-gallery-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2a27ceb5ed77bb36b8b88d4594836a5e914fbf4d'}}
 CATALOG_SCROLL_BLOBS.update({path: entry for path, entry in CATALOG_REVIEW_BLOBS.items() if path not in ('docs/reviewed-product-facts.md',)})
 EMAIL_BLOBS.update(CATALOG_REVIEW_BLOBS)
 MALFORMED_BLOBS.update(EMAIL_BLOBS)
@@ -117,7 +117,23 @@ def restore_pre_catalog_review(data):
         raise ValueError('Exact historical catalog preimage required')
     return restored
 
+GALLERY_FIXED_SHA256 = 'cbfbccac53984a56b6334f82dd75521fb26f4c402a3ea76331c42bfb9f5fb752'
+GALLERY_PREIMAGE_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
+GALLERY_INDEX_DECLARATION = b'// Select the displayed hero, not the first stored photo; duplicate URLs select once.\n$activeImageIndex = array_search($mainImage, $images, true);\n\n'
+
+def restore_pre_gallery_selection(data):
+    if sha256(data) != GALLERY_FIXED_SHA256:
+        raise ValueError('Exact reviewed gallery source required')
+    if data.count(GALLERY_INDEX_DECLARATION) != 1 or data.count(b'$index === $activeImageIndex ?') != 2:
+        raise ValueError('Exact gallery selection patch required')
+    restored = data.replace(GALLERY_INDEX_DECLARATION, b'').replace(b'$index === $activeImageIndex ?', b'$index === 0 ?')
+    if sha256(restored) != GALLERY_PREIMAGE_SHA256 or GALLERY_PREIMAGE_SHA256 != SHARE_FIXED_SHA256:
+        raise ValueError('Gallery restoration must equal exact prior clipboard source')
+    return restored
+
 def heading_identity_bytes(path, data):
+    if path == 'product.php' and sha256(data) == GALLERY_FIXED_SHA256:
+        data = restore_pre_gallery_selection(data)
     if path == 'products.php' and sha256(data) == CATALOG_REVIEWED_SHA256:
         data = restore_pre_catalog_review(data)
     data = storage_identity.restore(path, data)
@@ -248,8 +264,8 @@ def verify_candidate(manifest, candidate):
             raise ValueError('Exact reviewed catalog candidate required')
         if entry['path'] == 'public/css/style.css' and entry['candidate_sha256'] == CATALOG_SCROLL_BEFORE_SHA256 and sha256(candidate[entry['path']]) != CATALOG_SCROLL_AFTER_SHA256:
             raise ValueError('Exact reviewed catalog CSS candidate required')
-        if entry['path'] == 'product.php' and entry['candidate_sha256'] == SHARE_PREIMAGE_SHA256 and sha256(candidate['product.php']) != SHARE_FIXED_SHA256:
-            raise ValueError('Exact reviewed clipboard candidate required')
+        if entry['path'] == 'product.php' and entry['candidate_sha256'] == SHARE_PREIMAGE_SHA256 and sha256(candidate['product.php']) != GALLERY_FIXED_SHA256:
+            raise ValueError('Exact reviewed gallery candidate required')
         if sha256(heading_identity_bytes(entry['path'], candidate[entry['path']])) != entry['candidate_sha256']:
             raise ValueError('Candidate identity mismatch: ' + entry['path'])
 
