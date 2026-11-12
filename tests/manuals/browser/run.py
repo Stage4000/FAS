@@ -73,6 +73,7 @@ def main():
         stage('reader-text-cache',['node','tests/manuals/reader-cache-test.cjs'],env,30)
         stage('reader-input-race',['node','tests/manuals/reader-input-race-test.cjs'],env,30)
         stage('fixture-config-reload',[sys.executable,'tests/manuals/config-reload-test.py'],env,120)
+        stage('feature-contrast',[sys.executable,'tests/manuals/contrast-source-test.py'],env,30)
         stage('hash-bound',[php,'tests/manuals/hash-bound-test.php'],env,30)
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
         stage('upload-storage',[sys.executable,'tests/manuals/run-upload-storage-tests.py'],env,240)

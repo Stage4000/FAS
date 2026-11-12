@@ -35,3 +35,10 @@
 @media(max-width:1000px){.manual-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.manual-catalog-search{flex-wrap:wrap}.manual-catalog-search label{min-width:200px}.manual-catalog-search label:first-child{flex-basis:100%}.manual-toolbar{justify-content:center}.manual-toolbar-group{justify-content:center}}
 @media(max-width:600px){.manual-library{padding:25px 16px}.manual-library-hero{padding:30px 22px}.manual-grid{grid-template-columns:1fr}.manual-catalog-search label{min-width:100%;width:100%}.manual-reader-heading{display:block}.manual-download{display:inline-block;margin-top:18px}.manual-kicker{margin-left:0}.manual-book-stage{padding:18px 10px 32px;min-height:260px}.manual-reader-bottom{align-items:flex-start;flex-direction:column}.manual-toolbar{padding:8px;gap:10px}.manual-form-grid{grid-template-columns:1fr}.manual-catalog-heading h2{font-size:22px}.manual-search input{min-width:100%;width:100%}.manual-admin{padding:16px;margin:10px auto}}
 @media(prefers-reduced-motion:reduce){.manual-reader *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+
+/* Text accents are separate from brand/button fills so both themes retain contrast. */
+.manual-library,.manual-admin{--manual-text-accent:#db0335;--manual-placeholder:#62656b}
+[data-theme="dark"] .manual-library,[data-theme="dark"] .manual-admin{--manual-text-accent:#ff96ac;--manual-placeholder:#bfc1c6}
+.manual-library .manual-eyebrow,.manual-library h1 span,.manual-library .manual-read-link,.manual-admin a:not(.manual-button),.manual-catalog-search>a,.manual-empty>a{color:var(--manual-text-accent)}
+.manual-library .manual-catalog-search input::placeholder{color:var(--manual-placeholder);opacity:1}
