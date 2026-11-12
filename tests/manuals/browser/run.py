@@ -40,7 +40,7 @@ def isolation():
 
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);args=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--fullsite',action='store_true');ap.add_argument('--assets');args=ap.parse_args();require(not args.fullsite or args.assets,'Fullsite cached assets required')
     output=Path(args.output).resolve();output.mkdir(parents=True,exist_ok=True)
     require(not output.is_relative_to(ROOT),'Evidence must be outside the checkout')
     report={'status':'failed','browser':'not_run','cleanup':False,'stages':[]}
@@ -73,10 +73,11 @@ def main():
         stage('reader-text-cache',['node','tests/manuals/reader-cache-test.cjs'],env,30)
         stage('reader-input-race',['node','tests/manuals/reader-input-race-test.cjs'],env,30)
         stage('fixture-config-reload',[sys.executable,'tests/manuals/config-reload-test.py'],env,120)
+        stage('hash-bound',[php,'tests/manuals/hash-bound-test.php'],env,30)
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
         stage('upload-storage',[sys.executable,'tests/manuals/run-upload-storage-tests.py'],env,240)
         stage('strict-open-basedir',[sys.executable,'tests/manuals/open-basedir-test.py'],env,180)
-        stage('fixture-build',[sys.executable,str(Path(__file__).with_name('prepare.py')),str(fixture)],env)
+        stage('fixture-build',[sys.executable,str(Path(__file__).with_name('prepare-fullsite.py' if args.fullsite else 'prepare.py')),str(fixture)],env)
         receipt=json.loads((fixture/'browser-fixture.json').read_text())
         (output/'fixture-receipt.json').write_text(json.dumps(receipt,indent=2))
         with socket.socket() as sock:
@@ -104,7 +105,7 @@ def main():
             errors=fixture/'php-errors.log'
             require(not errors.exists() or not errors.read_text().strip(),'PHP error log is nonempty before browser; fix the runtime rather than suppress warnings')
             report['browser']='running'
-            stage('browser',['node',str(Path(__file__).with_name('check.cjs')),base,str(fixture),str(output),php],env,240)
+            stage('browser',['node',str(Path(__file__).with_name('fullsite-check.cjs' if args.fullsite else 'check.cjs')),base,str(fixture),str(output),php]+([str(Path(args.assets).resolve())] if args.fullsite else []),env,240)
             summary=json.loads((output/'browser-summary.json').read_text())
             require(summary['passed']==summary['total'] and not summary['unexpected'],'Incomplete/failed browser case inventory')
             report['browser']='passed'

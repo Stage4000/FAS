@@ -42,6 +42,32 @@ jobs:
             /includes/admin-accounts.php
             /includes/security.php
             /includes/manual-reader.php
+            /includes/header.php
+            /includes/footer.php
+            /includes/banner-html.php
+            /includes/ebay-seller-rating.php
+            /src/utils/Seo.php
+            /src/utils/ResponsiveImage.php
+            /src/utils/ShippingRules.php
+            /src/utils/ProductCondition.php
+            /src/utils/ProductIdentifierOutput.php
+            /src/utils/ReviewedProductFacts.php
+            /admin/includes/nav.php
+            /admin/includes/footer.php
+            /admin/css/admin-style.css
+            /admin/css/admin-notifications.css
+            /admin/js/pwa-installer.js
+            /public/css/style.css
+            /public/js/runtime-guard.js
+            /public/js/timezone.js
+            /public/js/analytics.js
+            /public/js/address-autofill.js
+            /public/js/main.js
+            /public/js/growth.js
+            /public/js/animations.js
+            /public/js/theme-toggle.js
+            /gallery/favicons/favicon.png
+            /gallery/hero-image.png
             /manuals/
             /public/css/manuals.css
             /public/js/manual-editor.js
@@ -78,6 +104,8 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/fas-manual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
           PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-manual-browsers" \
             "$RUNNER_TEMP/fas-manual-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache official shared-shell presentation assets before isolation
+        run: /usr/bin/python3 tests/manuals/browser/prepare-assets.py --output "$RUNNER_TEMP/fas-manual-shell-assets"
       - name: Real reader and PDF.js in a loopback-only kernel namespace
         # No fallback. Source pin changes need independent review before a run.
         run: |
@@ -94,11 +122,29 @@ jobs:
               FAS_EXPECTED_PARENT_NETNS="$5" \
               /usr/bin/python3 tests/manuals/browser/run.py --output "$4/fas-manual-output"
           ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Shared shell light/dark desktop/mobile in separate loopback-only namespace
+        # No fallback. Source pin changes need independent review before a run.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-manual-shell-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              NODE_PATH="$4/fas-manual-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-manual-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              /usr/bin/python3 tests/manuals/browser/run.py --output "$4/fas-manual-shell-output" --fullsite --assets "$4/fas-manual-shell-assets"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
       - name: Retain synthetic screenshots and sanitized results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: manual-reader-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/fas-manual-output/
+          path: |
+            ${{ runner.temp }}/fas-manual-output/
+            ${{ runner.temp }}/fas-manual-shell-output/
           if-no-files-found: error
           retention-days: 7

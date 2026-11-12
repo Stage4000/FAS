@@ -154,7 +154,9 @@ final class ManualStorage
             if (!$before || !$stat || ($stat['mode'] & 0170000) !== 0100000 || $before['dev'] !== $stat['dev'] || $before['ino'] !== $stat['ino']
                 || !is_int($file['bytes'] ?? null) || $file['bytes'] < 1 || $file['bytes'] > self::MAX_BYTES || $stat['size'] !== $file['bytes']) throw new \RuntimeException('The stored PDF failed its integrity check.');
             $hash = hash_init('sha256');
-            $read = hash_update_stream($hash, $input);
+            // A file growing after fstat must not turn integrity validation into
+            // an unbounded read. One extra byte detects that growth and fails closed.
+            $read = hash_update_stream($hash, $input, $file['bytes'] + 1);
             if ($read !== $file['bytes'] || !hash_equals((string)($file['sha256'] ?? ''), hash_final($hash)) || !rewind($input)) throw new \RuntimeException('The stored PDF failed its integrity check.');
             return $input;
         } catch (\Throwable $e) { fclose($input); throw $e; }
