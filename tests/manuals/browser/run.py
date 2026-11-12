@@ -69,6 +69,7 @@ def main():
         require(report['runtime']['reportlab_distribution_package'],'Expected apt-owned ReportLab package required')
         report['php_version']=report['runtime']['php_version']
         # These execute after kernel isolation, never as an unisolated workflow pre-step.
+        stage('reader-input-race',['node','tests/manuals/reader-input-race-test.cjs'],env,30)
         stage('fixture-config-reload',[sys.executable,'tests/manuals/config-reload-test.py'],env,120)
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
         stage('upload-storage',[sys.executable,'tests/manuals/run-upload-storage-tests.py'],env,240)

@@ -29,6 +29,8 @@ async function initialize(root) {
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   let renders = [], animations = [], motionOff = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
+  let pageInputEdited = false;
+  $('[data-page]').addEventListener('input', () => { pageInputEdited = true; });
   const textCache = new Map();
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const wide = () => stage.clientWidth >= 740;
@@ -59,7 +61,8 @@ async function initialize(root) {
     const first = spreadStart(page, spread());
     $('[data-prev]').disabled = first === 1;
     $('[data-next]').disabled = visiblePages.at(-1) >= pdf.numPages;
-    $('[data-page]').value = page;
+    // A completed older render must not replace a newer, not-yet-submitted edit.
+    if (!pageInputEdited) $('[data-page]').value = page;
     $('[data-page]').max = pdf.numPages;
     $('[data-count]').textContent = `of ${pdf.numPages}`;
     $('[data-layout]').textContent = spread() ? 'Single page' : 'Two-page view';
@@ -142,10 +145,11 @@ async function initialize(root) {
       stage.removeAttribute('aria-busy');
     }
   }
-  const turn = direction => draw(nextPage(page, pdf.numPages, spread(), direction), true);
+  const navigate = (requested, turn = true, updateHash = true) => { pageInputEdited = false; return draw(requested, turn, updateHash); };
+  const turn = direction => navigate(nextPage(page, pdf.numPages, spread(), direction));
   $('[data-prev]').addEventListener('click', () => { if(pdf)turn(-1); });
   $('[data-next]').addEventListener('click', () => { if(pdf)turn(1); });
-  $('[data-page-form]').addEventListener('submit', event => { event.preventDefault(); const n=Number($('[data-page]').value); if(pdf && Number.isSafeInteger(n) && n>=1 && n<=pdf.numPages) draw(n,true); });
+  $('[data-page-form]').addEventListener('submit', event => { event.preventDefault(); const n=Number($('[data-page]').value); if(pdf && Number.isSafeInteger(n) && n>=1 && n<=pdf.numPages) { pageInputEdited=false;draw(n,true); } });
   $('[data-layout]').addEventListener('click', () => { preferredSpread=!preferredSpread;draw(page); });
   $('[data-zoom-out]').addEventListener('click', () => {zoom=Math.max(.75,zoom-.25);draw(page);});
   $('[data-zoom-in]').addEventListener('click', () => {zoom=Math.min(2.5,zoom+.25);draw(page);});
@@ -153,13 +157,13 @@ async function initialize(root) {
   root.addEventListener('keydown', event => {
     if(!pdf || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(event.target.tagName) || event.ctrlKey || event.metaKey || event.altKey) return;
     if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();turn(event.key==='ArrowLeft'?-1:1);}
-    if(event.key==='Home'||event.key==='End'){event.preventDefault();draw(event.key==='Home'?1:pdf.numPages,true);}
+    if(event.key==='Home'||event.key==='End'){event.preventDefault();navigate(event.key==='Home'?1:pdf.numPages);}
   });
   let touch=null;
   stage.addEventListener('pointerdown', event => {if(event.pointerType==='touch'&&event.isPrimary&&zoom===1)touch={x:event.clientX,y:event.clientY};});
   stage.addEventListener('pointerup', event => {if(touch&&pdf){const dx=event.clientX-touch.x,dy=event.clientY-touch.y;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)turn(dx>0?-1:1);}touch=null;});
   stage.addEventListener('pointercancel',()=>{touch=null;});
-  window.addEventListener('hashchange',()=>{if(pdf)draw(queryPage(location.hash,pdf.numPages),false,false);});
+  window.addEventListener('hashchange',()=>{if(pdf)navigate(queryPage(location.hash,pdf.numPages),false,false);});
   const observer=new ResizeObserver(()=>{const width=stage.clientWidth;if(Math.abs(width-lastWidth)<2)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>draw(page),120);});observer.observe(stage);
   const full=$('[data-fullscreen]');
   if(document.fullscreenEnabled&&root.requestFullscreen){full.hidden=false;full.addEventListener('click',async()=>{try{if(document.fullscreenElement===root)await document.exitFullscreen();else await root.requestFullscreen();}catch(_){say('Full screen is unavailable in this browser.');}});document.addEventListener('fullscreenchange',()=>{full.textContent=document.fullscreenElement===root?'Exit full screen':'Full screen';draw(page);});}
@@ -176,7 +180,7 @@ async function initialize(root) {
         $('[data-search-status]').textContent=`Searching page ${n} of ${pdf.numPages}…`;
         const text=await textFor(n);if(token!==searchEpoch)return;hasText=hasText||!!text.trim();
         const pos=text.toLocaleLowerCase().indexOf(term);
-        if(pos>=0){hits++;const li=document.createElement('li'),button=document.createElement('button'),strong=document.createElement('strong'),excerpt=document.createElement('span');button.type='button';strong.textContent=`Page ${n}`;excerpt.textContent=(pos>45?'…':'')+text.slice(Math.max(0,pos-45),pos+term.length+90).replace(/\s+/g,' ');button.append(strong,excerpt);button.addEventListener('click',()=>{draw(n,true);stage.focus();});li.append(button);$('[data-search-results]').append(li);}
+        if(pos>=0){hits++;const li=document.createElement('li'),button=document.createElement('button'),strong=document.createElement('strong'),excerpt=document.createElement('span');button.type='button';strong.textContent=`Page ${n}`;excerpt.textContent=(pos>45?'…':'')+text.slice(Math.max(0,pos-45),pos+term.length+90).replace(/\s+/g,' ');button.append(strong,excerpt);button.addEventListener('click',()=>{navigate(n);stage.focus();});li.append(button);$('[data-search-results]').append(li);}
         if(hits>=50){$('[data-search-status]').textContent='First 50 matching pages shown. Narrow your search for more specific results.';break;}
         if(n===pdf.numPages)$('[data-search-status]').textContent=hits?`${hits} matching page${hits===1?'':'s'}.`:hasText?'No matching document text found.':'This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.';
       }
