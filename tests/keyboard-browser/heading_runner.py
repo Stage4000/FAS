@@ -66,6 +66,10 @@ REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
 # Exact catalog focus test additions; legacy identities and controls stay pinned.
 CATALOG_SCROLL_BLOBS = {'tests/keyboard-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '75ad7e455e8dfced062d568eb1defd0bee40241a'}, 'tests/keyboard-browser/README.md': {'mode': '100644', 'type': 'blob', 'sha': '567982a7ebf4a4ef8a42ce5c5c3eb7cd53888f91'}, 'tests/catalog-scroll-offset-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'bd822d1f3cee43f13cec01e151685ad88134da58'}, 'tests/keyboard-browser/catalog-scroll.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c189ae8cee2b45af2ef9c51d677415415ba39203'}, 'tests/keyboard-browser/catalog-scroll-identity.cjs': {'mode': '100644', 'type': 'blob', 'sha': '42aac464164ce8231fe6ff0e81445a5b2db48bdd'}, 'tests/keyboard-browser/catalog-scroll-policy.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7716c602d7640c58286964940b2f69f8a5150256'}, 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': '29c05ea25c44544ffc1fd1653aea83e1e8474b03'}, 'tests/keyboard-browser/catalog-scroll-guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '821bd44f751b11830931ed67b1a34a5157206f10'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': 'f2640f478469406dfc7da988499f7f7324e662a9'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'bc7600987469c3fb34dec0122ada6723c0b0cc78'}}
+# Exact reviewed shipping amount guard and existing main rotor facts.
+# Only these pinned bytes are added; no generic source exemption.
+SHIPPING_AMOUNT_BLOBS = {'src/shipping/CarrierRates.php': {'mode': '100644', 'type': 'blob', 'sha': '1de6765d76ab0ea11961971f9c70d53c8c019100'}, 'tests/shipping-parcel-total-boundary-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'cf8d410001a652d4ecaf9817fdb2820335771513'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '492c113939693adcd50c2701a96fbe8132418e81'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '34311572806f6794eee7313cda9728a363ed67e1'}, 'docs/reviewed-product-facts.md': {'mode': '100644', 'type': 'blob', 'sha': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060'}, 'src/utils/ReviewedProductFacts.php': {'mode': '100644', 'type': 'blob', 'sha': '1db5e4468b9730b12cad79f41f7094c2144571fb'}, 'tests/rotor-reviewed-facts-test.php': {'mode': '100644', 'type': 'blob', 'sha': 'ee9ce4400c99262ae33857245350e2806649a94e'}}
+CATALOG_SCROLL_BLOBS.update(SHIPPING_AMOUNT_BLOBS)
 EMAIL_BLOBS.update(CATALOG_SCROLL_BLOBS)
 MALFORMED_BLOBS.update(EMAIL_BLOBS)
 STORAGE_BLOBS.update(MALFORMED_BLOBS)
@@ -447,3 +451,4 @@ def run_heading_variants(root, site, origin, assets, output):
         'failures':failures, 'expected_negative_controls':VARIANTS[1:],
         'candidate_restored':True}, indent=2)+'\n')
     return int(bool(failures))
+
