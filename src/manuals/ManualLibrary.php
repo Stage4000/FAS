@@ -273,10 +273,12 @@ final class ManualLibrary
     }
     public function searchPublished(string $query='',string $manufacturer='',int $offset=0): array {
         if(!preg_match('//u',$query) || !preg_match('//u',$manufacturer) || mb_strlen($query)>160 || mb_strlen($manufacturer)>80 || $offset<0 || $offset>1000000)throw new \InvalidArgumentException('Search is too long or page is invalid.');
-        if(!self::installed($this->db))return ['items'=>[],'total'=>0,'manufacturers'=>[]];
+        if(!self::installed($this->db))return ['items'=>[],'total'=>0,'manufacturers'=>[],'manufacturers_truncated'=>false];
         // Public metadata is in a bounded JSON snapshot. SQLite json_extract keeps private drafts out of search.
         $gate="published_json IS NOT NULL AND json_extract(published_json,'$.rights')='cleared' AND json_extract(draft_json,'$.rights')='cleared'";
-        $facet=$this->db->query("SELECT json_extract(published_json,'$.manufacturer') AS name,count(*) AS total FROM main.manuals WHERE $gate GROUP BY name ORDER BY name COLLATE NOCASE")->fetchAll(\PDO::FETCH_ASSOC);
+        $facet=$this->db->query("SELECT json_extract(published_json,'$.manufacturer') AS name,count(*) AS total FROM main.manuals WHERE $gate GROUP BY name ORDER BY name COLLATE NOCASE,name LIMIT 101")->fetchAll(\PDO::FETCH_ASSOC);
+        // Bound suggestions, not the exact manufacturer filter. One extra detects truncation.
+        $facetsTruncated=count($facet)>100; if($facetsTruncated)array_pop($facet);
         $where=$gate;$params=[];
         if($manufacturer!==''){$where.=" AND json_extract(published_json,'$.manufacturer')=?";$params[]=$manufacturer;}
         $terms=preg_split('/\s+/u',trim($query),-1,PREG_SPLIT_NO_EMPTY);
@@ -289,6 +291,6 @@ final class ManualLibrary
         $q=$this->db->prepare("SELECT id FROM main.manuals WHERE $where ORDER BY json_extract(published_json,'$.manufacturer') COLLATE NOCASE,json_extract(published_json,'$.title') COLLATE NOCASE,id LIMIT 24 OFFSET ?");
         foreach($params as $i=>$p)$q->bindValue($i+1,$p);$q->bindValue(count($params)+1,$offset,\PDO::PARAM_INT);$q->execute();
         $items=[];foreach($q->fetchAll(\PDO::FETCH_COLUMN) as $id){$item=$this->getPublished((int)$id);if($item===null)continue;unset($item['file']);$items[]=$item;}
-        return ['items'=>$items,'total'=>$total,'manufacturers'=>$facet];
+        return ['items'=>$items,'total'=>$total,'manufacturers'=>$facet,'manufacturers_truncated'=>$facetsTruncated];
     }
 }

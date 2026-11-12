@@ -42,3 +42,5 @@
 [data-theme="dark"] .manual-library,[data-theme="dark"] .manual-admin{--manual-text-accent:#ff96ac;--manual-placeholder:#bfc1c6}
 .manual-library .manual-eyebrow,.manual-library h1 span,.manual-library .manual-read-link,.manual-admin a:not(.manual-button),.manual-catalog-search>a,.manual-empty>a{color:var(--manual-text-accent)}
 .manual-library .manual-catalog-search input::placeholder{color:var(--manual-placeholder);opacity:1}
+
+.manual-library .manual-filter-help{margin:10px 0 18px;font-size:13px;line-height:1.5}
