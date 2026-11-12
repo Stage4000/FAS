@@ -1,6 +1,6 @@
 """HTTP checks on the synthetic fixture only. Pass fixture directory and loopback base URL."""
 from pathlib import Path
-import urllib.request, urllib.error, urllib.parse, http.cookiejar, re, html, sqlite3, json,sys
+import urllib.request, urllib.error, urllib.parse, http.cookiejar, re, html, sqlite3, json,sys,hashlib
 OUT=Path(sys.argv[1]).resolve();BASE=sys.argv[2]
 assert BASE.startswith('http://127.0.0.1:')
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -27,6 +27,26 @@ def field(body,name):return html.unescape(re.search('name="'+name+'" value="([^"
 def tokens(path):
     body=text(req(path));return {name:field(body,name) for name in ['csrf_token','revision','request_key']}
 config=OUT/'site/src/config/config.php';original=config.read_text()
+def release_probe(path, expected):
+    """Observe the actual config require on this request without retaining data."""
+    route={'/manuals/':'catalog','/manuals/view.php?id=1':'viewer','/manuals/file.php?id=1':'file'}[path]
+    marker=OUT/'config-observation.json';marker.unlink(missing_ok=True)
+    response=req(path,who=anon)
+    try:
+        observation=json.loads(marker.read_text())
+        if not isinstance(observation,dict):observation={}
+    except (OSError,ValueError):observation={}
+    digest=hashlib.sha256(expected.encode()).hexdigest()
+    note={key:observation.get(key) for key in ['php_version','sapi','loaded_flag','opcache_loaded','opcache_enable','opcache_enable_cli','opcache_validate_timestamps','opcache_revalidate_path','opcache_revalidate_freq','opcache_file_update_protection']}
+    note.update(case='string_release',route=route,observation_present=bool(observation),
+                python_disk_matches_expected=config.read_text()==expected,
+                php_disk_matches_expected=observation.get('disk_sha256')==digest,
+                http_status=response[0],response_bytes=len(response[2]),
+                body_kind=('pdf' if response[2].startswith(b'%PDF-') else 'catalog_not_found' if response[2]==b'Page not found.' else 'manual_not_found' if response[2]==b'Manual not found.' else 'other'),
+                php_diagnostic_body=any(value in response[2] for value in [b'Warning:',b'Fatal error:',b'Parse error:',b'Notice:',b'Deprecated:']))
+    # Only the outer stage sanitizer's fixed schema may enter CI reports.
+    print('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps(note,sort_keys=True),flush=True)
+    return response,note
 check(req('/manuals/',who=anon)[0]==200,'Public catalog available with explicit release flag')
 check('Example Motors' in text(req('/manuals/?q=ZX&manufacturer=Example+Motors',who=anon)),'Manufacturer/model metadata displayed')
 check('No matching manuals' in text(req('/manuals/?q=unfindable',who=anon)),'No-match state')
@@ -78,9 +98,13 @@ check(req(path,{**data,**new,'rights':'restricted','action':'draft'})[0]==303,'R
 check(req('/manuals/file.php?id='+str(new_id),who=anon)[0]==404,'Rights restriction withdraws PDF bytes immediately')
 check(req('/manuals/view.php?id='+str(new_id),who=anon)[0]==404,'Rights restriction withdraws viewer')
 try:
-    config.write_text(original.replace("'public_enabled'=>true","'public_enabled'=>'true'"))
+    assert original.count("'public_enabled'=>true")==1,'Synthetic release flag mutation must be exact'
+    expected=original.replace("'public_enabled'=>true","'public_enabled'=>'true'")
+    config.write_text(expected)
     for p in ['/manuals/','/manuals/view.php?id=1','/manuals/file.php?id=1']:
-        check(req(p,who=anon)[0]==404,'String release flag fails closed '+p)
+        response,observed=release_probe(p,expected)
+        check(response[0]==404,'String release flag fails closed '+p)
+        assert observed['observation_present'] and observed['loaded_flag']=='string_true' and observed['python_disk_matches_expected'] and observed['php_disk_matches_expected'], 'Actual endpoint did not observe the exact synthetic string release config'
     check(req('/admin/manuals-preview.php?id=1')[0]==200,'Admin private preview works during release hold')
 finally:config.write_text(original)
 with sqlite3.connect(OUT/'site/fixture.sqlite') as db:db.execute('UPDATE admin_users SET is_active=0 WHERE id=1')

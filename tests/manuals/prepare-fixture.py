@@ -17,6 +17,25 @@ for rel in ['src/utils/CSRF.php','src/utils/Timezone.php','src/config/Database.p
 (SITE/'includes/header.php').write_text('<?php ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FAS synthetic manuals</title><link rel="stylesheet" href="/public/css/manuals.css"></head><body style="margin:0"><nav style="background:#242629;color:white;padding:20px;font:700 18px Arial">FLIP <span style="color:#ff6485">&</span> STRIP</nav><main>')
 (SITE/'includes/footer.php').write_text('</main></body></html>')
 config="<?php return ['database'=>['path'=>__DIR__.'/../../fixture.sqlite'],'manuals'=>['storage_path'=>"+repr(str(OUT/'private'))+",'public_enabled'=>true]];"
+# Fixture-only observation executes when the real endpoint requires its config.
+# The marker is private scratch, never a web route or uploaded artifact.
+config=config.replace('<?php return ', '<?php $fasFixtureConfig = ', 1)+r"""
+$fasFixtureFlag=$fasFixtureConfig['manuals']['public_enabled']??null;
+$fasFixtureBool=static function(string $name){$v=ini_get($name);return $v===false?null:in_array(strtolower((string)$v),['1','on','true'],true);};
+$fasFixtureInt=static function(string $name){$v=ini_get($name);return $v===false?null:(int)$v;};
+file_put_contents(__DIR__.'/../../../config-observation.json',json_encode([
+ 'php_version'=>PHP_VERSION,'sapi'=>PHP_SAPI,
+ 'loaded_flag'=>$fasFixtureFlag===true?'boolean_true':($fasFixtureFlag===false?'boolean_false':($fasFixtureFlag==='true'?'string_true':'other')),
+ 'disk_sha256'=>hash_file('sha256',__FILE__),
+ 'opcache_loaded'=>extension_loaded('Zend OPcache'),
+ 'opcache_enable'=>$fasFixtureBool('opcache.enable'),'opcache_enable_cli'=>$fasFixtureBool('opcache.enable_cli'),
+ 'opcache_validate_timestamps'=>$fasFixtureBool('opcache.validate_timestamps'),
+ 'opcache_revalidate_path'=>$fasFixtureBool('opcache.revalidate_path'),
+ 'opcache_revalidate_freq'=>$fasFixtureInt('opcache.revalidate_freq'),
+ 'opcache_file_update_protection'=>$fasFixtureInt('opcache.file_update_protection')
+],JSON_THROW_ON_ERROR));
+return $fasFixtureConfig;
+"""
 (SITE/'src/config/config.php').write_text(config)
 pw=subprocess.check_output([PHP,'-r','echo password_hash("fixture-only",PASSWORD_DEFAULT);'],text=True)
 with sqlite3.connect(SITE/'fixture.sqlite') as db:

@@ -100,11 +100,29 @@ proves the inner HTTP frame survives while HTML, credentials, cookies and databa
 payloads do not reach the report. Restrictions, logging and pass criteria remain
 unchanged. A hosted rerun must identify the HTTP failure before any runtime fix.
 
+The fourth hosted run at `974e96d8679cdda45e8e5e3bd1cef5ae4e510391`
+located that failure at the first catalog request after changing the synthetic
+release flag from boolean true to string 'true'. The actual status and loaded
+config were still absent. The fixture now records a private observation when the
+unchanged endpoint requires its config. Before the unchanged 404 assertion, the
+HTTP test emits only a closed-schema receipt: loaded flag kind, expected-file
+match booleans, status/length/body classification, PHP version and OPcache settings.
+The sanitizer drops config contents, hashes, paths, headers and response bodies.
+Missing/stale observations fail rather than silently authorizing a fallback.
+
+Twenty-four rapid config transitions passed using the actual release-gate helper
+on local PHP 8.3.36 and 8.4.24 with strict open_basedir and display_errors enabled.
+Neither local runtime loads OPcache, so this does not prove the hosted cause.
+Opcode caching is still only a hypothesis. No cache setting, timing delay,
+assertion, runtime gate or PHP restriction was changed to make tests pass.
+The next hosted receipt must distinguish loaded-config drift from another error.
+
 Every stage now retains bounded structured diagnostics on success, nonzero exit
 and timeout: exit code, byte counts, truncation status, fixed error categories,
 known repository-relative traceback locations and sanitized dependency receipts.
 At most 64 KiB from each output stream is inspected, with at most 16 categories,
-12 source frames, four fixed-enum range-normalization receipts and 8 KiB of
+12 source frames, four fixed-enum range-normalization receipts, three closed-schema
+release-config receipts and 8 KiB of
 resulting diagnostics. No raw output, exception or
 assertion message, HTML/body, cookie, token, authorization header, configuration,
 database or secret-bearing absolute path is uploaded. Unknown receipt fields and
@@ -171,7 +189,7 @@ be erased from the browser. No manual release or production rollout is implied.
 ## Local v2 verification checkpoint
 
 The source-only integration has passed 15 source-guard regressions, 17 process
-lifecycle checks, 20 exact-denial policy checks, 33 sanitized-stage/dependency checks, 32 normalization-oracle checks,
+lifecycle checks, 20 exact-denial policy checks, 47 sanitized-stage/dependency checks, 32 normalization-oracle checks,
 73 range/descriptor checks,
 44 backend checks, 51 original HTTP checks, 103 range HTTP checks, 52 strict
 open_basedir checks (which also rerun the HTTP suites), and 43 strict reader
@@ -200,3 +218,22 @@ for this diagnostic revision. All 16 browser groups remain unrun.
 
 The one-line reader fix hides Stop when an empty replacement invalidates the
 old search. Its regression failed before the change and passed afterward.
+
+
+## Upload-storage acceptance
+
+The `upload-storage` stage runs `tests/manuals/run-upload-storage-tests.py`
+inside the same fresh loopback-only kernel namespace, with the exact pinned
+`/usr/bin/php8.3` runtime. It must pass before the strict filesystem suite and
+reader fixture/browser. It includes 81 storage checks in each native and
+emulated-legacy PDO mode, 16 concurrent-process checks in each mode, and 15
+actual synthetic multipart checks, plus the existing backend/range/HTTP suites.
+The native mode on the hosted runtime is mandatory; emulation does not replace
+that compatibility check. Its owned process group, descendants, timeout and
+sanitized diagnostics use the unchanged stage runner. Only fixed diagnostic
+fields reach uploaded artifacts, and all private synthetic files remain under
+the job scratch tree until verified process cleanup.
+
+This protects idempotent uploads from leaving redundant successful-retry
+copies, without globally deduplicating, sweeping old files, changing the
+upload limit, publishing a manual, or altering the public release flag.

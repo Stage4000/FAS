@@ -54,11 +54,32 @@ def normalization_receipt(value):
     return result
 
 
+def release_config_receipt(value):
+    """No config values, paths, hashes, response bodies or headers are retained."""
+    if not isinstance(value,dict) or value.get('case')!='string_release' or value.get('route') not in ('catalog','viewer','file'):return None
+    def integer(x,low,high):return x if isinstance(x,int) and not isinstance(x,bool) and low<=x<=high else None
+    version=value.get('php_version')
+    result={'case':'string_release','route':value['route'],
+            'php_version':version if isinstance(version,str) and re.fullmatch(r'\d+\.\d+\.\d+',version) else None,
+            'sapi':value.get('sapi') if value.get('sapi') in ('cli-server','apache2handler','fpm-fcgi') else 'other',
+            'loaded_flag':value.get('loaded_flag') if value.get('loaded_flag') in ('boolean_true','boolean_false','string_true','other') else 'unobserved',
+            'http_status':integer(value.get('http_status'),100,599),
+            'response_bytes':integer(value.get('response_bytes'),0,52428800),
+            'body_kind':value.get('body_kind') if value.get('body_kind') in ('pdf','catalog_not_found','manual_not_found','other') else 'other'}
+    for key in ('observation_present','python_disk_matches_expected','php_disk_matches_expected','opcache_loaded','php_diagnostic_body'):
+        result[key]=value.get(key) is True
+    for key in ('opcache_enable','opcache_enable_cli','opcache_validate_timestamps','opcache_revalidate_path'):
+        result[key]=value.get(key) if isinstance(value.get(key),bool) else None
+    for key in ('opcache_revalidate_freq','opcache_file_update_protection'):
+        result[key]=integer(value.get(key),0,86400)
+    return result
+
+
 def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
     known=sorted(set(source_paths),key=len,reverse=True)
     out,out_bytes,out_cut=tail(stdout);err,err_bytes,err_cut=tail(stderr)
     text=out+'\n'+err
-    events=[];frames=[];receipt=None;normalization=[]
+    events=[];frames=[];receipt=None;normalization=[];release_config=[]
     def event(name):
         if name not in events and len(events)<MAX_EVENTS:events.append(name)
     if re.search(r"No module named ['\"]reportlab(?:\.[A-Za-z_][A-Za-z0-9_]*)*['\"]",text):event('reportlab_module_missing')
@@ -90,12 +111,19 @@ def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
                 if note is None:event('malformed_normalization_receipt')
                 elif len(normalization)<4:normalization.append(note)
             except (ValueError,TypeError):event('malformed_normalization_receipt')
+        if line.startswith('FAS_RELEASE_CONFIG_RECEIPT '):
+            try:
+                note=release_config_receipt(json.loads(line[len('FAS_RELEASE_CONFIG_RECEIPT '):]))
+                if note is None:event('malformed_release_config_receipt')
+                elif len(release_config)<3:release_config.append(note)
+            except (ValueError,TypeError):event('malformed_release_config_receipt')
     result={'exit_code':exit_code if isinstance(exit_code,int) else None,'timed_out':bool(timed_out),
             'stdout_bytes':out_bytes,'stderr_bytes':err_bytes,'input_tail_truncated':out_cut or err_cut,
             'events':events,'source_frames':frames,
             'pass_lines_in_retained_tail':sum(1 for line in text.splitlines() if line.startswith('PASS '))}
     if receipt is not None:result['runtime']=receipt
     if normalization:result['range_normalization']=normalization
+    if release_config:result['release_config']=release_config
     # All content above is fixed labels, known source paths, counts or sanitized versions.
     assert len(json.dumps(result).encode())<=8192,'Structured diagnostics exceeded their fixed budget'
     return result

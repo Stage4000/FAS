@@ -70,6 +70,7 @@ def main():
         report['php_version']=report['runtime']['php_version']
         # These execute after kernel isolation, never as an unisolated workflow pre-step.
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
+        stage('upload-storage',[sys.executable,'tests/manuals/run-upload-storage-tests.py'],env,240)
         stage('strict-open-basedir',[sys.executable,'tests/manuals/open-basedir-test.py'],env,180)
         stage('fixture-build',[sys.executable,str(Path(__file__).with_name('prepare.py')),str(fixture)],env)
         receipt=json.loads((fixture/'browser-fixture.json').read_text())

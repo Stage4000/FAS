@@ -51,6 +51,7 @@ jobs:
             /docs/manuals-system.md
             /docs/manuals-range-delivery.md
             /docs/manuals-open-basedir.md
+            /docs/manuals-upload-storage.md
             /tests/manuals/
             /.github/workflows/manual-reader-browser.yml
       - name: Check exact source and offline guard regressions

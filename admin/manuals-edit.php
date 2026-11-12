@@ -29,8 +29,16 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
         if(!$id){
             if(!isset($keys[$key]))throw new InvalidArgumentException('Open a fresh upload form.');
             if(!$auth->isLoggedIn())throw new RuntimeException('Administrator session expired.');
-            $file=manualsStorage()->acceptUpload(is_array($_FILES['pdf']??null)?$_FILES['pdf']:[]);
-            $saved=$manualsRepo->create($input,$file,(int)$admin['id'],$key);
+            $storage=manualsStorage();
+            try {
+                $file=$storage->acceptUpload(is_array($_FILES['pdf']??null)?$_FILES['pdf']:[]);
+                $saved=$manualsRepo->create($input,$file,(int)$admin['id'],$key);
+            } finally {
+                // Keep the committed/referenced original, including uncertain
+                // commits. Remove only an unused file created by this request.
+                try {$storage->settleNewFiles($manualsDb);}
+                catch(Throwable $cleanupError){error_log('Manual upload cleanup deferred: '.$cleanupError->getMessage());}
+            }
         }else{$saved=$manualsRepo->save($id,$revision,$input,$action,(int)$admin['id']);}
         header('Location: manuals-edit.php?id='.$saved['id'].'&saved=1',true,303);exit;
     }catch(DomainException $e){http_response_code(409);$error=$e->getMessage();}

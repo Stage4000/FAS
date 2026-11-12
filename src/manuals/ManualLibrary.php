@@ -7,6 +7,14 @@ final class ManualStorage
 {
     public const MAX_BYTES = 52428800;
     private $root;
+    /** Open descriptors prove ownership of files exclusively created by this instance. */
+    private $newFiles = [];
+    public function __destruct()
+    {
+        // An abandoned/uncertain operation preserves its files. Destruction only
+        // closes descriptors; it is never an orphan collector.
+        foreach ($this->newFiles as $handle) if (is_resource($handle)) fclose($handle);
+    }
     public function __construct(string $root, string $documentRoot)
     {
         $normalize = static function (string $p): string { return DIRECTORY_SEPARATOR === '\\' ? strtolower(str_replace('\\','/',$p)) : $p; };
@@ -39,19 +47,20 @@ final class ManualStorage
         };
         return max(0, min(self::MAX_BYTES, $bytes((string) ini_get('upload_max_filesize')), $bytes((string) ini_get('post_max_size')) - 65536));
     }
+    /** Track fresh HTTP copies; the caller must settle against the same catalog in a finally block. */
     public function acceptUpload(array $upload): array
     {
         if (($upload['error'] ?? null) !== UPLOAD_ERR_OK || !is_string($upload['tmp_name'] ?? null) || !is_uploaded_file($upload['tmp_name'])) throw new \InvalidArgumentException('Choose a PDF upload that completed successfully.');
         if (filesize($upload['tmp_name']) > self::uploadLimit()) throw new \InvalidArgumentException('This PDF exceeds the server upload limit. Ask the site operator about a larger authorized import.');
-        return $this->storeValidated($upload['tmp_name']);
+        return $this->storeValidated($upload['tmp_name'], true);
     }
-    /** CLI-only synthetic testing/import; web uploads always use acceptUpload(). */
-    public function importLocal(string $path): array
+    /** CLI-only import. Opt in to ownership tracking only with settleNewFiles() in a finally block. */
+    public function importLocal(string $path, bool $trackForCreate = false): array
     {
         if (PHP_SAPI !== 'cli') throw new \RuntimeException('Local import is CLI-only.');
-        return $this->storeValidated($path);
+        return $this->storeValidated($path, $trackForCreate);
     }
-    private function storeValidated(string $path): array
+    private function storeValidated(string $path, bool $trackForCreate): array
     {
         if (is_link($path) || !is_file($path)) throw new \InvalidArgumentException('The PDF is not a regular file.');
         $size = filesize($path);
@@ -67,13 +76,61 @@ final class ManualStorage
             $target = $this->root.DIRECTORY_SEPARATOR.$key;
             $output = fopen($target,'xb');
             if (!$output) throw new \RuntimeException('The PDF could not be stored.');
+            // Retain this exact descriptor through catalog creation/settlement.
+            // A replacement path cannot impersonate a file owned by this request.
+            if ($trackForCreate) $this->newFiles[$key] = $output;
             try {
                 $written = stream_copy_to_stream($input,$output,self::MAX_BYTES+1);
                 if ($written !== $size || !fflush($output)) throw new \RuntimeException('The PDF upload was incomplete.');
-            } finally { fclose($output); }
+            } finally { if (!$trackForCreate) fclose($output); }
             if (filesize($target) !== $size) throw new \RuntimeException('The PDF upload was incomplete.');
             return ['key'=>$key,'bytes'=>$size,'sha256'=>hash_file('sha256',$target)];
         } finally { fclose($input); }
+    }
+    /**
+     * Retain referenced originals and discard only this instance's unused fresh
+     * files. A SQLite writer lock makes the reference check/deletion indivisible
+     * with respect to other catalog writers. Uncertain outcomes are preserved.
+     * Never call this inside another transaction or use it as general cleanup.
+     */
+    public function settleNewFiles(\PDO $db): void
+    {
+        if (!$this->newFiles) return;
+        if ($db->getAttribute(\PDO::ATTR_DRIVER_NAME) !== 'sqlite' || $db->getAttribute(\PDO::ATTR_ERRMODE) !== \PDO::ERRMODE_EXCEPTION
+            || $db->inTransaction() || !ManualLibrary::installed($db)) throw new \RuntimeException('New manual files were preserved because catalog references could not be safely checked.');
+        $transactionOwned = false;
+        try {
+            $db->exec('BEGIN IMMEDIATE');
+            $transactionOwned = true;
+            $query = $db->prepare("SELECT count(*) FROM main.manuals WHERE json_extract(file_json,'$.key')=?");
+            foreach ($this->newFiles as $key=>$handle) {
+                $query->execute([$key]);
+                if ((int)$query->fetchColumn() === 0) {
+                    $path = $this->root.DIRECTORY_SEPARATOR.$key;
+                    // Convert only warnings in this bounded filesystem check to
+                    // a clean preservation error; never hide unrelated warnings.
+                    set_error_handler(static function (): void { throw new \RuntimeException('An unused new manual file was preserved because its identity or removal could not be verified.'); }, E_WARNING);
+                    try {
+                        clearstatcache(true, $path);
+                        $fileStat = is_resource($handle) ? fstat($handle) : false;
+                        $current = lstat($path);
+                        if (!$fileStat || !$current || ($current['mode'] & 0170000) !== 0100000
+                            || $current['dev'] !== $fileStat['dev'] || $current['ino'] !== $fileStat['ino']
+                            || realpath(dirname($path)) !== $this->root) throw new \RuntimeException('An unused new manual file was preserved because its identity changed.');
+                        if (!unlink($path)) throw new \RuntimeException('An unused new manual file could not be removed.');
+                    } finally { restore_error_handler(); }
+                }
+                fclose($handle);
+                unset($this->newFiles[$key]);
+            }
+            $db->exec('COMMIT');
+            $transactionOwned = false;
+        } catch (\Throwable $e) {
+            // Older PDO SQLite versions do not track SQL-begun transactions.
+            // BEGIN failure never grants ownership of a caller's transaction.
+            if ($transactionOwned) { try { $db->exec('ROLLBACK'); } catch (\PDOException $rollbackError) {} }
+            throw $e;
+        }
     }
     public function verifiedPath(array $file): string
     {
@@ -166,15 +223,24 @@ final class ManualLibrary
         $this->ready();$this->allowed($actor,'create'); $data=self::validate($input);
         if (!preg_match('/\A[a-f0-9]{48}\z/D',$requestKey)) throw new \InvalidArgumentException('Reload the upload form.');
         if (!preg_match('/\A[a-f0-9]{48}\.pdf\z/D',(string)($file['key']??'')) || !is_int($file['bytes']??null) || $file['bytes']<1 || $file['bytes']>ManualStorage::MAX_BYTES || !preg_match('/\A[a-f0-9]{64}\z/D',(string)($file['sha256']??''))) throw new \InvalidArgumentException('Invalid PDF storage record.');
-        $this->db->beginTransaction();
+        // Acquire the writer reservation before the request-key lookup so two
+        // simultaneous retries cannot both choose the new-record path.
+        $transactionOwned=false;
         try {
+            $this->db->exec('BEGIN IMMEDIATE');$transactionOwned=true;
             $this->allowed($actor,'create');
             $q=$this->db->prepare('SELECT id FROM main.manuals WHERE request_key=?');$q->execute([$requestKey]); $existing=$q->fetchColumn();
-            if ($existing) { $r=$this->find((int)$existing); if ($r['draft']!==$data || $r['file']['sha256']!==$file['sha256']) throw new \DomainException('This upload form was already used with different content.'); $this->db->commit();return $r; }
+            if ($existing) { $r=$this->find((int)$existing); if ($r['draft']!==$data || $r['file']['sha256']!==$file['sha256']) throw new \DomainException('This upload form was already used with different content.'); $this->db->exec('COMMIT');$transactionOwned=false;return $r; }
             $now=gmdate('Y-m-d H:i:s');
             $this->db->prepare('INSERT INTO main.manuals(revision,request_key,draft_json,file_json,created_at,updated_at) VALUES(1,?,?,?,?,?)')->execute([$requestKey,self::encode($data),self::encode($file),$now,$now]);
-            $id=(int)$this->db->lastInsertId();$this->audit($id,1,$actor,'create',$now);$r=$this->find($id);$this->db->commit();return $r;
-        } catch (\Throwable $e) { if($this->db->inTransaction())$this->db->rollBack();throw $e; }
+            $id=(int)$this->db->lastInsertId();$this->audit($id,1,$actor,'create',$now);$r=$this->find($id);$this->db->exec('COMMIT');$transactionOwned=false;return $r;
+        } catch (\Throwable $e) {
+            // Always release our SQL transaction, even when inTransaction() is
+            // false. A lost COMMIT acknowledgment can leave nothing to roll back;
+            // preserve that original error and let settlement recheck references.
+            if($transactionOwned){try{$this->db->exec('ROLLBACK');}catch(\PDOException $rollbackError){}}
+            throw $e;
+        }
     }
     public function save(int $id,int $revision,array $input,string $action,int $actor): array {
         $this->ready();$this->allowed($actor,$action);

@@ -60,7 +60,32 @@ Verified on PHP 8.4.24:
 - The new harness reports 52 top-level checks, including those HTTP-suite and
   log assertions. The earlier range checkpoint fails the very first canonical
   constructor case because its ancestor probes emit warnings.
-- All 64 range/descriptor and 44 backend checks remain green after the change.
+- All 73 range/descriptor and 44 backend checks remain green after the change.
 
 No browser or production acceptance is claimed by this test. The synthetic
 login/probe scripts and fixture accounts must never be deployed.
+
+## Hosted mutation diagnostics checkpoint
+
+Hosted PHP 8.3.6 passed all 271 range/backend/HTTP checks without the strict
+server profile. With the strict profile, 43 constructor/log checks and the first
+46 nested HTTP checks passed. Run `43158137942` at source
+`974e96d8679cdda45e8e5e3bd1cef5ae4e510391` then failed the existing 404
+assertion for the catalog after the fixture release flag changed from boolean
+true to string 'true'. The runtime gate still requires `=== true`; no runtime
+change is justified by the missing status/config evidence alone.
+
+The synthetic configuration now writes a private observation when the actual
+endpoint requires it. The test clears that marker before each release-hold
+request, then retains only fixed flag-kind and response classifications,
+file-match booleans, status/length, PHP version and bounded OPcache settings in
+the sanitized report. Raw configuration, file hashes, paths, cookies and bodies
+are not retained. The original 404 assertion and every strict restriction remain.
+The fixture observation is test-only and must never be deployed.
+
+Twenty-four rapid transitions through boolean true, string 'true' and boolean
+false passed against the actual release-gate helper on local PHP 8.3.36 and
+8.4.24. Neither local binary loads OPcache; these observations do not establish
+hosted PHP 8.3.6's cause. Caching remains a hypothesis, not a diagnosed defect.
+No cache setting was disabled, timestamp artificially advanced or delay inserted.
+A hosted rerun with the new receipt is required before choosing a correction.

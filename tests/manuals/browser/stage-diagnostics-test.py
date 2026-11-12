@@ -1,6 +1,10 @@
 """Synthetic log-redaction, dependency receipt and real subprocess failure tests."""
 from pathlib import Path
 import json
+import ast
+import contextlib
+import hashlib
+import io
 import os
 import subprocess
 import sys
@@ -115,4 +119,47 @@ exec(compile(ast.Module(body=loops,type_ignores=[]),str(source),'exec'))
     check(any(frame['source']=='tests/manuals/open-basedir-test.py' for frame in diagnostics['source_frames']) and diagnostics['pass_lines_in_retained_tail']==1,'Outer assertion and nested progress remain attributable')
     check(secret not in encoded and all(value not in encoded for value in ['<html>','csrf_token','Set-Cookie','PHPSESSID','Authorization','password=','database=','/private/']),'Nested assertion HTML, cookie, token, password and database payloads never enter report')
     check(item['status']=='failed' and diagnostics['exit_code']==1 and item['process_cleanup']['all_reaped'] and len(encoded.encode())<8192,'Nested subprocess failure is reaped and bounded without being softened')
+release={'case':'string_release','route':'catalog','php_version':'8.3.6','sapi':'cli-server','loaded_flag':'string_true','http_status':404,'response_bytes':15,'body_kind':'catalog_not_found','observation_present':True,'python_disk_matches_expected':True,'php_disk_matches_expected':True,'opcache_loaded':True,'php_diagnostic_body':False,'opcache_enable':True,'opcache_enable_cli':True,'opcache_validate_timestamps':True,'opcache_revalidate_path':False,'opcache_revalidate_freq':2,'opcache_file_update_protection':2}
+result=summarize('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps(release),'',known)
+check(result['release_config']==[release],'Closed-schema exact config/HTTP receipt survives sanitization')
+release.update(loaded_flag='boolean_true',http_status=200,config=secret,disk_sha256=secret,body=secret,headers={'Set-Cookie':secret})
+result=summarize('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps(release),'',known)
+check(result['release_config'][0]['loaded_flag']=='boolean_true' and result['release_config'][0]['http_status']==200,'Unexpected loaded flag and status remain visible without implying success')
+check(secret not in json.dumps(result) and 'disk_sha256' not in json.dumps(result),'Config values, hashes, headers and bodies are omitted')
+release.update(loaded_flag=secret,php_version=secret,opcache_enable=secret,opcache_revalidate_freq=secret)
+result=summarize('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps(release),'',known)
+check(secret not in json.dumps(result) and result['release_config'][0]['loaded_flag']=='unobserved' and result['release_config'][0]['opcache_enable'] is None,'Unknown config/OPcache receipt values cannot leak data or fake observations')
+result=summarize('\n'.join('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps(release) for _ in range(20)),'',known)
+check(len(result['release_config'])==3 and len(json.dumps(result))<8192,'Config receipt count and artifact size remain bounded')
+result=summarize('FAS_RELEASE_CONFIG_RECEIPT '+json.dumps({'case':secret,'route':secret}),'',known)
+check('malformed_release_config_receipt' in result['events'] and secret not in json.dumps(result),'Unknown config case/route fails closed without raw content')
+
+# Exercise the actual HTTP observation helper and mutation assertion with only
+# synthetic files/responses. This is not a PHP or browser integration substitute.
+with tempfile.TemporaryDirectory(prefix='fas-config-diagnostic-') as temp:
+    root=Path(temp);config=root/'config.php';original="<?php return ['public_enabled'=>true];";expected=original.replace("'public_enabled'=>true","'public_enabled'=>'true'");config.write_text(expected)
+    source=Path(__file__).resolve().parents[1]/'http-test.py';tree=ast.parse(source.read_text());helpers=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='release_probe'];assert len(helpers)==1
+    namespace={'OUT':root,'config':config,'json':json,'hashlib':hashlib,'anon':object()}
+    exec(compile(ast.Module(body=helpers,type_ignores=[]),str(source),'exec'),namespace)
+    def response_with(flag,status,body):
+        def request(path,who):
+            assert not (root/'config-observation.json').exists(),'Stale marker must be removed before request'
+            if flag is not None:(root/'config-observation.json').write_text(json.dumps({'php_version':'8.3.6','sapi':'cli-server','loaded_flag':flag,'disk_sha256':hashlib.sha256(config.read_bytes()).hexdigest(),'opcache_loaded':True}))
+            return status,{'Set-Cookie':secret},body
+        return request
+    for flag,status,body in [('string_true',404,b'Page not found.'),('boolean_true',200,secret.encode()),(None,500,('Warning: '+secret).encode())]:
+        (root/'config-observation.json').write_text('stale '+secret);namespace['req']=response_with(flag,status,body);stream=io.StringIO()
+        with contextlib.redirect_stdout(stream):response,note=namespace['release_probe']('/manuals/',expected)
+        result=summarize(stream.getvalue(),'',known);safe=result['release_config'][0]
+        check(safe['http_status']==status and safe['loaded_flag']==(flag or 'unobserved') and safe['python_disk_matches_expected'],'Actual helper retains exact status, loaded flag and mutation evidence')
+        check(secret not in json.dumps(result) and safe['observation_present']==(flag is not None),'Actual helper rejects stale markers and omits raw response/config data')
+    mutation=[n for n in tree.body if isinstance(n,ast.Try) and 'String release flag fails closed' in ast.get_source_segment(source.read_text(),n)];assert len(mutation)==1
+    def must(condition,label):assert condition,label
+    namespace.update(original=original,req=response_with('boolean_true',200,secret.encode()),check=must);stream=io.StringIO();failed=False
+    try:
+        with contextlib.redirect_stdout(stream):exec(compile(ast.Module(body=mutation,type_ignores=[]),str(source),'exec'),namespace)
+    except AssertionError as error:failed=str(error).startswith('String release flag fails closed')
+    safe=summarize(stream.getvalue(),'',known)
+    check(failed and safe['release_config'][0]['http_status']==200,'Unexpected HTTP200 remains a failed unchanged404 assertion after safe receipt')
+    check(config.read_text()==original and secret not in json.dumps(safe),'Mutation failure restores original fixture config without leaking response data')
 print(f'{checks} sanitized-stage/dependency checks passed. No browser launched.')
