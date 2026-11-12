@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "1ede09aafea2529c53ea39578f434411daeeebb3",
+    ".github/workflows/manual-reader-browser.yml": "2f84c486a7ee31a1366c43a4a5ea9414748f9eb0",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/manuals-common.php": "b158fce3e09ee2643bddfc7958c3e3e360157d93",
     "admin/manuals-edit.php": "d719b81a49548ce13c45d01bee7c34921babc8f5",
