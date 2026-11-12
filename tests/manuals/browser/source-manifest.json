@@ -271,7 +271,7 @@
     "tests/manuals/browser/check.cjs": "cbfe9b72973bcbcb488d80cbff8edc6abcc5545e",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
-    "tests/manuals/browser/fullsite-check.cjs": "90555221fd7f259ddd5fc6de06cc5fc560ff29f7",
+    "tests/manuals/browser/fullsite-check.cjs": "46442aac6885abd600ea9d25775f0fd483647672",
     "tests/manuals/browser/fullsite-pins.json": "dc060589213c622fee4cd21a376d20c50978e627",
     "tests/manuals/browser/guard-test.py": "de704cd75eb04caa0ffb800235ae5447ddba33b2",
     "tests/manuals/browser/prepare-assets.py": "b9dbad7a2d3143c42b4db84638997eddd20c950b",
