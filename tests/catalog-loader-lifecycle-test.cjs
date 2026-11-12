@@ -14,7 +14,7 @@ assert.equal(full.split(start).length, 2, 'Unique loader start');
 assert.equal(full.split(end).length, 2, 'Unique loader end');
 assert(full.indexOf(end) > full.indexOf(start), 'Loader marker ordering');
 const source = full.slice(full.indexOf(start), full.indexOf(end));
-assert(source.startsWith('let catalogRequestController;\nasync function loadProductsAndSidebar(params) {'), 'Expected loader entrypoint');
+assert(source.startsWith('let catalogRequestController;\nasync function loadProductsAndSidebar(params, focusId = null) {'), 'Expected loader entrypoint');
 assert(!source.includes('<?') && !source.includes('<script') && !source.includes('</script'), 'JavaScript-only slice');
 // Current checkout source is tested. Whole-page historical hashes must not make unrelated edits fail.
 const SOURCE_SHA = sha(full), SLICE_SHA = sha(source);
