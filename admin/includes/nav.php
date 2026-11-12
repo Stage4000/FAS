@@ -2,6 +2,7 @@
 // Determine active page
 $currentPage = basename($_SERVER['PHP_SELF']);
 if ($currentPage === 'product-content.php') $currentPage = 'product-quality.php';
+if (in_array($currentPage, ['blog-edit.php', 'blog-preview.php'], true)) $currentPage = 'blog.php';
 $compactQualitySidebar = in_array($currentPage, ['product-quality.php', 'order-details.php',
     'shipping-label.php', 'shipping-label-reconcile.php', 'shipping-label-cancel.php',
     'shipping-operations.php', 'shipping-notification.php', 'shipping-readiness.php', 'shipping-settings.php',
@@ -111,6 +112,9 @@ if (in_array($ajaxPage, ['products.php', 'warehouses.php'], true) && isset($acti
     </a>
 <a href="analytics.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'analytics.php' ? 'active' : ''; ?>">
 <i class="fas fa-chart-line me-2"></i>Analytics
+</a>
+<a href="blog.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'blog.php' ? 'active' : ''; ?>">
+    <i class="fas fa-pen-nib me-2" aria-hidden="true"></i>Blog
 </a>
 <a href="growth.php" class="list-group-item list-group-item-action <?php echo $currentPage === 'growth.php' ? 'active' : ''; ?>">
     <i class="fas fa-envelope-open-text me-2"></i>Sales &amp; Email
