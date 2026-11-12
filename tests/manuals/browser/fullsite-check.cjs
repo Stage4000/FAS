@@ -64,6 +64,7 @@ if(kind==='admin-edit'||kind==='admin-upload'){const colors=await page.locator('
 if(kind!=='reader'){
 const selections=kind==='catalog'?[['.manual-library .manual-eyebrow',null],['.manual-read-link',null],['.manual-catalog-search input','::placeholder'],['.manual-catalog-search button',null]]:[['.manual-admin a:not(.manual-button)',null],[kind!=='admin-list'?'.manual-form button':'.manual-button',null]];
 if(kind==='admin-upload')selections.push(['[data-upload-status]',null]);
+if(kind==='admin-list')selections.push(['#manual-query','::placeholder'],['#manual-manufacturer','::placeholder']);
 entry.contrast=[];
 for(const [selector,pseudo] of selections){const colors=await page.locator(selector).first().evaluate((e,pseudo)=>{let ancestor=e,bg;while(ancestor){bg=getComputedStyle(ancestor).backgroundColor;if(bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent')break;ancestor=ancestor.parentElement;}const style=getComputedStyle(e,pseudo);return{ink:style.color,bg,opacity:style.opacity};},pseudo);assert(colors.bg,'opaque feature background required');assert.equal(colors.opacity,'1');for(const color of [colors.ink,colors.bg]){const channels=color.match(/[\d.]+/g).map(Number);assert(channels.length===3||(channels.length===4&&channels[3]===1),'opaque computed colors required');}const ratio=contrast(colors.ink,colors.bg);entry.contrast.push({selector,pseudo,ratio});assert(ratio>=4.5,'feature text contrast '+selector);}
 }

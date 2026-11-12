@@ -66,3 +66,8 @@ Focused state tests cover cached scheduling, cancellation/replacement ownership,
 Authenticated catalog search now uses draft title/manufacturer/model/year metadata with literal AND-token matching and an exact manufacturer filter. Suggestions are capped at 100 without restricting off-list names. GET filters survive paging; obsolete pages clamp to the last result page. This does not search PDF text or private rights evidence. Public search, CRUD, PDF storage and release controls are unchanged.
 
 The isolated pipeline runs 55 new backend checks and 40 actual-auth HTTP checks, including filter-preserving pagination and controlled invalid input. Shared-shell browser cases exercise keyboard submission, combined filters, escaped unmatched text, an obsolete page, clear/reset and retained help in both themes and viewport sizes. Browser multi-page navigation is not separately claimed; the 65-record HTTP fixture covers pagination. No actual client manuals or live data are involved.
+
+
+### Admin search placeholder contrast
+
+Functional search acceptance passed on a4133489. Screenshot inspection exposed faint native placeholders on dark admin cards. The scoped admin form placeholder now uses the already-reviewed light/dark placeholder tokens at full opacity; brand fills and shared styles remain unchanged. The admin feature stylesheet URL is versioned to refresh cached clients. Three additional source contracts and actual computed placeholder contrast assertions for both search fields in all four theme/viewport cases cover the correction.

@@ -33,6 +33,10 @@ check(rules('.manual-admin')['--manual-text-accent']==light['--manual-text-accen
 check(rules('[data-theme="dark"] .manual-admin')['--manual-text-accent']==dark['--manual-text-accent'],'admin dark accent matches catalog')
 p=rules('.manual-library .manual-catalog-search input::placeholder')
 check(p.get('color')=='var(--manual-placeholder)'and p.get('opacity')=='1','placeholder color and full opacity explicit')
+p=rules('.manual-admin .manual-form input::placeholder')
+check(p.get('color')=='var(--manual-placeholder)'and p.get('opacity')=='1','admin placeholder color and full opacity explicit')
+check(rules('.manual-admin')['--manual-placeholder']==light['--manual-placeholder'],'admin light placeholder matches catalog')
+check(rules('[data-theme="dark"] .manual-admin')['--manual-placeholder']==dark['--manual-placeholder'],'admin dark placeholder matches catalog')
 for selector in ['.manual-button','.manual-form button','.manual-catalog-search button']:
  r=rules(selector);check(r.get('background')=='var(--manual-red)'and r.get('color')=='#fff','filled control unchanged '+selector)
 check(rules('.manual-library')['--manual-red']=='#db0335','brand fill unchanged')
