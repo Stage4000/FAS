@@ -1,0 +1,99 @@
+name: Isolated synthetic manual reader acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'manuals/**'
+      - 'src/manuals/**'
+      - 'admin/manuals*.php'
+      - 'includes/manual-reader.php'
+      - 'public/js/manual-reader*.mjs'
+      - 'public/css/manuals.css'
+      - 'public/vendor/pdfjs-6.5.438/**'
+      - 'tests/manuals/**'
+      - 'docs/manuals*.md'
+      - '.github/workflows/manual-reader-browser.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-reader:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact candidate without saved credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 30
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /src/manuals/
+            /src/utils/CSRF.php
+            /src/utils/Timezone.php
+            /src/config/Database.php
+            /src/security/ClientIp.php
+            /src/security/SecurityStore.php
+            /admin/auth.php
+            /admin/manuals*.php
+            /includes/admin-accounts.php
+            /includes/security.php
+            /includes/manual-reader.php
+            /manuals/
+            /public/css/manuals.css
+            /public/js/manual-editor.js
+            /public/js/manual-reader*.mjs
+            /public/vendor/pdfjs-6.5.438/
+            /scripts/manuals-maintenance.php
+            /docs/manuals-system.md
+            /docs/manuals-range-delivery.md
+            /docs/manuals-open-basedir.md
+            /tests/manuals/
+            /.github/workflows/manual-reader-browser.yml
+      - name: Check exact source and offline guard regressions
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python3 tests/manuals/browser/source_guard.py
+          python3 tests/manuals/browser/guard-test.py
+          python3 tests/manuals/browser/process-session-test.py
+          node tests/manuals/browser/response-policy-test.cjs
+          node tests/manuals/reader-state-test.cjs
+          node tests/manuals/reader-failure-test.cjs
+          node tests/manuals/reader-search-test.cjs
+      - name: Install official isolated test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring python3-reportlab iproute2 util-linux
+          npm install --prefix "$RUNNER_TEMP/fas-manual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-manual-browsers" \
+            "$RUNNER_TEMP/fas-manual-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Real reader and PDF.js in a loopback-only kernel namespace
+        # No fallback. Source pin changes need independent review before a run.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-manual-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              NODE_PATH="$4/fas-manual-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-manual-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              python3 tests/manuals/browser/run.py --output "$4/fas-manual-output"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Retain synthetic screenshots and sanitized results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: manual-reader-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/fas-manual-output/
+          if-no-files-found: error
+          retention-days: 7
