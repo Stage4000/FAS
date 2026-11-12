@@ -94,6 +94,45 @@ async function initialize(root) {
     try { return await task; }
     finally { pendingText.delete(number); }
   };
+  const textContainer = $('[data-page-text]');
+  // Embedded readers without a disclosure retain their always-visible text.
+  const textPanel = textContainer.closest?.('details') || null;
+  const textIsOpen = () => !textPanel || textPanel.open;
+  let textEpoch = 0;
+  const textPlaceholder = selected => {
+    const message = document.createElement('p');
+    message.textContent = textIsOpen()
+      ? `Loading text for page${selected.length > 1 ? 's' : ''} ${selected.join('–')}…`
+      : 'Open Read text to extract text from the current page. Document search remains available.';
+    textContainer.replaceChildren(message);
+  };
+  const displayText = async (selected, owner) => {
+    const ownsPages = () => owner === renderEpoch && selected.length === visiblePages.length && selected.every((n, i) => n === visiblePages[i]);
+    // A disclosure can open while the next page is rendering. Its text must
+    // still belong to the pages actually displayed when extraction settles.
+    if (disposed || !selected.length || !ownsPages()) return;
+    const request = ++textEpoch;
+    textPlaceholder(selected);
+    if (!textIsOpen()) return;
+    const current = () => !disposed && textIsOpen() && ownsPages() && request === textEpoch;
+    try {
+      const extracted = await Promise.all(selected.map(textFor));
+      if (!current()) return;
+      const fragment = document.createDocumentFragment();
+      selected.forEach((n, i) => { const heading = document.createElement('h2'); heading.textContent = `Page ${n}`; const text = document.createElement('p'); text.textContent = extracted[i].trim() || 'This page has no extractable text. It may be a scan or illustration. Use the PDF download with an OCR-capable reader if needed.'; fragment.append(heading, text); });
+      textContainer.replaceChildren(fragment);
+    } catch (_) {
+      if (!current()) return;
+      const unavailable = document.createElement('p');
+      unavailable.textContent = `Text could not be extracted from page${selected.length > 1 ? 's' : ''} ${selected.join('–')}. The displayed pages are still available, or you can download the original PDF.`;
+      textContainer.replaceChildren(unavailable);
+    }
+  };
+  textPanel?.addEventListener('toggle', () => {
+    if (disposed) return;
+    if (!textIsOpen()) { textEpoch++; textPlaceholder(visiblePages); return; }
+    if (pdf && visiblePages.length) displayText([...visiblePages], renderEpoch);
+  });
   const setControls = () => {
     const first = spreadStart(page, spread());
     $('[data-prev]').disabled = first === 1;
@@ -159,9 +198,7 @@ async function initialize(root) {
       });
       page = targetPage;
       visiblePages = selected;
-      const pendingText = document.createElement('p');
-      pendingText.textContent = `Loading text for page${selected.length > 1 ? 's' : ''} ${selected.join('–')}…`;
-      $('[data-page-text]').replaceChildren(pendingText);
+      textPlaceholder(selected);
       book.dataset.spread = String(selected.length > 1);
       setControls(); stage.scrollLeft = 0;
       if (updateHash) history.replaceState(null, '', `#page=${page}`);
@@ -171,18 +208,7 @@ async function initialize(root) {
         const leaf = page > oldPage ? papers[0] : papers[selected.length - 1];
         await animate(leaf, [{transform:`rotateY(${page > oldPage ? 82 : -82}deg)`,filter:'brightness(.7)'},{transform:'rotateY(0deg)',filter:'brightness(1)'}], {duration:210,easing:'ease-out',fill:'none'});
       }
-      try {
-        const extracted = await Promise.all(selected.map(textFor));
-        if (token !== renderEpoch) return;
-        const fragment = document.createDocumentFragment();
-        selected.forEach((n, i) => { const heading = document.createElement('h2'); heading.textContent = `Page ${n}`; const text = document.createElement('p'); text.textContent = extracted[i].trim() || 'This page has no extractable text. It may be a scan or illustration. Use the PDF download with an OCR-capable reader if needed.'; fragment.append(heading, text); });
-        $('[data-page-text]').replaceChildren(fragment);
-      } catch (_) {
-        if (token !== renderEpoch) return;
-        const unavailable = document.createElement('p');
-        unavailable.textContent = `Text could not be extracted from page${selected.length > 1 ? 's' : ''} ${selected.join('–')}. The displayed pages are still available, or you can download the original PDF.`;
-        $('[data-page-text]').replaceChildren(unavailable);
-      }
+      await displayText(selected, token);
     } catch (error) {
       if (token !== renderEpoch || error?.name === 'RenderingCancelledException') return;
       setControls();

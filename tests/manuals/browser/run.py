@@ -69,6 +69,8 @@ def main():
         require(report['runtime']['reportlab_distribution_package'],'Expected apt-owned ReportLab package required')
         report['php_version']=report['runtime']['php_version']
         # These execute after kernel isolation, never as an unisolated workflow pre-step.
+        stage('lazy-text',['node','tests/manuals/reader-lazy-text-test.cjs'],env,30)
+        stage('lazy-text-race',['node','tests/manuals/reader-lazy-text-race-test.cjs'],env,30)
         stage('swipe-ownership',['node','tests/manuals/swipe-ownership-test.cjs'],env,30)
         stage('pending-load',['node','tests/manuals/reader-pending-load-test.cjs'],env,30)
         stage('text-dedup',['node','tests/manuals/reader-text-dedup-test.cjs'],env,30)

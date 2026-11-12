@@ -1,0 +1,13 @@
+# Local candidate: extract display text only when requested
+
+Based on verified draft PR173 head `448a64f0`. Draft source/CI candidate; no release, deployment or actual manuals used.
+
+The reader previously extracted and built complete current-page text after every page render, even while the native “Read text” disclosure was closed. The candidate locates that disclosure through the text container's nearest `details` element. Closed disclosures keep a short explanatory placeholder and do not request display extraction. Opening extracts the current visible page(s); closing removes the rendered full-text DOM. Embeddings without a disclosure retain always-visible behavior.
+
+Document search remains complete and independent of disclosure state. It uses the unchanged text extraction service, in-flight deduplication and bounded cache. Opening during a search shares its in-flight result; reopening can use retained complete text. Closing does not cancel another consumer's shared extraction. Oversized text still bypasses the existing cache without truncation. A display-request epoch plus render ownership, exact currently visible page identity and disclosure/disposed checks prevent late results from populating a closed, changed or departed view.
+
+40 focused DOM/PDF-stub checks pass, including closed initial/turn behavior, current-page opening, cache reuse, search while closed, shared extraction, close/reopen races, stale-page results, failure retry and departure. The previous reader fails the no-extraction-while-closed assertion. All 412 prior focused reader/swipe/load checks and syntax pass. These are not real PDF.js worker-count, CPU, memory, bandwidth or accessibility-device measurements. Independent review and permitted hosted real-worker/browser acceptance remain required before integration.
+
+No loading/security flags, backend, permissions, storage, intake, release or rights changes. The blocked storage review and rejected duplicate-reuse prototype are not included.
+
+Independent review found a disclosure-opening/navigation race: text requested for the still-visible old page could complete during the new page’s incoming animation. The correction binds requests to visible page identities as well as render ownership, both before changing the epoch/placeholder and before results/errors render. Eighteen retained regression checks cover success/error completion during animation and stale entry attempts; the original local candidate fails the intended assertion. Independent corrected review passed 24 complete-text/disclosure assertions and five semantic controls. Hosted integration adds actual-worker extraction counts for closed turns, open spreads, complete closed search and cache reuse; its outcome must be verified separately.

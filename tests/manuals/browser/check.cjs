@@ -39,7 +39,7 @@ async function open(p,id=ids.book,hash=''){
   assert.match(response.headers()['cache-control'],/no-store/);
 }
 async function jump(p,n){await p.locator('[data-page]').fill(String(n));await p.locator('[data-go]').click();}
-async function textReady(p,n){await p.waitForFunction(n=>[...document.querySelectorAll('[data-page-text] h2')].some(e=>e.textContent===`Page ${n}`),n);}
+async function textReady(p,n){if(!await p.locator('.manual-text').evaluate(e=>e.open))await p.locator('.manual-text summary').click();await p.waitForFunction(n=>[...document.querySelectorAll('[data-page-text] h2')].some(e=>e.textContent===`Page ${n}`),n);}
 async function screenshot(p,name){await p.screenshot({path:path.join(output,name+'.png'),fullPage:true});}
 async function pixels(p){
   return p.locator('[data-paper]:not([hidden]) canvas').evaluateAll(nodes=>nodes.map(canvas=>{
@@ -154,7 +154,7 @@ test('05-rapid-latest-navigation-cancellation',async p=>{
 
 test('06-accessible-text-search-and-results',async p=>{
   await open(p);await ready(p,[1]);await textReady(p,1);
-  await p.locator('.manual-text summary').click();assert.match(await p.locator('[data-page-text]').textContent(),/Original synthetic test document/);
+  assert(await p.locator('.manual-text').evaluate(e=>e.open));assert.match(await p.locator('[data-page-text]').textContent(),/Original synthetic test document/);
   await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('ZX-526');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='1 matching page.');
   await p.locator('[data-search-results] button').click();await ready(p,[4,5]);await textReady(p,5);
@@ -355,7 +355,7 @@ test('concurrent-display-search-text-dedup',async(p,ctx)=>{
     window.__fasTextHeld=()=>!!held;
     window.__fasReleaseText=()=>{released=true;const h=held;held=null;if(h)send.call(h.worker,h.message,...h.args);};
   });
-  await open(p);await ready(p,[1]);await p.waitForFunction(()=>window.__fasTextHeld());
+  await open(p);await ready(p,[1]);await p.locator('.manual-text summary').click();await p.waitForFunction(()=>window.__fasTextHeld());
   await p.locator('.manual-search summary').click();
   await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='Searching page 1 of 7…');
@@ -432,6 +432,37 @@ test('pending-load-permanent-departure',async p=>{
     assert(await p.locator('[data-paper] canvas').evaluateAll(nodes=>nodes.every(c=>c.width===0&&c.height===0)));
     summary.measurements.push({label:'pending-load-departure',workerTerminationObserved:true,lateControlsDisabled:true,heldPdfRequest:true,limits:'Synthetic pagehide during held request; not real navigation/bfcache or measured network-byte savings.'});
   }finally{release();}
+});
+
+test('lazy-display-text-real-worker',async(p,ctx)=>{
+  await ctx.addInitScript(()=>{
+    const send=Worker.prototype.postMessage;window.__fasLazyTextRequests=[];
+    Worker.prototype.postMessage=function(message,...args){if(message?.action==='GetTextContent')window.__fasLazyTextRequests.push(message.data.pageIndex);return send.call(this,message,...args);};
+  });
+  await open(p);await ready(p,[1]);
+  assert.equal(await p.locator('.manual-text').evaluate(e=>e.open),false);
+  await jump(p,4);await ready(p,[4,5]);await p.waitForTimeout(100);
+  assert.equal(await p.evaluate(()=>window.__fasLazyTextRequests.length),0,'closed page turns must not send text extraction messages');
+  assert.equal(await p.locator('[data-page-text] h2').count(),0);
+  await textReady(p,4);
+  assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),['Page 4','Page 5']);
+  assert.deepEqual(await p.evaluate(()=>[...window.__fasLazyTextRequests].sort((a,b)=>a-b)),[3,4]);
+  await p.locator('.manual-text summary').click();
+  await p.waitForFunction(()=>document.querySelector('[data-page-text] h2')===null);
+  await jump(p,6);await ready(p,[6,7]);await p.waitForTimeout(100);
+  assert.equal(await p.evaluate(()=>window.__fasLazyTextRequests.length),2,'closed later turns do not extract more text');
+  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
+  await p.waitForFunction(()=>document.querySelector('[data-search-cancel]').hidden);
+  assert(await p.locator('[data-search-results] li').count()>0,'complete document search remains usable while display text is closed');
+  assert.equal(await p.locator('.manual-text').evaluate(e=>e.open),false);
+  assert.equal(await p.locator('[data-page-text] h2').count(),0,'search does not populate hidden text DOM');
+  const afterSearch=await p.evaluate(()=>window.__fasLazyTextRequests);
+  assert.deepEqual([...afterSearch].sort((a,b)=>a-b),[0,1,2,3,4,5,6],'all pages extracted once, including earlier display cache');
+  await textReady(p,6);
+  assert.equal(await p.evaluate(()=>window.__fasLazyTextRequests.length),7,'opening uses complete current text from shared cache');
+  assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),['Page 6','Page 7']);
+  await screenshot(p,'lazy-page-text-open');
+  summary.measurements.push({label:'lazy-display-text',closedTurnsWorkerTextRequests:0,openingSpreadRequests:2,completeClosedSearchTotalRequests:7,reopeningAddedRequests:0,limits:'Actual worker message counts for a synthetic 7-page PDF, not production CPU/heap/network savings.'});
 });
 
 (async()=>{

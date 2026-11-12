@@ -12,4 +12,4 @@
 <details class="manual-search"><summary>Find a word or part number in this PDF</summary><form data-search-form><label for="manual-search-term">Search document text</label><div><input id="manual-search-term" data-search-input type="search" maxlength="100" placeholder="Try a component or part number"><button type="submit" data-search-submit disabled>Find</button><button type="button" data-search-cancel hidden>Stop</button></div></form><p data-search-status role="status"></p><ol data-search-results></ol></details>
 <details class="manual-text"><summary>Read text from the current page</summary><div data-page-text><p>Page text will appear when the PDF loads. Scanned pages may not contain selectable text.</p></div></details>
 <noscript><p class="manual-notice">The animated reader needs JavaScript. <a href="<?=manualsH($manualFileUrl)?>">Download the PDF</a> to read it in your preferred PDF application.</p></noscript>
-</section><script type="module" src="/public/js/manual-reader-loader.mjs?v=20261112b"></script>
+</section><script type="module" src="/public/js/manual-reader-loader.mjs?v=20261112c"></script>
