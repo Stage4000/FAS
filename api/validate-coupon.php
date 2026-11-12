@@ -29,24 +29,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Get request data
-$input = json_decode(fas_security_body(65536), true);
+$input = json_decode(fas_security_body(65536));
 
-if (!$input) {
+if (!$input instanceof \stdClass) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid JSON data']);
     exit;
 }
 
-$code = $input['code'] ?? '';
-$subtotal = $input['subtotal'] ?? 0;
+$code = $input->code ?? '';
+$subtotal = $input->subtotal ?? 0;
 
-if (empty($code)) {
+if (!is_string($code) || $code === '') {
     http_response_code(400);
     echo json_encode(['error' => 'Coupon code is required']);
     exit;
 }
 
-if ($subtotal <= 0) {
+if (!is_numeric($subtotal) || !is_finite((float)$subtotal) || (float)$subtotal <= 0) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid subtotal']);
     exit;
