@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "1695938a7a474ecbd931547d04c17e9f91024164",
+    "tests/manuals/browser/run.py": "8ed5d156fc122b9d64d290bf9193109d93c7da43",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -315,7 +315,10 @@
     "tests/manuals/upload-concurrency-test.py": "5131bc720d8f35ee2abc36e74142cc91073dfe6d",
     "tests/manuals/upload-storage-http-test.py": "9b2d5a8e3e2904aa726ab3de1af80f64aca619ed",
     "tests/manuals/upload-storage-test.php": "27cecd0cba20de878b2aff7cae45959131c863e0",
-    "tests/manuals/reader-search-yield-test.cjs": "64a37f21864a4897b508134f26ac35134ea82d3b"
+    "tests/manuals/reader-search-yield-test.cjs": "64a37f21864a4897b508134f26ac35134ea82d3b",
+    "scripts/manuals-intake-inventory.py": "bf49459bed4033ad85020a1141cef49a468a84ed",
+    "tests/manuals/intake-inventory-test.py": "ac352612ad9227c39365c3fd7109172ac3ff2859",
+    "docs/manuals-intake-inventory.md": "e8cebd32c18e69ba04125d7b61e82742e3bb5902"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -597,6 +600,9 @@
     "tests/manuals/upload-concurrency-test.py": "A",
     "tests/manuals/upload-storage-http-test.py": "A",
     "tests/manuals/upload-storage-test.php": "A",
-    "tests/manuals/reader-search-yield-test.cjs": "A"
+    "tests/manuals/reader-search-yield-test.cjs": "A",
+    "scripts/manuals-intake-inventory.py": "A",
+    "tests/manuals/intake-inventory-test.py": "A",
+    "docs/manuals-intake-inventory.md": "A"
   }
 }
