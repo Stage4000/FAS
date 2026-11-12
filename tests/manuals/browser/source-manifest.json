@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "718ff7a1f648e7e71349dc53c67ce811beed52bc",
+    ".github/workflows/manual-reader-browser.yml": "fef8eff54826afa56f4fcebfc0f307dd7603c97e",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "8cefae09b360eafee4b230d802bb1341403a3c6b",
+    "tests/manuals/browser/run.py": "e0c1e630687be3cb713c05a2f4ce4b42d3b38b39",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -331,7 +331,11 @@
     "docs/manuals-lazy-page-text.md": "a6d85c0aa17f6af27adb1ab5ae671d1616629134",
     "scripts/manuals-intake-capacity.py": "d7f167734d6244624013d5c44bfef11596a01d0b",
     "tests/manuals/intake-capacity-test.py": "7b4132d4b3e2d25158a56c42a09164dd7d56092f",
-    "docs/manuals-intake-capacity.md": "94ab684390af296538dfa2037e2eff3cb92acfad"
+    "docs/manuals-intake-capacity.md": "94ab684390af296538dfa2037e2eff3cb92acfad",
+    "src/manuals/ManualIntakeManifest.php": "b6cc6dba33e82ebfd242e7a54b928483f27c69fa",
+    "scripts/manuals-intake-manifest.php": "580ba55cc6bedc9b57224896d4d60255e7a1cfa7",
+    "tests/manuals/intake-manifest-test.php": "c7288698f9ebb5d828a7a4fc4893077ec99fb7ad",
+    "docs/manuals-intake-manifest.md": "91cc4f004c2afd220c17e7d8af8c3edd0462860b"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -629,6 +633,10 @@
     "docs/manuals-lazy-page-text.md": "A",
     "scripts/manuals-intake-capacity.py": "A",
     "tests/manuals/intake-capacity-test.py": "A",
-    "docs/manuals-intake-capacity.md": "A"
+    "docs/manuals-intake-capacity.md": "A",
+    "src/manuals/ManualIntakeManifest.php": "A",
+    "scripts/manuals-intake-manifest.php": "A",
+    "tests/manuals/intake-manifest-test.php": "A",
+    "docs/manuals-intake-manifest.md": "A"
   }
 }

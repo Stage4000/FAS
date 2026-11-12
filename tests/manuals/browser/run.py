@@ -77,6 +77,7 @@ def main():
         stage('search-yield',['node','tests/manuals/reader-search-yield-test.cjs'],env,30)
         stage('intake-inventory',[sys.executable,'tests/manuals/intake-inventory-test.py'],env,30)
         stage('intake-capacity',[sys.executable,'tests/manuals/intake-capacity-test.py'],env,30)
+        stage('intake-manifest',[php,'tests/manuals/intake-manifest-test.php'],env,30)
         stage('upload-preflight',['node','tests/manuals/editor-upload-preflight-test.cjs'],env,30)
         stage('admin-search',[php,'tests/manuals/admin-search-test.php'],env,30)
         stage('admin-search-http',[sys.executable,'tests/manuals/admin-search-http-test.py'],env,90)
