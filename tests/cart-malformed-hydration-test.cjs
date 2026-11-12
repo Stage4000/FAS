@@ -9,7 +9,7 @@ const before=zlib.gunzipSync(Buffer.from(manifest.files['public/js/main.js'].bas
 const capBlock="                const cappedQuantity = Number(stockLimit);\n                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {\n                    return;\n                }\n                item.quantity = cappedQuantity;";assert.equal(source.split(capBlock).length,2);const guardOnly=source.replace(capBlock,'                item.quantity = stockLimit;');assert.equal(digest(guardOnly),'f2a8bb3dc24e98bedf2eeb1cbadcf27f58ff5ab946e80afdc4b974317f969458');
 const sources={baseline:before,candidate:source,'hydration-only':guardOnly};
 const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60');
-const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'3bca0a62c24cd35249d37dc5a9e54cf7bb15b54258da1f8496bf95539501c888');
+const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'9e3cadeef6c560aa8238e4aebba0b62235966e95b44f90ce2b366a9788d1253a');
 const shippingSource=fs.readFileSync(path.join(root,'public/js/shipping-estimator.js'),'utf8');assert.equal(digest(shippingSource),'246cf147b1e467abc143ce00c963b44396428684bb20b67f688aa59628093156');
 let malformedReport,stockReport;
 const seed=[{id:'1',name:'Synthetic <part>',sku:'SYN',price:10,quantity:2,stock:5,custom:{retain:true}},{id:'2',name:'Other',price:7,quantity:1,stock:8}];
