@@ -5,7 +5,7 @@ const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const BASE='3904db526c5c5cd61d7e63c8ff1d1fb0bbefe23c7a98971c9944b41011d9a76c',FIX='deb4f3c54961ae84ae2fcb37f714ef1369a08b8de802ed045c31a4a38da031b3';
 const MAIN='d4ed1e5bc6e6eef56b50bac94065609602773788e04868bdbf18173fbfb2046e',PAGE='504211428c76a33e01570b9b5aabf1b1a24e2f20e71a1b7546b5e42dfb1d544e';
-const GROWTH='9b460b6c3e2da7eb60d8b5b19a5f34d99f2cd303f0db9f3d266e09b7a9e460f0',RECOVER='77917b6f1578dc8f8e5174f3bdb5e57aa39e92e1632b2e0abb7deb8ef336db90';
+const GROWTH='35df94684d2d6b91cf86fdace63b347cae56a1b56ebb1081aaf1cced98c5fbce',RECOVER='77917b6f1578dc8f8e5174f3bdb5e57aa39e92e1632b2e0abb7deb8ef336db90';
 const CSRF='synthetic-isolated-email-csrf',A='a'.repeat(64),B='b'.repeat(64),KEY='flipandstrip_cart';
 const neighbor={id:99,name:'Synthetic local neighbor',price:7,quantity:2,stock:8,extra:{keep:['all',1]}},incoming={id:1,name:'Synthetic current part',price:10,quantity:2,stock:3};
 const snapshot=x=>' \n'+JSON.stringify(x)+'\t ';

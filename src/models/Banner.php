@@ -185,7 +185,8 @@ class Banner
         }
 
         foreach (self::SUPPORTED_DATETIME_FORMATS as $format) {
-            $dateTime = \DateTimeImmutable::createFromFormat($format, $value);
+            // Admin date inputs are persisted as UTC, independently of the site timezone.
+            $dateTime = \DateTimeImmutable::createFromFormat($format, $value, new \DateTimeZone('UTC'));
             $errors = \DateTimeImmutable::getLastErrors();
 
             if ($this->hasValidDateTimeParse($dateTime, $errors)) {

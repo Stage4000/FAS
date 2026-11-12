@@ -7,9 +7,17 @@
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../src/config/Database.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 
 $adminAuth = new AdminAuth();
 $adminAuth->requireLogin();
+
+// Validate every POST before any purge operation.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !\FAS\Utils\CSRF::validateToken($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    header('Cache-Control: private, no-store');
+    exit('Invalid security token. Refresh the page and try again.');
+}
 
 use FAS\Config\Database;
 
@@ -150,6 +158,7 @@ $currentSyncLogCount = $currentSyncLogQuery->fetch(PDO::FETCH_ASSOC)['total'];
                                 
                                 <?php if ($currentCount > 0 || $currentSyncLogCount > 0): ?>
                                     <form method="POST" onsubmit="return confirmDeletion();">
+                                        <?php echo \FAS\Utils\CSRF::tokenField(); ?>
                                         <div class="mb-3">
                                             <label class="form-label">Type <strong>DELETE ALL STORE ITEMS</strong> to confirm:</label>
                                             <input type="text" 

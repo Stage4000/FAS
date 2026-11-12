@@ -110,12 +110,16 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         // Show alert
         alertDiv.style.display = 'block';
         if (result.success) {
+            const currentFormData = new FormData(form);
+            const hasNewerEdits = ['name', 'email', 'subject', 'message'].some(
+                field => currentFormData.get(field) !== formData.get(field)
+            );
             alertDiv.className = 'alert alert-success';
-            alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + result.message;
-            form.reset();
-            // Reset Turnstile widget if it exists (reset first widget without arguments)
-            if (window.turnstile && window.turnstile.reset) {
-                window.turnstile.reset();
+            alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + (hasNewerEdits
+                ? 'Your original message was accepted. Your newer edits have not been sent and are still in the form.'
+                : result.message);
+            if (!hasNewerEdits) {
+                form.reset();
             }
         } else {
             alertDiv.className = 'alert alert-danger';
@@ -133,6 +137,15 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         // Re-enable submit button
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+
+        // A submission can consume the token even if sending the email fails.
+        try {
+            if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                window.turnstile.reset();
+            }
+        } catch (error) {
+            // A widget reset failure must not change the submission result.
+        }
     }
 });
 </script>

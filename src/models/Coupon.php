@@ -25,9 +25,9 @@ class Coupon
         if (!is_numeric($subtotal) || !is_finite((float)$subtotal) || (float)$subtotal < 0) {
             return ['valid' => false, 'message' => 'Invalid subtotal'];
         }
-        // Compare expiry against the current local-time string so the comparison
-        // is consistent with how admins enter dates (local time, not UTC).
-        $now = date('Y-m-d H:i:s');
+        // Current admin writers normalize expiry to UTC. Compare with the same
+        // clock regardless of the site's display timezone.
+        $now = gmdate('Y-m-d H:i:s');
 
         $sql = "SELECT * FROM coupons
                 WHERE code = ?
