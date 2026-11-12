@@ -6,6 +6,8 @@ import secrets
 import shutil
 import subprocess
 import sys
+sys.dont_write_bytecode=True
+from config_reload import FixtureConfigReload
 import tempfile
 import time
 import urllib.error
@@ -130,19 +132,26 @@ with (OUT / 'server.log').open('w') as log:
               'Range suite logs only its six intentional integrity failures, with no PHP warnings')
         config = OUT / 'site/src/config/config.php'
         original = config.read_text()
+        reload=FixtureConfigReload(OUT,base)
         try:
-            for storage in [str(OUTSIDE), str(OUT / 'outside-link'), str(OUT / 'direct-link'), str(OUT / 'private')+'/../private']:
-                config.write_text(original.replace(repr(str(OUT / 'private')), repr(storage)))
+            for case,storage in zip(['storage_outside','storage_outside_link','storage_direct_link','storage_alias'],[str(OUTSIDE), str(OUT / 'outside-link'), str(OUT / 'direct-link'), str(OUT / 'private')+'/../private']):
+                reload.apply(original.replace(repr(str(OUT / 'private')), repr(storage)),case)
+                reload.before_request()
                 try:
                     response = urllib.request.urlopen(urllib.request.Request(base+'/manuals/file.php?id=1', headers={'Range':'bytes=0-7'}), timeout=10)
                 except urllib.error.HTTPError as error:
                     response = error
                 with response:
-                    check(response.status == 503 and response.read() == b'The PDF is temporarily unavailable.'
+                    body=response.read()
+                    reload.observe((response.status,dict(response.headers),body),'boolean_true',storage,'file')
+                    check(response.status == 503 and body == b'The PDF is temporarily unavailable.'
                           and response.headers.get('Content-Range') is None,
                           'Invalid storage configuration fails cleanly without PDF/warning bytes: '+storage)
         finally:
-            config.write_text(original)
+            reload.apply(original,'storage_restore');reload.before_request()
+            with urllib.request.urlopen(urllib.request.Request(base+'/manuals/file.php?id=1',headers={'Range':'bytes=0-7'}),timeout=10) as response:
+                body=response.read();reload.observe((response.status,dict(response.headers),body),'boolean_true',OUT/'private','file')
+                assert response.status==206 and body==(OUT/'synthetic-workshop.pdf').read_bytes()[:8],'Restored storage must serve exact public range'
         content = errors.read_text() if errors.exists() else ''
         check('Warning:' not in content and 'headers already sent' not in content and 'open_basedir restriction' not in content,
               'Invalid configuration responses contain only controlled application errors in the log')

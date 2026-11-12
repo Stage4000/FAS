@@ -21,6 +21,10 @@ def build(out, php):
     subprocess.run([sys.executable, str(ROOT/'tests/manuals/prepare-fixture.py'), str(out)],
                    env={**os.environ, 'FAS_TEST_PHP': php}, check=True, capture_output=True)
     site = out/'site'
+    # Reload maintenance belongs only to backend fixture tests, never the reader.
+    (site/'fixture-config-reload.php').unlink()
+    (out/'config-reload-key').unlink()
+    (out/'config-observation.json').unlink(missing_ok=True)
     # Existing HTTP fixture seeds its synthetic SQLite file in site/. Move it outside.
     shutil.move(site/'fixture.sqlite', out/'database.sqlite')
     (site/'src/config/config.php').write_text("<?php return ['database'=>['path'=>" + repr(str(out/'database.sqlite')) +

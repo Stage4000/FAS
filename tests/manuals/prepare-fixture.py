@@ -1,6 +1,6 @@
 """Build an isolated manual library fixture. Never loads real application configuration."""
 from pathlib import Path
-import shutil,sqlite3,subprocess,os,json,sys
+import shutil,sqlite3,subprocess,os,json,sys,secrets
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 ROOT=Path(__file__).resolve().parents[2]
@@ -26,7 +26,8 @@ $fasFixtureInt=static function(string $name){$v=ini_get($name);return $v===false
 file_put_contents(__DIR__.'/../../../config-observation.json',json_encode([
  'php_version'=>PHP_VERSION,'sapi'=>PHP_SAPI,
  'loaded_flag'=>$fasFixtureFlag===true?'boolean_true':($fasFixtureFlag===false?'boolean_false':($fasFixtureFlag==='true'?'string_true':'other')),
- 'disk_sha256'=>hash_file('sha256',__FILE__),
+ 'disk_sha256'=>hash_file('sha256',__FILE__),'pid'=>getmypid(),
+ 'storage_sha256'=>hash('sha256',(string)($fasFixtureConfig['manuals']['storage_path']??'')),
  'opcache_loaded'=>extension_loaded('Zend OPcache'),
  'opcache_enable'=>$fasFixtureBool('opcache.enable'),'opcache_enable_cli'=>$fasFixtureBool('opcache.enable_cli'),
  'opcache_validate_timestamps'=>$fasFixtureBool('opcache.validate_timestamps'),
@@ -37,6 +38,9 @@ file_put_contents(__DIR__.'/../../../config-observation.json',json_encode([
 return $fasFixtureConfig;
 """
 (SITE/'src/config/config.php').write_text(config)
+(OUT/'config-reload-key').write_text(secrets.token_hex(32))
+(OUT/'config-reload-key').chmod(0o600)
+shutil.copy2(ROOT/'tests/manuals/fixture-config-reload.php',SITE/'fixture-config-reload.php')
 pw=subprocess.check_output([PHP,'-r','echo password_hash("fixture-only",PASSWORD_DEFAULT);'],text=True)
 with sqlite3.connect(SITE/'fixture.sqlite') as db:
     db.execute('CREATE TABLE IF NOT EXISTS admin_users(id INTEGER PRIMARY KEY,username TEXT,password_hash TEXT,email TEXT,role TEXT,is_active INTEGER,last_login TEXT)')

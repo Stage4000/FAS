@@ -113,9 +113,9 @@ Missing/stale observations fail rather than silently authorizing a fallback.
 Twenty-four rapid config transitions passed using the actual release-gate helper
 on local PHP 8.3.36 and 8.4.24 with strict open_basedir and display_errors enabled.
 Neither local runtime loads OPcache, so this does not prove the hosted cause.
-Opcode caching is still only a hypothesis. No cache setting, timing delay,
+At that checkpoint opcode caching was still only a hypothesis. No cache setting, timing delay,
 assertion, runtime gate or PHP restriction was changed to make tests pass.
-The next hosted receipt must distinguish loaded-config drift from another error.
+The sixth receipt below subsequently established loaded-config drift.
 
 Every stage now retains bounded structured diagnostics on success, nonzero exit
 and timeout: exit code, byte counts, truncation status, fixed error categories,
@@ -189,10 +189,10 @@ be erased from the browser. No manual release or production rollout is implied.
 ## Local v2 verification checkpoint
 
 The source-only integration has passed 15 source-guard regressions, 17 process
-lifecycle checks, 20 exact-denial policy checks, 47 sanitized-stage/dependency checks, 32 normalization-oracle checks,
+lifecycle checks, 20 exact-denial policy checks, 54 sanitized-stage/dependency checks, 32 normalization-oracle checks,
 73 range/descriptor checks,
 44 backend checks, 51 original HTTP checks, 103 range HTTP checks, 52 strict
-open_basedir checks (which also rerun the HTTP suites), and 43 strict reader
+open_basedir checks (which also rerun the HTTP suites), and 45 strict reader
 fixture HTTP checks with display_errors on and an empty PHP log. The 237 reader
 helper/source assertions plus 10 failure-recovery and 10 search-cancellation
 stub checks also pass. These are not browser results. The first hosted
@@ -247,4 +247,35 @@ corrected checks use a separate connection's committed-row visibility, a known
 SQLITE_BUSY writer conflict, unchanged pending data and files, completion-call
 counters, and explicit caller rollback/recovery. Unrelated database errors are
 not classified as a lock. Runtime transaction code remains unchanged. The full
-upload stage now contains 494 assertions; actual hosted acceptance is pending.
+upload stage contains 494 assertions; all passed in the sixth hosted run below.
+
+
+## Sixth hosted result and explicit fixture reload
+
+Run `43161627391`, source `fa81812b386ed50f59c084c2a418ec7410b9954f`,
+passed range 271 and upload-storage 494 on PHP 8.3.6. Strict acceptance then
+observed `boolean_true`/HTTP 200 despite both disk checks matching the expected
+string flag. OPcache was active in `cli-server` independently of `enable_cli`.
+
+The `fixture-config-reload` stage now runs inside the same verified isolation
+before range/upload/strict suites. A fixed-target, token-checked POST helper
+invalidates only the fixture config in that serving process. Loaded-cache API
+unavailability/restriction fails, without fallback, global reset, cache disable,
+sleeps or timestamp changes. Every existing config mutation and restoration uses
+this explicit boundary. Subsequent unchanged endpoints must prove loaded flag,
+loaded storage fingerprint, disk bytes and process identity as well as their
+original HTTP outcomes. The browser fixture removes the helper/key and rejects
+its route. Production sources and permission/logging restrictions are unchanged.
+
+New controls comprise 12 injected invalidation-unit checks and 19 real synthetic
+HTTP/observation checks. Two additional real API-restriction checks run when
+OPcache is present; local no-OPcache runs explicitly leave those unrun. Sanitized
+receipts aggregate nine fixed cases, bounded counts and verification booleans,
+plus at most one safe failure detail, within the existing 8 KiB budget. No
+credential, config path, file hash or raw response is retained. The real hosted
+forced-invalidation path and all browser groups remain pending.
+
+PHP-backed deployment config changes separately require the operator's verified
+serving-process reload/invalidation. CI does not establish production settings.
+Immediate database-backed manual rights withdrawal remains independently tested;
+no production maintenance route or automatic cache management is added.

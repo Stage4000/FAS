@@ -214,3 +214,15 @@ The additive range-delivery patch passes 64 pure descriptor/range checks and 103
 Storage configuration now requires a canonical absolute directory path, without dot segments, symlink aliases or alternate spellings (a trailing separator is accepted). Directory-resolution warnings become narrowly scoped controlled exceptions, with the previous error handler restored. The implementation no longer probes ancestors outside PHP open_basedir. Fifty-two restrictive-boundary checks passed with display_errors enabled; see manuals-open-basedir.md.
 
 An empty replacement search now hides the obsolete Stop control. Ten deterministic search/cancellation regressions cover that state; they are not browser proof. The isolated browser harness includes 16 planned real-browser groups and must run on the final reviewed source head before visual/interaction acceptance is claimed.
+
+
+## PHP-backed configuration deployment boundary
+
+Where OPcache applies, PHP configuration-file changes require the operator's
+verified serving-process reload/cache invalidation. A synthetic CLI-server test
+observed stale loaded configuration after an on-disk change; this does not establish
+the production host's settings. Per-manual rights withdrawal stored in the database
+is separate and passed immediate-access checks. The isolated fixture's fixed-target
+reload helper is test-only, removed from the browser fixture and excluded from
+production artifacts. No production endpoint or automatic cache-management code
+is added. See manuals-open-basedir.md for evidence and remaining hosted gates.

@@ -86,6 +86,46 @@ The fixture observation is test-only and must never be deployed.
 Twenty-four rapid transitions through boolean true, string 'true' and boolean
 false passed against the actual release-gate helper on local PHP 8.3.36 and
 8.4.24. Neither local binary loads OPcache; these observations do not establish
-hosted PHP 8.3.6's cause. Caching remains a hypothesis, not a diagnosed defect.
+the hosted cause at that checkpoint. Caching was then only a hypothesis.
 No cache setting was disabled, timestamp artificially advanced or delay inserted.
-A hosted rerun with the new receipt is required before choosing a correction.
+The later receipt below supplied the evidence for the fixture correction.
+
+## Explicit synthetic configuration reload
+
+Run `43161627391` at `fa81812b386ed50f59c084c2a418ec7410b9954f`
+confirmed stale loaded code: PHP 8.3.6 reported `boolean_true` and HTTP 200 while
+both disk-match checks proved the expected string-flag config was on disk.
+OPcache was loaded/enabled. Its `enable_cli=false` does not disable the separate
+`cli-server` SAPI. The range 271 and upload-storage 494 checks passed first.
+
+The fixture now models an explicit configuration reload after every string or
+boolean release change, invalid-storage change, and restoration. Its POST-only
+loopback helper verifies a private synthetic token and exact expected bytes,
+then forces invalidation of exactly its fixed config file in the serving PHP
+process. It cannot accept a target path, source code or cache-wide command. An
+absent OPcache extension is recorded explicitly; a loaded cache with an
+unavailable, denied or warning-producing API fails the test. There is no global
+reset, cache disable, timestamp manipulation or revalidation sleep.
+
+The next unchanged endpoint must prove the expected loaded flag and private
+storage fingerprint, the exact disk bytes and the same server process, in
+addition to the original 404/503/206/200 assertions. Every restoration is
+reloaded and verified. Invalid storage therefore cannot falsely pass by reusing
+a different previously invalid config. The observer and reload receipts expose
+only fixed labels, counts and comparison booleans, never paths, hashes or tokens.
+The helper and its key are removed from the browser fixture; its router still
+denies the helper route. Neither belongs in a production artifact.
+
+A separate isolated test stage covers the API decision and handler restoration,
+wrong method/token/hash, arbitrary path/code fields, symlinks, stale/missing
+observations, wrong process identity and successful mutation/restoration. A real
+OPcache API-restriction test runs when the serving extension is present. Local
+runtimes without OPcache exercise only the no-extension HTTP path plus injected
+invalidation unit controls; actual hosted invalidation remains a required gate.
+
+**Deployment caveat:** changing PHP-backed configuration requires the operator's
+verified serving-process reload or cache invalidation where OPcache applies.
+This CI result does not establish the production host's settings. Per-manual DB
+rights withdrawal is separate: its immediate authorization checks passed without
+any config reload. No production reload endpoint or automatic cache-management
+behavior is introduced.

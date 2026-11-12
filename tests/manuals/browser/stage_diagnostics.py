@@ -75,11 +75,21 @@ def release_config_receipt(value):
     return result
 
 
+def config_reload_receipt(value):
+    cases=('string_release','string_restore','boolean_release','boolean_restore','storage_outside','storage_outside_link','storage_direct_link','storage_alias','storage_restore')
+    if not isinstance(value,dict) or value.get('case') not in cases or value.get('route') not in ('catalog','viewer','file','private_preview','private_file','reload'):return None
+    status=value.get('http_status')
+    result={'case':value['case'],'route':value['route'],'method':value.get('method') if value.get('method') in ('no_opcache','forced_invalidation') else 'unavailable',
+            'http_status':status if type(status) is int and 100<=status<=599 else None}
+    for key in ('disk_matches','flag_matches','storage_matches','same_server_process'):result[key]=value.get(key) is True
+    return result
+
+
 def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
     known=sorted(set(source_paths),key=len,reverse=True)
     out,out_bytes,out_cut=tail(stdout);err,err_bytes,err_cut=tail(stderr)
     text=out+'\n'+err
-    events=[];frames=[];receipt=None;normalization=[];release_config=[]
+    events=[];frames=[];receipt=None;normalization=[];release_config=[];reload_summary=None
     def event(name):
         if name not in events and len(events)<MAX_EVENTS:events.append(name)
     if re.search(r"No module named ['\"]reportlab(?:\.[A-Za-z_][A-Za-z0-9_]*)*['\"]",text):event('reportlab_module_missing')
@@ -117,6 +127,20 @@ def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
                 if note is None:event('malformed_release_config_receipt')
                 elif len(release_config)<3:release_config.append(note)
             except (ValueError,TypeError):event('malformed_release_config_receipt')
+        if line.startswith('FAS_CONFIG_RELOAD_RECEIPT '):
+            try:
+                note=config_reload_receipt(json.loads(line[len('FAS_CONFIG_RELOAD_RECEIPT '):]))
+                if note is None:event('malformed_config_reload_receipt')
+                else:
+                    if reload_summary is None:reload_summary={'observations':0,'all_verified':True,'cases':{},'methods':[]}
+                    verified=note['method']!='unavailable' and all(note[k] for k in ('disk_matches','flag_matches','storage_matches','same_server_process'))
+                    reload_summary['observations']=min(64,reload_summary['observations']+1)
+                    reload_summary['all_verified'] &= verified
+                    item=reload_summary['cases'].setdefault(note['case'],{'requests':0,'verified':True})
+                    item['requests']=min(64,item['requests']+1);item['verified'] &= verified
+                    if note['method'] not in reload_summary['methods']:reload_summary['methods'].append(note['method'])
+                    if not verified and 'first_failure' not in reload_summary:reload_summary['first_failure']=note
+            except (ValueError,TypeError):event('malformed_config_reload_receipt')
     result={'exit_code':exit_code if isinstance(exit_code,int) else None,'timed_out':bool(timed_out),
             'stdout_bytes':out_bytes,'stderr_bytes':err_bytes,'input_tail_truncated':out_cut or err_cut,
             'events':events,'source_frames':frames,
@@ -124,6 +148,7 @@ def summarize(stdout,stderr,source_paths,*,exit_code=None,timed_out=False):
     if receipt is not None:result['runtime']=receipt
     if normalization:result['range_normalization']=normalization
     if release_config:result['release_config']=release_config
+    if reload_summary is not None:result['fixture_config_reload']=reload_summary
     # All content above is fixed labels, known source paths, counts or sanitized versions.
     assert len(json.dumps(result).encode())<=8192,'Structured diagnostics exceeded their fixed budget'
     return result

@@ -27,8 +27,10 @@ def check(condition,label):
 
 def control(op):check(subprocess.check_output([php,str(fixture/'control.php'),op],text=True)=='ok','CLI fixture control '+op)
 
-for route in ['/database.sqlite','/fixture.sqlite','/src/config/config.php','/admin/auth.php','/private/','/control.php','/router.php','/admin/products.php','/api/ebay-sync.php']:
+assert not (fixture/'site/fixture-config-reload.php').exists() and not (fixture/'config-reload-key').exists(),'No reload helper/credential in reader fixture'
+for route in ['/fixture-config-reload.php','/database.sqlite','/fixture.sqlite','/src/config/config.php','/admin/auth.php','/private/','/control.php','/router.php','/admin/products.php','/api/ebay-sync.php']:
     check(req(route)[0]==404,'Unlisted route denied '+route)
+check(req('/fixture-config-reload.php','POST')[0]==404,'Reader router rejects reload POST')
 check(req('/fixture-login.php')[0]==405,'Synthetic login requires POST')
 check(req('/manuals/')[0]==200,'Catalog renders with actual repository')
 for ident in [1,2,3,4,5]:

@@ -1,6 +1,8 @@
 """HTTP checks on the synthetic fixture only. Pass fixture directory and loopback base URL."""
 from pathlib import Path
 import urllib.request, urllib.error, urllib.parse, http.cookiejar, re, html, sqlite3, json,sys,hashlib
+sys.dont_write_bytecode=True
+from config_reload import FixtureConfigReload
 OUT=Path(sys.argv[1]).resolve();BASE=sys.argv[2]
 assert BASE.startswith('http://127.0.0.1:')
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -27,6 +29,7 @@ def field(body,name):return html.unescape(re.search('name="'+name+'" value="([^"
 def tokens(path):
     body=text(req(path));return {name:field(body,name) for name in ['csrf_token','revision','request_key']}
 config=OUT/'site/src/config/config.php';original=config.read_text()
+reload=FixtureConfigReload(OUT,BASE)
 def release_probe(path, expected):
     """Observe the actual config require on this request without retaining data."""
     route={'/manuals/':'catalog','/manuals/view.php?id=1':'viewer','/manuals/file.php?id=1':'file'}[path]
@@ -100,13 +103,20 @@ check(req('/manuals/view.php?id='+str(new_id),who=anon)[0]==404,'Rights restrict
 try:
     assert original.count("'public_enabled'=>true")==1,'Synthetic release flag mutation must be exact'
     expected=original.replace("'public_enabled'=>true","'public_enabled'=>'true'")
-    config.write_text(expected)
+    reload.apply(expected,'string_release')
     for p in ['/manuals/','/manuals/view.php?id=1','/manuals/file.php?id=1']:
+        reload.before_request()
         response,observed=release_probe(p,expected)
+        reload.observe(response,'string_true',OUT/'private',{'/manuals/':'catalog','/manuals/view.php?id=1':'viewer','/manuals/file.php?id=1':'file'}[p])
         check(response[0]==404,'String release flag fails closed '+p)
         assert observed['observation_present'] and observed['loaded_flag']=='string_true' and observed['python_disk_matches_expected'] and observed['php_disk_matches_expected'], 'Actual endpoint did not observe the exact synthetic string release config'
-    check(req('/admin/manuals-preview.php?id=1')[0]==200,'Admin private preview works during release hold')
-finally:config.write_text(original)
+    reload.before_request();response=req('/admin/manuals-preview.php?id=1')
+    reload.observe(response,'string_true',OUT/'private','private_preview')
+    check(response[0]==200,'Admin private preview works during release hold')
+finally:
+    reload.apply(original,'string_restore');reload.before_request()
+    response=req('/manuals/',who=anon);reload.observe(response,'boolean_true',OUT/'private','catalog')
+    assert response[0]==200,'Restored boolean release config must serve catalog'
 with sqlite3.connect(OUT/'site/fixture.sqlite') as db:db.execute('UPDATE admin_users SET is_active=0 WHERE id=1')
 try:
     check(req('/admin/manuals-file.php?id=1')[0]==403,'Deactivated admin session loses PDF access')

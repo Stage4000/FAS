@@ -155,11 +155,37 @@ with tempfile.TemporaryDirectory(prefix='fas-config-diagnostic-') as temp:
         check(secret not in json.dumps(result) and safe['observation_present']==(flag is not None),'Actual helper rejects stale markers and omits raw response/config data')
     mutation=[n for n in tree.body if isinstance(n,ast.Try) and 'String release flag fails closed' in ast.get_source_segment(source.read_text(),n)];assert len(mutation)==1
     def must(condition,label):assert condition,label
-    namespace.update(original=original,req=response_with('boolean_true',200,secret.encode()),check=must);stream=io.StringIO();failed=False
+    class MockReload:
+        def apply(self,value,case):config.write_text(value)
+        def before_request(self):(root/'config-observation.json').unlink(missing_ok=True)
+        def observe(self,*args):pass
+    namespace.update(original=original,reload=MockReload(),req=response_with('boolean_true',200,secret.encode()),check=must);stream=io.StringIO();failed=False
     try:
         with contextlib.redirect_stdout(stream):exec(compile(ast.Module(body=mutation,type_ignores=[]),str(source),'exec'),namespace)
     except AssertionError as error:failed=str(error).startswith('String release flag fails closed')
     safe=summarize(stream.getvalue(),'',known)
     check(failed and safe['release_config'][0]['http_status']==200,'Unexpected HTTP200 remains a failed unchanged404 assertion after safe receipt')
     check(config.read_text()==original and secret not in json.dumps(safe),'Mutation failure restores original fixture config without leaking response data')
+reload_note={'case':'storage_alias','route':'file','method':'forced_invalidation','http_status':503,'disk_matches':True,'flag_matches':True,'storage_matches':True,'same_server_process':True,'token':secret,'path':secret,'hash':secret}
+result=summarize('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps(reload_note),'',known)
+check(result['fixture_config_reload']['all_verified'] and result['fixture_config_reload']['methods']==['forced_invalidation'],'Verified same-process reload retains bounded per-case proof')
+check(secret not in json.dumps(result),'Reload token, target and fingerprint omitted')
+reload_note.update(storage_matches=False,http_status=200)
+result=summarize('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps(reload_note),'',known)
+check(not result['fixture_config_reload']['all_verified'] and result['fixture_config_reload']['first_failure']['http_status']==200,'Wrong loaded storage stays a failed observation despite HTTP200')
+result=summarize('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps({'case':'string_release','route':'reload','method':'unavailable','http_status':503}),'',known)
+check(result['fixture_config_reload']['first_failure']['http_status']==503 and not result['fixture_config_reload']['all_verified'],'Rejected invalidation preserves safe exact status')
+result=summarize('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps({'case':secret,'route':secret}),'',known)
+check('malformed_config_reload_receipt' in result['events'] and secret not in json.dumps(result),'Unknown reload case/route cannot retain arbitrary text')
+result=summarize('\n'.join('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps(reload_note) for _ in range(200)),'',known)
+check(result['fixture_config_reload']['observations']==64 and len(json.dumps(result))<8192,'Reload evidence counts and failed-observation detail remain bounded')
+# All receipt families coexist in the strict stage; preserve the original cap.
+lines=['FAS_RUNTIME_RECEIPT '+json.dumps({'python_version':'3.12.3','php_version':'8.3.6','extensions':php['extensions']})]
+lines += ['FAS_RANGE_NORMALIZATION_RECEIPT '+json.dumps({**normal,'php_version':'8.3.6','sapi':'cli-server','kind':'single-first','response_bytes':2})]*4
+lines += ['FAS_RELEASE_CONFIG_RECEIPT '+json.dumps({**release,'php_version':'8.3.6','loaded_flag':'string_true','opcache_enable':True,'opcache_revalidate_freq':2})]*3
+for case in ['string_release','string_restore','boolean_release','boolean_restore','storage_outside','storage_outside_link','storage_direct_link','storage_alias','storage_restore']:
+    lines.append('FAS_CONFIG_RELOAD_RECEIPT '+json.dumps({**reload_note,'case':case}))
+lines += ['File "/private/'+known[0]+'", line '+str(i) for i in range(1,13)]
+result=summarize('\n'.join(lines),'AssertionError: opaque',known)
+check(len(result['range_normalization'])==4 and len(result['release_config'])==3 and len(result['fixture_config_reload']['cases'])==9 and len(result['source_frames'])==12 and len(json.dumps(result).encode())<=8192 and secret not in json.dumps(result),'Runtime, release, range, reload and traceback receipts coexist within the unchanged 8 KiB secret-free budget')
 print(f'{checks} sanitized-stage/dependency checks passed. No browser launched.')

@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 sys.dont_write_bytecode = True
 from browser.range_normalization import PAIRS, read_duplicate_observation
+from config_reload import FixtureConfigReload
 
 OUT = Path(sys.argv[1]).resolve()
 BASE = sys.argv[2]
@@ -154,21 +155,29 @@ try:
 finally:
     probe.unlink()
 
-def blocked(path, who, status, label):
+def blocked(path, who, status, label, reloaded=False):
     for method, value in [('GET', 'bytes=0-7'), ('GET', 'bytes=999999999999999999-'), ('HEAD', 'bytes=0-7')]:
+        if reloaded:reload.before_request()
         result = request(path, {'Range': value}, method=method, who=who)
+        if reloaded:reload.observe(result,'boolean_false',OUT/'private','file')
         check(result[0] == status and 'Content-Range' not in result[1] and 'Accept-Ranges' not in result[1]
               and not result[2].startswith(b'%PDF-'), label + ' ' + method + ' ' + value)
 
 blocked(private, anon, 302, 'Anonymous range cannot read private bytes or disclose file length')
 config = OUT / 'site/src/config/config.php'
 original_config = config.read_text()
+reload=FixtureConfigReload(OUT,BASE)
 try:
-    config.write_text(original_config.replace("'public_enabled'=>true", "'public_enabled'=>false"))
-    blocked(public, anon, 404, 'Release hold blocks all public range requests')
-    check(request(private, {'Range': 'bytes=0-7'}, who=admin)[0] == 206, 'Private authorized range remains available during public release hold')
+    reload.apply(original_config.replace("'public_enabled'=>true", "'public_enabled'=>false"),'boolean_release')
+    blocked(public, anon, 404, 'Release hold blocks all public range requests',reloaded=True)
+    reload.before_request();result=request(private, {'Range':'bytes=0-7'},who=admin)
+    reload.observe(result,'boolean_false',OUT/'private','private_file')
+    check(result[0] == 206, 'Private authorized range remains available during public release hold')
 finally:
-    config.write_text(original_config)
+    reload.apply(original_config,'boolean_restore');reload.before_request()
+    result=request(public, {'Range':'bytes=0-7'})
+    reload.observe(result,'boolean_true',OUT/'private','file')
+    assert result[0]==206 and result[2]==source[:8],'Restored release config must serve exact public range'
 
 db_path = OUT / 'site/fixture.sqlite'
 with sqlite3.connect(db_path) as db:
