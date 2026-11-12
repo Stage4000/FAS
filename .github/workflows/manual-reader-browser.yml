@@ -81,6 +81,7 @@ jobs:
             /scripts/manuals-intake-capacity.py
             /scripts/manuals-intake-manifest.php
             /docs/manuals-lazy-page-text.md
+            /docs/manuals-page-resources.md
             /docs/manuals-swipe-ownership.md
             /docs/manuals-pending-load.md
             /docs/manuals-intake-inventory.md

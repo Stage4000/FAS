@@ -4,6 +4,33 @@ import * as pdfjs from '../vendor/pdfjs-6.5.438/pdf.mjs';
 // No annotation layer, embedded actions, form widgets, or PDF JavaScript runs here.
 const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;
 pdfjs.GlobalWorkerOptions.workerSrc = `${vendor}pdf.worker.mjs`;
+// Keep render resources for visible pages only. PDF.js cleanup defers internally
+// while its own render work is active; our leases also cover overlapping draws.
+export function createPageResourceTracker() {
+  const active = new Map();
+  let visible = new Set(), closed = false;
+  const collect = proxy => {
+    if (closed || visible.has(proxy) || active.has(proxy)) return;
+    try { proxy.cleanup?.(); } catch (_) { /* Resource cleanup must not hide a render result. */ }
+  };
+  return {
+    acquire(proxy) { if (!closed) active.set(proxy, (active.get(proxy) || 0) + 1); },
+    release(proxy) {
+      if (closed || !active.has(proxy)) return;
+      const remaining = active.get(proxy) - 1;
+      if (remaining) active.set(proxy, remaining); else active.delete(proxy);
+      collect(proxy);
+    },
+    setVisible(pages) {
+      if (closed) return;
+      const previous = visible;
+      visible = new Set(pages);
+      previous.forEach(collect);
+    },
+    close() { closed = true; active.clear(); visible.clear(); }
+  };
+}
+
 export function spreadStart(page, spread) { return !spread || page === 1 ? page : page - page % 2; }
 export function pagesFor(page, count, spread) {
   const start = Math.max(1, Math.min(count, spreadStart(page, spread)));
@@ -57,6 +84,7 @@ async function initialize(root) {
   const controls = ['[data-prev]', '[data-next]', '[data-page]', '[data-go]', '[data-layout]', '[data-zoom-in]', '[data-zoom-out]', '[data-fit]', '[data-search-submit]'];
   let loadingTask = null, loadError = null, disposed = false;
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
+  const pageResources = createPageResourceTracker();
   let renders = [], animations = [], motionOff = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
   let pageInputEdited = false;
@@ -153,6 +181,7 @@ async function initialize(root) {
   async function draw(requested, turn = false, updateHash = true) {
     if (!pdf || disposed) return;
     const ownedCanvases = new Set();
+    let ownedPages = [];
     const oldPage = page, token = ++renderEpoch;
     renders.forEach(task => { try { task.cancel(); } catch (_) {} }); renders = []; stopAnimations();
     const targetPage = Math.max(1, Math.min(pdf.numPages, requested));
@@ -162,6 +191,8 @@ async function initialize(root) {
     try {
       const docs = await Promise.all(selected.map(n => pdf.getPage(n)));
       if (token !== renderEpoch) return;
+      ownedPages = docs;
+      ownedPages.forEach(proxy => pageResources.acquire(proxy));
       const padding = parseFloat(getComputedStyle(stage).paddingLeft) + parseFloat(getComputedStyle(stage).paddingRight);
       const width = Math.max(140, stage.clientWidth - padding - 3);
       const baseline = docs.map(p => p.getViewport({scale: 1}));
@@ -198,6 +229,9 @@ async function initialize(root) {
       });
       page = targetPage;
       visiblePages = selected;
+      pageResources.setVisible(docs);
+      ownedPages.forEach(proxy => pageResources.release(proxy));
+      ownedPages = [];
       textPlaceholder(selected);
       book.dataset.spread = String(selected.length > 1);
       setControls(); stage.scrollLeft = 0;
@@ -217,6 +251,7 @@ async function initialize(root) {
     } finally {
       // Uncommitted canvases include earlier pages when a later page fails or supersedes.
       ownedCanvases.forEach(releaseCanvas);
+      ownedPages.forEach(proxy => pageResources.release(proxy));
     }
   }
   const navigate = (requested, turn = true, updateHash = true) => { pageInputEdited = false; return draw(requested, turn, updateHash); };
@@ -278,7 +313,7 @@ async function initialize(root) {
   });
   // Register before awaiting the document: a large pending load is still owned
   // by this view and must be released on permanent departure.
-  window.addEventListener('pagehide',event=>{touch=null;if(event.persisted||disposed)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();loadingTask?.destroy();});
+  window.addEventListener('pagehide',event=>{touch=null;if(event.persisted||disposed)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();pageResources.close();loadingTask?.destroy();});
   try{
     const url=new URL(root.dataset.pdfUrl,location.href);
     if(url.origin!==location.origin)throw new Error('Only this site’s manual files can be read.');
