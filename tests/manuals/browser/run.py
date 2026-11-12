@@ -16,8 +16,9 @@ sys.dont_write_bytecode = True
 import tempfile
 import time
 import urllib.request
-from source_guard import ROOT, require, verify_sources
+from source_guard import ROOT, MANIFEST, require, verify_sources
 from process_session import ProcessSession
+from stage_runner import execute_stage, cleanup_job
 
 DISABLED='mail,curl_exec,curl_multi_exec,exec,shell_exec,system,passthru,popen,proc_open,fsockopen,pfsockopen,stream_socket_client'
 
@@ -44,31 +45,17 @@ def main():
     require(not output.is_relative_to(ROOT),'Evidence must be outside the checkout')
     report={'status':'failed','browser':'not_run','cleanup':False,'stages':[]}
     scratch=None;fixture=None;jobs=[]
-    def cleanup_job(label,job):
-        try:return {'stage':label,**job.cleanup()}
-        except Exception as error:return {'stage':label,'all_reaped':False,'error':type(error).__name__}
+    pinned_paths=[]
     def stage(label,command,env,timeout=120):
-        item={'stage':label,'status':'running'};report['stages'].append(item)
-        job=ProcessSession(command,cwd=ROOT,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
-        jobs.append((label,job))
-        try:
-            stdout,_=job.communicate(timeout=timeout)
-            require(job.process.returncode==0,'Isolated stage failed: '+label)
-            item['status']='passed'
-            return stdout
-        except subprocess.TimeoutExpired:
-            item['status']='timed_out';raise RuntimeError('Isolated stage timed out: '+label)
-        except Exception:
-            item['status']='failed';raise
-        finally:
-            item['process_cleanup']=cleanup_job(label,job)
-            require(item['process_cleanup']['all_reaped'],'Owned processes remain after stage: '+label)
+        return execute_stage(label,command,env,timeout,ROOT,report,jobs,pinned_paths)
     def interrupted(signum,frame):raise InterruptedError('Runner received termination signal')
     old_term=signal.signal(signal.SIGTERM,interrupted)
     old_int=signal.signal(signal.SIGINT,interrupted)
     try:
         report['source']=verify_sources();report['isolation']=isolation()
-        php=shutil.which('php');require(php is not None,'PHP required')
+        pinned_paths=list(json.loads(MANIFEST.read_text())['source_blobs'])
+        require(Path(sys.executable).resolve()==Path('/usr/bin/python3').resolve(),'Pinned distribution Python is required')
+        php='/usr/bin/php8.3';require(Path(php).is_file(),'Pinned distribution PHP 8.3 is required')
         scratch=Path(tempfile.mkdtemp(prefix='fas-manual-browser-run-'))
         for folder in ['home','tmp']:(scratch/folder).mkdir()
         fixture=scratch/'fixture'
@@ -76,13 +63,17 @@ def main():
         env.update(HOME=str(scratch/'home'),TMPDIR=str(scratch/'tmp'),PYTHONDONTWRITEBYTECODE='1',
                    FAS_TEST_PHP=php,FAS_MANUAL_BROWSER_NETNS=os.readlink('/proc/self/ns/net'),
                    FAS_EXPECTED_PARENT_NETNS=os.environ['FAS_EXPECTED_PARENT_NETNS'])
+        # Import/module receipts come from these exact executables inside isolation.
+        stage('dependency-preflight',[sys.executable,str(Path(__file__).with_name('dependency_check.py')),php],env,30)
+        report['runtime']=report['stages'][-1]['diagnostics']['runtime']
+        require(report['runtime']['reportlab_distribution_package'],'Expected apt-owned ReportLab package required')
+        report['php_version']=report['runtime']['php_version']
         # These execute after kernel isolation, never as an unisolated workflow pre-step.
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
         stage('strict-open-basedir',[sys.executable,'tests/manuals/open-basedir-test.py'],env,180)
         stage('fixture-build',[sys.executable,str(Path(__file__).with_name('prepare.py')),str(fixture)],env)
         receipt=json.loads((fixture/'browser-fixture.json').read_text())
         (output/'fixture-receipt.json').write_text(json.dumps(receipt,indent=2))
-        report['php_version']=stage('php-version',[php,'-r','echo PHP_VERSION;'],env,10)
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
         base=f'http://127.0.0.1:{port}'

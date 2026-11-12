@@ -11,6 +11,10 @@ header/footer are adapters, so this is not full-site layout integration.
 The only supported browser run is the reviewed `manual-reader-browser.yml`
 GitHub Actions job. It installs official PHP, ReportLab and pinned Playwright
 1.58.2 before starting a new kernel network namespace containing only loopback.
+The workflow selects `/usr/bin/python3` and `/usr/bin/php8.3` explicitly, with
+matching distribution ReportLab and PHP 8.3 extension packages. An in-isolation
+preflight records interpreter versions, ReportLab availability/distribution origin,
+required PHP extensions and SQLite JSON support before any application test.
 The application/browser run unprivileged with an allowlisted environment, no
 provider credentials, no remote PHP streams, mail or process execution, and
 `open_basedir` limited to the disposable fixture. There is no fallback when
@@ -61,6 +65,27 @@ owned-child termination/reaping. The runner writes process-cleanup.json before
 removing any fixture. If cleanup cannot be verified, the run fails and retains
 its private fixture rather than deleting files underneath a surviving process.
 Offline lifecycle regressions use Python sleep children only, never Chromium.
+
+## First hosted result and safe stage diagnostics
+
+The first hosted run at source commit
+`07204dfacd905539c9372ba3c91c889a3c3afad1` passed the real checkout/source guard,
+dependency installation and fresh unprivileged loopback-only namespace checks.
+It failed in `range-backend-http` before any browser launch. That runner discarded
+stage stdout/stderr, so the retained evidence does not establish the cause.
+Apt packages and PATH-selected interpreters could differ; this is a hypothesis,
+not a diagnosed runtime defect. The revised job aligns explicit executables with
+distribution packages and records the preflight. It still needs a hosted rerun.
+
+Every stage now retains bounded structured diagnostics on success, nonzero exit
+and timeout: exit code, byte counts, truncation status, fixed error categories,
+known repository-relative traceback locations and sanitized dependency receipts.
+At most 64 KiB from each output stream is inspected, with at most 16 categories,
+12 source frames and 8 KiB of resulting diagnostics. No raw output, exception or
+assertion message, HTML/body, cookie, token, authorization header, configuration,
+database or secret-bearing absolute path is uploaded. Unknown receipt fields and
+values are dropped. Output cleanup/reaping still occurs before fixture removal.
+No source guard, network restriction or PHP warning check is relaxed.
 
 ## Required browser groups
 
@@ -122,13 +147,15 @@ be erased from the browser. No manual release or production rollout is implied.
 ## Local v2 verification checkpoint
 
 The source-only integration has passed 15 source-guard regressions, 17 process
-lifecycle checks, 20 exact-denial policy checks, 73 range/descriptor checks,
+lifecycle checks, 20 exact-denial policy checks, 22 sanitized-stage/dependency
+checks, 73 range/descriptor checks,
 44 backend checks, 51 original HTTP checks, 103 range HTTP checks, 52 strict
 open_basedir checks (which also rerun the HTTP suites), and 43 strict reader
 fixture HTTP checks with display_errors on and an empty PHP log. The 237 reader
 helper/source assertions plus 10 failure-recovery and 10 search-cancellation
-stub checks also pass. These are not browser results. Actual hosted checkout
-validation, kernel namespace execution and all 16 browser groups remain unrun.
+stub checks also pass. These are not browser results. The first hosted
+commit passed checkout and kernel-namespace validation; those checks must rerun
+for this diagnostic revision. All 16 browser groups remain unrun.
 
 ## Checks that do not launch a browser
 
@@ -136,6 +163,8 @@ validation, kernel namespace execution and all 16 browser groups remain unrun.
 - `python3 tests/manuals/browser/process-session-test.py`: synthetic process-tree,
   detached-child, timeout, signal and cleanup tests only.
 - `node tests/manuals/browser/response-policy-test.cjs`: exact-denial negative checks.
+- `python3 tests/manuals/browser/stage-diagnostics-test.py`: bounded sanitization,
+  dependency failures and actual subprocess failure/timeout receipts.
 - `node tests/manuals/reader-search-test.cjs`: deterministic DOM/PDF search stubs.
 - `python3 tests/manuals/browser/fixture-check.py /fixture http://127.0.0.1:PORT php`:
   real HTTP/backend/router contracts against the synthetic server only.

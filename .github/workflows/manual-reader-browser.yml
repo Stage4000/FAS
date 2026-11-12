@@ -58,9 +58,10 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          python3 tests/manuals/browser/source_guard.py
-          python3 tests/manuals/browser/guard-test.py
-          python3 tests/manuals/browser/process-session-test.py
+          /usr/bin/python3 tests/manuals/browser/source_guard.py
+          /usr/bin/python3 tests/manuals/browser/guard-test.py
+          /usr/bin/python3 tests/manuals/browser/process-session-test.py
+          /usr/bin/python3 tests/manuals/browser/stage-diagnostics-test.py
           node tests/manuals/browser/response-policy-test.cjs
           node tests/manuals/reader-state-test.cjs
           node tests/manuals/reader-failure-test.cjs
@@ -69,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y php-cli php-sqlite3 php-xml php-mbstring python3-reportlab iproute2 util-linux
+          sudo apt-get install -y php8.3-cli php8.3-sqlite3 php8.3-xml php8.3-mbstring python3-reportlab iproute2 util-linux
           npm install --prefix "$RUNNER_TEMP/fas-manual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
           PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-manual-browsers" \
             "$RUNNER_TEMP/fas-manual-deps/node_modules/.bin/playwright" install --with-deps chromium
@@ -87,7 +88,7 @@ jobs:
               NODE_PATH="$4/fas-manual-deps/node_modules" \
               PLAYWRIGHT_BROWSERS_PATH="$4/fas-manual-browsers" \
               FAS_EXPECTED_PARENT_NETNS="$5" \
-              python3 tests/manuals/browser/run.py --output "$4/fas-manual-output"
+              /usr/bin/python3 tests/manuals/browser/run.py --output "$4/fas-manual-output"
           ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
       - name: Retain synthetic screenshots and sanitized results
         if: always()
