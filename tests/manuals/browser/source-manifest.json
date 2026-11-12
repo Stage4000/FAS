@@ -15,7 +15,7 @@
     "admin/manuals-file.php": "70b402c0330625fe7a250c81bf3b8e5ef2c3a505",
     "admin/manuals-preview.php": "ba32474c66f5eb089b10d01db6a49a7af5ed8f22",
     "admin/manuals.php": "726c5df9ea8c5bac0c30e49178151d08a385a61b",
-    "docs/manuals-fullsite-integration.md": "e40f03da45b2df197f4d4fd4992a6df90cea8c21",
+    "docs/manuals-fullsite-integration.md": "c6192dd9c9d7c0fc3fb16e40bbdfc7f69d8bfead",
     "docs/manuals-open-basedir.md": "745b46d1ab2bda31d0f46ff9168f2e30bd54a2ae",
     "docs/manuals-range-delivery.md": "649d61ac090e1b6da026bc08e5952d2309875c21",
     "docs/manuals-reader-navigation.md": "f6d51107e5dda8a3c206ff39d0cf3654989a7e39",
@@ -42,7 +42,7 @@
     "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
     "public/js/manual-editor.js": "56e461a07c12374b3f27b7a1512099d40b83c03b",
     "public/js/manual-reader-loader.mjs": "3aa3bbc316a31f8dbfaba2677475865473ac3dd3",
-    "public/js/manual-reader.mjs": "14849d0a205dc870f009cf1eb04bb3d03f527be6",
+    "public/js/manual-reader.mjs": "d89c12b80d419584f77198b42094c2cdc77b60ba",
     "public/js/runtime-guard.js": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97",
     "public/js/theme-toggle.js": "34430acbe4b431f680c686cd40f52be41a1484bc",
     "public/js/timezone.js": "789840c70d84c0486a86ebe4a03a4684184d42bc",
@@ -268,7 +268,7 @@
     "src/utils/Timezone.php": "b0074c7dccfebcae5ee84db633b81967086941b3",
     "tests/manuals/backend-test.php": "cb0ace1b44b6a4019d32b5205a39f37c309f789a",
     "tests/manuals/browser/README.md": "bead506ec7c36e22d29094fc351cda731344451a",
-    "tests/manuals/browser/check.cjs": "1ab4e484f630a9a67785bb9987785a8671d9b81b",
+    "tests/manuals/browser/check.cjs": "549c9db88ed58265233372535b32c90bfc9963b9",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
     "tests/manuals/browser/fullsite-check.cjs": "fb56e2d501cef9e732178024e9a679655fb5f4fd",
@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "808df8ba5a8039281e4b7d5d42042f1852cf1b0b",
+    "tests/manuals/browser/run.py": "1695938a7a474ecbd931547d04c17e9f91024164",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -314,7 +314,8 @@
     "tests/manuals/run-upload-storage-tests.py": "793c2c42499c48d9e4a272d1d54e00f0a0325407",
     "tests/manuals/upload-concurrency-test.py": "5131bc720d8f35ee2abc36e74142cc91073dfe6d",
     "tests/manuals/upload-storage-http-test.py": "9b2d5a8e3e2904aa726ab3de1af80f64aca619ed",
-    "tests/manuals/upload-storage-test.php": "27cecd0cba20de878b2aff7cae45959131c863e0"
+    "tests/manuals/upload-storage-test.php": "27cecd0cba20de878b2aff7cae45959131c863e0",
+    "tests/manuals/reader-search-yield-test.cjs": "64a37f21864a4897b508134f26ac35134ea82d3b"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -595,6 +596,7 @@
     "tests/manuals/run-upload-storage-tests.py": "A",
     "tests/manuals/upload-concurrency-test.py": "A",
     "tests/manuals/upload-storage-http-test.py": "A",
-    "tests/manuals/upload-storage-test.php": "A"
+    "tests/manuals/upload-storage-test.php": "A",
+    "tests/manuals/reader-search-yield-test.cjs": "A"
   }
 }

@@ -52,3 +52,10 @@ The isolated harness adds an original 50,304,159-byte synthetic PDF with 49 page
 Display and search now share a pending extraction promise for the same page. Each pending entry is removed on settlement or failure, and permanent departure clears references and forbids new extraction calls. The existing bounded text cache is unchanged; oversized text remains fully available to callers but is not retained after settlement. Search cancellation still controls only its own result/UI ownership, not another consumer. Twenty deterministic runtime tests demonstrate one underlying extraction instead of two for concurrent consumers, rejection retry, oversized strings, stale search ownership and teardown.
 
 The added hosted race case holds the first real worker GetTextContent message until display and search both await page one, checks only one request was emitted, then releases it to the actual PDF.js worker and verifies complete results. This is deliberately scheduled concurrency rather than a production CPU/memory benchmark. No search truncation, loader/range or integrity policy change.
+
+
+## Cooperative cached search
+
+Search yields a browser task after each eight processed pages, before extracting the next page, then checks cancellation ownership again. This lets Stop, replacement searches and departure events run even when all extracted text resolves immediately from the bounded cache. Results, complete text, rights and the 50-hit limit are unchanged. The interval bounds pages between opportunities, not the duration of a single page or a production latency guarantee.
+
+Focused state tests cover cached scheduling, cancellation/replacement ownership, departure and complete results. A hosted real-PDF case warms all 49 pages in the existing bounded text cache, schedules Stop in a browser task during the next search, verifies cancellation precedes completion without further worker extraction, and completes a restart. Actual hosted execution is required before claiming this acceptance passes.

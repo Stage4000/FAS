@@ -70,6 +70,7 @@ def main():
         report['php_version']=report['runtime']['php_version']
         # These execute after kernel isolation, never as an unisolated workflow pre-step.
         stage('text-dedup',['node','tests/manuals/reader-text-dedup-test.cjs'],env,30)
+        stage('search-yield',['node','tests/manuals/reader-search-yield-test.cjs'],env,30)
         stage('canvas-lifecycle',['node','tests/manuals/reader-canvas-lifecycle-test.cjs'],env,30)
         stage('reader-lifecycle',['node','tests/manuals/reader-lifecycle-test.cjs'],env,30)
         stage('reader-text-cache',['node','tests/manuals/reader-cache-test.cjs'],env,30)

@@ -357,6 +357,34 @@ test('concurrent-display-search-text-dedup',async(p,ctx)=>{
   assert.equal(counts[0],1);summary.measurements.push({label:'concurrent-page-text',workerRequestsByPageIndex:counts,limitation:'First worker message held to force race; actual shipped worker performs extraction after release.'});
 });
 
+test('cached-search-yields-to-stop',async(p,ctx)=>{
+  // Count real worker text requests. The first search fills the unchanged 80-entry cache.
+  await ctx.addInitScript(()=>{const send=Worker.prototype.postMessage;window.__fasSearchTextRequests=0;Worker.prototype.postMessage=function(message,...args){if(message?.action==='GetTextContent')window.__fasSearchTextRequests++;return send.call(this,message,...args);};});
+  await open(p,ids.raster);await ready(p,[1],49);await textReady(p,1);
+  await p.locator('.manual-search summary').click();
+  await p.locator('[data-search-input]').fill('absent-synthetic-needle');await p.locator('[data-search-submit]').click();
+  await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.');
+  const before=await p.evaluate(()=>window.__fasSearchTextRequests);assert.equal(before,49,'all real PDF pages extracted once');
+  const observed=await p.evaluate(()=>new Promise(resolve=>{
+    document.querySelector('[data-search-form]').requestSubmit();
+    setTimeout(()=>{
+      const cancel=document.querySelector('[data-search-cancel]');
+      const status=document.querySelector('[data-search-status]').textContent;
+      const active=!cancel.hidden;
+      cancel.click();resolve({active,status});
+    },0);
+  }));
+  assert(observed.active,'cached search must yield before completion so Stop can run');
+  assert.match(observed.status,/^Searching page [1-8] of 49…$/);
+  await p.waitForTimeout(100);
+  assert.equal(await p.locator('[data-search-status]').textContent(),'Search stopped. Results found so far are below.');
+  assert.equal(await p.evaluate(()=>window.__fasSearchTextRequests),before,'warm search consumes cached complete text');
+  await p.locator('[data-search-input]').fill('absent-synthetic-needle');await p.locator('[data-search-submit]').click();
+  await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.');
+  assert.equal(await p.evaluate(()=>window.__fasSearchTextRequests),before);
+  summary.measurements.push({label:'cached-search-cooperative-stop',pages:49,workerRequests:before,observed,completedAfterRestart:true,limits:'Task scheduling and cached text correctness, not a production latency benchmark.'});
+});
+
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
   browser=await chromium.launch({headless:true});summary.browser=browser.version();

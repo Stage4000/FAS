@@ -225,6 +225,8 @@ async function initialize(root) {
     try{
       for(let n=1;n<=pdf.numPages;n++){
         if(token!==searchEpoch)return;
+        // Cached/quick text resolves in microtasks; let Stop, replacement and teardown run.
+        if(n>1&&(n-1)%8===0){await new Promise(resolve=>setTimeout(resolve,0));if(token!==searchEpoch)return;}
         $('[data-search-status]').textContent=`Searching page ${n} of ${pdf.numPages}…`;
         const text=await textFor(n);if(token!==searchEpoch)return;hasText=hasText||!!text.trim();
         const pos=text.toLocaleLowerCase().indexOf(term);
