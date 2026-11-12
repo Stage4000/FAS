@@ -268,7 +268,7 @@
     "src/utils/Timezone.php": "b0074c7dccfebcae5ee84db633b81967086941b3",
     "tests/manuals/backend-test.php": "cb0ace1b44b6a4019d32b5205a39f37c309f789a",
     "tests/manuals/browser/README.md": "bead506ec7c36e22d29094fc351cda731344451a",
-    "tests/manuals/browser/check.cjs": "3a897bc61246a6fe82eea7c1d6fd947b69e5f9b9",
+    "tests/manuals/browser/check.cjs": "abbecfae76ee449e33ead07b697473741073fb23",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
     "tests/manuals/browser/fullsite-check.cjs": "46442aac6885abd600ea9d25775f0fd483647672",

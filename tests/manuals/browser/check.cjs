@@ -28,10 +28,22 @@ function test(name,fn,options={}){cases.push({name,fn,options});}
 const labels=p=>p.locator('[data-paper]:not([hidden]) [data-page-label]');
 async function ready(p,pages,count=7){
   const text=`Page${pages.length>1?'s':''} ${pages.join('–')} of ${count}`;
-  await p.waitForFunction(text=>document.querySelector('[data-status]')?.textContent===text,text);
-  assert.deepEqual(await labels(p).allTextContents(),pages.map(String));
-  assert.equal(await p.locator('[data-stage]').getAttribute('aria-busy'),null);
-  await p.waitForFunction(()=>document.getAnimations().every(a=>a.playState!=='running'));
+  // Capture all readiness conditions together; a resize may start another draw
+  // between separate status/label/aria-busy browser round trips.
+  const handle=await p.waitForFunction(({text,pages})=>{
+    const snapshot={status:document.querySelector('[data-status]')?.textContent,
+      labels:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(e=>e.textContent),
+      busy:document.querySelector('[data-stage]')?.getAttribute('aria-busy'),
+      animating:document.getAnimations().some(a=>a.playState==='running')};
+    return snapshot.status===text&&snapshot.busy===null&&!snapshot.animating&&snapshot.labels.length===pages.length&&snapshot.labels.every((label,i)=>label===String(pages[i])) ? snapshot : false;
+  },{text,pages});
+  try {
+    const snapshot=await handle.jsonValue();
+    assert.equal(snapshot.status,text);
+    assert.deepEqual(snapshot.labels,pages.map(String));
+    assert.equal(snapshot.busy,null);
+    assert.equal(snapshot.animating,false);
+  } finally { await handle.dispose(); }
 }
 async function open(p,id=ids.book,hash=''){
   const response=await p.goto(`${base}/manuals/view.php?id=${id}${hash}`);
@@ -179,7 +191,7 @@ test('05-rapid-latest-navigation-cancellation',async p=>{
 test('06-accessible-text-search-and-results',async p=>{
   await open(p);await ready(p,[1]);await textReady(p,1);
   assert(await p.locator('.manual-text').evaluate(e=>e.open));assert.match(await p.locator('[data-page-text]').textContent(),/Original synthetic test document/);
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('ZX-526');await p.locator('[data-search-submit]').click();
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('ZX-526');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='1 matching page.');
   await p.locator('[data-search-results] button').click();await ready(p,[4,5]);await textReady(p,5);
   assert.equal(await p.locator('[data-stage]').evaluate(el=>document.activeElement===el),true);
@@ -191,7 +203,7 @@ test('06-accessible-text-search-and-results',async p=>{
 
 test('07-search-stop-and-replacement',async p=>{
   await open(p,ids.long);await ready(p,[1],180);
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
   const start=Date.now();await p.locator('[data-search-submit]').click();
   // If the complete search wins this race, fail rather than claim cancellation coverage.
   await p.locator('[data-search-cancel]').click({timeout:3000});
@@ -233,7 +245,7 @@ test('09-browser-render-failure-retains-page-and-recovers',async p=>{
 test('10-nontext-encrypted-and-malformed-fallbacks',async p=>{
   await open(p,ids.nontext);await ready(p,[1],2);await textReady(p,1);
   assert.match(await p.locator('[data-page-text]').textContent(),/no extractable text/);
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('text');await p.locator('[data-search-submit]').click();
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('text');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent.includes('Scanned manuals need OCR'));
   await open(p,ids.encrypted);await p.waitForFunction(()=>document.querySelector('[data-status]').textContent.includes('requires a password'));
   assert(await p.locator('[data-next]').isDisabled());assert(await p.locator('.manual-download').isVisible());
@@ -292,7 +304,7 @@ test('13-session-loss-before-private-bytes',async (p,ctx)=>{
 test('14-large-book-resource-observations',async p=>{
   const opened=Date.now();await open(p,ids.long);await ready(p,[1],180);await measure(p,'large-initial');
   summary.measurements.push({label:'large-open',elapsedMs:Date.now()-opened,pages:180});
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
   const searching=Date.now();await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='1 matching page.',null,{timeout:60000});
   summary.measurements.push({label:'large-sequential-search',elapsedMs:Date.now()-searching,pagesVisited:180});await measure(p,'large-after-search');
@@ -318,7 +330,7 @@ test('15-fullscreen-entry-exit-or-explicit-unsupported',async p=>{
 
 test('16-empty-search-replaces-running-search',async p=>{
   await open(p,ids.long);await ready(p,[1],180);
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');
   await p.locator('[data-search-submit]').click();
   assert(await p.locator('[data-search-cancel]').isVisible(),'A running search is required for this race');
   await p.evaluate(()=>{
@@ -382,7 +394,7 @@ test('concurrent-display-search-text-dedup',async(p,ctx)=>{
     window.__fasReleaseText=()=>{released=true;const h=held;held=null;if(h)send.call(h.worker,h.message,...h.args);};
   });
   await open(p);await ready(p,[1]);await p.locator('.manual-text summary').click();await p.waitForFunction(()=>window.__fasTextHeld());
-  await p.locator('.manual-search summary').click();
+  await p.locator('.manual-search:has([data-search-form]) summary').click();
   await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='Searching page 1 of 7…');
   assert.equal(await p.evaluate(()=>window.__fasTextRequests.filter(n=>n===0).length),1,'display and search must share one pending extraction');
@@ -397,7 +409,7 @@ test('cached-search-yields-to-stop',async(p,ctx)=>{
   // Count real worker text requests. The first search fills the unchanged 80-entry cache.
   await ctx.addInitScript(()=>{const send=Worker.prototype.postMessage;window.__fasSearchTextRequests=0;Worker.prototype.postMessage=function(message,...args){if(message?.action==='GetTextContent')window.__fasSearchTextRequests++;return send.call(this,message,...args);};});
   await open(p,ids.raster);await ready(p,[1],49);await textReady(p,1);
-  await p.locator('.manual-search summary').click();
+  await p.locator('.manual-search:has([data-search-form]) summary').click();
   await p.locator('[data-search-input]').fill('absent-synthetic-needle');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.');
   const before=await p.evaluate(()=>window.__fasSearchTextRequests);assert.equal(before,49,'all real PDF pages extracted once');
@@ -477,7 +489,7 @@ test('lazy-display-text-real-worker',async(p,ctx)=>{
   await p.waitForFunction(()=>document.querySelector('[data-page-text] h2')===null);
   await jump(p,6);await ready(p,[6,7]);await p.waitForTimeout(100);
   assert.equal(await p.evaluate(()=>window.__fasLazyTextRequests.length),2,'closed later turns do not extract more text');
-  await p.locator('.manual-search summary').click();await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
+  await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('synthetic');await p.locator('[data-search-submit]').click();
   await p.waitForFunction(()=>document.querySelector('[data-search-cancel]').hidden);
   assert(await p.locator('[data-search-results] li').count()>0,'complete document search remains usable while display text is closed');
   assert.equal(await p.locator('.manual-text').evaluate(e=>e.open),false);
