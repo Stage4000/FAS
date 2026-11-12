@@ -18,6 +18,36 @@ export function queryPage(hash, count) {
   return value && /^\d+$/.test(value) ? Math.max(1, Math.min(count, Number(value))) : 1;
 }
 
+// Limit retained extracted text by both page count and UTF-16 code units.
+// This bounds this cache, not PDF.js worker/native memory or a single extraction.
+export function createTextCache(maxCharacters = 2_000_000, maxEntries = 80) {
+  if (!Number.isSafeInteger(maxCharacters) || maxCharacters < 1 || !Number.isSafeInteger(maxEntries) || maxEntries < 1) throw new RangeError('Invalid text cache bounds');
+  const entries = new Map(); let characters = 0, closed = false;
+  return {
+    get size() { return entries.size; },
+    get characters() { return characters; },
+    has(key) { return entries.has(key); },
+    get(key) {
+      if (!entries.has(key)) return undefined;
+      const value = entries.get(key); entries.delete(key); entries.set(key, value); return value;
+    },
+    set(key, text) {
+      if (closed) return;
+      if (typeof text !== 'string') throw new TypeError('Expected extracted text');
+      if (entries.has(key)) { characters -= entries.get(key).length; entries.delete(key); }
+      // Oversized pages remain fully searchable/readable but are not retained.
+      if (text.length > maxCharacters) return;
+      while (entries.size >= maxEntries || characters + text.length > maxCharacters) {
+        const oldest = entries.keys().next().value;
+        characters -= entries.get(oldest).length; entries.delete(oldest);
+      }
+      entries.set(key, text); characters += text.length;
+    },
+    clear() { entries.clear(); characters = 0; },
+    close() { closed = true; entries.clear(); characters = 0; },
+  };
+}
+
 const root = document.querySelector('[data-manual-reader]');
 if (root) initialize(root);
 async function initialize(root) {
@@ -31,7 +61,7 @@ async function initialize(root) {
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
   let pageInputEdited = false;
   $('[data-page]').addEventListener('input', () => { pageInputEdited = true; });
-  const textCache = new Map();
+  const textCache = createTextCache();
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const wide = () => stage.clientWidth >= 740;
   const spread = () => preferredSpread && wide();
@@ -53,8 +83,7 @@ async function initialize(root) {
     if (textCache.has(number)) return textCache.get(number);
     const p = await pdf.getPage(number), content = await p.getTextContent();
     const text = content.items.filter(x => typeof x.str === 'string').map(x => x.str + (x.hasEOL ? '\n' : ' ')).join('');
-    // Bound memory while still permitting long manuals. No document text is persisted.
-    if (textCache.size >= 80) textCache.delete(textCache.keys().next().value);
+    // No document text is persisted; oversized entries bypass the bounded cache.
     textCache.set(number, text); return text;
   };
   const setControls = () => {
@@ -196,6 +225,6 @@ async function initialize(root) {
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
     controls.forEach(selector=>{$(selector).disabled=false;});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
-    window.addEventListener('pagehide',event=>{if(event.persisted)return;renderEpoch++;searchEpoch++;observer.disconnect();stopAnimations();loadingTask?.destroy();},{once:true});
+    window.addEventListener('pagehide',event=>{if(event.persisted)return;renderEpoch++;searchEpoch++;observer.disconnect();stopAnimations();textCache.close();loadingTask?.destroy();});
   }catch(error){say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }

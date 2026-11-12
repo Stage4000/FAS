@@ -226,3 +226,14 @@ is separate and passed immediate-access checks. The isolated fixture's fixed-tar
 reload helper is test-only, removed from the browser fixture and excluded from
 production artifacts. No production endpoint or automatic cache-management code
 is added. See manuals-open-basedir.md for evidence and remaining hosted gates.
+
+
+## Bounded extracted-text cache
+
+The reader now limits retained extracted strings to 2,000,000 UTF-16 code units and 80 pages, with least-recently-used eviction. Previously the 80-page count alone could retain arbitrarily large page strings. Pages larger than the character budget remain fully searchable/readable but bypass the cache; no text is truncated. Navigation/search semantics remain unchanged, and pagehide closes the cache against late extraction writes and releases its references along with the PDF loading task.
+
+A deterministic 5,000-page synthetic-string stress test finishes with 19,000,005 retained characters under the prior policy versus 1,910,000 under the new policy, whose observed peak is exactly 2,000,000. This measures this cache's accounting, not browser heap, worker/native memory, extraction peak, real-manual performance or storage savings. Sixteen boundary/LRU tests cover replacement, oversize bypass, empty pages, Unicode and both limits. Existing rendering/search regressions are retained.
+
+PDF.js still downloads the entire file and each backend range request still verifies its full hash. Neither delivery policy nor upload/rights limits changed. Large original loading, OCR and full-file integrity cost remain separate engineering gates.
+
+The pagehide cleanup listener now survives a persisted browser back/forward-cache departure. The earlier once-only listener was consumed by that departure even though teardown was intentionally skipped, leaving no cleanup on the final departure after restoration. Ten deterministic lifecycle checks cover continued navigation after restore, final teardown and late text extraction. These simulate event semantics with DOM/PDF stubs; actual browser bfcache lifecycle acceptance remains distinct.

@@ -48,6 +48,7 @@ jobs:
             /public/js/manual-reader*.mjs
             /public/vendor/pdfjs-6.5.438/
             /scripts/manuals-maintenance.php
+            /docs/manuals-fullsite-integration.md
             /docs/manuals-reader-navigation.md
             /docs/manuals-system.md
             /docs/manuals-range-delivery.md
