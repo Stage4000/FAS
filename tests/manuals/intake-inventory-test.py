@@ -127,4 +127,68 @@ class InventoryTests(unittest.TestCase):
         p=subprocess.run(command+['--max-entries','1','--max-depth','0'],capture_output=True,text=True); self.assertEqual(p.returncode,0)
         self.put('nested/b.pdf');p=subprocess.run(command+['--max-depth','0'],capture_output=True,text=True); self.assertEqual(p.returncode,2); self.assertFalse(json.loads(p.stdout)['complete'])
 
+    def test_read_budget_default_and_accounting(self):
+        self.put('a.pdf'); self.put('bad.pdf', b'not pdf'); self.put('video.mp4', b'video')
+        r=self.scan()
+        self.assertTrue(r['complete']); self.assertEqual(r['limits']['max_read_bytes'],1024**3)
+        self.assertEqual(r['bytes_read'],len(PDF)+7)
+    def test_read_budget_skips_before_open(self):
+        self.put('a.pdf'); real_open=os.open
+        def checked(path,flags,*args,**kw):
+            self.assertNotEqual(path,'a.pdf'); return real_open(path,flags,*args,**kw)
+        with patch.object(module.os,'open',checked), patch.object(module.os,'supports_dir_fd',os.supports_dir_fd|{checked}): r=self.scan(max_read_bytes=len(PDF))
+        self.assertFalse(r['complete']); self.assertEqual(r['bytes_read'],0)
+        self.assertEqual(r['excluded_counts'],{'read_budget':1}); self.assertEqual(r['candidate_count'],0)
+    def test_read_budget_exact_file_plus_probe(self):
+        self.put('a.pdf');r=self.scan(max_read_bytes=len(PDF)+1)
+        self.assertTrue(r['complete']); self.assertEqual(r['bytes_read'],len(PDF)); self.assertEqual(r['candidate_count'],1)
+    def test_read_budget_global_across_directories(self):
+        self.put('a.pdf');self.put('nested/b.pdf');self.put('nested/c.pdf')
+        r=self.scan(max_read_bytes=2*len(PDF)+1)
+        self.assertFalse(r['complete']);self.assertEqual(r['candidate_count'],2)
+        self.assertEqual(r['bytes_read'],2*len(PDF));self.assertEqual(r['duplicate_candidate_bytes'],len(PDF))
+        self.assertEqual(r['excluded_bytes']['read_budget'],len(PDF));self.assertEqual(r['regular_bytes_observed'],3*len(PDF))
+    def test_read_budget_smaller_later_file_still_eligible(self):
+        self.put('a.pdf',PDF*3);self.put('b.pdf');self.put('z.txt',b'hello')
+        r=self.scan(max_read_bytes=len(PDF)+1)
+        self.assertFalse(r['complete']);self.assertEqual(r['candidate_count'],1);self.assertEqual(r['files'][1]['status'],'candidate')
+        self.assertEqual(r['excluded_counts'],{'read_budget':1,'non_pdf':1})
+    def test_read_budget_growth_probe_counts(self):
+        p=self.put('a.pdf');real_read=os.read;grew=False
+        def grow(fd,n):
+            nonlocal grew
+            if not grew:
+                grew=True
+                with p.open('ab') as f:f.write(b'x')
+            return real_read(fd,n)
+        with patch.object(module.os,'read',side_effect=grow):r=self.scan(max_read_bytes=len(PDF)+1)
+        self.assertFalse(r['complete']);self.assertEqual(r['bytes_read'],len(PDF)+1);self.assertEqual(r['candidate_count'],0)
+        self.assertEqual(r['files'][0]['status'],'changed')
+    def test_read_budget_failed_read_keeps_consumed_bytes(self):
+        self.put('a.pdf');self.put('b.pdf');real_read=os.read;calls=0
+        def fail_after_prefix(fd,n):
+            nonlocal calls
+            calls+=1
+            if calls==1:return real_read(fd,8)
+            if calls==2:raise OSError('synthetic read failure')
+            return real_read(fd,n)
+        with patch.object(module.os,'read',side_effect=fail_after_prefix):r=self.scan(max_read_bytes=len(PDF)+1)
+        self.assertEqual(r['bytes_read'],8);self.assertEqual(r['candidate_count'],0)
+        self.assertEqual(r['excluded_counts'],{'unreadable':1,'read_budget':1});self.assertFalse(r['complete'])
+    def test_read_budget_invalid_arguments(self):
+        for value in [0,-1,64*1024**3+1,True,1.5,'100']:
+            with self.subTest(value=value),self.assertRaises(ValueError):self.scan(max_read_bytes=value)
+    def test_read_budget_metadata_only_when_excluded(self):
+        self.put('clip.mp4');self.put('note.txt');self.put('empty.pdf',b'')
+        with patch.object(module.os,'read',side_effect=AssertionError('No content read expected')):r=self.scan(max_read_bytes=1)
+        self.assertTrue(r['complete']);self.assertEqual(r['bytes_read'],0);self.assertEqual(r['candidate_count'],0)
+    def test_read_budget_cli_partial_and_override(self):
+        self.put('a.pdf');cmd=[sys.executable,str(SCRIPT),str(self.root),'--max-read-bytes']
+        p=subprocess.run(cmd+[str(len(PDF))],capture_output=True,text=True)
+        self.assertEqual(p.returncode,2);self.assertEqual(json.loads(p.stdout)['bytes_read'],0)
+        p=subprocess.run(cmd+[str(len(PDF)+1)],capture_output=True,text=True)
+        self.assertEqual(p.returncode,0);self.assertEqual(json.loads(p.stdout)['candidate_count'],1)
+        p=subprocess.run(cmd+['0'],capture_output=True,text=True)
+        self.assertEqual(p.returncode,2);self.assertIn('Read budget',p.stderr)
+
 if __name__=='__main__':unittest.main()

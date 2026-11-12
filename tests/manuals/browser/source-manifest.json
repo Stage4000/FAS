@@ -316,9 +316,9 @@
     "tests/manuals/upload-storage-http-test.py": "9b2d5a8e3e2904aa726ab3de1af80f64aca619ed",
     "tests/manuals/upload-storage-test.php": "27cecd0cba20de878b2aff7cae45959131c863e0",
     "tests/manuals/reader-search-yield-test.cjs": "64a37f21864a4897b508134f26ac35134ea82d3b",
-    "scripts/manuals-intake-inventory.py": "bf49459bed4033ad85020a1141cef49a468a84ed",
-    "tests/manuals/intake-inventory-test.py": "ac352612ad9227c39365c3fd7109172ac3ff2859",
-    "docs/manuals-intake-inventory.md": "e8cebd32c18e69ba04125d7b61e82742e3bb5902",
+    "scripts/manuals-intake-inventory.py": "88d45f33e0c5997f61691a08777102b3bfae7ec7",
+    "tests/manuals/intake-inventory-test.py": "81329a5e829b663078fcacd63ebf1da0346cd539",
+    "docs/manuals-intake-inventory.md": "5430651d87057612af08e51243d1b613fb420bbe",
     "tests/manuals/editor-upload-preflight-test.cjs": "995a297e13890082dd8cbf2e50a687a5d7e8af32",
     "tests/manuals/admin-search-test.php": "4b02ea5799c8acf0ecc3ff5713bc963db50aa5ff",
     "tests/manuals/admin-search-http-test.py": "cc47f3b2c7e1546d578c6cf2525544a7f5fdb572"

@@ -10,13 +10,15 @@ import stat
 import sys
 
 MAX_BYTES = 50 * 1024 * 1024
+DEFAULT_READ_BYTES = 1024 * 1024 * 1024
+MAX_READ_BYTES = 64 * 1024 * 1024 * 1024
 VIDEO = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.m4v', '.mpeg', '.mpg'}
 
 def signature(s):
     return (s.st_dev, s.st_ino, s.st_mode, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
 
-def inventory(root, max_entries=10000, max_depth=16):
-    result = {'version': 1, 'complete': True, 'entries_examined': 0, 'excluded_counts': {}, 'excluded_bytes': {}, 'limits': {'max_entries': max_entries, 'max_depth': max_depth, 'max_file_bytes': MAX_BYTES}, 'files': [], 'errors': [], 'duplicate_groups': [], 'candidate_count': 0, 'candidate_bytes': 0, 'unique_candidate_bytes': 0, 'regular_bytes_observed': 0, 'duplicate_candidate_bytes': 0, 'estimates_only': True, 'limitations': ['Header and SHA256 are not full PDF, MIME, malware or rights validation.', 'Byte totals count logical paths, not filesystem allocation or compression; hard links can share existing physical storage.', 'Excluded sizes are initial metadata estimates, not hashed or transactionally consistent bytes.', 'Current importer does not deduplicate. Unique bytes are a planning estimate, not actual storage savings.', 'No files imported, changed or removed; no network access.']}
+def inventory(root, max_entries=10000, max_depth=16, max_read_bytes=DEFAULT_READ_BYTES):
+    result = {'version': 1, 'complete': True, 'entries_examined': 0, 'excluded_counts': {}, 'excluded_bytes': {}, 'limits': {'max_entries': max_entries, 'max_depth': max_depth, 'max_file_bytes': MAX_BYTES, 'max_read_bytes': max_read_bytes}, 'bytes_read': 0, 'files': [], 'errors': [], 'duplicate_groups': [], 'candidate_count': 0, 'candidate_bytes': 0, 'unique_candidate_bytes': 0, 'regular_bytes_observed': 0, 'duplicate_candidate_bytes': 0, 'estimates_only': True, 'limitations': ['Header and SHA256 are not full PDF, MIME, malware or rights validation.', 'Byte totals count logical paths, not filesystem allocation or compression; hard links can share existing physical storage.', 'Excluded sizes are initial metadata estimates, not hashed or transactionally consistent bytes.', 'Current importer does not deduplicate. Unique bytes are a planning estimate, not actual storage savings.', 'No files imported, changed or removed; no network access.']}
     if os.name != 'posix' or not all(hasattr(os, flag) for flag in ['O_NOFOLLOW', 'O_NONBLOCK', 'O_DIRECTORY']) or os.open not in os.supports_dir_fd or os.stat not in os.supports_dir_fd or os.scandir not in os.supports_fd or os.stat not in os.supports_follow_symlinks:
         result['complete'] = False
         result['errors'] = [{'path': '', 'reason': 'unsupported_platform'}]
@@ -33,6 +35,10 @@ def inventory(root, max_entries=10000, max_depth=16):
         if suffix != '.pdf': record['status'] = 'non_pdf'; return
         if initial.st_size == 0: record['status'] = 'empty'; return
         if initial.st_size > MAX_BYTES: record['status'] = 'oversized'; return
+        # Reserve enough room for the complete initial file plus its growth probe.
+        # An unverified prefix must never be reported as a candidate or duplicate.
+        if initial.st_size + 1 > max_read_bytes - result['bytes_read']:
+            record['status'] = 'read_budget'; error(relative, 'read_budget'); return
         opened = None
         try:
             opened = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
@@ -43,6 +49,7 @@ def inventory(root, max_entries=10000, max_depth=16):
             read_limit = min(before.st_size + 1, MAX_BYTES + 1)
             while total < read_limit:
                 data = os.read(opened, min(65536, read_limit - total))
+                result['bytes_read'] += len(data)
                 if not data: break
                 if total == 0: header = data[:8]
                 total += len(data); h.update(data)
@@ -89,6 +96,8 @@ def inventory(root, max_entries=10000, max_depth=16):
         except OSError: error(relative, 'unreadable_directory')
     if not isinstance(max_entries, int) or not 1 <= max_entries <= 100000 or not isinstance(max_depth, int) or not 0 <= max_depth <= 64:
         raise ValueError('Invalid traversal limits')
+    if type(max_read_bytes) is not int or not 1 <= max_read_bytes <= MAX_READ_BYTES:
+        raise ValueError('Read budget must be an integer from 1 through 68719476736 bytes')
     fd = None; parent = None; leaf = None
     try:
         # Walk every supplied root component using pinned directory descriptors.
@@ -129,8 +138,9 @@ def inventory(root, max_entries=10000, max_depth=16):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory'); parser.add_argument('--max-entries', type=int, default=10000); parser.add_argument('--max-depth', type=int, default=16)
+    parser.add_argument('--max-read-bytes', type=int, default=DEFAULT_READ_BYTES, help='Total file-content read budget in bytes (default 1 GiB, maximum 64 GiB)')
     args = parser.parse_args()
-    try: result = inventory(args.directory, args.max_entries, args.max_depth)
+    try: result = inventory(args.directory, args.max_entries, args.max_depth, args.max_read_bytes)
     except ValueError as e: parser.error(str(e))
     print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=True))
     return 0 if result['complete'] else 2
