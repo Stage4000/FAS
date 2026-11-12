@@ -124,7 +124,19 @@ async function initialize(root) {
   const status = $('[data-status]'), stage = $('[data-stage]'), book = $('[data-book]');
   const papers = [...root.querySelectorAll('[data-paper]')];
   const controls = ['[data-prev]', '[data-next]', '[data-page]', '[data-go]', '[data-layout]', '[data-zoom-in]', '[data-zoom-out]', '[data-fit]', '[data-search-submit]'];
-  let loadingTask = null, loadError = null, disposed = false;
+  let loadingTask = null, loadError = null, disposed = false, loadPending = true;
+  const loadCancel = $('[data-load-cancel]');
+  let progressMessage = '';
+  const finishLoading = () => {
+    loadPending = false;
+    const ownedFocus = !disposed && loadCancel && document.activeElement === loadCancel;
+    if (loadCancel) loadCancel.hidden = true;
+    if (ownedFocus) status.focus?.();
+  };
+  const destroyLoadingTask = () => {
+    try { return Promise.resolve(loadingTask?.destroy()).catch(()=>{}); }
+    catch (_) { return Promise.resolve(); }
+  };
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   const pageResources = createPageResourceTracker();
   let renders = [], animations = [], motionOff = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -398,18 +410,48 @@ async function initialize(root) {
   });
   // Register before awaiting the document: a large pending load is still owned
   // by this view and must be released on permanent departure.
-  window.addEventListener('pagehide',event=>{touch=null;if(event.persisted||disposed)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();pageResources.close();loadingTask?.destroy();});
+  const disposeReader = () => {
+    if (disposed) return;
+    disposed=true; finishLoading(); renderEpoch++; searchEpoch++; clearTimeout(resizeTimer);
+    renders.forEach(task=>{try{task.cancel();}catch(_){}});
+    papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));
+    observer.disconnect(); stopAnimations(); textCache.close(); pendingText.clear(); pageResources.close();
+    // Teardown owns late outcomes; a rejected destroy must not revive the view.
+    destroyLoadingTask();
+  };
+  window.addEventListener('pagehide',event=>{touch=null;if(event.persisted)return;disposeReader();});
+  loadCancel?.addEventListener('click',()=>{
+    if (disposed || !loadPending || !loadingTask) return;
+    disposeReader();
+    say('Reader loading stopped. Reload this page to try again, or download the original PDF.');
+    status.focus?.();
+  });
   try{
     const url=new URL(root.dataset.pdfUrl,location.href);
     if(url.origin!==location.origin)throw new Error('Only this site’s manual files can be read.');
     const task=loadingTask=pdfjs.getDocument({url:url.href,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:true,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
-    task.onPassword=()=>{if(disposed)return;loadError='This PDF requires a password. Download the original or ask for an unlocked, authorized copy.';task.destroy();say(loadError);};
+    if (loadCancel) loadCancel.hidden = false;
+    task.onProgress=progress=>{
+      if (disposed || !loadPending || loadError || !progress || !Number.isSafeInteger(progress.loaded) || progress.loaded < 0) return;
+      const total = progress.total;
+      let message;
+      if (Number.isSafeInteger(total) && total > 0) {
+        const percent = Math.min(100, Math.floor(progress.loaded / total * 20) * 5);
+        message = percent >= 100 ? 'Download received. Preparing the manual…' : `Downloading manual… ${percent}%`;
+      } else {
+        const mib = Math.floor(progress.loaded / (5 * 1024 * 1024)) * 5;
+        message = mib ? `Downloading manual… at least ${mib} MiB received.` : 'Downloading manual…';
+      }
+      if (message !== progressMessage) { progressMessage = message; say(message); }
+    };
+    task.onPassword=()=>{if(disposed||!loadPending)return;finishLoading();loadError='This PDF requires a password. Download the original or ask for an unlocked, authorized copy.';destroyLoadingTask();say(loadError);};
     const loaded=await task.promise;
     if(disposed)return;
+    finishLoading();
     pdf=loaded;
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
     loadOutline();
     controls.forEach(selector=>{$(selector).disabled=false;});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
-  }catch(error){if(disposed)return;say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
+  }catch(error){if(disposed)return;finishLoading();say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }

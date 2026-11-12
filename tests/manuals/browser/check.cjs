@@ -433,6 +433,73 @@ test('cached-search-yields-to-stop',async(p,ctx)=>{
   summary.measurements.push({label:'cached-search-cooperative-stop',pages:49,workerRequests:before,observed,completedAfterRestart:true,limits:'Task scheduling and cached text correctness, not a production latency benchmark.'});
 });
 
+for(const mode of ['success','malformed','encrypted']) test(`load-completion-focus-${mode}`,async p=>{
+  let release,observed;
+  const heldRequest=new Promise(resolve=>{observed=resolve;});
+  const gate=new Promise(resolve=>{release=resolve;});
+  await p.route('**/manuals/file.php*',async route=>{
+    assert.equal(new URL(route.request().url()).origin,base);
+    observed();await gate;
+    try{await route.continue();}catch(error){if(!/closed|interception|handled|Invalid/i.test(String(error.message)))throw error;}
+  });
+  try{
+    await open(p,mode==='success'?ids.book:ids[mode]);
+    await bounded(heldRequest,'PDF held before focus');
+    assert(await p.locator('[data-load-cancel]').isVisible());
+    await p.locator('[data-load-cancel]').focus();
+    release();
+    if(mode==='success')await ready(p,[1]);
+    else await p.waitForFunction(message=>document.querySelector('[data-status]').textContent.includes(message),mode==='encrypted'?'requires a password':'could not open this PDF');
+    assert(await p.locator('[data-load-cancel]').isHidden());
+    assert(await p.locator('[data-status]').evaluate(e=>e===document.activeElement),'automatic completion restores focused Stop to visible explanation');
+    if(mode!=='success')assert(await p.locator('[data-next]').isDisabled());
+    assert(await p.locator('.manual-download').isVisible());
+  }finally{release();}
+});
+
+test('pending-load-keyboard-stop',async p=>{
+  let held=false,release,observed;
+  const heldRequest=new Promise(resolve=>{observed=resolve;});
+  const gate=new Promise(resolve=>{release=resolve;});
+  await p.addInitScript(()=>{
+    const NativeWorker=window.Worker;
+    window.__fasPendingWorkers=[];
+    window.Worker=new Proxy(NativeWorker,{construct(Target,args){
+      const worker=Reflect.construct(Target,args),record={terminated:false};
+      window.__fasPendingWorkers.push(record);
+      const terminate=worker.terminate.bind(worker);
+      worker.terminate=()=>{record.terminated=true;return terminate();};
+      return worker;
+    }});
+  });
+  await p.route('**/manuals/file.php*',async route=>{
+    assert.equal(new URL(route.request().url()).origin,base);
+    held=true;observed();await gate;
+    // The cancellation may already have removed this browser interception.
+    try{await route.abort('aborted');}catch(error){if(!/closed|interception|handled|Invalid/i.test(String(error.message)))throw error;}
+  });
+  try{
+    await open(p);
+    await bounded(heldRequest,'PDF request held');
+    assert(held);
+    await p.waitForFunction(()=>window.__fasPendingWorkers.length>0);
+    assert(await p.locator('[data-next]').isDisabled());
+    assert(await p.locator('[data-load-cancel]').isVisible());
+    await p.locator('[data-load-cancel]').focus();await p.keyboard.press('Enter');
+    release();
+    await p.waitForFunction(()=>window.__fasPendingWorkers.every(w=>w.terminated));
+    await p.waitForTimeout(150);
+    assert(await p.locator('[data-next]').isDisabled());
+    assert.equal(await p.locator('[data-status]').textContent(),'Reader loading stopped. Reload this page to try again, or download the original PDF.');
+    assert(await p.locator('[data-load-cancel]').isHidden());
+    assert(await p.locator('[data-status]').evaluate(e=>e===document.activeElement),'focus leaves hidden Stop and reaches explanation');
+    assert(await p.locator('.manual-download').isVisible());
+    await screenshot(p,'pending-load-stopped');
+    assert(await p.locator('[data-paper] canvas').evaluateAll(nodes=>nodes.every(c=>c.width===0&&c.height===0)));
+    summary.measurements.push({label:'pending-load-keyboard-stop',workerTerminationObserved:true,lateControlsDisabled:true,heldPdfRequest:true,limits:'Real keyboard Stop during held PDF request; observed native worker termination call, not measured network-byte or worker-memory savings.'});
+  }finally{release();}
+});
+
 test('pending-load-permanent-departure',async p=>{
   let held=false,release,observed;
   const heldRequest=new Promise(resolve=>{observed=resolve;});
