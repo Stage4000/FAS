@@ -181,3 +181,12 @@ call. It then requires explicit owner rollback before cleanup resumes. Lost or
 unavailable rollback cases use the same physical evidence. Other PDO errors
 propagate instead of masquerading as lock contention. The complete hosted
 storage stage must still pass; local emulation is not a substitute.
+
+
+## Browser upload-size preflight
+
+The authenticated upload form now checks the selected file's size against its existing server-generated MAX_FILE_SIZE value on selection and again at submit. Empty or oversized files receive a native field validity error and a polite live status associated with the input; entered metadata stays in the form. Correcting or clearing the selection clears stale custom errors. A restored page resets the submission flag so unsaved-change warnings resume. Missing/invalid/zero limits fail closed in preflight.
+
+This is bandwidth-saving convenience, not a security boundary. JavaScript can be disabled or bypassed; existing server authorization, CSRF, upload provenance, effective limits, MIME/signature, immutable storage and cleanup remain unchanged. Native required-file validation still handles no selection. No chunked/resumable transport, larger limit, automatic compression or actual import was added.
+
+Twenty-six deterministic editor-state checks cover invalid/exact limits, empty/corrected files, submit-time recheck, retained metadata and restored unsaved warnings. Hosted shared-shell cases add real File/constraint-validation tests in light/dark desktop/mobile, require zero upload POSTs on oversized/empty inputs and submit-time checks, and retain metadata. Hosted execution is required before acceptance; no actual client PDFs are used.

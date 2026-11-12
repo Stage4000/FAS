@@ -11,7 +11,7 @@
     "admin/includes/nav.php": "ee99d51f04701b4d25cdbe8478fcb7ede55257a6",
     "admin/js/pwa-installer.js": "219726d12457c2bbda36304ff5ee064aeba46ccb",
     "admin/manuals-common.php": "2b8f429c887e2bbb0d473d747c33ecb3e855b085",
-    "admin/manuals-edit.php": "d719b81a49548ce13c45d01bee7c34921babc8f5",
+    "admin/manuals-edit.php": "dde8d43b9b3cd83271d3395cb40b2bbc9ec7b72d",
     "admin/manuals-file.php": "70b402c0330625fe7a250c81bf3b8e5ef2c3a505",
     "admin/manuals-preview.php": "ba32474c66f5eb089b10d01db6a49a7af5ed8f22",
     "admin/manuals.php": "726c5df9ea8c5bac0c30e49178151d08a385a61b",
@@ -20,7 +20,7 @@
     "docs/manuals-range-delivery.md": "649d61ac090e1b6da026bc08e5952d2309875c21",
     "docs/manuals-reader-navigation.md": "f6d51107e5dda8a3c206ff39d0cf3654989a7e39",
     "docs/manuals-system.md": "c5803c876228c960da9c86211ec5271982f28bfc",
-    "docs/manuals-upload-storage.md": "9e814039effc887c76db387b6aa02870e605e17e",
+    "docs/manuals-upload-storage.md": "6587c83c0f845b563b443f456f00c3f099291d46",
     "gallery/favicons/favicon.png": "c33ccd1994cdf3c5af0b1319b0bfa4d8cf4eb5a5",
     "gallery/hero-image.png": "22a615e98b644620a016d3a82ea769bcf0382f87",
     "includes/admin-accounts.php": "9e66bd0693cf86992a14020852ebdf2100dcd66a",
@@ -40,7 +40,7 @@
     "public/js/animations.js": "05466ef96483b75b64362567f306af37f1b12f6d",
     "public/js/growth.js": "87dac7559458d16f9adc755dc404d535beeeb9eb",
     "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
-    "public/js/manual-editor.js": "56e461a07c12374b3f27b7a1512099d40b83c03b",
+    "public/js/manual-editor.js": "b1a93b0debbabc81e5719d775b6d95aaa2d24c53",
     "public/js/manual-reader-loader.mjs": "3aa3bbc316a31f8dbfaba2677475865473ac3dd3",
     "public/js/manual-reader.mjs": "d89c12b80d419584f77198b42094c2cdc77b60ba",
     "public/js/runtime-guard.js": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97",
@@ -271,7 +271,7 @@
     "tests/manuals/browser/check.cjs": "549c9db88ed58265233372535b32c90bfc9963b9",
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
-    "tests/manuals/browser/fullsite-check.cjs": "fb56e2d501cef9e732178024e9a679655fb5f4fd",
+    "tests/manuals/browser/fullsite-check.cjs": "4a68e6f52e70a3aabee70438186745e51650f23c",
     "tests/manuals/browser/fullsite-pins.json": "dc060589213c622fee4cd21a376d20c50978e627",
     "tests/manuals/browser/guard-test.py": "de704cd75eb04caa0ffb800235ae5447ddba33b2",
     "tests/manuals/browser/prepare-assets.py": "b9dbad7a2d3143c42b4db84638997eddd20c950b",
@@ -284,7 +284,7 @@
     "tests/manuals/browser/raster-fixture.py": "888765c9c12e877a7653aed43ac4676073d8939a",
     "tests/manuals/browser/response-policy-test.cjs": "303cb87641f319b0c23080c1a89bceb4d30e2bce",
     "tests/manuals/browser/response-policy.cjs": "885ef48d09f34b0958bb6e1c0dca1cd73a232948",
-    "tests/manuals/browser/run.py": "8ed5d156fc122b9d64d290bf9193109d93c7da43",
+    "tests/manuals/browser/run.py": "e737a1bd774412865c724e5aaedb23014537e628",
     "tests/manuals/browser/source_guard.py": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2",
     "tests/manuals/browser/stage-diagnostics-test.py": "20ab86f15ab6cee09e61d5c473b01022a1faf325",
     "tests/manuals/browser/stage_diagnostics.py": "b3cf012607961d8f46da6bf9ee270420c8650ba0",
@@ -318,7 +318,8 @@
     "tests/manuals/reader-search-yield-test.cjs": "64a37f21864a4897b508134f26ac35134ea82d3b",
     "scripts/manuals-intake-inventory.py": "bf49459bed4033ad85020a1141cef49a468a84ed",
     "tests/manuals/intake-inventory-test.py": "ac352612ad9227c39365c3fd7109172ac3ff2859",
-    "docs/manuals-intake-inventory.md": "e8cebd32c18e69ba04125d7b61e82742e3bb5902"
+    "docs/manuals-intake-inventory.md": "e8cebd32c18e69ba04125d7b61e82742e3bb5902",
+    "tests/manuals/editor-upload-preflight-test.cjs": "995a297e13890082dd8cbf2e50a687a5d7e8af32"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -603,6 +604,7 @@
     "tests/manuals/reader-search-yield-test.cjs": "A",
     "scripts/manuals-intake-inventory.py": "A",
     "tests/manuals/intake-inventory-test.py": "A",
-    "docs/manuals-intake-inventory.md": "A"
+    "docs/manuals-intake-inventory.md": "A",
+    "tests/manuals/editor-upload-preflight-test.cjs": "A"
   }
 }

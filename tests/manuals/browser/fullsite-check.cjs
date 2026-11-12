@@ -13,7 +13,7 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 for(const [url,a] of Object.entries(cached)){assert(/^https:\/\//.test(url));assert.match(a.file,/^[a-f0-9]{64}$/);assert.equal(hash(fs.readFileSync(path.join(assets,a.file))),a.sha256);}
 function contrast(a,b){const lum=s=>{const c=s.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return c.reduce((s,x,i)=>s+x*[.2126,.7152,.0722][i],0)};const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
 (async()=>{const browser=await chromium.launch({headless:true});summary.browser=browser.version();checkpoint();try{
-for(const width of [1440,390])for(const theme of ['light','dark'])for(const kind of ['catalog','reader','admin-list','admin-edit']){
+for(const width of [1440,390])for(const theme of ['light','dark'])for(const kind of ['catalog','reader','admin-list','admin-edit','admin-upload']){
 const name=`${kind}-${theme}-${width}`;summary.total++;const entry={name,status:'failed'};summary.cases.push(entry);checkpoint();
 const context=await browser.newContext({viewport:{width,height:1000},reducedMotion:'reduce',serviceWorkers:'block'});await context.addInitScript(t=>localStorage.setItem('theme',t),theme);
 await context.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin===base){if(excluded.has(u.pathname)){summary.excludedScripts.push(u.pathname);return route.fulfill({status:200,contentType:'application/javascript',body:'/* excluded non-presentation business script */'});}if(local.has(u.pathname)||u.pathname.startsWith('/public/vendor/pdfjs-6.5.438/'))return route.continue();}
@@ -22,7 +22,7 @@ summary.unexpected.push({url:u.origin===base?u.pathname:u.origin,method:route.re
 const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push('HTTP '+r.status()+' '+new URL(r.url()).pathname)});
 try{
 if(kind.startsWith('admin')){const r=await context.request.post(base+'/fixture-login.php');assert.equal(r.status(),200);}
-const route=kind==='catalog'?'/manuals/':kind==='reader'?`/manuals/view.php?id=${ids.book}`:kind==='admin-list'?'/admin/manuals.php':`/admin/manuals-edit.php?id=${ids.book}`;
+const route=kind==='catalog'?'/manuals/':kind==='reader'?`/manuals/view.php?id=${ids.book}`:kind==='admin-list'?'/admin/manuals.php':kind==='admin-upload'?'/admin/manuals-edit.php':`/admin/manuals-edit.php?id=${ids.book}`;
 assert.equal((await page.goto(base+route)).status(),200);await page.waitForFunction(t=>document.documentElement.getAttribute('data-theme')===t,theme);await page.evaluate(()=>document.fonts.ready);
 const content=page.locator(kind.startsWith('admin')?'.manual-admin':kind==='reader'?'.manual-reader':'.manual-library');assert(await content.isVisible());
 assert.equal(await page.locator('nav.navbar').count(),1);assert.equal(await page.locator('#navbarThemeToggle').count(),1);
@@ -31,11 +31,27 @@ await page.locator('#manual-mfg').fill('Example Motors');await Promise.all([page
 const absent='No such <manufacturer> & exact';await page.locator('#manual-mfg').fill(absent);await Promise.all([page.waitForURL(u=>u.searchParams.get('manufacturer')===absent),page.locator('.manual-catalog-search button').click()]);assert.equal(await page.locator('#manual-mfg').inputValue(),absent);assert.equal(await page.locator('.manual-card').count(),0);assert(await page.locator('.manual-empty').isVisible());assert.equal(await page.locator('manufacturer').count(),0);assert(await page.locator('#manual-manufacturers option').count()<=100);assert.equal(await page.locator('#manual-mfg').getAttribute('aria-describedby'),'manual-mfg-help');assert(await page.locator('#manual-mfg-help').isVisible());
 await page.locator('.manual-catalog-search > a').click();await page.waitForURL(base+'/manuals/');assert.equal(await page.locator('#manual-mfg').inputValue(),'');assert.equal(await page.locator('.manual-card').count(),6);
 }
+if(kind==='admin-upload'){
+const posts=[];page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/admin/manuals-edit.php')posts.push(r.url());});
+await page.locator('[name="title"]').fill('Preserved synthetic upload title');await page.locator('[name="manufacturer"]').fill('Synthetic Maker');
+const maximum=Number(await page.locator('[name="MAX_FILE_SIZE"]').inputValue());assert(Number.isSafeInteger(maximum)&&maximum>0&&maximum<=50*1024*1024);
+const select=async(size,notify=true)=>page.evaluate(({size,notify})=>{const file=new File([new Uint8Array(size)],'synthetic-preflight.pdf',{type:'application/pdf'});const transfer=new DataTransfer();transfer.items.add(file);const input=document.querySelector('[name="pdf"]');input.files=transfer.files;if(notify)input.dispatchEvent(new Event('change',{bubbles:true}));},{size,notify});
+await select(maximum+1);assert(await page.locator('[name="pdf"]').evaluate(e=>e.validity.customError));assert.match(await page.locator('[data-upload-status]').textContent(),/exceeds the current/);
+await page.locator('button[value="draft"]').click();assert.equal(await page.locator('[name="title"]').inputValue(),'Preserved synthetic upload title');assert.equal(posts.length,0,'oversized selection must not start a POST');
+await select(0);assert.match(await page.locator('[data-upload-status]').textContent(),/empty/);await page.locator('button[value="draft"]').click();assert.equal(posts.length,0,'empty selection must not start a POST');
+await select(32);assert(await page.locator('[name="pdf"]').evaluate(e=>e.checkValidity()));assert.equal(await page.locator('[data-upload-status]').textContent(),'');
+// A programmatic selection without change still reaches the submit-time guard.
+await select(maximum+1,false);await page.evaluate(()=>document.querySelector('[data-manual-editor]').requestSubmit(document.querySelector('button[value="draft"]')));
+await page.waitForTimeout(100);assert.equal(posts.length,0,'submit-time recheck must prevent transfer');assert.match(await page.locator('[data-upload-status]').textContent(),/exceeds the current/);assert.equal(await page.locator('[name="manufacturer"]').inputValue(),'Synthetic Maker');
+assert.equal(await page.locator('[name="pdf"]').getAttribute('aria-describedby'),'manual-upload-help manual-upload-status');
+entry.uploadPreflight={maximum,blockedPostCount:posts.length,metadataPreserved:true,emptyRejected:true,validSelectionClearsError:true,submitTimeRechecked:true};
+}
 const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2);assert(!overflow,'shared page horizontal overflow');
 if(kind==='reader'){await page.waitForFunction(()=>document.querySelector('[data-status]').textContent==='Page 1 of 7');await page.locator('[data-next]').click();await page.waitForFunction(w=>{const expected=w>600?'Pages 2–3 of 7':'Page 2 of 7';const labels=[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(e=>e.textContent);return document.querySelector('[data-status]').textContent===expected&&!document.querySelector('[data-stage]').hasAttribute('aria-busy')&&JSON.stringify(labels)===JSON.stringify(w>600?['2','3']:['2']);},width);assert.equal(await page.locator('[data-paper]:not([hidden]) canvas').count(),width>600?2:1);}
-if(kind==='admin-edit'){const colors=await page.locator('.manual-form input:not([type=hidden])').first().evaluate(e=>({ink:getComputedStyle(e).color,bg:getComputedStyle(e).backgroundColor}));assert(contrast(colors.ink,colors.bg)>=4.5,'admin editor field contrast');}
+if(kind==='admin-edit'||kind==='admin-upload'){const colors=await page.locator('.manual-form input:not([type=hidden])').first().evaluate(e=>({ink:getComputedStyle(e).color,bg:getComputedStyle(e).backgroundColor}));assert(contrast(colors.ink,colors.bg)>=4.5,'admin editor field contrast');}
 if(kind!=='reader'){
-const selections=kind==='catalog'?[['.manual-library .manual-eyebrow',null],['.manual-read-link',null],['.manual-catalog-search input','::placeholder'],['.manual-catalog-search button',null]]:[['.manual-admin a:not(.manual-button)',null],[kind==='admin-edit'?'.manual-form button':'.manual-button',null]];
+const selections=kind==='catalog'?[['.manual-library .manual-eyebrow',null],['.manual-read-link',null],['.manual-catalog-search input','::placeholder'],['.manual-catalog-search button',null]]:[['.manual-admin a:not(.manual-button)',null],[kind!=='admin-list'?'.manual-form button':'.manual-button',null]];
+if(kind==='admin-upload')selections.push(['[data-upload-status]',null]);
 entry.contrast=[];
 for(const [selector,pseudo] of selections){const colors=await page.locator(selector).first().evaluate((e,pseudo)=>{let ancestor=e,bg;while(ancestor){bg=getComputedStyle(ancestor).backgroundColor;if(bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent')break;ancestor=ancestor.parentElement;}const style=getComputedStyle(e,pseudo);return{ink:style.color,bg,opacity:style.opacity};},pseudo);assert(colors.bg,'opaque feature background required');assert.equal(colors.opacity,'1');for(const color of [colors.ink,colors.bg]){const channels=color.match(/[\d.]+/g).map(Number);assert(channels.length===3||(channels.length===4&&channels[3]===1),'opaque computed colors required');}const ratio=contrast(colors.ink,colors.bg);entry.contrast.push({selector,pseudo,ratio});assert(ratio>=4.5,'feature text contrast '+selector);}
 }

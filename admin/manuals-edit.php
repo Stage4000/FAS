@@ -54,7 +54,7 @@ manualsAdminHeader($id?'Edit manual':'Upload PDF manual');
 <form method="post" enctype="multipart/form-data" class="manual-form" data-manual-editor data-unsaved="<?=$error!==''?'true':'false'?>">
 <?=CSRF::tokenField()?>
 <input type="hidden" name="revision" value="<?=$revision?>"><input type="hidden" name="request_key" value="<?=manualsH($key)?>">
-<?php if(!$id):?><label>PDF original (current maximum <?=number_format(\FAS\Manuals\ManualStorage::uploadLimit()/1048576,2)?> MiB)<input type="hidden" name="MAX_FILE_SIZE" value="<?=\FAS\Manuals\ManualStorage::uploadLimit()?>"><input type="file" name="pdf" accept="application/pdf,.pdf" required><small>Uploads stay private. Use a separate new entry for a replacement edition. Scan originals for malware before uploading.</small></label><?php endif;?>
+<?php if(!$id):?><label>PDF original (current maximum <?=number_format(\FAS\Manuals\ManualStorage::uploadLimit()/1048576,2)?> MiB)<input type="hidden" name="MAX_FILE_SIZE" value="<?=\FAS\Manuals\ManualStorage::uploadLimit()?>"><input type="file" name="pdf" accept="application/pdf,.pdf" aria-describedby="manual-upload-help manual-upload-status" required><small id="manual-upload-help">Uploads stay private. Use a separate new entry for a replacement edition. Scan originals for malware before uploading.</small><span id="manual-upload-status" data-upload-status role="status" aria-live="polite"></span></label><?php endif;?>
 <div class="manual-form-grid">
 <?php foreach(['title'=>'Manual title','manufacturer'=>'Manufacturer','model'=>'Model / model numbers','years'=>'Years / edition','language'=>'Language'] as $field=>$label):?><label><?=manualsH($label)?><input name="<?=$field?>" value="<?=manualsH($data[$field])?>" maxlength="<?=['title'=>180,'manufacturer'=>80,'model'=>140,'years'=>60,'language'=>40][$field]?>" <?=in_array($field,['title','manufacturer'])?'required':''?>></label><?php endforeach;?>
 </div><label>Description<textarea name="description" rows="4" maxlength="1600"><?=manualsH($data['description'])?></textarea></label>
@@ -68,5 +68,5 @@ manualsAdminHeader($id?'Edit manual':'Upload PDF manual');
 <label class="manual-check"><input type="checkbox" name="confirm_withdraw" value="1"> Remove the current snapshot from public view.</label>
 <label>Current administrator password (required if not recently verified)<input type="password" name="password" autocomplete="current-password"></label>
 <div class="manual-actions"><button type="submit" name="action" value="publish"><?=manualsEnabled()?'Publish reviewed manual':'Prepare reviewed snapshot'?></button><button type="submit" name="action" value="withdraw" formnovalidate>Withdraw snapshot</button></div></fieldset><?php endif;?>
-</form><script src="/public/js/manual-editor.js?v=20261112a" defer></script>
+</form><script src="/public/js/manual-editor.js?v=20261112b" defer></script>
 <?php manualsAdminFooter(); ?>
