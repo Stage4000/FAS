@@ -76,6 +76,8 @@ jobs:
             /public/vendor/pdfjs-6.5.438/
             /scripts/manuals-maintenance.php
             /scripts/manuals-intake-inventory.py
+            /docs/manuals-swipe-ownership.md
+            /docs/manuals-pending-load.md
             /docs/manuals-intake-inventory.md
             /docs/manuals-fullsite-integration.md
             /docs/manuals-reader-navigation.md

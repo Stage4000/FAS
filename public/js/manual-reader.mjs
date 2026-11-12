@@ -208,9 +208,22 @@ async function initialize(root) {
     if(event.key==='Home'||event.key==='End'){event.preventDefault();navigate(event.key==='Home'?1:pdf.numPages);}
   });
   let touch=null;
-  stage.addEventListener('pointerdown', event => {if(event.pointerType==='touch'&&event.isPrimary&&zoom===1)touch={x:event.clientX,y:event.clientY};});
-  stage.addEventListener('pointerup', event => {if(touch&&pdf){const dx=event.clientX-touch.x,dy=event.clientY-touch.y;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)turn(dx>0?-1:1);}touch=null;});
+  stage.addEventListener('pointerdown', event => {
+    // A second pointer cancels the gesture; only the initiating primary touch
+    // may complete a page swipe. Never reinterpret a pinch as a page turn.
+    touch=pdf&&event.pointerType==='touch'&&event.isPrimary&&zoom===1
+      ? {id:event.pointerId,x:event.clientX,y:event.clientY} : null;
+  });
+  stage.addEventListener('pointerup', event => {
+    const start=touch;touch=null;
+    if(!start||!pdf||zoom!==1||event.pointerType!=='touch'||!event.isPrimary||event.pointerId!==start.id)return;
+    const dx=event.clientX-start.x,dy=event.clientY-start.y;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)turn(dx>0?-1:1);
+  });
+  window.addEventListener('pointerdown',event=>{if(event.pointerType==='touch'&&!event.isPrimary)touch=null;},true);
   stage.addEventListener('pointercancel',()=>{touch=null;});
+  stage.addEventListener('lostpointercapture',()=>{touch=null;});
+  window.addEventListener('blur',()=>{touch=null;});
   window.addEventListener('hashchange',()=>{if(pdf)navigate(queryPage(location.hash,pdf.numPages),false,false);});
   const observer=new ResizeObserver(()=>{const width=stage.clientWidth;if(Math.abs(width-lastWidth)<2)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>draw(page),120);});observer.observe(stage);
   const full=$('[data-fullscreen]');
@@ -237,15 +250,19 @@ async function initialize(root) {
     }catch(_){if(token===searchEpoch)$('[data-search-status]').textContent='Search could not finish. You can still turn pages or download the PDF.';}
     finally{if(token===searchEpoch)$('[data-search-cancel]').hidden=true;}
   });
+  // Register before awaiting the document: a large pending load is still owned
+  // by this view and must be released on permanent departure.
+  window.addEventListener('pagehide',event=>{touch=null;if(event.persisted||disposed)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();loadingTask?.destroy();});
   try{
     const url=new URL(root.dataset.pdfUrl,location.href);
     if(url.origin!==location.origin)throw new Error('Only this site’s manual files can be read.');
     const task=loadingTask=pdfjs.getDocument({url:url.href,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:true,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
-    task.onPassword=()=>{loadError='This PDF requires a password. Download the original or ask for an unlocked, authorized copy.';task.destroy();say(loadError);};
-    pdf=await task.promise;
+    task.onPassword=()=>{if(disposed)return;loadError='This PDF requires a password. Download the original or ask for an unlocked, authorized copy.';task.destroy();say(loadError);};
+    const loaded=await task.promise;
+    if(disposed)return;
+    pdf=loaded;
     if(pdf.numPages>5000){await loadingTask.destroy();pdf=null;throw new Error('This PDF exceeds the 5,000-page reader limit.');}
     controls.forEach(selector=>{$(selector).disabled=false;});
-    window.addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;renderEpoch++;searchEpoch++;clearTimeout(resizeTimer);renders.forEach(task=>{try{task.cancel();}catch(_){}});papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));observer.disconnect();stopAnimations();textCache.close();pendingText.clear();loadingTask?.destroy();});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
-  }catch(error){say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
+  }catch(error){if(disposed)return;say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }

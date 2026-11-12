@@ -92,6 +92,16 @@ test('02-mobile-resize-keyboard-and-pointer',async (p,ctx)=>{
   assert.deepEqual(await labels(p).allTextContents(),['3'],'Canceled gesture must not turn');
   await stage.dispatchEvent('pointerdown',{pointerType:'touch',isPrimary:true,clientX:300,clientY:120});
   await stage.dispatchEvent('pointerup',{pointerType:'touch',isPrimary:true,clientX:100,clientY:120});await ready(p,[4]);
+  await stage.dispatchEvent('pointerdown',{pointerType:'touch',pointerId:11,isPrimary:true,clientX:300,clientY:120});
+  await stage.dispatchEvent('pointerup',{pointerType:'touch',pointerId:12,isPrimary:true,clientX:100,clientY:120});
+  await p.waitForTimeout(80);await ready(p,[4]);
+  await stage.dispatchEvent('pointerdown',{pointerType:'touch',pointerId:11,isPrimary:true,clientX:300,clientY:120});
+  await p.locator('body').dispatchEvent('pointerdown',{pointerType:'touch',pointerId:12,isPrimary:false,clientX:200,clientY:120});
+  await stage.dispatchEvent('pointerup',{pointerType:'touch',pointerId:11,isPrimary:true,clientX:100,clientY:120});
+  await p.waitForTimeout(80);await ready(p,[4]);
+  await stage.dispatchEvent('pointerdown',{pointerType:'touch',pointerId:13,isPrimary:true,clientX:300,clientY:120});
+  await stage.dispatchEvent('pointerup',{pointerType:'touch',pointerId:13,isPrimary:true,clientX:100,clientY:120});await ready(p,[5]);
+  await p.locator('[data-prev]').click();await ready(p,[4]);
   await screenshot(p,'mobile-page');
   await p.setViewportSize({width:1440,height:1000});await ready(p,[4,5]);
   assert(!(await p.locator('[data-layout]').isDisabled()));
@@ -383,6 +393,45 @@ test('cached-search-yields-to-stop',async(p,ctx)=>{
   await p.waitForFunction(()=>document.querySelector('[data-search-status]').textContent==='This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.');
   assert.equal(await p.evaluate(()=>window.__fasSearchTextRequests),before);
   summary.measurements.push({label:'cached-search-cooperative-stop',pages:49,workerRequests:before,observed,completedAfterRestart:true,limits:'Task scheduling and cached text correctness, not a production latency benchmark.'});
+});
+
+test('pending-load-permanent-departure',async p=>{
+  let held=false,release,observed;
+  const heldRequest=new Promise(resolve=>{observed=resolve;});
+  const gate=new Promise(resolve=>{release=resolve;});
+  await p.addInitScript(()=>{
+    const NativeWorker=window.Worker;
+    window.__fasPendingWorkers=[];
+    window.Worker=new Proxy(NativeWorker,{construct(Target,args){
+      const worker=Reflect.construct(Target,args),record={terminated:false};
+      window.__fasPendingWorkers.push(record);
+      const terminate=worker.terminate.bind(worker);
+      worker.terminate=()=>{record.terminated=true;return terminate();};
+      return worker;
+    }});
+  });
+  await p.route('**/manuals/file.php*',async route=>{
+    assert.equal(new URL(route.request().url()).origin,base);
+    held=true;observed();await gate;
+    // The cancellation may already have removed this browser interception.
+    try{await route.abort('aborted');}catch(error){if(!/closed|interception|handled|Invalid/i.test(String(error.message)))throw error;}
+  });
+  try{
+    await open(p);
+    await bounded(heldRequest,'PDF request held');
+    assert(held);
+    await p.waitForFunction(()=>window.__fasPendingWorkers.length>0);
+    assert(await p.locator('[data-next]').isDisabled());
+    const before=await p.locator('[data-status]').textContent();
+    await p.evaluate(()=>dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false})));
+    release();
+    await p.waitForFunction(()=>window.__fasPendingWorkers.every(w=>w.terminated));
+    await p.waitForTimeout(150);
+    assert(await p.locator('[data-next]').isDisabled());
+    assert.equal(await p.locator('[data-status]').textContent(),before);
+    assert(await p.locator('[data-paper] canvas').evaluateAll(nodes=>nodes.every(c=>c.width===0&&c.height===0)));
+    summary.measurements.push({label:'pending-load-departure',workerTerminationObserved:true,lateControlsDisabled:true,heldPdfRequest:true,limits:'Synthetic pagehide during held request; not real navigation/bfcache or measured network-byte savings.'});
+  }finally{release();}
 });
 
 (async()=>{
