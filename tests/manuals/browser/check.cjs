@@ -17,7 +17,8 @@ const summary={browser:'not_started',cases:[],unexpected:[],measurements:[],limi
   'Heap measurements, when exposed by Chromium, exclude total worker/native/GPU memory.',
   'Canvas fault is deliberately injected at browser API boundary; PDF.js stays real.',
   'Cached PDF bytes cannot be withdrawn after download; revocation is checked on later requests.',
-  'Pointer dispatch checks the DOM swipe handler; real touch hardware/gesture acceptance remains separate.'
+  'Pointer dispatch checks the DOM swipe handler; real touch hardware/gesture acceptance remains separate.',
+  'Motion interruption pauses genuine Web Animations at midpoint; natural-duration/performance acceptance is separate.'
 ]};
 let browser;
 const write=()=>fs.writeFileSync(path.join(output,'browser-summary.json'),JSON.stringify(summary,null,2));
@@ -145,20 +146,122 @@ test('02-mobile-resize-keyboard-and-pointer',async (p,ctx)=>{
 },{viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 
 test('03-real-turn-animation-and-reduced-motion',async p=>{
-  await open(p);await ready(p,[1]);
-  await p.locator('[data-next]').click();
-  await p.waitForFunction(()=>document.getAnimations().some(a=>a.playState==='running'));
-  const active=await p.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running').map(a=>({duration:a.effect.getTiming().duration,keyframes:a.effect.getKeyframes().map(k=>k.transform)})));
-  assert(active.some(a=>a.duration===190||a.duration===210));
-  summary.measurements.push({label:'actual-page-turn',animations:active});
-  await screenshot(p,'desktop-turn-observation');await ready(p,[2,3]);
-  await p.locator('[data-motion]').click();assert.equal(await p.locator('[data-motion]').getAttribute('aria-pressed'),'true');
-  await p.locator('[data-next]').click();await ready(p,[4,5]);
-  assert.equal(await p.evaluate(()=>document.getAnimations().length),0);
-  await p.emulateMedia({reducedMotion:'reduce'});await p.locator('[data-motion]').click();
-  // User toggle cannot override the OS reduce preference.
-  await p.locator('[data-prev]').click();await ready(p,[2,3]);
-  assert.equal(await p.evaluate(()=>document.getAnimations().length),0);
+  // Observe the actual native Animation returned by the real reader. Pause only
+  // the selected turn phase at its midpoint, before returning it unchanged, so
+  // interruption does not race a 190/210ms effect. PDF.js and canvases stay real.
+  await p.addInitScript(()=>{
+    const nativeAnimate=Element.prototype.animate;
+    const probe=window.__fasMotionProbe={entries:[],holdDuration:null,held:null};
+    Element.prototype.animate=function(...args){
+      const animation=Reflect.apply(nativeAnimate,this,args);
+      if(this.matches('[data-paper]')){
+        const duration=animation.effect.getTiming().duration;
+        const entry={animation,duration,startedState:animation.playState,outcome:'pending',rejection:null};
+        probe.entries.push(entry);
+        animation.finished.then(()=>{entry.outcome='finished';},error=>{entry.outcome='cancelled';entry.rejection=error.name;});
+        if(probe.holdDuration===duration){
+          probe.holdDuration=null;
+          animation.pause();animation.currentTime=duration/2;
+          probe.held=entry;
+        }
+      }
+      return animation;
+    };
+  });
+  const motion=p.locator('[data-motion]');
+  async function motionState(off,system=false,focused=false){
+    const wanted={text:system?'Page animation off (system preference)':off?'Page animation off':'Page animation on',
+      pressed:String(off),inert:String(system),focused};
+    await p.waitForFunction(wanted=>{
+      const el=document.querySelector('[data-motion]');
+      return el?.textContent===wanted.text&&el.getAttribute('aria-pressed')===wanted.pressed
+        &&el.getAttribute('aria-disabled')===wanted.inert&&!el.disabled&&el.tabIndex>=0
+        &&(!wanted.focused||document.activeElement===el);
+    },wanted);
+    assert.equal(await motion.textContent(),wanted.text);
+    assert.equal(await motion.getAttribute('aria-pressed'),wanted.pressed);
+    assert.equal(await motion.getAttribute('aria-disabled'),wanted.inert);
+    assert(await motion.evaluate(el=>!el.disabled&&el.tabIndex>=0),'OS-inert control remains natively focusable');
+    if(focused)assert(await motion.evaluate(el=>document.activeElement===el),'preference update retains focus');
+  }
+  const entryCount=()=>p.evaluate(()=>window.__fasMotionProbe.entries.length);
+  const noPaperAnimations=async()=>assert.equal(await p.evaluate(()=>document.getAnimations().filter(a=>a.effect?.target?.matches('[data-paper]')).length),0);
+  await open(p);await ready(p,[1]);await motionState(false);
+  for(const duration of [190,210])for(const controller of ['manual','system']){
+    await motionState(false);
+    const priorCount=await entryCount();
+    await p.evaluate(duration=>{const probe=window.__fasMotionProbe;probe.held=null;probe.holdDuration=duration;},duration);
+    await p.locator('[data-next]').click();
+    await p.waitForFunction(()=>{
+      const held=window.__fasMotionProbe.held;
+      return held&&held.animation.playState==='paused'&&!held.animation.pending;
+    });
+    const held=await p.evaluate(()=>{
+      const entry=window.__fasMotionProbe.held,a=entry.animation;
+      return {duration:entry.duration,startedState:entry.startedState,playState:a.playState,pending:a.pending,currentTime:a.currentTime,
+        progress:a.effect.getComputedTiming().progress,
+        outcome:entry.outcome,keyframes:a.effect.getKeyframes().map(k=>k.transform),
+        present:document.getAnimations().includes(a),
+        pages:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(el=>el.textContent)};
+    });
+    assert.equal(held.duration,duration);assert.equal(held.startedState,'running');assert.equal(held.playState,'paused');assert.equal(held.pending,false);
+    assert(held.progress>0&&held.progress<1,'held native effect is inside its active interval');
+    assert.equal(held.currentTime,duration/2);assert.equal(held.outcome,'pending');assert.equal(held.present,true);
+    assert(held.keyframes.some(value=>value.includes('rotateY')),'real turn keyframes retained');
+    assert.deepEqual(held.pages,duration===190?['1']:['2','3'],'selected outgoing/incoming phase owns expected visible pages');
+    assert.equal(await entryCount()-priorCount,duration===190?1:2,'exact selected phase, not an unrelated effect');
+    if(duration===190&&controller==='manual')await screenshot(p,'desktop-turn-observation');
+    await motion.focus();
+    if(controller==='manual')await motion.click();
+    else await p.emulateMedia({reducedMotion:'reduce'});
+    await motionState(true,controller==='system',true);
+    // Only the reader cancels this effect. The test never calls cancel/finish,
+    // fabricates a finished promise, or replaces the renderer's animation.
+    await p.waitForFunction(()=>{
+      const entry=window.__fasMotionProbe.held,a=entry.animation;
+      return entry.outcome==='cancelled'&&entry.rejection==='AbortError'&&a.playState==='idle'&&!a.pending&&a.currentTime===null;
+    });
+    await ready(p,[2,3]);await noPaperAnimations();
+    assert.equal(await p.locator('[data-page]').inputValue(),'2');assert(p.url().endsWith('#page=2'));
+    await textReady(p,2);
+    assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),['Page 2','Page 3']);
+    const cancelledCount=await entryCount();
+    assert.equal(cancelledCount-priorCount,duration===190?1:2,'off state prevents a subsequent turn phase');
+    await jump(p,1);await ready(p,[1]);await noPaperAnimations();
+    assert.equal(await entryCount(),cancelledCount,'disabled navigation never calls native animate');
+    await motion.focus();
+    if(controller==='manual'){
+      await p.emulateMedia({reducedMotion:'reduce'});await motionState(true,true,true);
+    }else await motionState(true,true,true);
+    // Intentional DOM activation tests the aria-disabled handler, not an
+    // actionability bypass for a user action. Exactly one click exposes hidden
+    // preference toggling that two clicks could accidentally conceal.
+    await motion.evaluate(el=>el.click());await motionState(true,true,true);
+    await p.emulateMedia({reducedMotion:'no-preference'});
+    await motionState(controller==='manual',false,true);
+    assert.equal(await entryCount(),cancelledCount,'preference changes do not create new animations');
+    if(controller==='manual'){
+      await jump(p,2);await ready(p,[2,3]);await noPaperAnimations();
+      assert.equal(await entryCount(),cancelledCount,'manual off survives one forced-off activation and OS clearing');
+      await jump(p,1);await ready(p,[1]);
+      await motion.click();await motionState(false,false,true);
+    }
+    summary.measurements.push({label:'real-turn-interruption',phase:duration===190?'outgoing':'incoming',controller,
+      nativeDurationMs:duration,heldAtMs:held.currentTime,keyframes:held.keyframes,cancellation:'AbortError/idle',
+      navigationAfterInterruption:[2,3],manualChoicePreserved:true,forcedOffActivations:1,
+      limits:'Native Web Animation paused at midpoint for deterministic interruption; not natural-duration or performance acceptance.'});
+  }
+  // Retain an unmodified, naturally completed turn after all held controls.
+  const beforeNatural=await entryCount();
+  await p.locator('[data-next]').click();await ready(p,[2,3]);
+  await p.waitForFunction(before=>{
+    const entries=window.__fasMotionProbe.entries.slice(before);
+    return entries.length===2&&entries.every(entry=>entry.outcome==='finished');
+  },beforeNatural);
+  const natural=await p.evaluate(before=>window.__fasMotionProbe.entries.slice(before).map(entry=>({duration:entry.duration,outcome:entry.outcome})),beforeNatural);
+  assert.deepEqual(natural,[{duration:190,outcome:'finished'},{duration:210,outcome:'finished'}]);
+  await noPaperAnimations();await motionState(false);
+  summary.measurements.push({label:'actual-page-turn',animations:natural,held:false});
 },{reducedMotion:'no-preference'});
 
 test('04-zoom-bounds-fit-and-canvas-budget',async p=>{

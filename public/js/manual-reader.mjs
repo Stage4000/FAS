@@ -139,7 +139,7 @@ async function initialize(root) {
   };
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   const pageResources = createPageResourceTracker();
-  let renders = [], animations = [], motionOff = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let renders = [], animations = [], manualMotionOff = false;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
   let pageInputEdited = false;
   $('[data-page]').addEventListener('input', () => { pageInputEdited = true; });
@@ -148,18 +148,27 @@ async function initialize(root) {
   const wide = () => stage.clientWidth >= 740;
   const spread = () => preferredSpread && wide();
   const say = message => { status.textContent = message; };
+  const stopAnimations = () => { animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
   const updateMotion = () => {
-    $('[data-motion]').textContent = motionOff ? 'Page animation off' : 'Page animation on';
-    $('[data-motion]').setAttribute('aria-pressed', String(motionOff));
+    if (disposed) return;
+    const off = manualMotionOff || reducedMotion.matches;
+    if (off) stopAnimations();
+    const button = $('[data-motion]');
+    button.textContent = reducedMotion.matches ? 'Page animation off (system preference)' : off ? 'Page animation off' : 'Page animation on';
+    button.setAttribute('aria-pressed', String(off));
+    // Keep a focused button in place while the OS makes its action unavailable.
+    button.setAttribute('aria-disabled', String(reducedMotion.matches));
   };
   updateMotion();
-  reducedMotion.addEventListener('change', event => { motionOff = event.matches; updateMotion(); });
-  $('[data-motion]').addEventListener('click', () => { motionOff = !motionOff; updateMotion(); });
-  const stopAnimations = () => { animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
+  reducedMotion.addEventListener('change', updateMotion);
+  $('[data-motion]').addEventListener('click', () => {
+    if (disposed || reducedMotion.matches) return;
+    manualMotionOff = !manualMotionOff; updateMotion();
+  });
   const animate = async (element, frames, options) => {
-    if (motionOff || reducedMotion.matches || !element.animate) return;
+    if (manualMotionOff || reducedMotion.matches || !element.animate) return;
     const animation = element.animate(frames, options); animations.push(animation);
-    try { await animation.finished; } catch (_) { /* A newer navigation owns the view. */ }
+    try { await animation.finished; } catch (_) { /* Preference changes, newer navigation or teardown may cancel motion. */ }
   };
   const pendingText = new Map();
   const textFor = async number => {

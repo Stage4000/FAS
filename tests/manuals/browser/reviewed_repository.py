@@ -1,4 +1,4 @@
-"""Exact b99 manuals overlay for historical guards; no network or Git ancestry lookup.
+"""Exact manuals overlay and finite corrections; no network or Git ancestry lookup.
 
 The source manifest is the existing, independently reviewed policy root. It does
 not hash itself. Its finite key/status schema is checked here; it is NOT proof
@@ -37,6 +37,13 @@ COMPATIBILITY = {
     'tests/manuals/browser/reviewed_repository.py': 'A',
     'tests/manuals/browser/repository-compatibility-test.py': 'A',
     'docs/manuals-whole-repository-gates.md': 'A',
+    # Finite reviewed motion correction; all other b99 runtime pins stay immutable.
+    'includes/manual-reader.php': 'A',
+    'public/js/manual-reader-loader.mjs': 'A',
+    'public/js/manual-reader.mjs': 'A',
+    'tests/manuals/reader-canvas-lifecycle-test.cjs': 'A',
+    'tests/manuals/browser/check.cjs': 'A',
+    'docs/manuals-motion-interruption.md': 'A',
 }
 
 
