@@ -141,6 +141,7 @@ async function initialize(root) {
   const pageResources = createPageResourceTracker();
   let renders = [], animations = [], manualMotionOff = false;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
+  let pendingDraw = null;
   let pageInputEdited = false;
   $('[data-page]').addEventListener('input', () => { pageInputEdited = true; });
   const textCache = createTextCache();
@@ -291,6 +292,9 @@ async function initialize(root) {
     const oldPage = page, token = ++renderEpoch;
     renders.forEach(task => { try { task.cancel(); } catch (_) {} }); renders = []; stopAnimations();
     const targetPage = Math.max(1, Math.min(pdf.numPages, requested));
+    // Automatic geometry redraws must retain an uncommitted destination, not
+    // replace it with the last successfully displayed page or a stale hash policy.
+    pendingDraw = {token, targetPage, updateHash};
     const selected = pagesFor(targetPage, pdf.numPages, spread());
     say(`Loading page${selected.length > 1 ? 's' : ''} ${selected.join('–')}…`);
     stage.setAttribute('aria-busy', 'true');
@@ -344,6 +348,7 @@ async function initialize(root) {
       if (updateHash) history.replaceState(null, '', `#page=${page}`);
       say(`Page${selected.length > 1 ? 's' : ''} ${selected.join('–')} of ${pdf.numPages}`);
       stage.removeAttribute('aria-busy');
+      if (pendingDraw?.token === token) pendingDraw = null;
       if (turn && oldPage !== page) {
         const leaf = page > oldPage ? papers[0] : papers[selected.length - 1];
         await animate(leaf, [{transform:`rotateY(${page > oldPage ? 82 : -82}deg)`,filter:'brightness(.7)'},{transform:'rotateY(0deg)',filter:'brightness(1)'}], {duration:210,easing:'ease-out',fill:'none'});
@@ -355,11 +360,15 @@ async function initialize(root) {
       say(`Page ${targetPage} could not be rendered.${visiblePages.length ? ` Still showing ${visiblePages.join('–')}.` : ''} Try another page, or download the original PDF.`);
       stage.removeAttribute('aria-busy');
     } finally {
+      // A failed/cancelled owner must not be retried by a later resize. An old
+      // draw settling after supersession cannot clear the newer owner's intent.
+      if (pendingDraw?.token === token) pendingDraw = null;
       // Uncommitted canvases include earlier pages when a later page fails or supersedes.
       ownedCanvases.forEach(releaseCanvas);
       ownedPages.forEach(proxy => pageResources.release(proxy));
     }
   }
+  const redrawGeometry = () => draw(pendingDraw?.targetPage ?? page, false, pendingDraw?.updateHash ?? true);
   const navigate = (requested, turn = true, updateHash = true) => { pageInputEdited = false; return draw(requested, turn, updateHash); };
   const turn = direction => navigate(nextPage(page, pdf.numPages, spread(), direction));
   $('[data-prev]').addEventListener('click', () => { if(pdf)turn(-1); });
@@ -392,9 +401,9 @@ async function initialize(root) {
   stage.addEventListener('lostpointercapture',()=>{touch=null;});
   window.addEventListener('blur',()=>{touch=null;});
   window.addEventListener('hashchange',()=>{if(pdf)navigate(queryPage(location.hash,pdf.numPages),false,false);});
-  const observer=new ResizeObserver(()=>{const width=stage.clientWidth;if(Math.abs(width-lastWidth)<2)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>draw(page),120);});observer.observe(stage);
+  const observer=new ResizeObserver(()=>{const width=stage.clientWidth;if(Math.abs(width-lastWidth)<2)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(redrawGeometry,120);});observer.observe(stage);
   const full=$('[data-fullscreen]');
-  if(document.fullscreenEnabled&&root.requestFullscreen){full.hidden=false;full.addEventListener('click',async()=>{try{if(document.fullscreenElement===root)await document.exitFullscreen();else await root.requestFullscreen();}catch(_){say('Full screen is unavailable in this browser.');}});document.addEventListener('fullscreenchange',()=>{full.textContent=document.fullscreenElement===root?'Exit full screen':'Full screen';draw(page);});}
+  if(document.fullscreenEnabled&&root.requestFullscreen){full.hidden=false;full.addEventListener('click',async()=>{try{if(document.fullscreenElement===root)await document.exitFullscreen();else await root.requestFullscreen();}catch(_){say('Full screen is unavailable in this browser.');}});document.addEventListener('fullscreenchange',()=>{full.textContent=document.fullscreenElement===root?'Exit full screen':'Full screen';redrawGeometry();});}
   const searchCancel = $('[data-search-cancel]'), searchStatus = $('[data-search-status]');
   const finishSearch = () => {
     const ownedFocus = !disposed && document.activeElement === searchCancel;
@@ -432,7 +441,7 @@ async function initialize(root) {
   // by this view and must be released on permanent departure.
   const disposeReader = () => {
     if (disposed) return;
-    disposed=true; finishLoading(); renderEpoch++; searchEpoch++; finishSearch(); clearTimeout(resizeTimer);
+    disposed=true; pendingDraw=null; finishLoading(); renderEpoch++; searchEpoch++; finishSearch(); clearTimeout(resizeTimer);
     renders.forEach(task=>{try{task.cancel();}catch(_){}});
     papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));
     observer.disconnect(); stopAnimations(); textCache.close(); pendingText.clear(); pageResources.close();

@@ -37,13 +37,14 @@ COMPATIBILITY = {
     'tests/manuals/browser/reviewed_repository.py': 'A',
     'tests/manuals/browser/repository-compatibility-test.py': 'A',
     'docs/manuals-whole-repository-gates.md': 'A',
-    # Finite reviewed motion correction; all other b99 runtime pins stay immutable.
+    # Finite reviewed motion/geometry corrections; all other b99 runtime pins stay immutable.
     'includes/manual-reader.php': 'A',
     'public/js/manual-reader-loader.mjs': 'A',
     'public/js/manual-reader.mjs': 'A',
     'tests/manuals/reader-canvas-lifecycle-test.cjs': 'A',
     'tests/manuals/browser/check.cjs': 'A',
     'docs/manuals-motion-interruption.md': 'A',
+    'docs/manuals-resize-navigation.md': 'A',
 }
 
 

@@ -562,6 +562,196 @@ test('15-fullscreen-entry-exit-or-explicit-unsupported',async p=>{
   summary.measurements.push({label:'fullscreen',supported:true,enteredAndExited:true});
 });
 
+// BEGIN pending geometry acceptance
+async function installGeometryProbe(p){
+  await p.addInitScript(()=>{
+    const nativeAnimate=Element.prototype.animate;
+    const probe=window.__fasGeometryProbe={entries:[],armed:false,held:null,action:null,activation:null,fullscreenEvent:null,snapshots:[],dropped:0,geometry:{width:null,changedAt:performance.now()},canvasChangedAt:performance.now()};
+    const number=value=>typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<=1e7?Math.round(value*1000)/1000:null;
+    const page=value=>/^[1-7]$/.test(value)?Number(value):null;
+    probe.capture=phase=>{
+      const stage=document.querySelector('[data-stage]'),entry=probe.held,a=entry?.animation,animations=document.getAnimations();
+      const status=document.querySelector('[data-status]')?.textContent;
+      const value={phase,timeMs:number(performance.now()),width:number(stage?.clientWidth),height:number(stage?.clientHeight),
+        viewport:{width:number(innerWidth),height:number(innerHeight)},fullscreen:document.fullscreenElement===document.querySelector('[data-manual-reader]'),
+        pages:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].slice(0,2).map(el=>page(el.textContent)),
+        input:page(document.querySelector('[data-page]')?.value),busy:stage?.getAttribute('aria-busy')==='true',
+        status:/^Loading pages? [1-7](?:–[1-7])?…$/.test(status)?'loading':/^Pages? [1-7](?:–[1-7])? of 7$/.test(status)?'settled':'other',
+        fullscreenFocused:document.activeElement===document.querySelector('[data-fullscreen]'),count:probe.entries.length,geometry:{width:number(probe.geometry.width),changedAt:number(probe.geometry.changedAt),canvasChangedAt:number(probe.canvasChangedAt)},
+        held:entry?{index:probe.entries.indexOf(entry),duration:entry.duration,startedState:entry.startedState,
+          state:['idle','paused','running','finished'].includes(a.playState)?a.playState:'other',pending:a.pending,
+          time:number(a.currentTime),progress:number(a.effect.getComputedTiming().progress),present:animations.includes(a),
+          outcome:entry.outcome,rejection:entry.rejection===null?null:entry.rejection==='AbortError'?'AbortError':'other',
+          turnKeyframes:a.effect.getKeyframes().some(k=>typeof k.transform==='string'&&k.transform.includes('rotateY'))}:null};
+      if(probe.snapshots.length===24){probe.snapshots.shift();probe.dropped++;}probe.snapshots.push(value);return value;
+    };
+    Element.prototype.animate=function(...args){
+      const animation=Reflect.apply(nativeAnimate,this,args);
+      if(this.matches('[data-paper]')){
+        const duration=animation.effect.getTiming().duration;
+        const entry={animation,duration,startedState:animation.playState,outcome:'pending',rejection:null};
+        probe.entries.push(entry);
+        animation.finished.then(()=>{entry.outcome='finished';},error=>{entry.outcome='cancelled';entry.rejection=error.name;});
+        if(probe.armed&&duration===190){probe.armed=false;animation.pause();animation.currentTime=95;probe.held=entry;}
+      }
+      return animation;
+    };
+    document.addEventListener('DOMContentLoaded',()=>{
+      const paper=document.querySelector('[data-paper]');
+      if(paper)new MutationObserver(records=>{
+        if(records.some(record=>[...record.addedNodes].some(node=>node.nodeName==='CANVAS')))probe.canvasChangedAt=performance.now();
+      }).observe(paper,{childList:true,subtree:true});
+      const stage=document.querySelector('[data-stage]');
+      if(stage)new ResizeObserver(()=>{
+        const width=stage.clientWidth;
+        if(probe.geometry.width===null||Math.abs(width-probe.geometry.width)>=2)probe.geometry={width,changedAt:performance.now()};
+      }).observe(stage);
+    },{once:true});
+    document.addEventListener('click',event=>{
+      if(probe.action==='fullscreen'&&event.target instanceof Element&&event.target.closest('[data-fullscreen]')){
+        probe.action=null;probe.activation=probe.capture('fullscreen-activation');
+      }
+    },true);
+    // Record before the application's fullscreenchange handler. A native resize
+    // belonging to the same fullscreen request may legitimately run first.
+    document.addEventListener('fullscreenchange',()=>{probe.fullscreenEvent=probe.capture('fullscreen-change');},true);
+  });
+}
+function requireGeometryHold(value,pages,index=value?.held?.index){
+  assert(value?.held,'genuine outgoing animation must still own the pending draw');
+  assert.equal(value.held.index,index);assert.equal(value.count,index+1);
+  assert.equal(value.held.duration,190);assert.equal(value.held.startedState,'running');
+  assert.equal(value.held.state,'paused');assert.equal(value.held.pending,false);assert.equal(value.held.time,95);
+  assert(value.held.progress>0&&value.held.progress<1);assert.equal(value.held.present,true);assert.equal(value.held.turnKeyframes,true);
+  assert.equal(value.held.outcome,'pending');assert.equal(value.status,'loading');assert.equal(value.busy,true);
+  assert.deepEqual(value.pages,pages);assert(value.width>0);
+}
+async function holdGeometryDestination(p,target,visible){
+  await p.evaluate(()=>{const q=window.__fasGeometryProbe;q.armed=true;q.held=null;q.activation=null;q.fullscreenEvent=null;});
+  await jump(p,target);
+  await p.waitForFunction(()=>{const a=window.__fasGeometryProbe.held?.animation;return a?.playState==='paused'&&!a.pending;});
+  const held=await p.evaluate(()=>window.__fasGeometryProbe.capture('held-ready'));
+  requireGeometryHold(held,visible);return held;
+}
+async function geometryCancelled(p,index){
+  await p.waitForFunction(index=>{
+    const e=window.__fasGeometryProbe.entries[index],a=e?.animation;
+    return e?.outcome==='cancelled'&&e.rejection==='AbortError'&&a.playState==='idle'&&!a.pending&&a.currentTime===null;
+  },index);
+}
+async function geometryDestination(p,target,input=target,readText=true){
+  const width=await p.locator('[data-stage]').evaluate(el=>el.clientWidth);
+  const pages=width<740||target===1?[target]:target%2?[target-1,target]:[target,target+1];
+  await ready(p,pages);assert.equal(await p.locator('[data-page]').inputValue(),String(input));
+  assert.equal(new URL(p.url()).hash,'#page='+target);
+  assert.equal(await p.evaluate(()=>document.getAnimations().filter(a=>a.effect?.target?.matches('[data-paper]')).length),0);
+  if(readText){await textReady(p,pages[0]);assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),pages.map(n=>'Page '+n));}
+  return pages;
+}
+async function geometryQuiet(p){
+  // Semantic debounce barrier, not an arbitrary sleep or a required number of
+  // successful draws. A superseded first redraw may never replace a canvas.
+  // Keep the page foreground and require a quiet interval beyond the reader's
+  // 120ms width debounce, then recheck ordinary destination readiness separately.
+  await p.waitForFunction(()=>{
+    const q=window.__fasGeometryProbe,stage=document.querySelector('[data-stage]');
+    return document.visibilityState==='visible'&&q.geometry.width!==null&&Math.abs(q.geometry.width-stage.clientWidth)<2
+      &&performance.now()-Math.max(q.geometry.changedAt,q.canvasChangedAt)>=200
+      &&stage.getAttribute('aria-busy')===null
+      &&!document.getAnimations().some(a=>a.effect?.target?.matches('[data-paper]'));
+  });
+}
+async function geometryEvidence(p,scenario,exercise){
+  try{return await exercise();}
+  catch(error){
+    try{
+      const value=await p.evaluate(()=>{const q=window.__fasGeometryProbe;q.capture('failure');return {snapshots:q.snapshots,dropped:q.dropped};});
+      summary.measurements.push({label:'pending-geometry-failure',scenario,...value});
+    }catch(_){summary.measurements.push({label:'pending-geometry-failure',scenario,unavailable:true});}
+    throw error;
+  }
+}
+
+test('pending-resize-preserves-destination-edit-and-history',async p=>{
+  await installGeometryProbe(p);
+  await geometryEvidence(p,'resize',async()=>{
+    await open(p);await ready(p,[1]);await geometryQuiet(p);await ready(p,[1]);
+    const first=await holdGeometryDestination(p,3,[1]);
+    await p.locator('[data-page]').fill('7');
+    const before=await p.evaluate(()=>window.__fasGeometryProbe.capture('pre-resize'));
+    requireGeometryHold(before,[1],first.held.index);assert.equal(before.input,7);
+    await p.setViewportSize({width:600,height:2200});
+    await geometryCancelled(p,first.held.index);
+    assert.deepEqual(await geometryDestination(p,3,7),[3]);
+    const after=await p.evaluate(()=>window.__fasGeometryProbe.capture('settled'));
+    assert(before.width>=740&&after.width<740&&Math.abs(before.width-after.width)>=2,'genuine stage width crosses spread boundary');
+    assert.equal(after.count,first.count,'automatic retry never starts another turn');
+    // The preserved unsubmitted draft must still be the actual next Go command.
+    await p.locator('[data-go]').click();await ready(p,[7]);assert.equal(new URL(p.url()).hash,'#page=7');
+    await p.evaluate(()=>{location.hash='#page=3';});await ready(p,[3]);
+    await p.goBack();await ready(p,[7]);await p.goForward();await ready(p,[3]);
+    summary.measurements.push({label:'pending-resize-edit-history',before,after,requested:3,draft:7,backForward:true,
+      limits:'Native outgoing effect held at95ms; pending history no-write semantics remain deterministic-suite coverage.'});
+  });
+},{viewport:{width:1440,height:2200},reducedMotion:'no-preference'});
+
+test('pending-resize-preserves-newest-command',async p=>{
+  await installGeometryProbe(p);
+  await geometryEvidence(p,'resize-latest',async()=>{
+    // A separate normal runner context starts with a fresh document and no
+    // earlier resize debounce. Network/error observers remain fully attached.
+    await open(p);await ready(p,[1]);await geometryQuiet(p);await ready(p,[1]);
+    const old=await holdGeometryDestination(p,3,[1]);
+    const latest=await holdGeometryDestination(p,6,[1]);await geometryCancelled(p,old.held.index);
+    const latestBefore=await p.evaluate(()=>window.__fasGeometryProbe.capture('pre-resize'));
+    requireGeometryHold(latestBefore,[1],latest.held.index);
+    await p.setViewportSize({width:600,height:2200});await geometryCancelled(p,latest.held.index);
+    assert.deepEqual(await geometryDestination(p,6),[6]);
+    const latestAfter=await p.evaluate(()=>window.__fasGeometryProbe.capture('settled'));
+    assert(latestBefore.width>=740&&latestAfter.width<740&&Math.abs(latestBefore.width-latestAfter.width)>=2);
+    assert.equal(latestAfter.count,latest.count,'only newer explicit command owns the automatic retry');
+    summary.measurements.push({label:'pending-resize-latest-command',oldIndex:old.held.index,before:latestBefore,after:latestAfter,requested:6});
+  });
+},{viewport:{width:1440,height:2200},reducedMotion:'no-preference'});
+
+test('pending-fullscreen-entry-exit-preserves-destination',async p=>{
+  await installGeometryProbe(p);
+  await geometryEvidence(p,'fullscreen',async()=>{
+    await open(p);await ready(p,[1]);await geometryQuiet(p);await ready(p,[1]);
+    assert(await p.evaluate(()=>document.fullscreenEnabled&&!!document.querySelector('[data-manual-reader]').requestFullscreen),
+      'Pending fullscreen acceptance requires native fullscreen support; unsupported is not a passing interruption test');
+    let visible=[1];
+    for(const [target,entering] of [[3,true],[5,false]]){
+      const held=await holdGeometryDestination(p,target,visible);
+      await p.locator('[data-fullscreen]').focus();
+      const before=await p.evaluate(()=>{const q=window.__fasGeometryProbe;q.action='fullscreen';return q.capture('pre-fullscreen');});
+      requireGeometryHold(before,visible,held.held.index);assert.equal(before.fullscreen,!entering);assert.equal(before.fullscreenFocused,true);
+      await p.locator('[data-fullscreen]').click();
+      await p.waitForFunction(entering=>{
+        const q=window.__fasGeometryProbe;return q.fullscreenEvent&&q.fullscreenEvent.fullscreen===entering;
+      },entering);
+      const observations=await p.evaluate(()=>({activation:window.__fasGeometryProbe.activation,event:window.__fasGeometryProbe.fullscreenEvent}));
+      requireGeometryHold(observations.activation,visible,held.held.index);assert.equal(observations.activation.fullscreen,!entering);
+      assert.equal(observations.event.fullscreen,entering);assert.equal(observations.event.held.index,held.held.index);
+      const eventHeld=observations.event.held;
+      const heldPendingAtEvent=eventHeld.state==='paused'&&!eventHeld.pending&&eventHeld.time===95
+        &&eventHeld.outcome==='pending'&&eventHeld.present&&observations.event.busy;
+      // Activation must own a genuine pending turn, but native resize-first and
+      // fullscreenchange-first ordering are both valid. Record, do not force it.
+      await geometryCancelled(p,held.held.index);visible=await geometryDestination(p,target,target,false);
+      await geometryQuiet(p);await ready(p,visible);
+      assert.equal(await p.evaluate(()=>document.fullscreenElement===document.querySelector('[data-manual-reader]')),entering);
+      assert.equal(await p.locator('[data-fullscreen]').textContent(),entering?'Exit full screen':'Full screen');
+      const after=await p.evaluate(()=>window.__fasGeometryProbe.capture('settled'));
+      assert.equal(after.count,held.count,'fullscreen redraw never starts another turn');
+      summary.measurements.push({label:'pending-fullscreen',entering,requested:target,heldPendingAtEvent,before,...observations,after,
+        limits:'Genuine pending turn at user activation; event-time ownership is recorded, not required. Deterministic suite covers handler ordering; no real-device timing claim.'});
+    }
+    await textReady(p,visible[0]);assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),visible.map(n=>'Page '+n));
+  });
+},{viewport:{width:1440,height:2200},reducedMotion:'no-preference'});
+// END pending geometry acceptance
+
 test('16-empty-search-replaces-running-search',async p=>{
   await open(p,ids.long);await ready(p,[1],180);
   await p.locator('.manual-search:has([data-search-form]) summary').click();await p.locator('[data-search-input]').fill('FIND-PAGE-180-END');

@@ -104,6 +104,7 @@ jobs:
             /tests/keyboard-browser/catalog-scroll-guard-test.py
             /docs/manuals-whole-repository-gates.md
             /docs/manuals-motion-interruption.md
+            /docs/manuals-resize-navigation.md
       - name: Check exact source and offline guard regressions
         env:
           PYTHONDONTWRITEBYTECODE: '1'

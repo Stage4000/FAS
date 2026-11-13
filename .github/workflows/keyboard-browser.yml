@@ -23,6 +23,7 @@ on:
       - 'tests/manuals/reader-canvas-lifecycle-test.cjs'
       - 'tests/manuals/browser/check.cjs'
       - 'docs/manuals-motion-interruption.md'
+      - 'docs/manuals-resize-navigation.md'
   pull_request:
     branches: [main]
     paths:
@@ -45,6 +46,7 @@ on:
       - 'tests/manuals/reader-canvas-lifecycle-test.cjs'
       - 'tests/manuals/browser/check.cjs'
       - 'docs/manuals-motion-interruption.md'
+      - 'docs/manuals-resize-navigation.md'
 permissions:
   contents: read
 jobs:
@@ -72,6 +74,7 @@ jobs:
             /.github/workflows/manual-reader-browser.yml
             /docs/manuals-whole-repository-gates.md
             /docs/manuals-motion-interruption.md
+            /docs/manuals-resize-navigation.md
       - name: Check exact compatibility with disposable offline Git fixtures
         env:
           PYTHONDONTWRITEBYTECODE: '1'

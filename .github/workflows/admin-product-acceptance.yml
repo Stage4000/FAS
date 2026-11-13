@@ -25,6 +25,7 @@ on:
       - 'tests/manuals/reader-canvas-lifecycle-test.cjs'
       - 'tests/manuals/browser/check.cjs'
       - 'docs/manuals-motion-interruption.md'
+      - 'docs/manuals-resize-navigation.md'
 
 permissions:
   contents: read
@@ -67,6 +68,7 @@ jobs:
             /tests/manuals/reader-canvas-lifecycle-test.cjs
             /tests/manuals/browser/check.cjs
             /docs/manuals-motion-interruption.md
+            /docs/manuals-resize-navigation.md
       - name: Check the source guard with disposable offline Git fixtures
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -86,7 +88,7 @@ jobs:
         run: python3 tests/homepage-visual/prepare-assets.py --output "$RUNNER_TEMP/fas-admin-assets"
       - name: Real admin and inert import acceptance with loopback only
         # Historical catalog/runtime pins remain; the exact b99 manuals addition
-        # inventory plus finite reviewed compatibility/motion corrections are checked.
+        # inventory plus finite reviewed compatibility/motion/geometry corrections are checked.
         # No fallback is permitted if unshare, loopback checks or guards fail.
         run: |
           set -euo pipefail
