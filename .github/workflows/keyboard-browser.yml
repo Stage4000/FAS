@@ -12,6 +12,18 @@ on:
       - 'tests/fixtures/security-catalog.sql'
       - 'tests/homepage-visual/prepare-assets.py'
       - '.github/workflows/keyboard-browser.yml'
+      - '.github/workflows/admin-product-acceptance.yml'
+      - '.github/workflows/manual-reader-browser.yml'
+      - 'tests/admin-product-browser/run.py'
+      - 'tests/manuals/browser/source-manifest.json'
+      - 'tests/manuals/browser/reviewed-repository.json'
+      - 'tests/manuals/browser/reviewed_repository.py'
+      - 'tests/manuals/browser/repository-compatibility-test.py'
+      - 'docs/manuals-whole-repository-gates.md'
+      - 'tests/manuals/reader-canvas-lifecycle-test.cjs'
+      - 'tests/manuals/browser/check.cjs'
+      - 'docs/manuals-motion-interruption.md'
+      - 'docs/manuals-resize-navigation.md'
   pull_request:
     branches: [main]
     paths:
@@ -23,6 +35,18 @@ on:
       - 'tests/fixtures/security-catalog.sql'
       - 'tests/homepage-visual/prepare-assets.py'
       - '.github/workflows/keyboard-browser.yml'
+      - '.github/workflows/admin-product-acceptance.yml'
+      - '.github/workflows/manual-reader-browser.yml'
+      - 'tests/admin-product-browser/run.py'
+      - 'tests/manuals/browser/source-manifest.json'
+      - 'tests/manuals/browser/reviewed-repository.json'
+      - 'tests/manuals/browser/reviewed_repository.py'
+      - 'tests/manuals/browser/repository-compatibility-test.py'
+      - 'docs/manuals-whole-repository-gates.md'
+      - 'tests/manuals/reader-canvas-lifecycle-test.cjs'
+      - 'tests/manuals/browser/check.cjs'
+      - 'docs/manuals-motion-interruption.md'
+      - 'docs/manuals-resize-navigation.md'
 permissions:
   contents: read
 jobs:
@@ -32,6 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
@@ -44,6 +69,16 @@ jobs:
             /tests/
             /gallery/hero-image.png
             /gallery/favicons/favicon.png
+            /.github/workflows/admin-product-acceptance.yml
+            /.github/workflows/keyboard-browser.yml
+            /.github/workflows/manual-reader-browser.yml
+            /docs/manuals-whole-repository-gates.md
+            /docs/manuals-motion-interruption.md
+            /docs/manuals-resize-navigation.md
+      - name: Check exact compatibility with disposable offline Git fixtures
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 tests/manuals/browser/repository-compatibility-test.py
       - name: Install existing official browser test dependencies
         run: |
           sudo apt-get update -qq
@@ -58,7 +93,7 @@ jobs:
           sudo unshare --net -- bash -c '
             set -euo pipefail
             ip link set lo up
-            exec runuser -u "$1" -- env NODE_PATH="$2/fas-visual-deps/node_modules" \
+            exec runuser -u "$1" -- env PYTHONDONTWRITEBYTECODE=1 NODE_PATH="$2/fas-visual-deps/node_modules" \
               python3 tests/keyboard-browser/run.py --assets "$2/fas-visual-assets" --output "$2/fas-keyboard-output"
           ' _ "$(id -un)" "$RUNNER_TEMP"
       - name: Upload synthetic keyboard evidence

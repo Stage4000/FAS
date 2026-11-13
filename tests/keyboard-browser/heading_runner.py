@@ -146,12 +146,22 @@ def base_tree_hash(entries):
         return hashlib.sha1(b'tree '+str(len(data)).encode()+b'\0'+data).hexdigest()
     return digest(root)
 
-def verify_tree(base, current, source_manifest):
+def manuals_policy(root, *, checkout=True):
+    import sys
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, str(root / 'tests/manuals/browser'))
+    from reviewed_repository import load_policy, verify_checkout
+    return verify_checkout(root) if checkout else load_policy(root)
+
+
+def verify_tree(base, current, source_manifest, reviewed_manuals=None):
     expected = {e['path']:{k:e[k] for k in ['mode','type','sha']} for e in base['entries']}
     expected.update(REVIEWED_OVERLAY)
     # Exact candidate blobs are derived from SHA-256-verified working bytes below.
     for path, blob in source_manifest.items():
         expected[path] = {'mode':'100644','type':'blob','sha':blob}
+    if reviewed_manuals is not None:
+        expected.update(reviewed_manuals)
     for path in set(expected) | set(current):
         if path in INTEGRATION_PATHS and path not in QUANTITY_BLOBS:
             if path not in current or current[path]['mode'] != '100644' or current[path]['type'] != 'blob':
@@ -162,6 +172,7 @@ def verify_tree(base, current, source_manifest):
         raise ValueError('Missing integration files')
 
 def verify_checkout(root):
+    manuals = manuals_policy(root)
     suite = root/'tests/keyboard-browser'
     manifest = json.loads((suite/'heading-sources.json').read_text())
     decode_manifest(manifest)
@@ -179,7 +190,7 @@ def verify_checkout(root):
         raise ValueError('Embedded baseline entries do not reconstruct pinned tree')
     current = parse_tree(subprocess.check_output(['git','ls-tree','-rz','HEAD'],cwd=root))
     blobs = {p:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest() for p,b in candidate.items()}
-    verify_tree(base,current,blobs)
+    verify_tree(base,current,blobs,manuals['overlay'])
     # Prevent untracked/modified files and symlinks entering copied runtime trees.
     copied = [root/p for p in EXPECTED_PATHS] + [root/'404.php']
     for folder in ['src','includes','public']:

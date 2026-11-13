@@ -1,0 +1,4943 @@
+{
+  "main_commit": "6993209ba92dbe77c36e3a61ba7146bf2d2db236",
+  "main_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
+  "manuals_commit": "b99c463f31210413562efdef3e729383c30436a8",
+  "manuals_tree": "b4bd3e1baa9980ed97cc5198290dcec514e8c7c4",
+  "main": [
+    {
+      "path": ".github/workflows/admin-product-acceptance.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c180ab1b5298290d14ee41e4c90d352fe9436295"
+    },
+    {
+      "path": ".github/workflows/homepage-branding-visual.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6e6acd00c57b1fcb534ef7658c4b702dc9f893b6"
+    },
+    {
+      "path": ".github/workflows/keyboard-browser.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4cde5bee3ca44ec2f5eb78d1073b3309e646e758"
+    },
+    {
+      "path": ".github/workflows/product-security-regressions.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ff848bc3568745f7f6cef59d96b52bbe6c69fcf9"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "de2c79a32c95cf1650bcd6ac97034844d3b26a1c"
+    },
+    {
+      "path": ".htaccess",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3cf9228476acf087b16cfd6782f6fb678d941f6"
+    },
+    {
+      "path": "404.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5ac6957abf85ceff675ef4b442a7223e41bb4834"
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5ef793b166863b31e0d3b48e616431c738955de3"
+    },
+    {
+      "path": "GALLERY_CLEANUP_SUMMARY.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ab4c345938f9d38dd76e175bba2ab335385222b"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "80da10334a24c93c954c6a8ef47fe579e6ffb79b"
+    },
+    {
+      "path": "SECURITY_AUDIT_SUMMARY.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47cc23500e18fbc9552061f041e3f1563bfbd5e2"
+    },
+    {
+      "path": "about.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47c399d13b31cb6439ec46b8901c68961d06e529"
+    },
+    {
+      "path": "admin/PWA_SETUP.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9dc1809f399a3bf94f4f9cb8009f582998760e4a"
+    },
+    {
+      "path": "admin/README_MANIFEST_FIX.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "38bc00574a3ff00610592949bef75d51698787d3"
+    },
+    {
+      "path": "admin/administrators.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4360a04dbb65e00566ecad54eab29fc4295b599d"
+    },
+    {
+      "path": "admin/analytics.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8fa6d481ee7e2dd1a8ea1ec7949a5810f6c6edf5"
+    },
+    {
+      "path": "admin/auth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f387c7c6657d247e0709951b17f5da45f160aa74"
+    },
+    {
+      "path": "admin/banners.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0d029994a786a312be85b4a1882c17fd3d9310de"
+    },
+    {
+      "path": "admin/coupons.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "72426da91e2a916079408cf0008dead8bdc69a00"
+    },
+    {
+      "path": "admin/css/admin-notifications.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39af8610c1ae4c1a57f00ddcfb56187745123545"
+    },
+    {
+      "path": "admin/css/admin-style.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61aea4e802731d01af115ae4688ea5088f91f47c"
+    },
+    {
+      "path": "admin/css/shipping-review.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "609097d230d100d46bcf619de76d8517459fdee9"
+    },
+    {
+      "path": "admin/dashboard-summary.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "607a388ae4f977d8ef17bdcf1d3b2ef9c828b83d"
+    },
+    {
+      "path": "admin/ebay-oauth-callback.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6a4a68175cc50a2aab6f42f9f42f4fd6905a628"
+    },
+    {
+      "path": "admin/ebay-oauth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e63838625215479b996fa5f82fd607c72cee6d5"
+    },
+    {
+      "path": "admin/ebay-sync-health.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "218e24714173b4a992cf2e898071471599b0d872"
+    },
+    {
+      "path": "admin/ebay-token-guide.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9576c0f94895628c24b00f8abce5f02bc9d1cf4c"
+    },
+    {
+      "path": "admin/error-monitor.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0fd6a3a721b1f23ea1edd3e2c435570232a60fcd"
+    },
+    {
+      "path": "admin/free-shipping.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b05ccc2345db9b94fd3261e68309afe754a2236"
+    },
+    {
+      "path": "admin/growth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8f88313f57559cf42dd9d7d24f97add0a96f4266"
+    },
+    {
+      "path": "admin/homepage-categories.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4957c77f3c37fe1ff7dc73697f41773e34fce18b"
+    },
+    {
+      "path": "admin/includes/footer.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba7ab9e938b550bc09cd54608bacc6d7b28c22a8"
+    },
+    {
+      "path": "admin/includes/nav.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee99d51f04701b4d25cdbe8478fcb7ede55257a6"
+    },
+    {
+      "path": "admin/index.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3fb458f334bbfb4871587d2968af2a8409279ced"
+    },
+    {
+      "path": "admin/init-admin.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "08201f9aad7e03f7f96d62daaf0f1b7821b0a916"
+    },
+    {
+      "path": "admin/js/admin-ajax.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ecc40ce8f61d8c533113d73ee7913d974a493f0"
+    },
+    {
+      "path": "admin/js/pwa-installer.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "219726d12457c2bbda36304ff5ee064aeba46ccb"
+    },
+    {
+      "path": "admin/login.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "297cb3aa681555bf8e85f8e9e712a347f988e6ce"
+    },
+    {
+      "path": "admin/logout.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e16772a7eadca31dd47e8662a0f9cdde61481bc7"
+    },
+    {
+      "path": "admin/manifest.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "10c40a8f721c2fd3f0cff754347f93945ed40046"
+    },
+    {
+      "path": "admin/mark-analytics-session.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f56d1bfcb3fd41c48a7c5db30f89666f0dfef2d7"
+    },
+    {
+      "path": "admin/merchant-feed-health.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3e6ec6ac3b9fb9f5945c65b3c69744ffa4e4bc8"
+    },
+    {
+      "path": "admin/order-details.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "897e717fb53278fc94a3f3ba336adb5f9f1f10db"
+    },
+    {
+      "path": "admin/orders.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ce6e271c135faaf7e4860ed43020bf286db6894"
+    },
+    {
+      "path": "admin/password.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd581eb32aa01a3f61857d774b3de27999b08f66"
+    },
+    {
+      "path": "admin/product-content.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c162e2c4d39e9b04ec0a9876e15006a3ff341e22"
+    },
+    {
+      "path": "admin/product-quality.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b7a7ebfecc7651afccab7020926f93fb05df9760"
+    },
+    {
+      "path": "admin/products.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03fa5892411b75a6c5bc9191ab931ee06da90735"
+    },
+    {
+      "path": "admin/purgestore.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "89c9fcf9d64fc2607a841f9253b3aeab8d865054"
+    },
+    {
+      "path": "admin/pwa-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e6cc7d43f6cda322c605dc4717ff2d49d8d900db"
+    },
+    {
+      "path": "admin/sale.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5075fa0ca55c51aa3177ae265a31bbecdb264d60"
+    },
+    {
+      "path": "admin/security.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c560cfd0e65bf81ed79f87adae7d2c3713bc041f"
+    },
+    {
+      "path": "admin/service-worker.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "beef95caf780bf446f0f6b8887e3859d6c662248"
+    },
+    {
+      "path": "admin/session-details.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c1409821afa487629183ae361189d60aadd566e9"
+    },
+    {
+      "path": "admin/settings.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bb46012d3bcf5bdbc754c3525fc0c793f9fe208d"
+    },
+    {
+      "path": "admin/shipping-label-cancel.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2185ae5fb6438bf9b4d3863633f013f560ded8b2"
+    },
+    {
+      "path": "admin/shipping-label-download.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a26481f1a9126ecb98e43ee4414b21eada3d2fde"
+    },
+    {
+      "path": "admin/shipping-label-reconcile.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2928f9b5cc6ba32d0893ce8ed30dc3fdb3c58f34"
+    },
+    {
+      "path": "admin/shipping-label.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "81cfb0124df67a7c7c767dc46ea985cf3a9f8943"
+    },
+    {
+      "path": "admin/shipping-notification.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b8273e62e924979798939f4248557877b763ae00"
+    },
+    {
+      "path": "admin/shipping-operations.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc47b79f87f8890c1c86f45ada5d33fa06ff5989"
+    },
+    {
+      "path": "admin/shipping-readiness.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e78beb765104fe84969bfd735bde8b00175c88a1"
+    },
+    {
+      "path": "admin/shipping-settings.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "95431e6bd7bc8feee1f69194a119a2789a9f10b4"
+    },
+    {
+      "path": "admin/stale-inventory.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b43798f11a2c822de1aaa559f97844c0344ef36e"
+    },
+    {
+      "path": "admin/warehouses.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "514d2431329b0efcbce96a9986ebbdad10e13677"
+    },
+    {
+      "path": "api/address-autofill.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "01e2a523a8c30ff0fe3260c0b7523692b02b4de5"
+    },
+    {
+      "path": "api/applepay.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0d6f1071e86ae6e93e3988bb1bc9317ff4f2f992"
+    },
+    {
+      "path": "api/contact-form.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aec0ec7a0c32819070ef41c22bf64a9db9a8a41c"
+    },
+    {
+      "path": "api/ebay-sync.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8bd027a6388dbbf74727a44a9f51790deb339df2"
+    },
+    {
+      "path": "api/googlepay.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1cfd7a11155ada2388e631dfe84aa5ea39b7ed7f"
+    },
+    {
+      "path": "api/growth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "10273b6fe6fc1c2707cdeb6f2ac9847a6f4700ce"
+    },
+    {
+      "path": "api/log-client-error.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "77ee4023cbc8e34610117ac410fd98ba51543bd8"
+    },
+    {
+      "path": "api/paypal-webhook.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "37c4fcf53ae50a24676927bbcb5fd13d0da1e769"
+    },
+    {
+      "path": "api/process-order.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eccb0b3a4f4d6d41d87b7ee3be6f8ac57a75b7f4"
+    },
+    {
+      "path": "api/product-check.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "00eee4a45e092137044ca858919213cdc8fd403e"
+    },
+    {
+      "path": "api/products.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a284c99de99c7337e4cb8a1fa3f0a2a870aa4e8c"
+    },
+    {
+      "path": "api/saved-search.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1212655ad16248fd3c77fb56d522bc2920cc9255"
+    },
+    {
+      "path": "api/shipping-estimate.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "187be706bac656a753fb18d42354e5838191a65f"
+    },
+    {
+      "path": "api/shipping-rates.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f2a560c4e9afd180c65c909191f26ffc7bc09fa3"
+    },
+    {
+      "path": "api/track-event.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "382598ff15d35165d16b558033a1a5f222501ca9"
+    },
+    {
+      "path": "api/validate-coupon.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "37e6e2f7f95ca8c2d8e86d27562079a5ab4d07c9"
+    },
+    {
+      "path": "audit.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4aea9e2be7a04ab93852c56602bd0e2dc4b5a381"
+    },
+    {
+      "path": "audit/SALES.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c14712d06bf13b7c6a8116e61397bd6bbfa91f60"
+    },
+    {
+      "path": "audit/SEO-evidence.zip",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "992370cbbe358fa1fca3e72c2692e547bb548ddb"
+    },
+    {
+      "path": "audit/SEO-listings.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "15fd3402634ad1c5851609dd9639ff1aa4a8bc5e"
+    },
+    {
+      "path": "audit/SEO.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f1ecbc77f3c7665b0f5b9a79a03c4af8a15e35e"
+    },
+    {
+      "path": "audit/SHIPPING-2026-10-11.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8da2a16f1f2d33541ad81b661396887b1f6b730"
+    },
+    {
+      "path": "audit/SHIPPING.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0fba3e60602cb7cb94020e3a05e6efb5874a4036"
+    },
+    {
+      "path": "audit/__pycache__/seo_analyze.cpython-310.pyc",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fe80991b207ba90bfca61dae5a5e84cae9b21e97"
+    },
+    {
+      "path": "audit/__pycache__/seo_crawl.cpython-310.pyc",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73ff12609301b4a6692c41a344c0dc99bd8ac0b5"
+    },
+    {
+      "path": "audit/security-local-http.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b2cbad000d3bf5e9abb74de3b19d36d6a7a136d0"
+    },
+    {
+      "path": "audit/seo-browser-observations.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9b13c0e04d212893d6320ffec424e5f9c4261c48"
+    },
+    {
+      "path": "audit/seo-catalog-browser.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e74d00fee66a2efda3cc2f9d95003e41e8ef3eec"
+    },
+    {
+      "path": "audit/seo-catalog-deployed-browser.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b2bad9ea3d0a95040ef17f9d953616678c3257d6"
+    },
+    {
+      "path": "audit/seo-catalog-deployed.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8caece224ab677cf21124467ec4a646f284366b0"
+    },
+    {
+      "path": "audit/seo-catalog-regression.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "434f7ab715788b492c5ef5ecb8e7cd88deb5dba6"
+    },
+    {
+      "path": "audit/seo-catalog-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5c2eb8bf38889fedc7f79346fe0a2ac9dade0d4d"
+    },
+    {
+      "path": "audit/seo-chrome-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9587a05886ec8eab08605b710ad0db09efd84284"
+    },
+    {
+      "path": "audit/seo-completion-check.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0dd38720fc446f94297d2a07489df0ca6b7b0661"
+    },
+    {
+      "path": "audit/seo-content-browser.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "78972c97aeed5cdb1c0e2a7eda6b06a281926004"
+    },
+    {
+      "path": "audit/seo-content-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4925be2d36b8817c0ca4982180c7fcecd00a54e0"
+    },
+    {
+      "path": "audit/seo-crawl-controls-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f04b10e6aeaa6606d7bdf7e372c64c8d16e2052"
+    },
+    {
+      "path": "audit/seo-discovery-browser.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cd7086bfe9f9b99f4cd236ac542e6e208558f486"
+    },
+    {
+      "path": "audit/seo-discovery-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2a517164d8969587a268dcbc0d56f4c9a2c06261"
+    },
+    {
+      "path": "audit/seo-endpoints.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b8457acdb3e6ddf18601ac203cd6e98d4a384ca"
+    },
+    {
+      "path": "audit/seo-extra-probes.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4cb02f4f9da12ea63630aa8e4c32508cb192adde"
+    },
+    {
+      "path": "audit/seo-feed.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b92c535c50ac80a55b76ec90fff44a4179c4b28"
+    },
+    {
+      "path": "audit/seo-first-batch-deployed.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5673fee26ab1a83ddac184320ee479088a1ebdfa"
+    },
+    {
+      "path": "audit/seo-images.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "807b1071bc142f5ebc871e4590569f078deef799"
+    },
+    {
+      "path": "audit/seo-legacy-feed.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9714bb53475d8e02383345f9f01c984e598af81b"
+    },
+    {
+      "path": "audit/seo-live-followup-2026-10-01.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f52c065f02108936e07ca1aa175e935efc131ab"
+    },
+    {
+      "path": "audit/seo-pages.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b939d48b259cf7573e5b645ebdf685eab0e1820e"
+    },
+    {
+      "path": "audit/seo-pagination.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47c9d3513773931bfe858d50cde0cbab19468975"
+    },
+    {
+      "path": "audit/seo-presentation-browser.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61543461a4da80c8291ae30899aa89b3417023a8"
+    },
+    {
+      "path": "audit/seo-presentation-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30e367af3393cb5c5b79494b2c0ecebdba6534ac"
+    },
+    {
+      "path": "audit/seo-probes.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a5cc907e2707ab1bf6f2c87fa6770a94c32c0ec"
+    },
+    {
+      "path": "audit/seo-retries.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39882f67f2bf2b8e7f62369ce43be788cd01187c"
+    },
+    {
+      "path": "audit/seo-run.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ef6e2b00643968167c0ebf52528e367f48c4454"
+    },
+    {
+      "path": "audit/seo-safe-batch-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ab5cef0861cb1ee4dc305e29a693965977e7924c"
+    },
+    {
+      "path": "audit/seo-summary.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a473d19d8f3f311f5c93ad0c09acb18076aa1016"
+    },
+    {
+      "path": "audit/seo_analyze.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd92dbe31cff574acb82ac7629fddefce3e4e23d"
+    },
+    {
+      "path": "audit/seo_crawl.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46941bfaa86c244c0f6daedbd4251db12abf164f"
+    },
+    {
+      "path": "audit/shipping-catalog-readiness-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d40954e1b12cd110b97097f2388cfe360abbe807"
+    },
+    {
+      "path": "audit/shipping-http-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "354da2b9db4727250d8fe70156bf096ef182c5ae"
+    },
+    {
+      "path": "audit/shipping-label-cancellation-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "12be0e94b5fd49a05f915e482a2533d547fd3860"
+    },
+    {
+      "path": "audit/shipping-label-client-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a99a3f345a2ea1fc13031f5f759c1a51fcea366e"
+    },
+    {
+      "path": "audit/shipping-label-formats-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4fa40d38a95d07a3aab6b4d87606ed4e619b1bed"
+    },
+    {
+      "path": "audit/shipping-label-http-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5fcad57da956242affa941216c01a1c532799aa9"
+    },
+    {
+      "path": "audit/shipping-label-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "163ae1cc2ff5b324fcac25b5129f53d92428931f"
+    },
+    {
+      "path": "audit/shipping-label-reprint-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a2e24928042a80d6ab6fce39eab3843c8acd4d22"
+    },
+    {
+      "path": "audit/shipping-label-service-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "17deb7a3c86fac6eee2e93b956ad490f0192d586"
+    },
+    {
+      "path": "audit/shipping-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1cfbd4e4320052ae85255ed9f6ea43ba064af326"
+    },
+    {
+      "path": "audit/shipping-monitor-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c1075a1fe935d866d06b77fd7e203dc7300373b5"
+    },
+    {
+      "path": "audit/shipping-notifications-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "874da026e6d49502b8737846567bcf91fd9e0ebe"
+    },
+    {
+      "path": "audit/shipping-settings-http-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb7ea93b01f295b6818cf06afd16b83dadec85b4"
+    },
+    {
+      "path": "audit/shipping-tracking-local.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a260e7a5b60c41af0d342c8aad55dc5c474a752"
+    },
+    {
+      "path": "cart.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0082e0fcabbc1be3678235e2a7e9c18585e419cb"
+    },
+    {
+      "path": "checkout.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7c98553a15d96a36620f7af1fcff363b3fa3ba16"
+    },
+    {
+      "path": "composer.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f9b55caacafd3554d73d42ecb626bd52a9e7ee3f"
+    },
+    {
+      "path": "contact.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "103ca56061c7d1e2e8b817ab1c6b4d3e3e0f267d"
+    },
+    {
+      "path": "cron/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "20ebb90df1ea9033df563b721a913f09fe6a99e9"
+    },
+    {
+      "path": "cron/ebay-seller-rating-cron.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a5dc45c0403eb6d23cfe23ced93d37a393ab1b70"
+    },
+    {
+      "path": "cron/ebay-sync-cron.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "2b761b30deb4d9302f1b07bfae39a9cc383537e0"
+    },
+    {
+      "path": "database/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d058bee5adc7f9d50c2db2f0e8080f87faceaf60"
+    },
+    {
+      "path": "database/README_MIGRATION.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "06e6767e0e61ebfb4b04fc90bc060b8f1da4bc24"
+    },
+    {
+      "path": "database/SETUP.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8b6ac913a42848cd7ae32c2030bf08377d5a5172"
+    },
+    {
+      "path": "database/WAREHOUSE_README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e66ec965a57b6061ea1bf0be39ad95aa2a3556eb"
+    },
+    {
+      "path": "database/applepay.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c45278868c8a3168dcae81924411272fc844837e"
+    },
+    {
+      "path": "database/init-sqlite.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "f56bb7283032d317ea85eb81d02d7b6867d3b29f"
+    },
+    {
+      "path": "database/migrate-add-analytics-admin-session-columns.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fc5cabdb110faee9530978f53a1154826fc0c67f"
+    },
+    {
+      "path": "database/migrate-add-analytics.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bf0f8b73dd48930cf69028d2bf5ed01284670370"
+    },
+    {
+      "path": "database/migrate-add-banner-countdown.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4087afc662c28eb50731d1acc7242135de928df3"
+    },
+    {
+      "path": "database/migrate-add-banners.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4875ef70bf4b2fbcc11e1fef90b06aedc564a9bb"
+    },
+    {
+      "path": "database/migrate-add-dimensions.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "f15a789a8ddea8812033bbb19f5dcc8b5326f7ea"
+    },
+    {
+      "path": "database/migrate-add-ebay-seller-rating-cache.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3af7323e12c06a9e8d023f24991464a28deda350"
+    },
+    {
+      "path": "database/migrate-add-ebay-store-categories.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3fba15b767be71578ca6f6796a51fca2d6a4832"
+    },
+    {
+      "path": "database/migrate-add-ebay-sync-health.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2320d2d09bf6d78fe47580541206adb80b700dc2"
+    },
+    {
+      "path": "database/migrate-add-error-monitor.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7b56dc844902c572bf3d46b9a2d12689cabbea4e"
+    },
+    {
+      "path": "database/migrate-add-free-shipping.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4636d91416c69bceabe097c67b95154ce07f6c09"
+    },
+    {
+      "path": "database/migrate-add-homepage-category-mappings.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "3733afb90535bf45c70bd679b8fef8bb7d3bd673"
+    },
+    {
+      "path": "database/migrate-add-other-category.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bfabb6181a13350da9685a6f5c4f760b75d85a8a"
+    },
+    {
+      "path": "database/migrate-add-product-columns.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "a1182b0df8f8d0808f059c5165b85c10448c068c"
+    },
+    {
+      "path": "database/migrate-add-sync-timestamp.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "2f49315935970dad8cbc4e35853d64ff9760daba"
+    },
+    {
+      "path": "database/migrate-add-warehouses.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "e94ba4afeb2cca041e17aecb30b61b4b8c10d2a2"
+    },
+    {
+      "path": "database/remove-example-products.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "bca1563ed8f29ad9674f5e845299551eb2185483"
+    },
+    {
+      "path": "database/schema.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa49473cf27033351bfc739af4639434db9e5648"
+    },
+    {
+      "path": "database/schema.sqlite.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b608873a10cd792b1ebf897a8bd62fadcb556f51"
+    },
+    {
+      "path": "diagnostic_script.php",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "03fd39765c89142d754e54de9a9a070e4192e0be"
+    },
+    {
+      "path": "docs/EBAY_CATEGORY_MAPPING.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5d6dca060630d8432ba79adfcbd282e6f5aecc7e"
+    },
+    {
+      "path": "docs/HOMEPAGE_CATEGORY_MAPPINGS.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "52c08ea6645d26dfcc8b058b114827ad97255a89"
+    },
+    {
+      "path": "docs/SEO_AUDIT_RECOMMENDATIONS.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8d9adaffb89d0fc35843378a3eea66c3d3ce17d8"
+    },
+    {
+      "path": "docs/administrators.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7fa5cce47e9224db2e2a6a5d5147da9a20f21d22"
+    },
+    {
+      "path": "docs/apple-pay-qa.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4c1913f6c5a4d633ef56a61590b142d13510066c"
+    },
+    {
+      "path": "docs/apple-pay.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "933378fedc4a783e934e5e331b058252426c0496"
+    },
+    {
+      "path": "docs/direct-shipping.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8fefa8a16dd50eafd44ee1f8011a6d2d83641554"
+    },
+    {
+      "path": "docs/google-pay.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "978c53de79b6cf3d298101cf3c060ab1c8b82fe4"
+    },
+    {
+      "path": "docs/growth.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5d05d4eb3e15e5b2c7e3e0c8385df82017c82014"
+    },
+    {
+      "path": "docs/identifier-clarity.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "099e0b6ec8b8bcaf9620738234e8e157a5b68771"
+    },
+    {
+      "path": "docs/identifier-output-holds.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5b1ac69b2f087670c2360e84340ed51a95376c4a"
+    },
+    {
+      "path": "docs/immutable-product-uploads.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "551ff12f0207e96ff33aed5b2e235990d484078c"
+    },
+    {
+      "path": "docs/marketplace-shipping-cleanup.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc8f274aa0dbd1fe416e8c09a77f727bf1ffe00f"
+    },
+    {
+      "path": "docs/merchant-feed-validation.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a751eeb47c52aeeadb3bf231acbbb82b0071774"
+    },
+    {
+      "path": "docs/product-content-review.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "caa631a54c9203ab62cfcfb924ade5fd761c3500"
+    },
+    {
+      "path": "docs/product-listing-images.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "19cfc387984e3090064a73d8897280f1e8f64ac0"
+    },
+    {
+      "path": "docs/product-sync-ownership.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "83b8e2a51bdc529f1c491c2cbc380e098b0b03ea"
+    },
+    {
+      "path": "docs/responsive-images.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "545e71d7f86cfbae1c8782f029fa4432c36d2924"
+    },
+    {
+      "path": "docs/reviewed-product-facts.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "515fd5142bd04eaed3d03da5b3b86f25f8b0a060"
+    },
+    {
+      "path": "docs/security.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "75ba92a50387163409af7664c77671a040413959"
+    },
+    {
+      "path": "docs/seo-audit-2026-10-19.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "210b268798a589112b1dd847aad2caf2a6543400"
+    },
+    {
+      "path": "docs/shipping-notifications.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d47c685dabd149ec40e9d2f56f4e3b4e63228688"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-05-23-google-merchant-feed.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30f584b34ae8c5825e150a3ea17eb367d919b01f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-23-google-merchant-feed-design.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "846de5fc32eb662cd152e53fcf00a81999f0ff9f"
+    },
+    {
+      "path": "email-preferences.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "12c0348b5f159dbf521edd43f54118eab598c2db"
+    },
+    {
+      "path": "gallery/Atv-595b40b75ba036ed117d54ab.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4f44e41d630217c04532532e42ee2a49e7a3e9ab"
+    },
+    {
+      "path": "gallery/FLIPANDSTRIP.COM_d00a_018a.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dcd0a55a8de5018b013f711470ffa599e8959989"
+    },
+    {
+      "path": "gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e361ec1f6b34fe5ccf3a1599f6c16d9f10aa41c"
+    },
+    {
+      "path": "gallery/asset 12-ts1553585532.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1e9ead4e451b5e474d658a3b0b4dc7c259440fec"
+    },
+    {
+      "path": "gallery/atv.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4f44e41d630217c04532532e42ee2a49e7a3e9ab"
+    },
+    {
+      "path": "gallery/boat.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "360c5b89f47e9bbf03dd34bc91b8c651fd66b751"
+    },
+    {
+      "path": "gallery/favicons/favicon-120x120.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "72f0cc24f6a629550bc03173e9f2178ad191a83e"
+    },
+    {
+      "path": "gallery/favicons/favicon-152x152.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8204b776602961413a9fe216561a02f15aeaaea5"
+    },
+    {
+      "path": "gallery/favicons/favicon-180x180.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53aa168e6e65f3b93056c26e9094af7f54650314"
+    },
+    {
+      "path": "gallery/favicons/favicon-192x192.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "59b54898eb849c5b34aec9c3bf34ea489db57015"
+    },
+    {
+      "path": "gallery/favicons/favicon-60x60.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "23571bba859fbf5a3a939abd59107c1b69c9489b"
+    },
+    {
+      "path": "gallery/favicons/favicon-76x76.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4cef211479accf6bcb25dd0a625c334f7e8cb30a"
+    },
+    {
+      "path": "gallery/favicons/favicon.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c33ccd1994cdf3c5af0b1319b0bfa4d8cf4eb5a5"
+    },
+    {
+      "path": "gallery/hero-image.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "22a615e98b644620a016d3a82ea769bcf0382f87"
+    },
+    {
+      "path": "gallery/logo-crop.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e147c4ceb5f112279c2ca46dea24f3344bbeb64"
+    },
+    {
+      "path": "gallery/motorbike.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1872dc6a8c9484a0b14994b17d80ed6180c6dc46"
+    },
+    {
+      "path": "gallery/tuk-tuk.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "be36f88df193e494ed0dcea1039998ec3544d9ca"
+    },
+    {
+      "path": "gallery/uploads/.gitkeep",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "gallery/yacht.png",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ebe29d7f676eac3eeee45b79f6f0d4e7b30b3772"
+    },
+    {
+      "path": "google-merchant-feed.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5af37e82b8709cd258ee4f70d62caa3c11265d9"
+    },
+    {
+      "path": "google-merchant-feed.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "45e79144c3d088a6f388b22479ec97317a8cfe46"
+    },
+    {
+      "path": "includes/admin-accounts.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9e66bd0693cf86992a14020852ebdf2100dcd66a"
+    },
+    {
+      "path": "includes/banner-html.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57d06bf2b5100a6aad308e56f9f8fd9b57647d5d"
+    },
+    {
+      "path": "includes/catalog-intro.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d2f039b4a7dc61027978648bbf8eb2df3413c6d6"
+    },
+    {
+      "path": "includes/catalog-load.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2beaa2f267a2f56e2378d1b582e95950fe63e0b4"
+    },
+    {
+      "path": "includes/catalog-meta.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7ad7672b9b8def171681b1fc7e476f41bbce6e9f"
+    },
+    {
+      "path": "includes/catalog-query.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f1a14d265149162ac6f4641b8094c449b8472115"
+    },
+    {
+      "path": "includes/ebay-seller-rating.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed862631680f1b8fd1feb59edfb071097c57adc3"
+    },
+    {
+      "path": "includes/email-action-page.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "13ff4594778a36d6953332392cd671e1b851ce29"
+    },
+    {
+      "path": "includes/footer.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ad0d3cb8581fc09e71d307650606149c6dc7009"
+    },
+    {
+      "path": "includes/growth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "08cc91eb11ee20cb70720678ea72a9f4d186b91a"
+    },
+    {
+      "path": "includes/header.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b8ecc74f67f306afa142339b1641fc916a624e2c"
+    },
+    {
+      "path": "includes/product-merchandising.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4579c1f0e1c14c35ffae58e6cf7f57c07989e700"
+    },
+    {
+      "path": "includes/sale-helper.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c2d56d9d6d80e5c5e87263b9b0d5c7bf516139d1"
+    },
+    {
+      "path": "includes/security-traffic.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c34413177b065bddf7791f08d8ad9792d7faa659"
+    },
+    {
+      "path": "includes/security.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "94442221ba6f9097afab504768e7c841b82a2e43"
+    },
+    {
+      "path": "includes/sitemap-data.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "54cde4deb9f5f9c70369bd9e5ebdbb72b090ff28"
+    },
+    {
+      "path": "includes/storefront-access.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "41033f9d199db80e0f95f93c398da3eb085796a4"
+    },
+    {
+      "path": "includes/storefront-not-found.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c1c5a30989d474f1ca7608fa0d2beba6b760aca4"
+    },
+    {
+      "path": "index.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa1d5cf115e020af29bffe91f03adf3794aed7b6"
+    },
+    {
+      "path": "install.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73181a7a742b695e2c5a7fdc83591d2ff7edd147"
+    },
+    {
+      "path": "product.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ff1a31cc764c881f7acbd392b563276bab9747c9"
+    },
+    {
+      "path": "products.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e03bc2480c05adf03ea602b6706bd68c0eec8afa"
+    },
+    {
+      "path": "public/css/style.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6c36199b40dc6af75d6a5433671b01cf9c8b052"
+    },
+    {
+      "path": "public/js/address-autofill.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba64493f647f701942ef90f9148408654aa272a4"
+    },
+    {
+      "path": "public/js/analytics.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "41ddcebfcee0056a70141655416a4c9f40855f9a"
+    },
+    {
+      "path": "public/js/animations.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "05466ef96483b75b64362567f306af37f1b12f6d"
+    },
+    {
+      "path": "public/js/applepay-checkout.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7007e743128502c174a4148caa4629829bdc733c"
+    },
+    {
+      "path": "public/js/catalog-navigation.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c62f7a0070f9512976e57ddd86278957b2da8b1"
+    },
+    {
+      "path": "public/js/email-action.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c21e32786ff2f352cd79d3038aadac652429c31f"
+    },
+    {
+      "path": "public/js/googlepay-checkout.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1c919e2761621d274e177de9ef9fab93435e529"
+    },
+    {
+      "path": "public/js/growth.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "87dac7559458d16f9adc755dc404d535beeeb9eb"
+    },
+    {
+      "path": "public/js/main.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b88352baedbd514f2cc8241ea74a17d02fa38c7e"
+    },
+    {
+      "path": "public/js/order-recovery.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd3148462ad34dea3b30f01eaa650137f507429d"
+    },
+    {
+      "path": "public/js/runtime-guard.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97"
+    },
+    {
+      "path": "public/js/shipping-estimator.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "729a22d1b6e993ec904d29d9595ed45b6a268e76"
+    },
+    {
+      "path": "public/js/theme-toggle.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34430acbe4b431f680c686cd40f52be41a1484bc"
+    },
+    {
+      "path": "public/js/timezone.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "789840c70d84c0486a86ebe4a03a4684184d42bc"
+    },
+    {
+      "path": "public/uploads/.gitkeep",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "recover-cart.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "019bbd13171428d5d6b8cb5c8b0a0ae955513d4e"
+    },
+    {
+      "path": "robots.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "17a3e0563df3f2013d784cd4098832ba9fead4e4"
+    },
+    {
+      "path": "scripts/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4707bbfa30787f822b0383b219c664f882ea428c"
+    },
+    {
+      "path": "scripts/applepay-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3c53ea23064a55c457e7a33ac4df87fb1102779e"
+    },
+    {
+      "path": "scripts/build-responsive-images.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a7abca93177f6df7c2556f159e968dca827b18f7"
+    },
+    {
+      "path": "scripts/check-merchant-feed.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7bedb4c14c039a1d9bb1cb8c330a5340259c8174"
+    },
+    {
+      "path": "scripts/cleanup-gallery.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "243a0eef87d06a61adc7202dc6c1c3df68b05795"
+    },
+    {
+      "path": "scripts/cleanup-thumbs.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "714eeb23aca6884cc4224bd115745905dd2282ca"
+    },
+    {
+      "path": "scripts/growth-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee377b375788e881b6f48c6b3b704bb6e1d0fc08"
+    },
+    {
+      "path": "scripts/paypal-webhook-setup.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac8406675523d00e198aa00f5ba122450a381185"
+    },
+    {
+      "path": "scripts/product-content-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d6088196ce81be2ee823da12a6dd5a327ed7a57d"
+    },
+    {
+      "path": "scripts/security-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed9ab6662384a0f2826bbdb72d30b5dc50450729"
+    },
+    {
+      "path": "scripts/shipping-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3cf788fc687b2feb7379cd1634a034a0895e8c84"
+    },
+    {
+      "path": "scripts/test-ebay-seller-rating.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e836fc22ee07831eb5df3185022a21d3bca04093"
+    },
+    {
+      "path": "sitemap.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "867351db896a3390b6abeca1c397181dd759e0c9"
+    },
+    {
+      "path": "src/config/Database.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e2e9a6baac2ffb305a642176432fd00af4f93974"
+    },
+    {
+      "path": "src/config/config.example.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4cad0dd8f8f166076f492f47fd9962e3046d1022"
+    },
+    {
+      "path": "src/config/googlepay.example.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8331aabc460d1e2e5aedac88a12a0a9f403f5439"
+    },
+    {
+      "path": "src/config/shipping.example.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f55cc93987086519c22acd5c3f26f5370c6ad59b"
+    },
+    {
+      "path": "src/integrations/EasyShipAPI.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ab9e93830c2be979543799bbc46c53bdb17c41f4"
+    },
+    {
+      "path": "src/integrations/EbayAPI.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d059b65637f6602c8ec21c52882e2c52890b2493"
+    },
+    {
+      "path": "src/integrations/PayPalAPI.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9c8443b6ad8dce080085fd56091558a464f8e91c"
+    },
+    {
+      "path": "src/marketing/Growth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dbb7b554d22bf9b5f7c209e540bed0003f63dde3"
+    },
+    {
+      "path": "src/models/Banner.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39e97c109294b925d9aa2b1f51a4e9186ffe2120"
+    },
+    {
+      "path": "src/models/Coupon.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53ad053d7110a1f4f6d6e136d22cb03bf4742d05"
+    },
+    {
+      "path": "src/models/EbaySellerRating.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c9f2d6ef9fdef50e421ba67b2d67ee51659f9884"
+    },
+    {
+      "path": "src/models/HomepageCategoryMapping.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba9683a895a30070231cbd11a91fc0364f45fec4"
+    },
+    {
+      "path": "src/models/Order.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9e33edfc8c157003217accc2db2074f7d09c9df7"
+    },
+    {
+      "path": "src/models/Product.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4601d4f3bb1eee7dea8562a72a5679f062b70c26"
+    },
+    {
+      "path": "src/models/Warehouse.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7215c2749341550261808bf2a713528cf8673e2d"
+    },
+    {
+      "path": "src/payments/ApplePayContext.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b7467728b77df3ff5186474621403ac1300e3166"
+    },
+    {
+      "path": "src/payments/ApplePayFactory.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "45f6526d9d9c586e96cad95909c30802d3507c27"
+    },
+    {
+      "path": "src/payments/ApplePayService.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3a43921af7acf9e04b3a1578b4314579f01e932c"
+    },
+    {
+      "path": "src/payments/CheckoutPricing.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dfc35b41b498e30a89860287fd79ddfc22aac9e0"
+    },
+    {
+      "path": "src/payments/GooglePayContext.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "441946fc5fc142fd17b20cbba8c859f8eacaa80d"
+    },
+    {
+      "path": "src/payments/PayPalOrderVerifier.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f1c9001b859cfd512edc4e74797ceee760d477a"
+    },
+    {
+      "path": "src/payments/PayPalWebhookSetup.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "988cbabed72ab8fdd4f68fc79bf68d2c91053785"
+    },
+    {
+      "path": "src/payments/WalletPayPalClient.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e07c70ef5b3d00666efb4f8eca8373f287d97e78"
+    },
+    {
+      "path": "src/security/ClientIp.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47a5905fad895a870de71744f0b7fed482fe8c69"
+    },
+    {
+      "path": "src/security/SecurityStore.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd197c255f67b6827aff99a68d97e6989ce6b7ad"
+    },
+    {
+      "path": "src/shipping/CarrierHttp.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c480216ff12381e1490e614bc82592e1398f9c4"
+    },
+    {
+      "path": "src/shipping/CarrierLabelClient.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "209017c5f665dfd51ec73f5cae65b8f28d95f5f3"
+    },
+    {
+      "path": "src/shipping/CarrierLabelHttp.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "93f88863a4a0040c38be088bad65ebeb3363d784"
+    },
+    {
+      "path": "src/shipping/CarrierLabelPayloads.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7538f4a3b04f73c1c7c5ce0730c256cdd0464919"
+    },
+    {
+      "path": "src/shipping/CarrierLabelResponses.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "51c206a31ddc438009b0293a4c8df8101dd2d202"
+    },
+    {
+      "path": "src/shipping/CarrierRates.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c58d6692808178342c4efbb0ea8b8ad9a61d9a03"
+    },
+    {
+      "path": "src/shipping/CarrierTrackingClient.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e9bd6dd8891572e1d8ca7bdc10a63bcb3e1d5e26"
+    },
+    {
+      "path": "src/shipping/CarrierTrackingHttp.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "830fbee7ac3574043857c2a9dbb05db10ad813cf"
+    },
+    {
+      "path": "src/shipping/CarrierTrackingResponses.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bcb8a4252997e734dc51fc67cd31164699b8ff77"
+    },
+    {
+      "path": "src/shipping/ShippingCache.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0c72fc9f508afe7dcb2196cd50b92842954e14a7"
+    },
+    {
+      "path": "src/shipping/ShippingCatalogReadiness.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a115ec0f784194d2f63e407f8f296144d4fc3dea"
+    },
+    {
+      "path": "src/shipping/ShippingConfig.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2cc0301514b8c46ef984ae237aad71da793d5d51"
+    },
+    {
+      "path": "src/shipping/ShippingLabelCancellationService.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "97ef2fccec336e0227127cf948f779a3d84f3c9e"
+    },
+    {
+      "path": "src/shipping/ShippingLabelCancellations.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c2949a8ae0751556de75f2583627fb37ffddc161"
+    },
+    {
+      "path": "src/shipping/ShippingLabelOperations.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8d6d772ee42ecab38d8badcf044e0136b908c8e"
+    },
+    {
+      "path": "src/shipping/ShippingLabelService.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f831a8b3195300d644338be2457ddab699da356"
+    },
+    {
+      "path": "src/shipping/ShippingMonitor.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2c2e371b840ad9a06040305feda700010e06c3de"
+    },
+    {
+      "path": "src/shipping/ShippingNotifications.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "80c2dbf1f5e1072b488f0603d30e7e91f4b0ecdb"
+    },
+    {
+      "path": "src/shipping/ShippingOrder.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a94693206208e2ab5408934e3b859a4cbec11625"
+    },
+    {
+      "path": "src/shipping/ShippingRateService.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0593c7664f211d9f425acba01720073af1739147"
+    },
+    {
+      "path": "src/shipping/ShippingReadiness.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b26fc0edf4a26a59ed30b3bf99aec8bdb117d4c"
+    },
+    {
+      "path": "src/shipping/ShippingSettingsStore.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "32436d6312d6b0fed666a3052c6c6fdcaaee280d"
+    },
+    {
+      "path": "src/shipping/ShippingShipment.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a4faecff958c0135b76c4476cfbdab163c8618e3"
+    },
+    {
+      "path": "src/shipping/ShippingTracking.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "792c705cbeca6b00af56d5f01db5f9a605d5af23"
+    },
+    {
+      "path": "src/shipping/ShippingTrackingService.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "633458636c4ed03d1a191585661e1060dd29f821"
+    },
+    {
+      "path": "src/shipping/ShippingTransaction.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa4f419dcfd38be1a877577f0f88c59ce10b4a83"
+    },
+    {
+      "path": "src/utils/Analytics.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d3e71621b07a4aacc9db11d98fc3b88ca5375acd"
+    },
+    {
+      "path": "src/utils/CSRF.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "74421ff05dda3baf26cb96ada5a995aae3c06734"
+    },
+    {
+      "path": "src/utils/CatalogCategoryGroups.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ff5cc69749a92112875270d24d0bcaad2fa04e47"
+    },
+    {
+      "path": "src/utils/EbaySyncHealth.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0baf0cf32f04427597993c1e98fe4f43e331d86d"
+    },
+    {
+      "path": "src/utils/ErrorMonitor.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b57f09f46877c5dcd8035834b77d59898727483f"
+    },
+    {
+      "path": "src/utils/ImmutableProductUpload.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6397c9e6332d4407e31b11bf050e0c4d0d3545c7"
+    },
+    {
+      "path": "src/utils/ImportedImage.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "802a203112acd7caaa2fc0a7ef13d051fb843fb4"
+    },
+    {
+      "path": "src/utils/MerchantFeedBuilder.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "96f08ce3b940bae904326eacd4318040ff551804"
+    },
+    {
+      "path": "src/utils/ProductAltText.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e699d4889f4cdd02a77c03a234d9778905bf68d"
+    },
+    {
+      "path": "src/utils/ProductCondition.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3ab1fe48eb2758cd5731e8a1416b5de36b42f064"
+    },
+    {
+      "path": "src/utils/ProductContent.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "38b3ee725863a62e88da6df8e53c5f663ad66588"
+    },
+    {
+      "path": "src/utils/ProductContentQuality.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "98473a9fcb7ba29476df729bdbdfae36190a89d4"
+    },
+    {
+      "path": "src/utils/ProductEditor.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9b3aab44d0817034901d7d5b877d6942c84fda4b"
+    },
+    {
+      "path": "src/utils/ProductIdentifierOutput.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e4ab4abf3e49cfed079937981a49a40cc010cc2f"
+    },
+    {
+      "path": "src/utils/ProductListingImage.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7bda89b01bdd630e1af0dc782b86cf7545f5c73"
+    },
+    {
+      "path": "src/utils/ProductSyncOwnership.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e450276b48120b007cb050444cfcc52217af2cd2"
+    },
+    {
+      "path": "src/utils/ResponsiveImage.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d8bfa725d5aaf7320b3c1052966376129379fdd4"
+    },
+    {
+      "path": "src/utils/ReviewedProductFacts.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1db5e4468b9730b12cad79f41f7094c2144571fb"
+    },
+    {
+      "path": "src/utils/SavedSearchCapture.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "06890025f7f2f677a20491d68f9f8ce2668c47f2"
+    },
+    {
+      "path": "src/utils/Seo.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f01a3eec77b112f998dafcb1ca09e5447ff9fc4"
+    },
+    {
+      "path": "src/utils/ShippingRules.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aecc28f5796850372f2892b2d8ef5645f0cbc6d7"
+    },
+    {
+      "path": "src/utils/SqliteSchemaDefinition.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dbd5add50d6f0add648491231d531c22b268ddc4"
+    },
+    {
+      "path": "src/utils/StoreCategoryHierarchy.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e803312b0452ec7cf3ec82e561af0094472de74"
+    },
+    {
+      "path": "src/utils/SyncLogger.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61e3ef3d59604971b040f104bfd7836bba7c5d55"
+    },
+    {
+      "path": "src/utils/Timezone.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b0074c7dccfebcae5ee84db633b81967086941b3"
+    },
+    {
+      "path": "tests/__pycache__/seo-presentation-http-test.cpython-310.pyc",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa819d0fc38eb51aa711a54af5b82b1400740a0c"
+    },
+    {
+      "path": "tests/address-autofill-runtime-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e91a775fa3b27d5c5385c9514e89bd40058ef8c7"
+    },
+    {
+      "path": "tests/address-autofill-runtime-tests.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "97675a6105629390b38e12a28b9bb03789f9777e"
+    },
+    {
+      "path": "tests/address-autofill-state-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ba14956fa3be6d42b99511d9b378aab6d6b635d"
+    },
+    {
+      "path": "tests/address-autofill-tests.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e5b89a5c552908657c79b8fec8389b4ea965df86"
+    },
+    {
+      "path": "tests/address-autofill-zip-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d3dfb84030bf7316e223f61b08ea2fffb8b4d385"
+    },
+    {
+      "path": "tests/admin-accounts-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed35a61cfdd70491f9ffba5e677d990b17a05921"
+    },
+    {
+      "path": "tests/admin-accounts-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f13935b0cdec9c17c00dfd0f256a9365516dbbf1"
+    },
+    {
+      "path": "tests/admin-ajax-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9c0cd0cd2974d7d74d05ae3c255f959c08df01de"
+    },
+    {
+      "path": "tests/admin-product-browser/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb27ab2cac7920e65fbb6a06c02334ef54aefcf5"
+    },
+    {
+      "path": "tests/admin-product-browser/check.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1a481ac39e0b9d7d27e34a238a74b0a6eb2504a5"
+    },
+    {
+      "path": "tests/admin-product-browser/guard-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bc7600987469c3fb34dec0122ada6723c0b0cc78"
+    },
+    {
+      "path": "tests/admin-product-browser/run.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f2640f478469406dfc7da988499f7f7324e662a9"
+    },
+    {
+      "path": "tests/analytics-category-case-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4f6251423d6a08188372cdcb4defaa9bd98c9fe0"
+    },
+    {
+      "path": "tests/analytics-reporting-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eab5228d524bc5a98e1c285bee6dbb8e6ac37392"
+    },
+    {
+      "path": "tests/analytics-session-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3da37b48bdbfe261cb38a45628ef468cb86feee3"
+    },
+    {
+      "path": "tests/animation-fallback-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6cf49ad10be0d49286aae6263fbe93e836aab819"
+    },
+    {
+      "path": "tests/applepay-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1c75682b5cf9ab3f43dc5c61fbb4ce3c3504a333"
+    },
+    {
+      "path": "tests/applepay-context-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4975626d26c3953529c24097f930f707e5d72434"
+    },
+    {
+      "path": "tests/applepay-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03e9e15958828ec24f08e79f8b028a440fe81aa4"
+    },
+    {
+      "path": "tests/banner-html-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d92174dd0f2765eb4364e522d9eaa0fb4b46a977"
+    },
+    {
+      "path": "tests/cart-malformed-hydration-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "261efab97ff17f698714f631b3a2a580eccbb23c"
+    },
+    {
+      "path": "tests/cart-product-links-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6287b88b742700caf7b7ae89629639232fdcd3c6"
+    },
+    {
+      "path": "tests/cart-quantity-validity-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "94d46849d5971eccde272e9ab44256075442a58b"
+    },
+    {
+      "path": "tests/catalog-case-normalization-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f7d1fc22ca01ba74ce2c7a5935a54b6e4b277949"
+    },
+    {
+      "path": "tests/catalog-category-heading-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a883a390281452a883f19df3ad98e3c86302c906"
+    },
+    {
+      "path": "tests/catalog-category-toggle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "428b47f3c97ae9a4601b48b81105d4aab3a74942"
+    },
+    {
+      "path": "tests/catalog-loader-lifecycle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47b04f168c65ea2d2e3761adf4e872a9da863329"
+    },
+    {
+      "path": "tests/catalog-loader-lifecycle-tests.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "468364bfed8f1b8d6f3cc6cc8af4637cd5b56cca"
+    },
+    {
+      "path": "tests/catalog-manufacturer-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6a5cbb64a3ae43882d56566cd0fcd4f75b7c2afd"
+    },
+    {
+      "path": "tests/catalog-navigation-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "87de3a0065095b03f6e51aa2e92783700deb582f"
+    },
+    {
+      "path": "tests/catalog-request-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "be6e289170643f9b44237e758fd4ac1ba57f1416"
+    },
+    {
+      "path": "tests/catalog-scroll-offset-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bd822d1f3cee43f13cec01e151685ad88134da58"
+    },
+    {
+      "path": "tests/catalog-search-label-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f8843e6cd3a638c521a2c16c2e9db354df2b3f03"
+    },
+    {
+      "path": "tests/catalog-search-layout-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a0dd8f64d48ac8a6d607a07a8ad61d9dd6b7fdb1"
+    },
+    {
+      "path": "tests/catalog-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b672bf5829d97f49a6a0fe55560707476d405812"
+    },
+    {
+      "path": "tests/checkout-forget-lifecycle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ccb28207adf8ea378b07d42e66eb274534101fc7"
+    },
+    {
+      "path": "tests/checkout-forget-lifecycle-tests.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "341724e9e084c6e2815748136bcb44152298202a"
+    },
+    {
+      "path": "tests/checkout-pricing-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5b75684a89db5c8b045d9eb9024297496414c37d"
+    },
+    {
+      "path": "tests/checkout-pricing-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4fe5edbda001354f77baa60b09c6395b50353ed2"
+    },
+    {
+      "path": "tests/coupon-authorization-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "62b8965ba949c5f0c4f8ab477bd40367264ce38a"
+    },
+    {
+      "path": "tests/coupon-subtotal-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "10f5d3c6a934cdf90287ea7c053aaae4e9d838be"
+    },
+    {
+      "path": "tests/email-action-lifecycle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3f207f98d0dda2032e63e4088853fb15a7ed76d3"
+    },
+    {
+      "path": "tests/email-restore-preservation-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5ddf103c9e7a3d6704bc2ee8bfc0423f6f057488"
+    },
+    {
+      "path": "tests/error-monitor-location-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ebdc2ee1ae8c456fb0a410115fa353d0f3b4a82a"
+    },
+    {
+      "path": "tests/fixtures/applepay-schema.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1dfd87050843595268b97fe546efa7dca8c2fd9d"
+    },
+    {
+      "path": "tests/fixtures/marketplace-calculator-paragraphs.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6d1d2bcd4b939652cabbc5ca67eb34088be31de"
+    },
+    {
+      "path": "tests/fixtures/security-catalog.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3d6857a62705ef7b8c12630671a0da859720e43c"
+    },
+    {
+      "path": "tests/fixtures/trusted-proxy-runner.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3e47d8cfcadf36a568e94217b32012b2a0a9ee42"
+    },
+    {
+      "path": "tests/footer-credit-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "be248d948cb205a5ce2204fd52a5327ea02873a9"
+    },
+    {
+      "path": "tests/form-input-shape-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1e8169eac9d8c57b63cf7822b0b08ea72145af67"
+    },
+    {
+      "path": "tests/free-shipping-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ffac8755dd591d34c2491c2beb4f8a655d93ab42"
+    },
+    {
+      "path": "tests/googlepay-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "85f43ffcdff341eafb4f11d7cedbf55de2750ff2"
+    },
+    {
+      "path": "tests/googlepay-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "de5e23765aef0f5905c73e4100bb677014a19061"
+    },
+    {
+      "path": "tests/googlepay-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4f9056570d9e6f6942f8c589fafbf412b6dee539"
+    },
+    {
+      "path": "tests/growth-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8f9c814a29dfc4678b17482415776e9bedde292f"
+    },
+    {
+      "path": "tests/growth-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eb5a5e7adb9a882b8e3e65a502932cff6e565739"
+    },
+    {
+      "path": "tests/homepage-branding-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "892753c1b681c503042b0792fe66fffbec2e3324"
+    },
+    {
+      "path": "tests/homepage-visual/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57ab682da3aab3b37bcaa2f6f752ecfe0c8166ac"
+    },
+    {
+      "path": "tests/homepage-visual/check-layout.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0c1c2dede12b567ffb2489236671c0ea89db163c"
+    },
+    {
+      "path": "tests/homepage-visual/prepare-assets.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa27dfb9439bb625801725cdb007ae16861573f1"
+    },
+    {
+      "path": "tests/homepage-visual/prepare-fixture.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c64dd4bc0101d0ac58a54c315bb261236340c7eb"
+    },
+    {
+      "path": "tests/identifier-clarity-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b5609b3aafbaf7769c8ed914915c754dd21533c3"
+    },
+    {
+      "path": "tests/identifier-output-hold-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "04d6ab96003ff060a8671ef28852b3f638b03f43"
+    },
+    {
+      "path": "tests/immutable-product-upload-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f209e1115794569a6850c7988d372022bef5e2e9"
+    },
+    {
+      "path": "tests/immutable-product-upload-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4d76d2510ace2f744dff2b85205a46d5d7c4e647"
+    },
+    {
+      "path": "tests/keyboard-browser/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "567982a7ebf4a4ef8a42ce5c5c3eb7cd53888f91"
+    },
+    {
+      "path": "tests/keyboard-browser/catalog-scroll-guard-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "821bd44f751b11830931ed67b1a34a5157206f10"
+    },
+    {
+      "path": "tests/keyboard-browser/catalog-scroll-identity.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42aac464164ce8231fe6ff0e81445a5b2db48bdd"
+    },
+    {
+      "path": "tests/keyboard-browser/catalog-scroll-policy-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "29c05ea25c44544ffc1fd1653aea83e1e8474b03"
+    },
+    {
+      "path": "tests/keyboard-browser/catalog-scroll-policy.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7716c602d7640c58286964940b2f69f8a5150256"
+    },
+    {
+      "path": "tests/keyboard-browser/catalog-scroll.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c189ae8cee2b45af2ef9c51d677415415ba39203"
+    },
+    {
+      "path": "tests/keyboard-browser/check.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "714ed70431cc861eedcd3f6200771e8371034f06"
+    },
+    {
+      "path": "tests/keyboard-browser/email-restore-guard-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8930c18894174155c3bb60d2ee702bc48ef4e32b"
+    },
+    {
+      "path": "tests/keyboard-browser/email-restore-policy-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f1f230ba429c2b877d71e0e5202708ffcc22883e"
+    },
+    {
+      "path": "tests/keyboard-browser/email-restore-sources.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9713e6397410caff7cbe951b3ff28e07a172ebb6"
+    },
+    {
+      "path": "tests/keyboard-browser/email-restore.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "675c6c108c4de4942e4aedbc62c234a37e4627e8"
+    },
+    {
+      "path": "tests/keyboard-browser/email_restore_identity.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5ce99622bec9287ad9a6504cf9aafe64baf0cd0c"
+    },
+    {
+      "path": "tests/keyboard-browser/heading-base-tree.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3bb461b576eef1b7895470d0bb1b0fc010d09271"
+    },
+    {
+      "path": "tests/keyboard-browser/heading-policy-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e167b29a176bdd7d081da5b6267a50e6e9baf03d"
+    },
+    {
+      "path": "tests/keyboard-browser/heading-policy.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6af31f0d69a83ad68e55bd9f4f8d1880b2f45efd"
+    },
+    {
+      "path": "tests/keyboard-browser/heading-sources.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2138475b48c144ab9af3423d7aa7caf5d20aba14"
+    },
+    {
+      "path": "tests/keyboard-browser/heading-unit-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "408f51763d2de3b6dce4c29c7b798fac415b614b"
+    },
+    {
+      "path": "tests/keyboard-browser/heading.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "427fc4a577db4a6e8c2197fd61dfdb75a7a0bd7f"
+    },
+    {
+      "path": "tests/keyboard-browser/heading_runner.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8f844ac64e99bbed25d8fb074df325e65eafd872"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed-hydration.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ca3b01bd0e7b5ce929aa11cf6ef067288e963f8d"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed-identity-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "83bf9fef0d91630a9372f4ed1f6087c57c20a420"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed-identity-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42674d548f9c3fe0e2dc588f511d30cdeb157c4d"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed-identity.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "52cd30143a58da510a1e8e740b91c167b35e5525"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed-sources.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0328877491f41f0b253876a1553f44d782dab893"
+    },
+    {
+      "path": "tests/keyboard-browser/malformed_identity.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2e19b7b6e54fa22a3db1e419c00c29626c22a12e"
+    },
+    {
+      "path": "tests/keyboard-browser/navbar-unit-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "309f70f76671fce2afd13abdf3875bf949122d86"
+    },
+    {
+      "path": "tests/keyboard-browser/navbar.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6fcf4b3483fbef9b79bb58548357990700241757"
+    },
+    {
+      "path": "tests/keyboard-browser/quantity-rendering-unit-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b8652474f4d77a112ffe2e72c85848875c57aeac"
+    },
+    {
+      "path": "tests/keyboard-browser/quantity.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d2f7b5d3a01b25695b826100005dfa7bd20c0942"
+    },
+    {
+      "path": "tests/keyboard-browser/run.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "75ad7e455e8dfced062d568eb1defd0bee40241a"
+    },
+    {
+      "path": "tests/keyboard-browser/storage-identity-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "23da43ac612305e7b7d2137a5b9ee02fd38e5f85"
+    },
+    {
+      "path": "tests/keyboard-browser/storage-quantity-identity-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f198236dccb32c3e1575114a9e3c542c52d02e8a"
+    },
+    {
+      "path": "tests/keyboard-browser/storage-sources.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a42fb5fb4d461878d7d3f6980379f8070541bfaa"
+    },
+    {
+      "path": "tests/keyboard-browser/storage-unavailable.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "745b825c1e77f325a1e7bced9652de5b4a56b1c9"
+    },
+    {
+      "path": "tests/keyboard-browser/storage_identity.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8658e70e1e668153dad9d7b3587b582f60334ddc"
+    },
+    {
+      "path": "tests/local-image-fallback-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b1bda015a752451c797d6e4d918e2a5f1f6ce65"
+    },
+    {
+      "path": "tests/marketplace-shipping-copy-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a14b06145a5d7d4da3ccac154b3685335c766c47"
+    },
+    {
+      "path": "tests/merchant-feed-check-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "208c364db41f93d72a41f8ed8ff66a14e10503a9"
+    },
+    {
+      "path": "tests/merchant-feed-id-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d16e129a5bee748fae8d4c141c8a387d152ea210"
+    },
+    {
+      "path": "tests/merchant-identifier-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "737f71734e8556f7d6be15545d33fdef063ef1dc"
+    },
+    {
+      "path": "tests/navbar-focus-contrast-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a880ee185db50bda0380c0e5242d0233d66e986b"
+    },
+    {
+      "path": "tests/not-found-monitor-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "340ef7cad1feed7a81f08504a7482074aac530e5"
+    },
+    {
+      "path": "tests/ownership-ddl-spoof-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "537891bfa5e021550ecbf0d2c93defdd1eb6bb3b"
+    },
+    {
+      "path": "tests/paypal-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc5b490c022d12ad7ccce94a48e5b35d298b58f9"
+    },
+    {
+      "path": "tests/paypal-order-verifier-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "01354022dbf05bd5faaa3b06ee39a520f992696b"
+    },
+    {
+      "path": "tests/paypal-verifier-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4763cca3321ed21d2f6cabf42996f015763b086a"
+    },
+    {
+      "path": "tests/paypal-webhook-readiness-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8a39f546b2498c1037f628e46d715555895b0a83"
+    },
+    {
+      "path": "tests/paypal-webhook-setup-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "afea7ad46d923a5f888127d7d0fa0cd6e2aa24a8"
+    },
+    {
+      "path": "tests/paypal-webhook-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "636f63673dc559a464a53ea2f22ee2c84fbce43f"
+    },
+    {
+      "path": "tests/product-admin-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30e31b9071f3684118d246b7f97bd2cb0ccbffd1"
+    },
+    {
+      "path": "tests/product-alt-text-gallery-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0f32ae542a3f2d8d05688f07f020ce29db250d59"
+    },
+    {
+      "path": "tests/product-condition-boundary-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "717163dc5b0623726dd53e7d8d21e15810c47431"
+    },
+    {
+      "path": "tests/product-content-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "06fec9f6ff5cd1e8e41a2aef5233d46334b7d953"
+    },
+    {
+      "path": "tests/product-content-maintenance-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7cd887a33bb464f88c1875343a431a5006a27356"
+    },
+    {
+      "path": "tests/product-content-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47de2243263c57afad03798d1cad9be9f075cbf0"
+    },
+    {
+      "path": "tests/product-editor-preservation-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b1028c1cc00002131fa3a2d9952b46f280c6f796"
+    },
+    {
+      "path": "tests/product-image-removal-snapshot-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e50f267b3a8516ca38cd29c7490a06f7d6e70542"
+    },
+    {
+      "path": "tests/product-image-removal-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "14687b21cacdbd351ececddab8e72a6dd20f63e5"
+    },
+    {
+      "path": "tests/product-listing-image-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c35a994e6e90294d657faf5b41d44329b3a68b8b"
+    },
+    {
+      "path": "tests/product-security-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e6bc9a4202caa8393cc9ee66228217886a36dc5d"
+    },
+    {
+      "path": "tests/product-share-fallback-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f208bed7648dcf2a93dfd48b59b3f4b80df1fce2"
+    },
+    {
+      "path": "tests/product-sync-migration-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e96e7ac185a00cb89ea5e640c9662efd992fe1f8"
+    },
+    {
+      "path": "tests/product-sync-ownership-integration-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "26e925fa454072e132ec0069e2da4c03fc9f08cb"
+    },
+    {
+      "path": "tests/product-sync-ownership-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "11879917dfcb3837edf4f4404451dd68fc9d0e6d"
+    },
+    {
+      "path": "tests/remote-image-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9cab467c5e8a0967a68f18a1c34bd097a5ec9ac3"
+    },
+    {
+      "path": "tests/remote-image-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c0e71e1f88a8f3f686f4ff294ef6ff68a5492f7b"
+    },
+    {
+      "path": "tests/reviewed-product-facts-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1a402f6f2db3b0c4bd8fe4fb09d5e4af2e574d2f"
+    },
+    {
+      "path": "tests/reviewed-product-facts-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2d85cc54a6bef2bdf63360b15b3cfb87f1a3b807"
+    },
+    {
+      "path": "tests/reviewed-product-query-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ad74aaaf28befdfb495734d635676d680b4c358"
+    },
+    {
+      "path": "tests/rotor-reviewed-facts-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee9ce4400c99262ae33857245350e2806649a94e"
+    },
+    {
+      "path": "tests/run-synthetic-suite.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1c7bcb5a33ab3d9e302d5c80bcebc3369f0e095"
+    },
+    {
+      "path": "tests/script-json-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "da3be9b61ed9e5d3607b8ac9d0b1734765d0a767"
+    },
+    {
+      "path": "tests/security-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0b5c6d34a0aff0bd16d67cfa8fe1e8204c72ca81"
+    },
+    {
+      "path": "tests/security-enforcement-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9874c3a01ac46959825f78a28b3970f36e4e1458"
+    },
+    {
+      "path": "tests/security-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "01ad9549cdcb0e65a1621d5fd298f4624a593002"
+    },
+    {
+      "path": "tests/security-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4e0fd108cf7c006a47d0cbcc3a00d353841a3887"
+    },
+    {
+      "path": "tests/security-traffic-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7605806c5dfea21ed877ac662fccb79d32c00866"
+    },
+    {
+      "path": "tests/seo-discovery-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ebfe6a7a477be32563fc6e502cdcdc44bc4c08bc"
+    },
+    {
+      "path": "tests/seo-presentation-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "86e39bad26015946ae15144bb02806e84bdee261"
+    },
+    {
+      "path": "tests/seo-presentation-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "27b6d4411f7b25a4ad0550343695b27fbbc55680"
+    },
+    {
+      "path": "tests/seo-redirect-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "66f9adcf8bc025a9aac9a269141f8c4178129185"
+    },
+    {
+      "path": "tests/shipping-cancellation-review-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d9dff39d70ba4f36e9c86aaf7ace0bc3b670c29c"
+    },
+    {
+      "path": "tests/shipping-catalog-readiness-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "396f0bd70259e28e47e2073c7610aa6c3bd42b68"
+    },
+    {
+      "path": "tests/shipping-estimator-client-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "396053ad75723cee351cb04c6115d7fee591c00e"
+    },
+    {
+      "path": "tests/shipping-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d762bd99352b30d23bb7b5577cbe36d6920ed32a"
+    },
+    {
+      "path": "tests/shipping-label-cancellation-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d079a5e44126aa9c74c48ab7160fcf194e62b704"
+    },
+    {
+      "path": "tests/shipping-label-client-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7ff01bf18074069564285c7d21a53e8113fc7709"
+    },
+    {
+      "path": "tests/shipping-label-formats-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fca0f05e0b9cc0dbc2ae5216baf02ca84d8bb599"
+    },
+    {
+      "path": "tests/shipping-label-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "17287d23eda0c9c54831b2a0413c5c6fca1b2fae"
+    },
+    {
+      "path": "tests/shipping-label-operations-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a84430bfd48e1b52b1cabb2fe7d3a9c0c84baa1"
+    },
+    {
+      "path": "tests/shipping-label-reprint-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8a3ea3d5cf92d38bd18be2163a24cae82be7f27"
+    },
+    {
+      "path": "tests/shipping-label-service-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c39bda2dc07ffa76b6a123a5a4efd18c4111b7a9"
+    },
+    {
+      "path": "tests/shipping-monitor-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b217c401d046f0d0b871f37ae0737e409bfca594"
+    },
+    {
+      "path": "tests/shipping-notifications-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7833dbf5ffd4e3b97b3bd2031ae63be3dcc8138e"
+    },
+    {
+      "path": "tests/shipping-oauth-cooldown-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac79c174b7a99eb5c2b42c52676036c2fe449559"
+    },
+    {
+      "path": "tests/shipping-order-migration-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0850e4946e67fa9399e9830168556fda4cf74f78"
+    },
+    {
+      "path": "tests/shipping-rate-contract-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1dcc802f70dc88e833178e27dd55e1cfc2cff82e"
+    },
+    {
+      "path": "tests/shipping-settings-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8ba4ff2f33b682fbffd0c1197cbf9f94f39ec192"
+    },
+    {
+      "path": "tests/shipping-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "56e9ead46f9f5e8bfa1763af4f443e95b58b8407"
+    },
+    {
+      "path": "tests/shipping-tracking-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6484ea097c4f2f4385c3973bfb4be081cb801b74"
+    },
+    {
+      "path": "tests/shipping-transaction-recovery-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5733b8b8a1c90391617043e12745e7ec5f119d31"
+    },
+    {
+      "path": "tests/sqlite-schema-definition-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "036a7a5afdcc7f9ca3cb4f6098ef8c85cce1876c"
+    },
+    {
+      "path": "tests/theme-toggle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1bae638fc11c8797f5e0295b372fa0ec96acea39"
+    },
+    {
+      "path": "tests/trusted-proxy-boundary-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a7cfb58200d15ccc2fd1e017fb5d50cff9b53263"
+    }
+  ],
+  "additions": [
+    {
+      "path": ".github/workflows/manual-reader-browser.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "18480f5b3a82db0c0642dd6208c25f70c0f0278f"
+    },
+    {
+      "path": "admin/manuals-common.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "90ece33db03d276c9a4e1a3b36e30c79d626d7f0"
+    },
+    {
+      "path": "admin/manuals-edit.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dde8d43b9b3cd83271d3395cb40b2bbc9ec7b72d"
+    },
+    {
+      "path": "admin/manuals-file.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "70b402c0330625fe7a250c81bf3b8e5ef2c3a505"
+    },
+    {
+      "path": "admin/manuals-preview.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba32474c66f5eb089b10d01db6a49a7af5ed8f22"
+    },
+    {
+      "path": "admin/manuals.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7d4bf7a89c520f2925141beed0036fb74a303f60"
+    },
+    {
+      "path": "docs/manuals-fullsite-integration.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2830a387f1c06f586de9a0cd0c809d3f5c4db6dd"
+    },
+    {
+      "path": "docs/manuals-intake-capacity.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "94ab684390af296538dfa2037e2eff3cb92acfad"
+    },
+    {
+      "path": "docs/manuals-intake-inventory.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5430651d87057612af08e51243d1b613fb420bbe"
+    },
+    {
+      "path": "docs/manuals-intake-manifest.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "91cc4f004c2afd220c17e7d8af8c3edd0462860b"
+    },
+    {
+      "path": "docs/manuals-lazy-page-text.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a6d85c0aa17f6af27adb1ab5ae671d1616629134"
+    },
+    {
+      "path": "docs/manuals-load-control.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67229f43aa348fa082f7c908c8745a92dc67c736"
+    },
+    {
+      "path": "docs/manuals-open-basedir.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "745b46d1ab2bda31d0f46ff9168f2e30bd54a2ae"
+    },
+    {
+      "path": "docs/manuals-outline.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e51ebe79315f03af880d298a9d5811e1f7fbb14e"
+    },
+    {
+      "path": "docs/manuals-page-resources.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cca4872cdc27da43901263a0fa965f80aa9fcc13"
+    },
+    {
+      "path": "docs/manuals-pending-load.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "04ba60851cab5e51e2ac4450e864c7916a72a339"
+    },
+    {
+      "path": "docs/manuals-range-delivery.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "649d61ac090e1b6da026bc08e5952d2309875c21"
+    },
+    {
+      "path": "docs/manuals-reader-navigation.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6d51107e5dda8a3c206ff39d0cf3654989a7e39"
+    },
+    {
+      "path": "docs/manuals-swipe-ownership.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "476ea0a0d8f92719a954173d5789df272bd44077"
+    },
+    {
+      "path": "docs/manuals-system.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5803c876228c960da9c86211ec5271982f28bfc"
+    },
+    {
+      "path": "docs/manuals-upload-storage.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6587c83c0f845b563b443f456f00c3f099291d46"
+    },
+    {
+      "path": "includes/manual-reader.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa041bacdede104691629a15e321f1b8339db893"
+    },
+    {
+      "path": "manuals/file.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a90a4cf12ea4183483dc71c39ffae1aedba37de4"
+    },
+    {
+      "path": "manuals/index.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f61c4f09d7ad325785c9e7ca5eb7ab8f16fb6cf1"
+    },
+    {
+      "path": "manuals/view.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b83035ef391273a900307a866b6dc565a5615922"
+    },
+    {
+      "path": "public/css/manuals.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "48919a7182e948cf104f4c0566b1bbcb24c9905a"
+    },
+    {
+      "path": "public/js/manual-editor.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b1a93b0debbabc81e5719d775b6d95aaa2d24c53"
+    },
+    {
+      "path": "public/js/manual-reader-loader.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa226f33bb587af9832ab6c338b1c76869ea5c06"
+    },
+    {
+      "path": "public/js/manual-reader.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "edc5ffdf906516f6fb062df02c51de8b9ca3d220"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/.htaccess",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46e19f862f2d3fa8d66a05bda980dc57c50c1475"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f433b1a53f5b830a205fd2df78e2b34974656c7b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/README.FAS.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "856bd643382a10cd9ac24b7f2874a0b5d898d4cb"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2655fc70ae706c7ba52a5d647cbfdfad6072c697"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f1ed8538287499647d923d7d8f517a00cdac4e3a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39e89d3339c74cbe06e7e4f76d60bf3556b0d4b6"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e4167cb51f66c60ef7d9500b450303b5da175574"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "50b1646e94bba61b3242a680fe3023337e191123"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d7af99b5e2ae9a21d534f1965c35a2b572143322"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "37077d01e26f9ee2427592f6deebb145d628e731"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "acf23231aea22e1a95761f7eafd35f1d42ea6b84"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/83pv-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2359bc529d160857cce4c1d1bfca1322290205c1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "af8293829c90ce63cc4c5eda0318003785ffcba1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "780549de19de05b6cbea4ccd4737351bc9ff6104"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bfd3119c62d9976dde9b1e59c572c678cf5811a0"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "25ef14ab4af42f4b70ccac76cddac8f3b22d8813"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "02f713bb838a8cd46f5b262c934d0edc8c6e8fe9"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d08e0cc5d98b2d933ab848c69dd6c504fbf1787d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Add-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "59442acafb613b0c090314379f9f4c2fa134a1a1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a3065e441a0e1f1a65e9109ec9bc4f826fccac24"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "040014cfc0880371c20a89212942727c5dc30a78"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Add-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f816d320f08b8671498299c4d00e4564d2ece6c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-0.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "88ec04af49d1e8ab6038e3b36dd28daf4dcf0119"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-1.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03a501477c91d8156723f0c274a37d397ed65bad"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2aa95141f9f5802818e34b0aa626e34e7cfee805"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-3.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "86d8b8c79cfa3907281aa3f25a46f178b87aedfa"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-4.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f50fc6c14e67a228c4ba9a61b1357c16410e8228"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-5.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6caf4a83146a60a2db652647b9cfed5fb71bd97c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-6.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b77fb0705c28d647d0bf7b25246af566a791b2ec"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-UCS2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "69d79a2c2c2b00207ab27b68ebf4404aa17c6f2c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-0.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "36101083fa8fd22399728ccf533c48e830781de0"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-1.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "707bb1065c76d69551c287141cb258519132ef8e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f7648cc3ff02c44e9594ccbd71deec742e253c2f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-3.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "852145890ede3dc04339de284993da270d62311d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-4.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e40c63ab1e5c240841f3b465ade920d60be6328f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-5.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d7623b500232b6e62f29c2c232e6c2469a527314"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-UCS2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7586525936cc5398b86d3752a4eb45b15825b25c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-0.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f0e94ec196757e8660b567d8ece7f99869927913"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-1.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dad42c5ad7dad57954fc9a051ee7e222e83bee45"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "090819a064533f20aa68f562275556397683ae81"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-3.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "087dfc155860e65d2dc828dd432ffe88239fde23"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-4.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46aa9bffe576e9a8b714646aed7f9e1a4e99dfe2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-5.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5b4b65cc6292a5ba7d89e976565bf08814bb88b6"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-6.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e77d699ab6a1bfd1e3eab6db428222e108342aec"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-UCS2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "128a14107750da2939d920c3e0802798c36f2e18"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-0.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cef1a9985191f53c4a8a35811d1caeecdd1a1820"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-1.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "11ffa36df8404ab970df2a24b2d80b1dc6348436"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3172308c79d57147cdbe05930228043faa48ca54"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-UCS2.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3371c0cbd14c89a7d2b5a72e4e4f9cdc6d6017e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "beb4d228104cd985130e6eed7ccabdb63e94ce27"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2d4f87d5035f03485616d4986b6373fa0820d0af"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/B5pc-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce0013167f852a873b639e301088c094d468a750"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/B5pc-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73b99ff2fbca40e7ca5501f61e3f2f29c1fc1af6"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61d1d0cb001dd484630e52eb7e47eaabbdee62cd"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1a393a51e079d1b5e7898423463fac5e87170da2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS1-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f738e218ae2b4e9c33a1833a49fe20027e869aa1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS1-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9c3169f0d9a083b462427bf4e46a25296ebbd862"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS2-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c89b3527fe57ad3b32061f36b73c756ead3fb071"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/CNS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7588cec83e271feb04e3c7f3a6ee3a4c153f2052"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cb29415de4f5a669c1b47e34ab889b5fdee6e428"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f09aec6318dbec88491e3e488526882eaa930f37"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c2d77462d298cdb261f5e2eed5218fcba35cbe4e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "89bff159ec62cc86b7c4a3258ee0455cab10b76a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a7d69db5e32646c3fecf51bd03dc1a61c8189fae"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "adc5d618d6912cb3a67e4745b63764120f93d17f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e92ea5b3b99b1f20d31c9760481de0472e72685b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a7c183228dfdc5c236b7914ca68298520ac60a1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Ext-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3b5cde44dbaf7f78c716c3705590ae28e9bed265"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea4d2d97b8bc1df2abebce0d4f8c58789f723eb1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3457c2770913963731993654c838df133deabbb3"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Ext-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4999ca40412b66e87c56870c80cff32212483ee8"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e39908b9844939a3c6d6baccced5771b8c1b1b2d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d5be5446aa40898742183202ce0624b8acee5234"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GB-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39189c54e363ebe2ea542addd6b629bdacd0e8e9"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GB-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "310834512ffe49cbb7ca903abc2dc1aaa934e6f4"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "05fff7e8254c995031783fb3b4892d58a6b176ac"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0cdf6bed6d450473f92e691e9015e4028113607e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBK2K-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46f6ba5967cdfb381f001eb1193f17b43d943962"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBK2K-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d9a9479843eda25fb0a8fd69fb302740813d925f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5cb0af687ee20a10ecc367892ae49d7b1e74acd1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bca93b8efbb18a13e15025ad41d23db8267d2577"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b4e2d32294538b5093ed3870bb9de37abf21599"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "38f706699f395dcdad5c6ad93d1a9b6fe9f66c78"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBT-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8437ac33771536813228e3f9c1cb6c35af3acc72"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBT-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "697ab4a8e756204de9d089c8c136579973c9c0c6"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6e50e89363483070b25106b94f729ae38587d28"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c0d71a2d04473870c60dc59342400fe1b4ccc48"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c9edf67cf6d640607080ad2775c14760df77dd96"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "31450c97f640ff40bd79677cd3e97f4485453d9b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7b24ea4629d0d4cc9f0cd5852edde324156ef0b1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7d30c0500520d563d0e5891c8f4781c61ddcca5e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "78946940d68cdd2ea1bec1230b1eb0b19b8d5deb"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d829a231015161e107123e211d4a78110daab6bf"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2b572b50a47f09a51c777efabcaf6a9e3faa26c2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "971a4f23f791f75d4e604ad717735ee55529eda5"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d353ca256b54236a4acefafdbc08e5b719892014"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "576dc01112bd7f28c30804661f546ece203c53d8"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e96d0e228e0608f77f035655140c6a235d4ea56"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "11d170c75ed8696f0705f9fb9f5afcf3b0aff4c9"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "54959bf9e776c990460f2582adee80d317062d20"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6ef7857ad17cefc4ab714d209716002317c23baa"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1fb2fa2a2ecdf5abd6b7cbf2cb5f2ee4f0b11fe2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Hankaku.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b8ec7fcef466bc4090dc13c8edb354cb94d0b67"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Hiragana.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "17e983e77264c62ee149d1c8ec576a23e8f90eda"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a45c65f008e7d6ff34edaf53af15ea471d4f6d90"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e7b21f0a612b1acc41c1b23ad0060da539eaf2b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9b22b67879d4043c75b617a24f96b0bd47cf4ca"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2531ffcf41acc01338f781c845c7f50f62fcc84a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "367ceb226ab1e33624b30512716a3b65feb5a100"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6ae2f0b6b7238adc67bd9231668d9853ea3c8e1e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8d4240e6adb3ac1db859085b769a0715be03c72"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8b4ae18fd3efdbe020e4e1407d2f65125085a71a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b655dbcfb123ed06c7eeb87dfc96ecf6759363dd"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "21f97f65b4a61adfa13f55d5a096ceab45eb485b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e06f361eb6d429290806b9f9cd7a0aebce22be4d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3c9113fcf0b02e1deea8246bfd27408becc8401"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Katakana.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "524303c4f0c20e6cd19aa1d35805e98c2c05cb7c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b1ad168ad0dd09b578cafec31d2666049b4d8718"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/NWP-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "afc5e4b05ee6f4be4f17eb616742b59aee4c5ac1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/NWP-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bb5785e3278ab7a24b3080cf22ea0f609aab4595"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/RKSJ-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb8d298e9bb8e090139bbc5e958f11a237672825"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/RKSJ-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a2555a6c048de98d68f534fbba18baf4b4311e50"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/Roman.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f896dcf1c7fb118fc491094edd6244e16856d586"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d5db27c5cf1f5b0e66e16f6314d042a4ef707222"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1dc9b7a21bc59b6540d55b3d8933e5a6ba9f8947"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "961afefb66cb70ea2f10784029572e5f68ae4740"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "df0cffe86b5e9f154c5ef6207120d6bd43706631"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1ab18a14367cf31113eddf5ae15d9fb3549f39ab"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ad14662e25e7a4e3bd7f543c126ac24417bc3665"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "83c6bd7c4ff0abf4634765312b8a3026942d2b35"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "22a27e4ddbe26664c57f778a864b6872f6c2ba03"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5bd6228ce62ec10f00316b136663ed6b60ebf9e5"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53c534b7fecfd84e465c8943fe3adf500a4444f4"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b95045b400a77419292cab245f9f66f6298dbb5d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "51f023e0d609798e72d46bf41309e092d72ccb07"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f0dbd14f3795a40b23cbe5b826f776f4ea7cba4c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce9c30a98541e23244876fef9dc67c2639fdd746"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "982ca462b1b047c945d3b7b0123eb42dfd8d48cd"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f78020dd4028d56497c44b7afa94985f0d18f8ce"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7daf56afabf65a4707d7bb06d829f56b247c9e80"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac9975c585ede6958758980ade161f687d40d58b"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3da0a1c62f19f720590b54fc1de7b027af100945"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c50b9ddfde9da7ebb2f67eba68d58fa2cdee902a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6761344639bcde069cf7133d52e127536dcdd037"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "70bf90c0efb66da2a7aa19a820d766cfe3ef3183"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a83d53ae70ca3d81cda827cc224ec8c5efa4f17"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a8713539491f51c52ba3a1525d181efd32c1f0f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9f0334cac7f3852b4d06dc9e5cf0f9646ba21a5e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "808a94f0fd9c3b3cb0267e5cfe4dced2e65ecb1c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d768bf811ffeb0d794b732a82940fa1442af499f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3d5bf6fb4ef94b452ed1ef0df926fc2bee55e973"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09eee10d4fb4b9fe1e70a1ee56825a207ae8034a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c546001331cf4f2f68563229f994b55730dfdb1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1b1a64f50d204b03ef0c5575233687830a1b053a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "994aa9ef9f50495a3ac558630b0234680be23c2f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-HW-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "643f921b65819c9e8c80a97c51fc68a89053bd51"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c148f67f5e9fe4a108519eeaace89e708a51f8f5"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1849d809a679e56414f4e18dce8ca3c41109e84e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a83a677c56df6f1ac395d2ba71e60a08b0985e97"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f527248ad547015ad8af1181e646da3b235de08f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1a988dc9e80be9a0803e22d021b1e81fdcc5b94"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47e054a961adb3d97caaa31c854d9b8ef4555bf9"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b5b94852a57b19bcb357a6cae2cae2e7910e05a1"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "026adcaad4c56cb1989bd31cbcf3ad21f3965a17"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd4e66e81f3507b190fb2986a26a45c1c380e302"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "075efb7054901b1022af68e723647769cbe1d556"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "769d2142c03b10680800b3b6ae883e27fe04c5a2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bdab208b69d287128195eccbd084c8cf4ca658c3"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-H.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6ff8674af772af896d7d33c7addc37c57822f8a2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8dfa76a58eb720dd1992c2cc9abf1dd4b39c5a66"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/V.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fdec9906621904180f42bd5c91f377397fd6cf95"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/cmaps/WP-Symbol.bcmap",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46729bbf30f3b2f176492d907fb8ca3f6a1e3026"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/pdf.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "58e7bd3b0cf792ac2c42a46ed4ee2a88076cddbf"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/pdf.worker.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57c75fb49e9045a8313ecd782a8042e2bf903aca"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitDingbats.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30d52963e281dcd7e6dd70555340fc987d3568ef"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixed.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f12dcbce52babb40fb61765aa46ddf47e3846511"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBold.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cf8e24aee5962ebcf7e4d58d932cc3321f3cdd38"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBoldItalic.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d2880017c25716417f837a1c26044a0342fa3f9a"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedItalic.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d71697d4b638737a5545dd0cb28cba8f613e4eec"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerif.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3fa682efbb4b1d1941194a5dd8b78f39b33b72b0"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBold.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ff7c6ddecf6b689d93823c4c2a8c41e6e058de46"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBoldItalic.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "460231fb88a0083e577ed534760307d7779fd82f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifItalic.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d03a7c781e1a2b91481103dc3227a6bdca4a461c"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSymbol.pfb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8f9bca78c2f89ce40dff0afe6cdd7068061b3e6"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_FOXIT",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8b4ed6dddf22b2fcc9f7f520cd23613b49307fa0"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_LIBERATION",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "213c182658826562cdcc02472a4e0869e225f64d"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Bold.ttf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee2371540417ffbc652745b059effa260430179f"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-BoldItalic.ttf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42b5717ddb92dc6e85edc72fb5c3a798b380902e"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Italic.ttf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0cf61263494608cbf1fccecce606bc01a247d1e4"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Regular.ttf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "366d1489cdde3523e488ed1ee85583618fb0c120"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_JBIG2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "37a329c636c65ab5fde4e471dc0bdf9b61d313cd"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_OPENJPEG",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e8fa41040dfbe8be524cac5b1bb19d60c6eb0320"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_JBIG2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f1845baf6613d744626e975ec933de7cdde1f915"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_OPENJPEG",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "623929b849547b81e8d1f025f66ac0e347e27b88"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QCMS",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9cf106272ac3b56b0c4c80218e8fc10a664ca5f4"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QUICKJS",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0417c6e580cc14211fe01ca0f27eb1501e237358"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_QCMS",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eec8246dfa81e83f19dae23f6c1fbf51720908c0"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/LICENSE_QUICKJS",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2cf449dd3eea4291da7470bd322211b61981ccd8"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/jbig2.wasm",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0f600760ccaa6e7cfee1ce406807a8c6f7a22cb9"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/jbig2_nowasm_fallback.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f11389f3da187cb65e13692d8fb661b6a912237"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/openjpeg.wasm",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f88bf82205e826ee030fdb830bf7e05846ede5d2"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/openjpeg_nowasm_fallback.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "230e31d1af73a70ad5a6e97bbf6b1abcb7d6dbcb"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/qcms_bg.wasm",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea1d07bc4439d034d5a188bb78ef317c33f56787"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f087fb29602352e8be9a6e7f7d766ccdb0dda038"
+    },
+    {
+      "path": "public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.wasm",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42980e94aa4d7359e4113c968c67800b45462764"
+    },
+    {
+      "path": "scripts/manuals-intake-capacity.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d7f167734d6244624013d5c44bfef11596a01d0b"
+    },
+    {
+      "path": "scripts/manuals-intake-inventory.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "88d45f33e0c5997f61691a08777102b3bfae7ec7"
+    },
+    {
+      "path": "scripts/manuals-intake-manifest.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "580ba55cc6bedc9b57224896d4d60255e7a1cfa7"
+    },
+    {
+      "path": "scripts/manuals-maintenance.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7edd46a346bdd48ed5338d62d58e53741747ebdb"
+    },
+    {
+      "path": "src/manuals/ManualByteRange.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6ce5973f1e4ca33da27e51641fefbff82874384"
+    },
+    {
+      "path": "src/manuals/ManualIntakeManifest.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6cc6dba33e82ebfd242e7a54b928483f27c69fa"
+    },
+    {
+      "path": "src/manuals/ManualLibrary.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "165487299dd7d6b5685897bc3ca9e26b6d124556"
+    },
+    {
+      "path": "src/manuals/bootstrap.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8d973edd1906d3b3cd9182311ebf506db68510b8"
+    },
+    {
+      "path": "tests/manuals/admin-search-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc47f3b2c7e1546d578c6cf2525544a7f5fdb572"
+    },
+    {
+      "path": "tests/manuals/admin-search-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b02ea5799c8acf0ecc3ff5713bc963db50aa5ff"
+    },
+    {
+      "path": "tests/manuals/backend-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cb0ace1b44b6a4019d32b5205a39f37c309f789a"
+    },
+    {
+      "path": "tests/manuals/browser/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bead506ec7c36e22d29094fc351cda731344451a"
+    },
+    {
+      "path": "tests/manuals/browser/check.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5534bf23dc937b316dc00c18563fc4c4967dcebf"
+    },
+    {
+      "path": "tests/manuals/browser/dependency_check.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "33b3fdf534449a450504bbd892f623738c2501ed"
+    },
+    {
+      "path": "tests/manuals/browser/fixture-check.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "870fd6234b303c64166842aef2a7c0a4640c6a2e"
+    },
+    {
+      "path": "tests/manuals/browser/fullsite-check.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46442aac6885abd600ea9d25775f0fd483647672"
+    },
+    {
+      "path": "tests/manuals/browser/fullsite-pins.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dc060589213c622fee4cd21a376d20c50978e627"
+    },
+    {
+      "path": "tests/manuals/browser/guard-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "de704cd75eb04caa0ffb800235ae5447ddba33b2"
+    },
+    {
+      "path": "tests/manuals/browser/prepare-assets.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9dbad7a2d3143c42b4db84638997eddd20c950b"
+    },
+    {
+      "path": "tests/manuals/browser/prepare-fullsite.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67b5aeca09fc67c096dce8dbb732c7c4832ccabe"
+    },
+    {
+      "path": "tests/manuals/browser/prepare.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2a739976b909c86d06c7c9dd4f45fbc19af5888a"
+    },
+    {
+      "path": "tests/manuals/browser/process-session-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "568a6a0f2d6a456d6c724257dd6ac0c1418660e2"
+    },
+    {
+      "path": "tests/manuals/browser/process_session.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a5214edaa036a5d289e00e13a1a0546a1f16325e"
+    },
+    {
+      "path": "tests/manuals/browser/range-normalization-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "606a1f5c9a11b32e0ca7fa45fb218c4597b29e43"
+    },
+    {
+      "path": "tests/manuals/browser/range_normalization.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34ad5a4ee04f60184171a336a8828eec1dc2d251"
+    },
+    {
+      "path": "tests/manuals/browser/raster-fixture.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "888765c9c12e877a7653aed43ac4676073d8939a"
+    },
+    {
+      "path": "tests/manuals/browser/response-policy-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "303cb87641f319b0c23080c1a89bceb4d30e2bce"
+    },
+    {
+      "path": "tests/manuals/browser/response-policy.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "885ef48d09f34b0958bb6e1c0dca1cd73a232948"
+    },
+    {
+      "path": "tests/manuals/browser/run.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "237538ca151de6aa4c5a15e13e87a440cc7f3d39"
+    },
+    {
+      "path": "tests/manuals/browser/source-manifest.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "15ee52c85843c5f8cd37c6570695025e97a2bd57"
+    },
+    {
+      "path": "tests/manuals/browser/source_guard.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c28abcd8aa22d09d6ca286382631ee5863d3a6c2"
+    },
+    {
+      "path": "tests/manuals/browser/stage-diagnostics-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "20ab86f15ab6cee09e61d5c473b01022a1faf325"
+    },
+    {
+      "path": "tests/manuals/browser/stage_diagnostics.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b3cf012607961d8f46da6bf9ee270420c8650ba0"
+    },
+    {
+      "path": "tests/manuals/browser/stage_runner.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f9e948c9ed57250020f17db776395f795554dafd"
+    },
+    {
+      "path": "tests/manuals/config-reload-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cb72d3e470208aa01fa7dbd3e515f9ad8c3f3f4d"
+    },
+    {
+      "path": "tests/manuals/config-reload-unit.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa968e6a181dd49faa10925b40e039fe18a5338c"
+    },
+    {
+      "path": "tests/manuals/config_reload.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a7494394b1712a285244692bbbeb00f929184b1b"
+    },
+    {
+      "path": "tests/manuals/contrast-source-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6a0582a8ac7ecadf833c226eb5f9a9f738ae9b36"
+    },
+    {
+      "path": "tests/manuals/editor-upload-preflight-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "995a297e13890082dd8cbf2e50a687a5d7e8af32"
+    },
+    {
+      "path": "tests/manuals/facet-bounds-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed2371d8e681335538ecf8fe4abb0512025aba51"
+    },
+    {
+      "path": "tests/manuals/fixture-config-reload.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1228c72fc786c61dfbecc8601d54673c4a09124e"
+    },
+    {
+      "path": "tests/manuals/fullsite-source-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "143f80bc59a57fe8b6da2a5b458d072d86d2a754"
+    },
+    {
+      "path": "tests/manuals/hash-bound-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6db3be09862a10900ff830540b900337aa4ebc9"
+    },
+    {
+      "path": "tests/manuals/http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f567d8620ed5539b3695aa0d530d58a5260b3df"
+    },
+    {
+      "path": "tests/manuals/intake-capacity-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7b4132d4b3e2d25158a56c42a09164dd7d56092f"
+    },
+    {
+      "path": "tests/manuals/intake-inventory-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "81329a5e829b663078fcacd63ebf1da0346cd539"
+    },
+    {
+      "path": "tests/manuals/intake-manifest-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c7288698f9ebb5d828a7a4fc4893077ec99fb7ad"
+    },
+    {
+      "path": "tests/manuals/open-basedir-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d11b25ea2f0910174e03ab979617bf0e7d991657"
+    },
+    {
+      "path": "tests/manuals/prepare-fixture.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "855b98ba3e76c549bcd18489db8478d24d053d1b"
+    },
+    {
+      "path": "tests/manuals/range-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47179b700a0b9e849b230943aab11cdd11833820"
+    },
+    {
+      "path": "tests/manuals/range-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3c00defd330a8182c2aad84de2d60eba89826111"
+    },
+    {
+      "path": "tests/manuals/reader-cache-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ba0dbc9400a7838ea9b6155171f36a0734427b4"
+    },
+    {
+      "path": "tests/manuals/reader-canvas-lifecycle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7bb7244d780982ae73efee2ba058b6e5220488b6"
+    },
+    {
+      "path": "tests/manuals/reader-failure-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a613eddca43df4163c6d446b39bac2c9d8eb1948"
+    },
+    {
+      "path": "tests/manuals/reader-input-race-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c68e8c1e0f9a8dfbb98eaed1905e522318ee8b33"
+    },
+    {
+      "path": "tests/manuals/reader-lazy-text-race-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "12b186c08cefb00cd32e9c3780c6a0c40a3004a7"
+    },
+    {
+      "path": "tests/manuals/reader-lazy-text-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "24e854c0ddbcd562a3188f9ac5943ff4332638c0"
+    },
+    {
+      "path": "tests/manuals/reader-lifecycle-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "12403bacd9d2f7f27696a6abeec058af68f0dad6"
+    },
+    {
+      "path": "tests/manuals/reader-load-control-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ca1ed4c61a38e1418c6e84b865105cebef6c397"
+    },
+    {
+      "path": "tests/manuals/reader-outline-integration.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1bdc85e185e961657eefbd93d58dc53a8491319"
+    },
+    {
+      "path": "tests/manuals/reader-outline-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b7c296bcb7e178b3796606ef76b09fd894c38a9a"
+    },
+    {
+      "path": "tests/manuals/reader-page-resources-integration.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f9f920b57ceab8d7efcaede9d2c9f7341a031763"
+    },
+    {
+      "path": "tests/manuals/reader-page-resources-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "faebf2e6e670ae3add5619a60a993f8a6d06878d"
+    },
+    {
+      "path": "tests/manuals/reader-pending-load-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ffc531ae3de71bcc7d068d69bc5be9d35f3cc6f7"
+    },
+    {
+      "path": "tests/manuals/reader-search-focus-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "64fc71e2a23a3d1848a6852c4b00e11518c65c60"
+    },
+    {
+      "path": "tests/manuals/reader-search-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "96a2edb5f3f46e39a88a3e6e0d57c819a42f56a2"
+    },
+    {
+      "path": "tests/manuals/reader-search-yield-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "64a37f21864a4897b508134f26ac35134ea82d3b"
+    },
+    {
+      "path": "tests/manuals/reader-state-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e10ffcee09f10e8791106831056eb0b435cb362"
+    },
+    {
+      "path": "tests/manuals/reader-text-dedup-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3670f669ffad652e02680647c7b3c8201414ef84"
+    },
+    {
+      "path": "tests/manuals/run-range-tests.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "75962abb63e6b3daa2864e0d307860d32ae92565"
+    },
+    {
+      "path": "tests/manuals/run-upload-storage-tests.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "793c2c42499c48d9e4a272d1d54e00f0a0325407"
+    },
+    {
+      "path": "tests/manuals/swipe-ownership-test.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e6fa1bbdf9ad431a5cd0f5bf246a91ba5b8b147d"
+    },
+    {
+      "path": "tests/manuals/upload-concurrency-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5131bc720d8f35ee2abc36e74142cc91073dfe6d"
+    },
+    {
+      "path": "tests/manuals/upload-storage-http-test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9b2d5a8e3e2904aa726ab3de1af80f64aca619ed"
+    },
+    {
+      "path": "tests/manuals/upload-storage-test.php",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "27cecd0cba20de878b2aff7cae45959131c863e0"
+    }
+  ],
+  "baseline_manifest": "{\n  \"baseline\": \"6993209ba92dbe77c36e3a61ba7146bf2d2db236\",\n  \"baseline_tree\": \"8fdf7f25f130ddbda16d7b27ecc90fb6c7699345\",\n  \"scope\": \"Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.\",\n  \"source_blobs\": {\n    \".github/workflows/manual-reader-browser.yml\": \"18480f5b3a82db0c0642dd6208c25f70c0f0278f\",\n    \"admin/auth.php\": \"f387c7c6657d247e0709951b17f5da45f160aa74\",\n    \"admin/css/admin-notifications.css\": \"39af8610c1ae4c1a57f00ddcfb56187745123545\",\n    \"admin/css/admin-style.css\": \"61aea4e802731d01af115ae4688ea5088f91f47c\",\n    \"admin/includes/footer.php\": \"ba7ab9e938b550bc09cd54608bacc6d7b28c22a8\",\n    \"admin/includes/nav.php\": \"ee99d51f04701b4d25cdbe8478fcb7ede55257a6\",\n    \"admin/js/pwa-installer.js\": \"219726d12457c2bbda36304ff5ee064aeba46ccb\",\n    \"admin/manuals-common.php\": \"90ece33db03d276c9a4e1a3b36e30c79d626d7f0\",\n    \"admin/manuals-edit.php\": \"dde8d43b9b3cd83271d3395cb40b2bbc9ec7b72d\",\n    \"admin/manuals-file.php\": \"70b402c0330625fe7a250c81bf3b8e5ef2c3a505\",\n    \"admin/manuals-preview.php\": \"ba32474c66f5eb089b10d01db6a49a7af5ed8f22\",\n    \"admin/manuals.php\": \"7d4bf7a89c520f2925141beed0036fb74a303f60\",\n    \"docs/manuals-fullsite-integration.md\": \"2830a387f1c06f586de9a0cd0c809d3f5c4db6dd\",\n    \"docs/manuals-open-basedir.md\": \"745b46d1ab2bda31d0f46ff9168f2e30bd54a2ae\",\n    \"docs/manuals-range-delivery.md\": \"649d61ac090e1b6da026bc08e5952d2309875c21\",\n    \"docs/manuals-reader-navigation.md\": \"f6d51107e5dda8a3c206ff39d0cf3654989a7e39\",\n    \"docs/manuals-system.md\": \"c5803c876228c960da9c86211ec5271982f28bfc\",\n    \"docs/manuals-upload-storage.md\": \"6587c83c0f845b563b443f456f00c3f099291d46\",\n    \"gallery/favicons/favicon.png\": \"c33ccd1994cdf3c5af0b1319b0bfa4d8cf4eb5a5\",\n    \"gallery/hero-image.png\": \"22a615e98b644620a016d3a82ea769bcf0382f87\",\n    \"includes/admin-accounts.php\": \"9e66bd0693cf86992a14020852ebdf2100dcd66a\",\n    \"includes/banner-html.php\": \"57d06bf2b5100a6aad308e56f9f8fd9b57647d5d\",\n    \"includes/ebay-seller-rating.php\": \"ed862631680f1b8fd1feb59edfb071097c57adc3\",\n    \"includes/footer.php\": \"2ad0d3cb8581fc09e71d307650606149c6dc7009\",\n    \"includes/header.php\": \"b8ecc74f67f306afa142339b1641fc916a624e2c\",\n    \"includes/manual-reader.php\": \"fa041bacdede104691629a15e321f1b8339db893\",\n    \"includes/security.php\": \"94442221ba6f9097afab504768e7c841b82a2e43\",\n    \"manuals/file.php\": \"a90a4cf12ea4183483dc71c39ffae1aedba37de4\",\n    \"manuals/index.php\": \"f61c4f09d7ad325785c9e7ca5eb7ab8f16fb6cf1\",\n    \"manuals/view.php\": \"b83035ef391273a900307a866b6dc565a5615922\",\n    \"public/css/manuals.css\": \"48919a7182e948cf104f4c0566b1bbcb24c9905a\",\n    \"public/css/style.css\": \"b6c36199b40dc6af75d6a5433671b01cf9c8b052\",\n    \"public/js/address-autofill.js\": \"ba64493f647f701942ef90f9148408654aa272a4\",\n    \"public/js/analytics.js\": \"41ddcebfcee0056a70141655416a4c9f40855f9a\",\n    \"public/js/animations.js\": \"05466ef96483b75b64362567f306af37f1b12f6d\",\n    \"public/js/growth.js\": \"87dac7559458d16f9adc755dc404d535beeeb9eb\",\n    \"public/js/main.js\": \"b88352baedbd514f2cc8241ea74a17d02fa38c7e\",\n    \"public/js/manual-editor.js\": \"b1a93b0debbabc81e5719d775b6d95aaa2d24c53\",\n    \"public/js/manual-reader-loader.mjs\": \"aa226f33bb587af9832ab6c338b1c76869ea5c06\",\n    \"public/js/manual-reader.mjs\": \"edc5ffdf906516f6fb062df02c51de8b9ca3d220\",\n    \"public/js/runtime-guard.js\": \"1d83555ee6d9f3a8cacc87882ee84d3964e25e97\",\n    \"public/js/theme-toggle.js\": \"34430acbe4b431f680c686cd40f52be41a1484bc\",\n    \"public/js/timezone.js\": \"789840c70d84c0486a86ebe4a03a4684184d42bc\",\n    \"public/vendor/pdfjs-6.5.438/.htaccess\": \"46e19f862f2d3fa8d66a05bda980dc57c50c1475\",\n    \"public/vendor/pdfjs-6.5.438/LICENSE\": \"f433b1a53f5b830a205fd2df78e2b34974656c7b\",\n    \"public/vendor/pdfjs-6.5.438/README.FAS.txt\": \"856bd643382a10cd9ac24b7f2874a0b5d898d4cb\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-EUC-H.bcmap\": \"2655fc70ae706c7ba52a5d647cbfdfad6072c697\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-EUC-V.bcmap\": \"f1ed8538287499647d923d7d8f517a00cdac4e3a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-H.bcmap\": \"39e89d3339c74cbe06e7e4f76d60bf3556b0d4b6\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-H.bcmap\": \"e4167cb51f66c60ef7d9500b450303b5da175574\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-V.bcmap\": \"50b1646e94bba61b3242a680fe3023337e191123\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-V.bcmap\": \"d7af99b5e2ae9a21d534f1965c35a2b572143322\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-H.bcmap\": \"37077d01e26f9ee2427592f6deebb145d628e731\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-V.bcmap\": \"acf23231aea22e1a95761f7eafd35f1d42ea6b84\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/83pv-RKSJ-H.bcmap\": \"2359bc529d160857cce4c1d1bfca1322290205c1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-H.bcmap\": \"af8293829c90ce63cc4c5eda0318003785ffcba1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-V.bcmap\": \"780549de19de05b6cbea4ccd4737351bc9ff6104\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-H.bcmap\": \"bfd3119c62d9976dde9b1e59c572c678cf5811a0\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-V.bcmap\": \"25ef14ab4af42f4b70ccac76cddac8f3b22d8813\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-H.bcmap\": \"02f713bb838a8cd46f5b262c934d0edc8c6e8fe9\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-V.bcmap\": \"d08e0cc5d98b2d933ab848c69dd6c504fbf1787d\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-H.bcmap\": \"59442acafb613b0c090314379f9f4c2fa134a1a1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-H.bcmap\": \"a3065e441a0e1f1a65e9109ec9bc4f826fccac24\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-V.bcmap\": \"040014cfc0880371c20a89212942727c5dc30a78\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-V.bcmap\": \"2f816d320f08b8671498299c4d00e4564d2ece6c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-0.bcmap\": \"88ec04af49d1e8ab6038e3b36dd28daf4dcf0119\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-1.bcmap\": \"03a501477c91d8156723f0c274a37d397ed65bad\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-2.bcmap\": \"2aa95141f9f5802818e34b0aa626e34e7cfee805\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-3.bcmap\": \"86d8b8c79cfa3907281aa3f25a46f178b87aedfa\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-4.bcmap\": \"f50fc6c14e67a228c4ba9a61b1357c16410e8228\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-5.bcmap\": \"6caf4a83146a60a2db652647b9cfed5fb71bd97c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-6.bcmap\": \"b77fb0705c28d647d0bf7b25246af566a791b2ec\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-UCS2.bcmap\": \"69d79a2c2c2b00207ab27b68ebf4404aa17c6f2c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-0.bcmap\": \"36101083fa8fd22399728ccf533c48e830781de0\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-1.bcmap\": \"707bb1065c76d69551c287141cb258519132ef8e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-2.bcmap\": \"f7648cc3ff02c44e9594ccbd71deec742e253c2f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-3.bcmap\": \"852145890ede3dc04339de284993da270d62311d\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-4.bcmap\": \"e40c63ab1e5c240841f3b465ade920d60be6328f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-5.bcmap\": \"d7623b500232b6e62f29c2c232e6c2469a527314\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-UCS2.bcmap\": \"7586525936cc5398b86d3752a4eb45b15825b25c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-0.bcmap\": \"f0e94ec196757e8660b567d8ece7f99869927913\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-1.bcmap\": \"dad42c5ad7dad57954fc9a051ee7e222e83bee45\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-2.bcmap\": \"090819a064533f20aa68f562275556397683ae81\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-3.bcmap\": \"087dfc155860e65d2dc828dd432ffe88239fde23\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-4.bcmap\": \"46aa9bffe576e9a8b714646aed7f9e1a4e99dfe2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-5.bcmap\": \"5b4b65cc6292a5ba7d89e976565bf08814bb88b6\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-6.bcmap\": \"e77d699ab6a1bfd1e3eab6db428222e108342aec\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-UCS2.bcmap\": \"128a14107750da2939d920c3e0802798c36f2e18\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-0.bcmap\": \"cef1a9985191f53c4a8a35811d1caeecdd1a1820\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-1.bcmap\": \"11ffa36df8404ab970df2a24b2d80b1dc6348436\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-2.bcmap\": \"3172308c79d57147cdbe05930228043faa48ca54\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-UCS2.bcmap\": \"f3371c0cbd14c89a7d2b5a72e4e4f9cdc6d6017e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5-H.bcmap\": \"beb4d228104cd985130e6eed7ccabdb63e94ce27\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5-V.bcmap\": \"2d4f87d5035f03485616d4986b6373fa0820d0af\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5pc-H.bcmap\": \"ce0013167f852a873b639e301088c094d468a750\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5pc-V.bcmap\": \"73b99ff2fbca40e7ca5501f61e3f2f29c1fc1af6\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-H.bcmap\": \"61d1d0cb001dd484630e52eb7e47eaabbdee62cd\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-V.bcmap\": \"1a393a51e079d1b5e7898423463fac5e87170da2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS1-H.bcmap\": \"f738e218ae2b4e9c33a1833a49fe20027e869aa1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS1-V.bcmap\": \"9c3169f0d9a083b462427bf4e46a25296ebbd862\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS2-H.bcmap\": \"c89b3527fe57ad3b32061f36b73c756ead3fb071\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS2-V.bcmap\": \"7588cec83e271feb04e3c7f3a6ee3a4c153f2052\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-H.bcmap\": \"cb29415de4f5a669c1b47e34ab889b5fdee6e428\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-V.bcmap\": \"f09aec6318dbec88491e3e488526882eaa930f37\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-H.bcmap\": \"c2d77462d298cdb261f5e2eed5218fcba35cbe4e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-V.bcmap\": \"89bff159ec62cc86b7c4a3258ee0455cab10b76a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-H.bcmap\": \"a7d69db5e32646c3fecf51bd03dc1a61c8189fae\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-V.bcmap\": \"adc5d618d6912cb3a67e4745b63764120f93d17f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/EUC-H.bcmap\": \"e92ea5b3b99b1f20d31c9760481de0472e72685b\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/EUC-V.bcmap\": \"7a7c183228dfdc5c236b7914ca68298520ac60a1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-H.bcmap\": \"3b5cde44dbaf7f78c716c3705590ae28e9bed265\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-H.bcmap\": \"ea4d2d97b8bc1df2abebce0d4f8c58789f723eb1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-V.bcmap\": \"3457c2770913963731993654c838df133deabbb3\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-V.bcmap\": \"4999ca40412b66e87c56870c80cff32212483ee8\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-H.bcmap\": \"e39908b9844939a3c6d6baccced5771b8c1b1b2d\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-V.bcmap\": \"d5be5446aa40898742183202ce0624b8acee5234\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-H.bcmap\": \"39189c54e363ebe2ea542addd6b629bdacd0e8e9\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-V.bcmap\": \"310834512ffe49cbb7ca903abc2dc1aaa934e6f4\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-H.bcmap\": \"05fff7e8254c995031783fb3b4892d58a6b176ac\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-V.bcmap\": \"0cdf6bed6d450473f92e691e9015e4028113607e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK2K-H.bcmap\": \"46f6ba5967cdfb381f001eb1193f17b43d943962\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK2K-V.bcmap\": \"d9a9479843eda25fb0a8fd69fb302740813d925f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-H.bcmap\": \"5cb0af687ee20a10ecc367892ae49d7b1e74acd1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-V.bcmap\": \"bca93b8efbb18a13e15025ad41d23db8267d2577\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-H.bcmap\": \"4b4e2d32294538b5093ed3870bb9de37abf21599\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-V.bcmap\": \"38f706699f395dcdad5c6ad93d1a9b6fe9f66c78\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-H.bcmap\": \"8437ac33771536813228e3f9c1cb6c35af3acc72\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-V.bcmap\": \"697ab4a8e756204de9d089c8c136579973c9c0c6\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-H.bcmap\": \"f6e50e89363483070b25106b94f729ae38587d28\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-V.bcmap\": \"6c0d71a2d04473870c60dc59342400fe1b4ccc48\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-H.bcmap\": \"c9edf67cf6d640607080ad2775c14760df77dd96\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-V.bcmap\": \"31450c97f640ff40bd79677cd3e97f4485453d9b\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/H.bcmap\": \"7b24ea4629d0d4cc9f0cd5852edde324156ef0b1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-H.bcmap\": \"7d30c0500520d563d0e5891c8f4781c61ddcca5e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-V.bcmap\": \"78946940d68cdd2ea1bec1230b1eb0b19b8d5deb\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-H.bcmap\": \"d829a231015161e107123e211d4a78110daab6bf\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-V.bcmap\": \"2b572b50a47f09a51c777efabcaf6a9e3faa26c2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-H.bcmap\": \"971a4f23f791f75d4e604ad717735ee55529eda5\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-V.bcmap\": \"d353ca256b54236a4acefafdbc08e5b719892014\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-H.bcmap\": \"576dc01112bd7f28c30804661f546ece203c53d8\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-V.bcmap\": \"0e96d0e228e0608f77f035655140c6a235d4ea56\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-H.bcmap\": \"11d170c75ed8696f0705f9fb9f5afcf3b0aff4c9\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-V.bcmap\": \"54959bf9e776c990460f2582adee80d317062d20\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-H.bcmap\": \"6ef7857ad17cefc4ab714d209716002317c23baa\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-V.bcmap\": \"1fb2fa2a2ecdf5abd6b7cbf2cb5f2ee4f0b11fe2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Hankaku.bcmap\": \"4b8ec7fcef466bc4090dc13c8edb354cb94d0b67\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Hiragana.bcmap\": \"17e983e77264c62ee149d1c8ec576a23e8f90eda\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-H.bcmap\": \"a45c65f008e7d6ff34edaf53af15ea471d4f6d90\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-V.bcmap\": \"0e7b21f0a612b1acc41c1b23ad0060da539eaf2b\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-H.bcmap\": \"b9b22b67879d4043c75b617a24f96b0bd47cf4ca\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-H.bcmap\": \"2531ffcf41acc01338f781c845c7f50f62fcc84a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-V.bcmap\": \"367ceb226ab1e33624b30512716a3b65feb5a100\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-V.bcmap\": \"6ae2f0b6b7238adc67bd9231668d9853ea3c8e1e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-H.bcmap\": \"a8d4240e6adb3ac1db859085b769a0715be03c72\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-H.bcmap\": \"8b4ae18fd3efdbe020e4e1407d2f65125085a71a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-V.bcmap\": \"b655dbcfb123ed06c7eeb87dfc96ecf6759363dd\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-V.bcmap\": \"21f97f65b4a61adfa13f55d5a096ceab45eb485b\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-H.bcmap\": \"e06f361eb6d429290806b9f9cd7a0aebce22be4d\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-V.bcmap\": \"f3c9113fcf0b02e1deea8246bfd27408becc8401\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Katakana.bcmap\": \"524303c4f0c20e6cd19aa1d35805e98c2c05cb7c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/LICENSE\": \"b1ad168ad0dd09b578cafec31d2666049b4d8718\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/NWP-H.bcmap\": \"afc5e4b05ee6f4be4f17eb616742b59aee4c5ac1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/NWP-V.bcmap\": \"bb5785e3278ab7a24b3080cf22ea0f609aab4595\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/RKSJ-H.bcmap\": \"fb8d298e9bb8e090139bbc5e958f11a237672825\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/RKSJ-V.bcmap\": \"a2555a6c048de98d68f534fbba18baf4b4311e50\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Roman.bcmap\": \"f896dcf1c7fb118fc491094edd6244e16856d586\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-H.bcmap\": \"d5db27c5cf1f5b0e66e16f6314d042a4ef707222\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-V.bcmap\": \"1dc9b7a21bc59b6540d55b3d8933e5a6ba9f8947\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-H.bcmap\": \"961afefb66cb70ea2f10784029572e5f68ae4740\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-V.bcmap\": \"df0cffe86b5e9f154c5ef6207120d6bd43706631\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-H.bcmap\": \"1ab18a14367cf31113eddf5ae15d9fb3549f39ab\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-V.bcmap\": \"ad14662e25e7a4e3bd7f543c126ac24417bc3665\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-H.bcmap\": \"83c6bd7c4ff0abf4634765312b8a3026942d2b35\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-V.bcmap\": \"22a27e4ddbe26664c57f778a864b6872f6c2ba03\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-H.bcmap\": \"5bd6228ce62ec10f00316b136663ed6b60ebf9e5\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-V.bcmap\": \"53c534b7fecfd84e465c8943fe3adf500a4444f4\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-H.bcmap\": \"b95045b400a77419292cab245f9f66f6298dbb5d\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-V.bcmap\": \"51f023e0d609798e72d46bf41309e092d72ccb07\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-H.bcmap\": \"f0dbd14f3795a40b23cbe5b826f776f4ea7cba4c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-V.bcmap\": \"ce9c30a98541e23244876fef9dc67c2639fdd746\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-H.bcmap\": \"982ca462b1b047c945d3b7b0123eb42dfd8d48cd\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-V.bcmap\": \"f78020dd4028d56497c44b7afa94985f0d18f8ce\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-H.bcmap\": \"7daf56afabf65a4707d7bb06d829f56b247c9e80\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-H.bcmap\": \"ac9975c585ede6958758980ade161f687d40d58b\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-V.bcmap\": \"3da0a1c62f19f720590b54fc1de7b027af100945\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-V.bcmap\": \"c50b9ddfde9da7ebb2f67eba68d58fa2cdee902a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-H.bcmap\": \"6761344639bcde069cf7133d52e127536dcdd037\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-V.bcmap\": \"70bf90c0efb66da2a7aa19a820d766cfe3ef3183\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-H.bcmap\": \"7a83d53ae70ca3d81cda827cc224ec8c5efa4f17\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-V.bcmap\": \"7a8713539491f51c52ba3a1525d181efd32c1f0f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-H.bcmap\": \"9f0334cac7f3852b4d06dc9e5cf0f9646ba21a5e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-V.bcmap\": \"808a94f0fd9c3b3cb0267e5cfe4dced2e65ecb1c\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-H.bcmap\": \"d768bf811ffeb0d794b732a82940fa1442af499f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-V.bcmap\": \"3d5bf6fb4ef94b452ed1ef0df926fc2bee55e973\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-H.bcmap\": \"09eee10d4fb4b9fe1e70a1ee56825a207ae8034a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-V.bcmap\": \"6c546001331cf4f2f68563229f994b55730dfdb1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-H.bcmap\": \"1b1a64f50d204b03ef0c5575233687830a1b053a\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-V.bcmap\": \"994aa9ef9f50495a3ac558630b0234680be23c2f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-HW-V.bcmap\": \"643f921b65819c9e8c80a97c51fc68a89053bd51\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-V.bcmap\": \"c148f67f5e9fe4a108519eeaace89e708a51f8f5\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UTF8-V.bcmap\": \"1849d809a679e56414f4e18dce8ca3c41109e84e\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-H.bcmap\": \"a83a677c56df6f1ac395d2ba71e60a08b0985e97\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-V.bcmap\": \"f527248ad547015ad8af1181e646da3b235de08f\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-H.bcmap\": \"e1a988dc9e80be9a0803e22d021b1e81fdcc5b94\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-V.bcmap\": \"47e054a961adb3d97caaa31c854d9b8ef4555bf9\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-H.bcmap\": \"b5b94852a57b19bcb357a6cae2cae2e7910e05a1\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-V.bcmap\": \"026adcaad4c56cb1989bd31cbcf3ad21f3965a17\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-H.bcmap\": \"fd4e66e81f3507b190fb2986a26a45c1c380e302\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-V.bcmap\": \"075efb7054901b1022af68e723647769cbe1d556\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-H.bcmap\": \"769d2142c03b10680800b3b6ae883e27fe04c5a2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-V.bcmap\": \"bdab208b69d287128195eccbd084c8cf4ca658c3\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-H.bcmap\": \"6ff8674af772af896d7d33c7addc37c57822f8a2\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-V.bcmap\": \"8dfa76a58eb720dd1992c2cc9abf1dd4b39c5a66\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/V.bcmap\": \"fdec9906621904180f42bd5c91f377397fd6cf95\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/WP-Symbol.bcmap\": \"46729bbf30f3b2f176492d907fb8ca3f6a1e3026\",\n    \"public/vendor/pdfjs-6.5.438/pdf.mjs\": \"58e7bd3b0cf792ac2c42a46ed4ee2a88076cddbf\",\n    \"public/vendor/pdfjs-6.5.438/pdf.worker.mjs\": \"57c75fb49e9045a8313ecd782a8042e2bf903aca\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitDingbats.pfb\": \"30d52963e281dcd7e6dd70555340fc987d3568ef\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixed.pfb\": \"f12dcbce52babb40fb61765aa46ddf47e3846511\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBold.pfb\": \"cf8e24aee5962ebcf7e4d58d932cc3321f3cdd38\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBoldItalic.pfb\": \"d2880017c25716417f837a1c26044a0342fa3f9a\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedItalic.pfb\": \"d71697d4b638737a5545dd0cb28cba8f613e4eec\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerif.pfb\": \"3fa682efbb4b1d1941194a5dd8b78f39b33b72b0\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBold.pfb\": \"ff7c6ddecf6b689d93823c4c2a8c41e6e058de46\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBoldItalic.pfb\": \"460231fb88a0083e577ed534760307d7779fd82f\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifItalic.pfb\": \"d03a7c781e1a2b91481103dc3227a6bdca4a461c\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSymbol.pfb\": \"c8f9bca78c2f89ce40dff0afe6cdd7068061b3e6\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_FOXIT\": \"8b4ed6dddf22b2fcc9f7f520cd23613b49307fa0\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_LIBERATION\": \"213c182658826562cdcc02472a4e0869e225f64d\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Bold.ttf\": \"ee2371540417ffbc652745b059effa260430179f\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-BoldItalic.ttf\": \"42b5717ddb92dc6e85edc72fb5c3a798b380902e\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Italic.ttf\": \"0cf61263494608cbf1fccecce606bc01a247d1e4\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Regular.ttf\": \"366d1489cdde3523e488ed1ee85583618fb0c120\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_JBIG2\": \"37a329c636c65ab5fde4e471dc0bdf9b61d313cd\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_OPENJPEG\": \"e8fa41040dfbe8be524cac5b1bb19d60c6eb0320\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_JBIG2\": \"f1845baf6613d744626e975ec933de7cdde1f915\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_OPENJPEG\": \"623929b849547b81e8d1f025f66ac0e347e27b88\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QCMS\": \"9cf106272ac3b56b0c4c80218e8fc10a664ca5f4\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QUICKJS\": \"0417c6e580cc14211fe01ca0f27eb1501e237358\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_QCMS\": \"eec8246dfa81e83f19dae23f6c1fbf51720908c0\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_QUICKJS\": \"2cf449dd3eea4291da7470bd322211b61981ccd8\",\n    \"public/vendor/pdfjs-6.5.438/wasm/jbig2.wasm\": \"0f600760ccaa6e7cfee1ce406807a8c6f7a22cb9\",\n    \"public/vendor/pdfjs-6.5.438/wasm/jbig2_nowasm_fallback.js\": \"6f11389f3da187cb65e13692d8fb661b6a912237\",\n    \"public/vendor/pdfjs-6.5.438/wasm/openjpeg.wasm\": \"f88bf82205e826ee030fdb830bf7e05846ede5d2\",\n    \"public/vendor/pdfjs-6.5.438/wasm/openjpeg_nowasm_fallback.js\": \"230e31d1af73a70ad5a6e97bbf6b1abcb7d6dbcb\",\n    \"public/vendor/pdfjs-6.5.438/wasm/qcms_bg.wasm\": \"ea1d07bc4439d034d5a188bb78ef317c33f56787\",\n    \"public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.js\": \"f087fb29602352e8be9a6e7f7d766ccdb0dda038\",\n    \"public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.wasm\": \"42980e94aa4d7359e4113c968c67800b45462764\",\n    \"scripts/manuals-maintenance.php\": \"7edd46a346bdd48ed5338d62d58e53741747ebdb\",\n    \"src/config/Database.php\": \"e2e9a6baac2ffb305a642176432fd00af4f93974\",\n    \"src/manuals/ManualByteRange.php\": \"f6ce5973f1e4ca33da27e51641fefbff82874384\",\n    \"src/manuals/ManualLibrary.php\": \"165487299dd7d6b5685897bc3ca9e26b6d124556\",\n    \"src/manuals/bootstrap.php\": \"8d973edd1906d3b3cd9182311ebf506db68510b8\",\n    \"src/security/ClientIp.php\": \"47a5905fad895a870de71744f0b7fed482fe8c69\",\n    \"src/security/SecurityStore.php\": \"dd197c255f67b6827aff99a68d97e6989ce6b7ad\",\n    \"src/utils/CSRF.php\": \"74421ff05dda3baf26cb96ada5a995aae3c06734\",\n    \"src/utils/ProductCondition.php\": \"3ab1fe48eb2758cd5731e8a1416b5de36b42f064\",\n    \"src/utils/ProductIdentifierOutput.php\": \"e4ab4abf3e49cfed079937981a49a40cc010cc2f\",\n    \"src/utils/ResponsiveImage.php\": \"d8bfa725d5aaf7320b3c1052966376129379fdd4\",\n    \"src/utils/ReviewedProductFacts.php\": \"1db5e4468b9730b12cad79f41f7094c2144571fb\",\n    \"src/utils/Seo.php\": \"2f01a3eec77b112f998dafcb1ca09e5447ff9fc4\",\n    \"src/utils/ShippingRules.php\": \"aecc28f5796850372f2892b2d8ef5645f0cbc6d7\",\n    \"src/utils/Timezone.php\": \"b0074c7dccfebcae5ee84db633b81967086941b3\",\n    \"tests/manuals/backend-test.php\": \"cb0ace1b44b6a4019d32b5205a39f37c309f789a\",\n    \"tests/manuals/browser/README.md\": \"bead506ec7c36e22d29094fc351cda731344451a\",\n    \"tests/manuals/browser/check.cjs\": \"5534bf23dc937b316dc00c18563fc4c4967dcebf\",\n    \"tests/manuals/browser/dependency_check.py\": \"33b3fdf534449a450504bbd892f623738c2501ed\",\n    \"tests/manuals/browser/fixture-check.py\": \"870fd6234b303c64166842aef2a7c0a4640c6a2e\",\n    \"tests/manuals/browser/fullsite-check.cjs\": \"46442aac6885abd600ea9d25775f0fd483647672\",\n    \"tests/manuals/browser/fullsite-pins.json\": \"dc060589213c622fee4cd21a376d20c50978e627\",\n    \"tests/manuals/browser/guard-test.py\": \"de704cd75eb04caa0ffb800235ae5447ddba33b2\",\n    \"tests/manuals/browser/prepare-assets.py\": \"b9dbad7a2d3143c42b4db84638997eddd20c950b\",\n    \"tests/manuals/browser/prepare-fullsite.py\": \"67b5aeca09fc67c096dce8dbb732c7c4832ccabe\",\n    \"tests/manuals/browser/prepare.py\": \"2a739976b909c86d06c7c9dd4f45fbc19af5888a\",\n    \"tests/manuals/browser/process-session-test.py\": \"568a6a0f2d6a456d6c724257dd6ac0c1418660e2\",\n    \"tests/manuals/browser/process_session.py\": \"a5214edaa036a5d289e00e13a1a0546a1f16325e\",\n    \"tests/manuals/browser/range-normalization-test.py\": \"606a1f5c9a11b32e0ca7fa45fb218c4597b29e43\",\n    \"tests/manuals/browser/range_normalization.py\": \"34ad5a4ee04f60184171a336a8828eec1dc2d251\",\n    \"tests/manuals/browser/raster-fixture.py\": \"888765c9c12e877a7653aed43ac4676073d8939a\",\n    \"tests/manuals/browser/response-policy-test.cjs\": \"303cb87641f319b0c23080c1a89bceb4d30e2bce\",\n    \"tests/manuals/browser/response-policy.cjs\": \"885ef48d09f34b0958bb6e1c0dca1cd73a232948\",\n    \"tests/manuals/browser/run.py\": \"237538ca151de6aa4c5a15e13e87a440cc7f3d39\",\n    \"tests/manuals/browser/source_guard.py\": \"c28abcd8aa22d09d6ca286382631ee5863d3a6c2\",\n    \"tests/manuals/browser/stage-diagnostics-test.py\": \"20ab86f15ab6cee09e61d5c473b01022a1faf325\",\n    \"tests/manuals/browser/stage_diagnostics.py\": \"b3cf012607961d8f46da6bf9ee270420c8650ba0\",\n    \"tests/manuals/browser/stage_runner.py\": \"f9e948c9ed57250020f17db776395f795554dafd\",\n    \"tests/manuals/config-reload-test.py\": \"cb72d3e470208aa01fa7dbd3e515f9ad8c3f3f4d\",\n    \"tests/manuals/config-reload-unit.php\": \"aa968e6a181dd49faa10925b40e039fe18a5338c\",\n    \"tests/manuals/config_reload.py\": \"a7494394b1712a285244692bbbeb00f929184b1b\",\n    \"tests/manuals/contrast-source-test.py\": \"6a0582a8ac7ecadf833c226eb5f9a9f738ae9b36\",\n    \"tests/manuals/facet-bounds-test.php\": \"ed2371d8e681335538ecf8fe4abb0512025aba51\",\n    \"tests/manuals/fixture-config-reload.php\": \"1228c72fc786c61dfbecc8601d54673c4a09124e\",\n    \"tests/manuals/fullsite-source-test.py\": \"143f80bc59a57fe8b6da2a5b458d072d86d2a754\",\n    \"tests/manuals/hash-bound-test.php\": \"f6db3be09862a10900ff830540b900337aa4ebc9\",\n    \"tests/manuals/http-test.py\": \"6f567d8620ed5539b3695aa0d530d58a5260b3df\",\n    \"tests/manuals/open-basedir-test.py\": \"d11b25ea2f0910174e03ab979617bf0e7d991657\",\n    \"tests/manuals/prepare-fixture.py\": \"855b98ba3e76c549bcd18489db8478d24d053d1b\",\n    \"tests/manuals/range-http-test.py\": \"47179b700a0b9e849b230943aab11cdd11833820\",\n    \"tests/manuals/range-test.php\": \"3c00defd330a8182c2aad84de2d60eba89826111\",\n    \"tests/manuals/reader-cache-test.cjs\": \"4ba0dbc9400a7838ea9b6155171f36a0734427b4\",\n    \"tests/manuals/reader-canvas-lifecycle-test.cjs\": \"7bb7244d780982ae73efee2ba058b6e5220488b6\",\n    \"tests/manuals/reader-failure-test.cjs\": \"a613eddca43df4163c6d446b39bac2c9d8eb1948\",\n    \"tests/manuals/reader-input-race-test.cjs\": \"c68e8c1e0f9a8dfbb98eaed1905e522318ee8b33\",\n    \"tests/manuals/reader-lifecycle-test.cjs\": \"12403bacd9d2f7f27696a6abeec058af68f0dad6\",\n    \"tests/manuals/reader-search-test.cjs\": \"96a2edb5f3f46e39a88a3e6e0d57c819a42f56a2\",\n    \"tests/manuals/reader-state-test.cjs\": \"0e10ffcee09f10e8791106831056eb0b435cb362\",\n    \"tests/manuals/reader-text-dedup-test.cjs\": \"3670f669ffad652e02680647c7b3c8201414ef84\",\n    \"tests/manuals/run-range-tests.py\": \"75962abb63e6b3daa2864e0d307860d32ae92565\",\n    \"tests/manuals/run-upload-storage-tests.py\": \"793c2c42499c48d9e4a272d1d54e00f0a0325407\",\n    \"tests/manuals/upload-concurrency-test.py\": \"5131bc720d8f35ee2abc36e74142cc91073dfe6d\",\n    \"tests/manuals/upload-storage-http-test.py\": \"9b2d5a8e3e2904aa726ab3de1af80f64aca619ed\",\n    \"tests/manuals/upload-storage-test.php\": \"27cecd0cba20de878b2aff7cae45959131c863e0\",\n    \"tests/manuals/reader-search-yield-test.cjs\": \"64a37f21864a4897b508134f26ac35134ea82d3b\",\n    \"scripts/manuals-intake-inventory.py\": \"88d45f33e0c5997f61691a08777102b3bfae7ec7\",\n    \"tests/manuals/intake-inventory-test.py\": \"81329a5e829b663078fcacd63ebf1da0346cd539\",\n    \"docs/manuals-intake-inventory.md\": \"5430651d87057612af08e51243d1b613fb420bbe\",\n    \"tests/manuals/editor-upload-preflight-test.cjs\": \"995a297e13890082dd8cbf2e50a687a5d7e8af32\",\n    \"tests/manuals/admin-search-test.php\": \"4b02ea5799c8acf0ecc3ff5713bc963db50aa5ff\",\n    \"tests/manuals/admin-search-http-test.py\": \"cc47f3b2c7e1546d578c6cf2525544a7f5fdb572\",\n    \"tests/manuals/swipe-ownership-test.cjs\": \"e6fa1bbdf9ad431a5cd0f5bf246a91ba5b8b147d\",\n    \"tests/manuals/reader-pending-load-test.cjs\": \"ffc531ae3de71bcc7d068d69bc5be9d35f3cc6f7\",\n    \"docs/manuals-swipe-ownership.md\": \"476ea0a0d8f92719a954173d5789df272bd44077\",\n    \"docs/manuals-pending-load.md\": \"04ba60851cab5e51e2ac4450e864c7916a72a339\",\n    \"tests/manuals/reader-lazy-text-test.cjs\": \"24e854c0ddbcd562a3188f9ac5943ff4332638c0\",\n    \"tests/manuals/reader-lazy-text-race-test.cjs\": \"12b186c08cefb00cd32e9c3780c6a0c40a3004a7\",\n    \"docs/manuals-lazy-page-text.md\": \"a6d85c0aa17f6af27adb1ab5ae671d1616629134\",\n    \"scripts/manuals-intake-capacity.py\": \"d7f167734d6244624013d5c44bfef11596a01d0b\",\n    \"tests/manuals/intake-capacity-test.py\": \"7b4132d4b3e2d25158a56c42a09164dd7d56092f\",\n    \"docs/manuals-intake-capacity.md\": \"94ab684390af296538dfa2037e2eff3cb92acfad\",\n    \"src/manuals/ManualIntakeManifest.php\": \"b6cc6dba33e82ebfd242e7a54b928483f27c69fa\",\n    \"scripts/manuals-intake-manifest.php\": \"580ba55cc6bedc9b57224896d4d60255e7a1cfa7\",\n    \"tests/manuals/intake-manifest-test.php\": \"c7288698f9ebb5d828a7a4fc4893077ec99fb7ad\",\n    \"docs/manuals-intake-manifest.md\": \"91cc4f004c2afd220c17e7d8af8c3edd0462860b\",\n    \"tests/manuals/reader-page-resources-test.cjs\": \"faebf2e6e670ae3add5619a60a993f8a6d06878d\",\n    \"tests/manuals/reader-page-resources-integration.cjs\": \"f9f920b57ceab8d7efcaede9d2c9f7341a031763\",\n    \"docs/manuals-page-resources.md\": \"cca4872cdc27da43901263a0fa965f80aa9fcc13\",\n    \"tests/manuals/reader-outline-test.cjs\": \"b7c296bcb7e178b3796606ef76b09fd894c38a9a\",\n    \"tests/manuals/reader-outline-integration.cjs\": \"e1bdc85e185e961657eefbd93d58dc53a8491319\",\n    \"docs/manuals-outline.md\": \"e51ebe79315f03af880d298a9d5811e1f7fbb14e\",\n    \"tests/manuals/reader-load-control-test.cjs\": \"0ca1ed4c61a38e1418c6e84b865105cebef6c397\",\n    \"docs/manuals-load-control.md\": \"67229f43aa348fa082f7c908c8745a92dc67c736\",\n    \"tests/manuals/reader-search-focus-test.cjs\": \"64fc71e2a23a3d1848a6852c4b00e11518c65c60\"\n  },\n  \"allowed_changes\": {\n    \".github/workflows/manual-reader-browser.yml\": \"A\",\n    \"admin/manuals-common.php\": \"A\",\n    \"admin/manuals-edit.php\": \"A\",\n    \"admin/manuals-file.php\": \"A\",\n    \"admin/manuals-preview.php\": \"A\",\n    \"admin/manuals.php\": \"A\",\n    \"docs/manuals-fullsite-integration.md\": \"A\",\n    \"docs/manuals-open-basedir.md\": \"A\",\n    \"docs/manuals-range-delivery.md\": \"A\",\n    \"docs/manuals-reader-navigation.md\": \"A\",\n    \"docs/manuals-system.md\": \"A\",\n    \"docs/manuals-upload-storage.md\": \"A\",\n    \"includes/manual-reader.php\": \"A\",\n    \"manuals/file.php\": \"A\",\n    \"manuals/index.php\": \"A\",\n    \"manuals/view.php\": \"A\",\n    \"public/css/manuals.css\": \"A\",\n    \"public/js/manual-editor.js\": \"A\",\n    \"public/js/manual-reader-loader.mjs\": \"A\",\n    \"public/js/manual-reader.mjs\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/.htaccess\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/LICENSE\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/README.FAS.txt\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/78ms-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/83pv-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90ms-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90msp-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/90pv-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Add-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-0.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-1.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-3.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-4.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-5.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-6.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-CNS1-UCS2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-0.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-1.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-3.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-4.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-5.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-GB1-UCS2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-0.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-1.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-3.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-4.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-5.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-6.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Japan1-UCS2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-0.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-1.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Adobe-Korea1-UCS2.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5pc-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/B5pc-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS1-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS1-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS2-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/CNS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETHK-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETen-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/ETenms-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Ext-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GB-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK2K-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBK2K-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBKp-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBT-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBTpc-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/GBpc-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdla-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKdlb-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKgccs-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm314-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKm471-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/HKscs-B5-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Hankaku.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Hiragana.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-Johab-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-HW-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCms-UHC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/KSCpc-EUC-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Katakana.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/LICENSE\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/NWP-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/NWP-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/RKSJ-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/RKSJ-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/Roman.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UCS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF16-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniCNS-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UCS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF16-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniGB-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-HW-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UCS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF16-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF16-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJIS2004-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-HW-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UCS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISPro-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX0213-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniJISX02132004-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UCS2-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF16-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF32-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-H.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/UniKS-UTF8-V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/V.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/cmaps/WP-Symbol.bcmap\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/pdf.mjs\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/pdf.worker.mjs\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitDingbats.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixed.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBold.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedBoldItalic.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitFixedItalic.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerif.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBold.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifBoldItalic.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSerifItalic.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/FoxitSymbol.pfb\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_FOXIT\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LICENSE_LIBERATION\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Bold.ttf\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-BoldItalic.ttf\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Italic.ttf\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/standard_fonts/LiberationSans-Regular.ttf\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_JBIG2\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_OPENJPEG\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_JBIG2\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_OPENJPEG\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QCMS\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_PDFJS_QUICKJS\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_QCMS\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/LICENSE_QUICKJS\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/jbig2.wasm\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/jbig2_nowasm_fallback.js\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/openjpeg.wasm\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/openjpeg_nowasm_fallback.js\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/qcms_bg.wasm\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.js\": \"A\",\n    \"public/vendor/pdfjs-6.5.438/wasm/quickjs-eval.wasm\": \"A\",\n    \"scripts/manuals-maintenance.php\": \"A\",\n    \"src/manuals/ManualByteRange.php\": \"A\",\n    \"src/manuals/ManualLibrary.php\": \"A\",\n    \"src/manuals/bootstrap.php\": \"A\",\n    \"tests/manuals/backend-test.php\": \"A\",\n    \"tests/manuals/browser/README.md\": \"A\",\n    \"tests/manuals/browser/check.cjs\": \"A\",\n    \"tests/manuals/browser/dependency_check.py\": \"A\",\n    \"tests/manuals/browser/fixture-check.py\": \"A\",\n    \"tests/manuals/browser/fullsite-check.cjs\": \"A\",\n    \"tests/manuals/browser/fullsite-pins.json\": \"A\",\n    \"tests/manuals/browser/guard-test.py\": \"A\",\n    \"tests/manuals/browser/prepare-assets.py\": \"A\",\n    \"tests/manuals/browser/prepare-fullsite.py\": \"A\",\n    \"tests/manuals/browser/prepare.py\": \"A\",\n    \"tests/manuals/browser/process-session-test.py\": \"A\",\n    \"tests/manuals/browser/process_session.py\": \"A\",\n    \"tests/manuals/browser/range-normalization-test.py\": \"A\",\n    \"tests/manuals/browser/range_normalization.py\": \"A\",\n    \"tests/manuals/browser/raster-fixture.py\": \"A\",\n    \"tests/manuals/browser/response-policy-test.cjs\": \"A\",\n    \"tests/manuals/browser/response-policy.cjs\": \"A\",\n    \"tests/manuals/browser/run.py\": \"A\",\n    \"tests/manuals/browser/source-manifest.json\": \"A\",\n    \"tests/manuals/browser/source_guard.py\": \"A\",\n    \"tests/manuals/browser/stage-diagnostics-test.py\": \"A\",\n    \"tests/manuals/browser/stage_diagnostics.py\": \"A\",\n    \"tests/manuals/browser/stage_runner.py\": \"A\",\n    \"tests/manuals/config-reload-test.py\": \"A\",\n    \"tests/manuals/config-reload-unit.php\": \"A\",\n    \"tests/manuals/config_reload.py\": \"A\",\n    \"tests/manuals/contrast-source-test.py\": \"A\",\n    \"tests/manuals/facet-bounds-test.php\": \"A\",\n    \"tests/manuals/fixture-config-reload.php\": \"A\",\n    \"tests/manuals/fullsite-source-test.py\": \"A\",\n    \"tests/manuals/hash-bound-test.php\": \"A\",\n    \"tests/manuals/http-test.py\": \"A\",\n    \"tests/manuals/open-basedir-test.py\": \"A\",\n    \"tests/manuals/prepare-fixture.py\": \"A\",\n    \"tests/manuals/range-http-test.py\": \"A\",\n    \"tests/manuals/range-test.php\": \"A\",\n    \"tests/manuals/reader-cache-test.cjs\": \"A\",\n    \"tests/manuals/reader-canvas-lifecycle-test.cjs\": \"A\",\n    \"tests/manuals/reader-failure-test.cjs\": \"A\",\n    \"tests/manuals/reader-input-race-test.cjs\": \"A\",\n    \"tests/manuals/reader-lifecycle-test.cjs\": \"A\",\n    \"tests/manuals/reader-search-test.cjs\": \"A\",\n    \"tests/manuals/reader-state-test.cjs\": \"A\",\n    \"tests/manuals/reader-text-dedup-test.cjs\": \"A\",\n    \"tests/manuals/run-range-tests.py\": \"A\",\n    \"tests/manuals/run-upload-storage-tests.py\": \"A\",\n    \"tests/manuals/upload-concurrency-test.py\": \"A\",\n    \"tests/manuals/upload-storage-http-test.py\": \"A\",\n    \"tests/manuals/upload-storage-test.php\": \"A\",\n    \"tests/manuals/reader-search-yield-test.cjs\": \"A\",\n    \"scripts/manuals-intake-inventory.py\": \"A\",\n    \"tests/manuals/intake-inventory-test.py\": \"A\",\n    \"docs/manuals-intake-inventory.md\": \"A\",\n    \"tests/manuals/editor-upload-preflight-test.cjs\": \"A\",\n    \"tests/manuals/admin-search-test.php\": \"A\",\n    \"tests/manuals/admin-search-http-test.py\": \"A\",\n    \"tests/manuals/swipe-ownership-test.cjs\": \"A\",\n    \"tests/manuals/reader-pending-load-test.cjs\": \"A\",\n    \"docs/manuals-swipe-ownership.md\": \"A\",\n    \"docs/manuals-pending-load.md\": \"A\",\n    \"tests/manuals/reader-lazy-text-test.cjs\": \"A\",\n    \"tests/manuals/reader-lazy-text-race-test.cjs\": \"A\",\n    \"docs/manuals-lazy-page-text.md\": \"A\",\n    \"scripts/manuals-intake-capacity.py\": \"A\",\n    \"tests/manuals/intake-capacity-test.py\": \"A\",\n    \"docs/manuals-intake-capacity.md\": \"A\",\n    \"src/manuals/ManualIntakeManifest.php\": \"A\",\n    \"scripts/manuals-intake-manifest.php\": \"A\",\n    \"tests/manuals/intake-manifest-test.php\": \"A\",\n    \"docs/manuals-intake-manifest.md\": \"A\",\n    \"tests/manuals/reader-page-resources-test.cjs\": \"A\",\n    \"tests/manuals/reader-page-resources-integration.cjs\": \"A\",\n    \"docs/manuals-page-resources.md\": \"A\",\n    \"tests/manuals/reader-outline-test.cjs\": \"A\",\n    \"tests/manuals/reader-outline-integration.cjs\": \"A\",\n    \"docs/manuals-outline.md\": \"A\",\n    \"tests/manuals/reader-load-control-test.cjs\": \"A\",\n    \"docs/manuals-load-control.md\": \"A\",\n    \"tests/manuals/reader-search-focus-test.cjs\": \"A\"\n  }\n}\n"
+}

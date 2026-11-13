@@ -1,0 +1,174 @@
+name: Isolated synthetic manual reader acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'manuals/**'
+      - 'src/manuals/**'
+      - 'scripts/manuals-intake-inventory.py'
+      - 'scripts/manuals-intake-capacity.py'
+      - 'scripts/manuals-intake-manifest.php'
+      - 'admin/manuals*.php'
+      - 'includes/manual-reader.php'
+      - 'public/js/manual-reader*.mjs'
+      - 'public/css/manuals.css'
+      - 'public/vendor/pdfjs-6.5.438/**'
+      - 'tests/manuals/**'
+      - 'docs/manuals*.md'
+      - '.github/workflows/manual-reader-browser.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-reader:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact candidate without saved credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 60
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /src/manuals/
+            /src/utils/CSRF.php
+            /src/utils/Timezone.php
+            /src/config/Database.php
+            /src/security/ClientIp.php
+            /src/security/SecurityStore.php
+            /admin/auth.php
+            /admin/manuals*.php
+            /includes/admin-accounts.php
+            /includes/security.php
+            /includes/manual-reader.php
+            /includes/header.php
+            /includes/footer.php
+            /includes/banner-html.php
+            /includes/ebay-seller-rating.php
+            /src/utils/Seo.php
+            /src/utils/ResponsiveImage.php
+            /src/utils/ShippingRules.php
+            /src/utils/ProductCondition.php
+            /src/utils/ProductIdentifierOutput.php
+            /src/utils/ReviewedProductFacts.php
+            /admin/includes/nav.php
+            /admin/includes/footer.php
+            /admin/css/admin-style.css
+            /admin/css/admin-notifications.css
+            /admin/js/pwa-installer.js
+            /public/css/style.css
+            /public/js/runtime-guard.js
+            /public/js/timezone.js
+            /public/js/analytics.js
+            /public/js/address-autofill.js
+            /public/js/main.js
+            /public/js/growth.js
+            /public/js/animations.js
+            /public/js/theme-toggle.js
+            /gallery/favicons/favicon.png
+            /gallery/hero-image.png
+            /manuals/
+            /public/css/manuals.css
+            /public/js/manual-editor.js
+            /public/js/manual-reader*.mjs
+            /public/vendor/pdfjs-6.5.438/
+            /scripts/manuals-maintenance.php
+            /scripts/manuals-intake-inventory.py
+            /scripts/manuals-intake-capacity.py
+            /scripts/manuals-intake-manifest.php
+            /docs/manuals-lazy-page-text.md
+            /docs/manuals-page-resources.md
+            /docs/manuals-outline.md
+            /docs/manuals-load-control.md
+            /docs/manuals-swipe-ownership.md
+            /docs/manuals-pending-load.md
+            /docs/manuals-intake-inventory.md
+            /docs/manuals-intake-capacity.md
+            /docs/manuals-intake-manifest.md
+            /docs/manuals-fullsite-integration.md
+            /docs/manuals-reader-navigation.md
+            /docs/manuals-system.md
+            /docs/manuals-range-delivery.md
+            /docs/manuals-open-basedir.md
+            /docs/manuals-upload-storage.md
+            /tests/manuals/
+            /.github/workflows/manual-reader-browser.yml
+            /.github/workflows/admin-product-acceptance.yml
+            /.github/workflows/keyboard-browser.yml
+            /tests/admin-product-browser/run.py
+            /tests/keyboard-browser/heading_runner.py
+            /tests/keyboard-browser/catalog-scroll-guard-test.py
+            /docs/manuals-whole-repository-gates.md
+            /docs/manuals-motion-interruption.md
+            /docs/manuals-resize-navigation.md
+      - name: Check exact source and offline guard regressions
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 tests/manuals/browser/source_guard.py
+          /usr/bin/python3 tests/manuals/browser/guard-test.py
+          /usr/bin/python3 tests/manuals/browser/repository-compatibility-test.py
+          /usr/bin/python3 tests/manuals/browser/process-session-test.py
+          /usr/bin/python3 tests/manuals/browser/stage-diagnostics-test.py
+          /usr/bin/python3 tests/manuals/browser/range-normalization-test.py
+          node tests/manuals/browser/response-policy-test.cjs
+          node tests/manuals/reader-state-test.cjs
+          node tests/manuals/reader-failure-test.cjs
+          node tests/manuals/reader-search-test.cjs
+      - name: Install official isolated test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y php8.3-cli php8.3-sqlite3 php8.3-xml php8.3-mbstring python3-reportlab iproute2 util-linux
+          npm install --prefix "$RUNNER_TEMP/fas-manual-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/fas-manual-browsers" \
+            "$RUNNER_TEMP/fas-manual-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Cache official shared-shell presentation assets before isolation
+        run: /usr/bin/python3 tests/manuals/browser/prepare-assets.py --output "$RUNNER_TEMP/fas-manual-shell-assets"
+      - name: Real reader and PDF.js in a loopback-only kernel namespace
+        # No fallback. Source pin changes need independent review before a run.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-manual-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              NODE_PATH="$4/fas-manual-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-manual-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              /usr/bin/python3 tests/manuals/browser/run.py --output "$4/fas-manual-output"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Shared shell light/dark desktop/mobile in separate loopback-only namespace
+        # No fallback. Source pin changes need independent review before a run.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fas-manual-shell-output"
+          PARENT_NETNS="$(readlink /proc/self/ns/net)"
+          sudo unshare --net -- bash -c '
+            set -euo pipefail
+            ip link set lo up
+            exec runuser -u "$1" -- env -i PATH="$2" HOME="$3" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              NODE_PATH="$4/fas-manual-deps/node_modules" \
+              PLAYWRIGHT_BROWSERS_PATH="$4/fas-manual-browsers" \
+              FAS_EXPECTED_PARENT_NETNS="$5" \
+              /usr/bin/python3 tests/manuals/browser/run.py --output "$4/fas-manual-shell-output" --fullsite --assets "$4/fas-manual-shell-assets"
+          ' _ "$(id -un)" "$PATH" "$HOME" "$RUNNER_TEMP" "$PARENT_NETNS"
+      - name: Retain synthetic screenshots and sanitized results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: manual-reader-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/fas-manual-output/
+            ${{ runner.temp }}/fas-manual-shell-output/
+          if-no-files-found: error
+          retention-days: 7
