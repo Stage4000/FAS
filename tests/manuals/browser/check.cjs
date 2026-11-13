@@ -151,7 +151,46 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
   // interruption does not race a 190/210ms effect. PDF.js and canvases stay real.
   await p.addInitScript(()=>{
     const nativeAnimate=Element.prototype.animate;
-    const probe=window.__fasMotionProbe={entries:[],holdDuration:null,held:null};
+    const probe=window.__fasMotionProbe={entries:[],holdDuration:null,held:null,
+      snapshots:[],widths:[],droppedSnapshots:0,droppedWidths:0,expectManualActivation:false,activation:null};
+    // Bounded, read-only diagnostics. No HTML, URLs, input text or PDF text is
+    // retained. Capture before the outer failure screenshot can alter geometry.
+    const number=value=>typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<=1e7?Math.round(value*1000)/1000:null;
+    const page=value=>/^[1-7]$/.test(value)?Number(value):null;
+    const retain=(list,value,limit,counter)=>{if(list.length===limit){list.shift();probe[counter]++;}list.push(value);};
+    probe.capture=phase=>{
+      const stage=document.querySelector('[data-stage]'),motion=document.querySelector('[data-motion]');
+      const entry=probe.held,a=entry?.animation,animations=document.getAnimations();
+      const status=document.querySelector('[data-status]')?.textContent;
+      const snapshot={phase,timeMs:number(performance.now()),entryCount:probe.entries.length,
+        held:entry?{index:probe.entries.indexOf(entry),duration:entry.duration,
+          state:['idle','running','paused','finished'].includes(a.playState)?a.playState:'other',pending:a.pending,
+          currentTime:number(a.currentTime),progress:number(a.effect?.getComputedTiming().progress),
+          outcome:entry.outcome,rejection:entry.rejection==='AbortError'?'AbortError':entry.rejection===null?null:'other',present:animations.includes(a)}:null,
+        paperAnimations:animations.filter(item=>item.effect?.target?.matches('[data-paper]')).length,
+        pages:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].slice(0,2).map(el=>page(el.textContent)),
+        inputPage:page(document.querySelector('[data-page]')?.value),
+        status:status==='Loading pages 2–3…'?'loading-target':status==='Pages 2–3 of 7'?'target':status==='Page 1 of 7'?'cover':'other',
+        busy:stage?.getAttribute('aria-busy')==='true',motionFocused:document.activeElement===motion,
+        motionPressed:motion?.getAttribute('aria-pressed')==='true',motionInert:motion?.getAttribute('aria-disabled')==='true',
+        stage:stage?Object.fromEntries(['clientWidth','offsetWidth','scrollWidth','clientHeight','offsetHeight','scrollHeight','scrollLeft','scrollTop'].map(key=>[key,number(stage[key])])):null,
+        viewport:{width:number(innerWidth),height:number(innerHeight),documentWidth:number(document.documentElement.clientWidth),
+          documentHeight:number(document.documentElement.clientHeight),scrollX:number(scrollX),scrollY:number(scrollY)}};
+      retain(probe.snapshots,snapshot,32,'droppedSnapshots');return snapshot;
+    };
+    document.addEventListener('DOMContentLoaded',()=>{
+      const stage=document.querySelector('[data-stage]');
+      if(stage)new ResizeObserver(()=>retain(probe.widths,{timeMs:number(performance.now()),
+        clientWidth:number(stage.clientWidth),offsetWidth:number(stage.offsetWidth),clientHeight:number(stage.clientHeight),
+        viewportWidth:number(innerWidth),viewportHeight:number(innerHeight)},16,'droppedWidths')).observe(stage);
+    },{once:true});
+    // Observes the actual user click before the reader's handler; never cancels
+    // the event or supplies motion state. Any superseded hold fails the test.
+    document.addEventListener('click',event=>{
+      if(probe.expectManualActivation&&event.target instanceof Element&&event.target.closest('[data-motion]')){
+        probe.expectManualActivation=false;probe.activation=probe.capture('manual-off-activation');
+      }
+    },true);
     Element.prototype.animate=function(...args){
       const animation=Reflect.apply(nativeAnimate,this,args);
       if(this.matches('[data-paper]')){
@@ -186,8 +225,24 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
   }
   const entryCount=()=>p.evaluate(()=>window.__fasMotionProbe.entries.length);
   const noPaperAnimations=async()=>assert.equal(await p.evaluate(()=>document.getAnimations().filter(a=>a.effect?.target?.matches('[data-paper]')).length),0);
+  const capture=phase=>p.evaluate(phase=>window.__fasMotionProbe.capture(phase),phase);
+  function heldOwnership(snapshot,duration,index,width){
+    assert(snapshot?.held,'held animation still exists immediately before Off');
+    assert.equal(snapshot.held.index,index);assert.equal(snapshot.entryCount,index+1);
+    assert.equal(snapshot.held.duration,duration);assert.equal(snapshot.held.state,'paused');
+    assert.equal(snapshot.held.pending,false);assert.equal(snapshot.held.currentTime,duration/2);
+    assert(snapshot.held.progress>0&&snapshot.held.progress<1);assert.equal(snapshot.held.outcome,'pending');
+    assert.equal(snapshot.held.present,true);assert.equal(snapshot.paperAnimations,1);
+    assert.deepEqual(snapshot.pages,duration===190?[1]:[2,3]);
+    assert.equal(snapshot.status,duration===190?'loading-target':'target');assert.equal(snapshot.busy,duration===190);
+    assert.equal(snapshot.stage.clientWidth,width,'held stage width must not change before Off');
+    assert.equal(snapshot.motionFocused,true);assert.equal(snapshot.motionPressed,false);assert.equal(snapshot.motionInert,false);
+  }
+  let step='open',selection=null;
+  try{
   await open(p);await ready(p,[1]);await motionState(false);
   for(const duration of [190,210])for(const controller of ['manual','system']){
+    selection={duration,controller};step='hold-native-turn';
     await motionState(false);
     const priorCount=await entryCount();
     await p.evaluate(duration=>{const probe=window.__fasMotionProbe;probe.held=null;probe.holdDuration=duration;},duration);
@@ -202,7 +257,8 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
         progress:a.effect.getComputedTiming().progress,
         outcome:entry.outcome,keyframes:a.effect.getKeyframes().map(k=>k.transform),
         present:document.getAnimations().includes(a),
-        pages:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(el=>el.textContent)};
+        pages:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(el=>el.textContent),
+        observed:window.__fasMotionProbe.capture('held-ready')};
     });
     assert.equal(held.duration,duration);assert.equal(held.startedState,'running');assert.equal(held.playState,'paused');assert.equal(held.pending,false);
     assert(held.progress>0&&held.progress<1,'held native effect is inside its active interval');
@@ -210,26 +266,44 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
     assert(held.keyframes.some(value=>value.includes('rotateY')),'real turn keyframes retained');
     assert.deepEqual(held.pages,duration===190?['1']:['2','3'],'selected outgoing/incoming phase owns expected visible pages');
     assert.equal(await entryCount()-priorCount,duration===190?1:2,'exact selected phase, not an unrelated effect');
-    if(duration===190&&controller==='manual')await screenshot(p,'desktop-turn-observation');
+    step='before-off';
     await motion.focus();
-    if(controller==='manual')await motion.click();
+    const beforeOff=await p.evaluate(controller=>{
+      const probe=window.__fasMotionProbe;probe.activation=null;probe.expectManualActivation=controller==='manual';
+      return probe.capture('before-off');
+    },controller);
+    heldOwnership(beforeOff,duration,priorCount+(duration===190?0:1),held.observed.stage.clientWidth);
+    if(controller==='manual'){
+      await motion.click();
+      heldOwnership(await p.evaluate(()=>window.__fasMotionProbe.activation),duration,beforeOff.held.index,beforeOff.stage.clientWidth);
+    }
     else await p.emulateMedia({reducedMotion:'reduce'});
+    step='preference-off';
     await motionState(true,controller==='system',true);
+    await capture('off-applied');step='native-cancel';
     // Only the reader cancels this effect. The test never calls cancel/finish,
     // fabricates a finished promise, or replaces the renderer's animation.
     await p.waitForFunction(()=>{
       const entry=window.__fasMotionProbe.held,a=entry.animation;
       return entry.outcome==='cancelled'&&entry.rejection==='AbortError'&&a.playState==='idle'&&!a.pending&&a.currentTime===null;
     });
+    await capture('cancel-observed');step='navigation-target';
     await ready(p,[2,3]);await noPaperAnimations();
     assert.equal(await p.locator('[data-page]').inputValue(),'2');assert(p.url().endsWith('#page=2'));
+    await capture('navigation-ready');
+    // A full-page screenshot is deliberately outside held-turn ownership. The
+    // prior artifact could not distinguish a geometry-triggered redraw from
+    // cancellation; do not prolong a paused turn with viewport/scroll capture.
+    if(duration===190&&controller==='manual')await screenshot(p,'desktop-turn-cancelled-settled');
+    step='text-target';
     await textReady(p,2);
     assert.deepEqual(await p.locator('[data-page-text] h2').allTextContents(),['Page 2','Page 3']);
     const cancelledCount=await entryCount();
     assert.equal(cancelledCount-priorCount,duration===190?1:2,'off state prevents a subsequent turn phase');
+    step='disabled-navigation';
     await jump(p,1);await ready(p,[1]);await noPaperAnimations();
     assert.equal(await entryCount(),cancelledCount,'disabled navigation never calls native animate');
-    await motion.focus();
+    step='restore-choice';await motion.focus();
     if(controller==='manual'){
       await p.emulateMedia({reducedMotion:'reduce'});await motionState(true,true,true);
     }else await motionState(true,true,true);
@@ -252,6 +326,7 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
       limits:'Native Web Animation paused at midpoint for deterministic interruption; not natural-duration or performance acceptance.'});
   }
   // Retain an unmodified, naturally completed turn after all held controls.
+  step='natural-turn';selection=null;
   const beforeNatural=await entryCount();
   await p.locator('[data-next]').click();await ready(p,[2,3]);
   await p.waitForFunction(before=>{
@@ -262,7 +337,19 @@ test('03-real-turn-animation-and-reduced-motion',async p=>{
   assert.deepEqual(natural,[{duration:190,outcome:'finished'},{duration:210,outcome:'finished'}]);
   await noPaperAnimations();await motionState(false);
   summary.measurements.push({label:'actual-page-turn',animations:natural,held:false});
-},{reducedMotion:'no-preference'});
+  }catch(error){
+    try{
+      const diagnostic=await p.evaluate(()=>{
+        const probe=window.__fasMotionProbe;probe.capture('failure');
+        return {snapshots:probe.snapshots,widths:probe.widths,droppedSnapshots:probe.droppedSnapshots,droppedWidths:probe.droppedWidths};
+      });
+      summary.measurements.push({label:'real-turn-interruption-diagnostics',step,selection,...diagnostic});
+    }catch(_){summary.measurements.push({label:'real-turn-interruption-diagnostics',step,selection,unavailable:true});}
+    throw error;
+  }
+// Only this held-animation case uses a taller fixed viewport. Other cases keep
+// normal geometry; this is not proof of the earlier timeout's precise cause.
+},{viewport:{width:1440,height:2200},reducedMotion:'no-preference'});
 
 test('04-zoom-bounds-fit-and-canvas-budget',async p=>{
   await open(p);await ready(p,[1]);const fit=(await pixels(p))[0].cssWidth;
