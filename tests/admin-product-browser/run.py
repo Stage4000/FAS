@@ -29,10 +29,10 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = '81dc308e6a7830f31ea52260a7122cee4c6d5222'
-ALLOWED_CHANGES = {'public/css/style.css': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/catalog-scroll-offset-test.cjs': 'A', 'tests/keyboard-browser/README.md': 'M', 'tests/keyboard-browser/catalog-scroll-guard-test.py': 'A', 'tests/keyboard-browser/catalog-scroll-identity.cjs': 'A', 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': 'A', 'tests/keyboard-browser/catalog-scroll-policy.cjs': 'A', 'tests/keyboard-browser/catalog-scroll.cjs': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/run.py': 'M'}
-EXPECTED_RUNTIME = {'public/css/style.css': {'before': '103706af92484631585fcc26553239b0b42681c4', 'after': 'b6c36199b40dc6af75d6a5433671b01cf9c8b052'}}
+ALLOWED_CHANGES = {'docs/reviewed-product-facts.md': 'M', 'public/css/style.css': 'M', 'src/shipping/CarrierRates.php': 'M', 'src/utils/ReviewedProductFacts.php': 'M', 'tests/admin-product-browser/guard-test.py': 'M', 'tests/admin-product-browser/run.py': 'M', 'tests/catalog-scroll-offset-test.cjs': 'A', 'tests/keyboard-browser/README.md': 'M', 'tests/keyboard-browser/catalog-scroll-guard-test.py': 'A', 'tests/keyboard-browser/catalog-scroll-identity.cjs': 'A', 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': 'A', 'tests/keyboard-browser/catalog-scroll-policy.cjs': 'A', 'tests/keyboard-browser/catalog-scroll.cjs': 'A', 'tests/keyboard-browser/heading_runner.py': 'M', 'tests/keyboard-browser/run.py': 'M', 'tests/rotor-reviewed-facts-test.php': 'A', 'tests/shipping-parcel-total-boundary-test.php': 'A'}
+EXPECTED_RUNTIME = {'public/css/style.css': {'before': '103706af92484631585fcc26553239b0b42681c4', 'after': 'b6c36199b40dc6af75d6a5433671b01cf9c8b052'}, 'src/shipping/CarrierRates.php': {'before': 'c58d6692808178342c4efbb0ea8b8ad9a61d9a03', 'after': '1de6765d76ab0ea11961971f9c70d53c8c019100'}, 'src/utils/ReviewedProductFacts.php': {'before': 'af5c5e4b277dd3005e825ec0f384756ed9441637', 'after': '1db5e4468b9730b12cad79f41f7094c2144571fb'}}
 BASELINE_TREE = '00ebb2f16bea9655f81c88de754fee75b76c534f'
-EXPECTED_STORAGE_BLOBS = {'public/css/style.css': 'b6c36199b40dc6af75d6a5433671b01cf9c8b052', 'tests/catalog-scroll-offset-test.cjs': 'bd822d1f3cee43f13cec01e151685ad88134da58', 'tests/keyboard-browser/README.md': '567982a7ebf4a4ef8a42ce5c5c3eb7cd53888f91', 'tests/keyboard-browser/catalog-scroll-guard-test.py': '821bd44f751b11830931ed67b1a34a5157206f10', 'tests/keyboard-browser/catalog-scroll-identity.cjs': '42aac464164ce8231fe6ff0e81445a5b2db48bdd', 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': '29c05ea25c44544ffc1fd1653aea83e1e8474b03', 'tests/keyboard-browser/catalog-scroll-policy.cjs': '7716c602d7640c58286964940b2f69f8a5150256', 'tests/keyboard-browser/catalog-scroll.cjs': 'c189ae8cee2b45af2ef9c51d677415415ba39203', 'tests/keyboard-browser/run.py': '75ad7e455e8dfced062d568eb1defd0bee40241a'}
+EXPECTED_STORAGE_BLOBS = {'public/css/style.css': 'b6c36199b40dc6af75d6a5433671b01cf9c8b052', 'tests/catalog-scroll-offset-test.cjs': 'bd822d1f3cee43f13cec01e151685ad88134da58', 'tests/keyboard-browser/README.md': '567982a7ebf4a4ef8a42ce5c5c3eb7cd53888f91', 'tests/keyboard-browser/catalog-scroll-guard-test.py': '821bd44f751b11830931ed67b1a34a5157206f10', 'tests/keyboard-browser/catalog-scroll-identity.cjs': '42aac464164ce8231fe6ff0e81445a5b2db48bdd', 'tests/keyboard-browser/catalog-scroll-policy-test.cjs': '29c05ea25c44544ffc1fd1653aea83e1e8474b03', 'tests/keyboard-browser/catalog-scroll-policy.cjs': '7716c602d7640c58286964940b2f69f8a5150256', 'tests/keyboard-browser/catalog-scroll.cjs': 'c189ae8cee2b45af2ef9c51d677415415ba39203', 'tests/keyboard-browser/run.py': '75ad7e455e8dfced062d568eb1defd0bee40241a', 'src/shipping/CarrierRates.php': '1de6765d76ab0ea11961971f9c70d53c8c019100', 'tests/shipping-parcel-total-boundary-test.php': 'cf8d410001a652d4ecaf9817fdb2820335771513', 'docs/reviewed-product-facts.md': '515fd5142bd04eaed3d03da5b3b86f25f8b0a060', 'src/utils/ReviewedProductFacts.php': '1db5e4468b9730b12cad79f41f7094c2144571fb', 'tests/rotor-reviewed-facts-test.php': 'ee9ce4400c99262ae33857245350e2806649a94e'}
 EXPECTED_CASES = {
     '01-authentication-and-csrf', '02-unchanged-and-title-only',
     '03-import-with-protected-title', '04-description-and-repeat-import',
@@ -113,7 +113,7 @@ def verify_candidate() -> dict:
     require(len(entries) == len(ALLOWED_CHANGES)
             and len({path for _, path in entries}) == len(entries)
             and {path: status for status, path in entries} == ALLOWED_CHANGES,
-            "Diff must match the 12 reviewed catalog paths and exact statuses")
+            "Diff must match the 17 reviewed catalog, rotor and shipping paths and exact statuses")
     objects = git("ls-tree", "-r", "-z", "HEAD", "--", *sorted(ALLOWED_CHANGES)).split("\0")
     require(objects[-1] == "" and len(objects) - 1 == len(ALLOWED_CHANGES)
             and all(item.startswith("100644 blob ") for item in objects[:-1]),
@@ -723,3 +723,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
