@@ -4,16 +4,58 @@ namespace FAS\Utils;
 
 class ShippingRules
 {
-    private const NON_CONTINENTAL_US_STATES = [
-        'AK', 'ALASKA',
-        'HI', 'HAWAII',
-        'AS', 'AMERICANSAMOA',
-        'GU', 'GUAM',
-        'MP', 'NORTHERNMARIANAISLANDS',
-        'PR', 'PUERTORICO',
-        'VI', 'USVIRGINISLANDS', 'VIRGINISLANDS',
-        'UM', 'USMINOROUTLYINGISLANDS',
-        'AA', 'AE', 'AP',
+    // Free shipping is limited to the 48 contiguous states and Washington, DC.
+    // Recognized postal regions outside this set must not qualify by omission.
+    private const CONTINENTAL_US_STATES = [
+        'AL' => 'ALABAMA',
+        'AZ' => 'ARIZONA',
+        'AR' => 'ARKANSAS',
+        'CA' => 'CALIFORNIA',
+        'CO' => 'COLORADO',
+        'CT' => 'CONNECTICUT',
+        'DE' => 'DELAWARE',
+        'DC' => 'DISTRICTOFCOLUMBIA',
+        'FL' => 'FLORIDA',
+        'GA' => 'GEORGIA',
+        'ID' => 'IDAHO',
+        'IL' => 'ILLINOIS',
+        'IN' => 'INDIANA',
+        'IA' => 'IOWA',
+        'KS' => 'KANSAS',
+        'KY' => 'KENTUCKY',
+        'LA' => 'LOUISIANA',
+        'ME' => 'MAINE',
+        'MD' => 'MARYLAND',
+        'MA' => 'MASSACHUSETTS',
+        'MI' => 'MICHIGAN',
+        'MN' => 'MINNESOTA',
+        'MS' => 'MISSISSIPPI',
+        'MO' => 'MISSOURI',
+        'MT' => 'MONTANA',
+        'NE' => 'NEBRASKA',
+        'NV' => 'NEVADA',
+        'NH' => 'NEWHAMPSHIRE',
+        'NJ' => 'NEWJERSEY',
+        'NM' => 'NEWMEXICO',
+        'NY' => 'NEWYORK',
+        'NC' => 'NORTHCAROLINA',
+        'ND' => 'NORTHDAKOTA',
+        'OH' => 'OHIO',
+        'OK' => 'OKLAHOMA',
+        'OR' => 'OREGON',
+        'PA' => 'PENNSYLVANIA',
+        'RI' => 'RHODEISLAND',
+        'SC' => 'SOUTHCAROLINA',
+        'SD' => 'SOUTHDAKOTA',
+        'TN' => 'TENNESSEE',
+        'TX' => 'TEXAS',
+        'UT' => 'UTAH',
+        'VT' => 'VERMONT',
+        'VA' => 'VIRGINIA',
+        'WA' => 'WASHINGTON',
+        'WV' => 'WESTVIRGINIA',
+        'WI' => 'WISCONSIN',
+        'WY' => 'WYOMING',
     ];
 
     private const DEFAULT_FREE_SHIPPING = [
@@ -95,7 +137,8 @@ class ShippingRules
             return false;
         }
 
-        return !in_array($state, self::NON_CONTINENTAL_US_STATES, true);
+        return isset(self::CONTINENTAL_US_STATES[$state])
+            || in_array($state, self::CONTINENTAL_US_STATES, true);
     }
 
     public static function freeShippingRate(array $summary = []): array
@@ -179,6 +222,12 @@ class ShippingRules
 
     private static function normalizeLocationToken($value): string
     {
-        return preg_replace('/[^A-Z]/', '', strtoupper(trim((string)$value))) ?? '';
+        // Preserve familiar spaces, dots and hyphens, but never coerce malformed values.
+        if (!is_string($value) || strlen($value) > 128
+            || preg_match('/\A[A-Za-z .-]+\z/', $value) !== 1) {
+            return '';
+        }
+
+        return str_replace([' ', '.', '-'], '', strtoupper($value));
     }
 }

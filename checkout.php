@@ -266,6 +266,8 @@ let applePayShippingQuoteSnapshot = null;
 // Only the current, non-invalidated calculation may publish a result or reset its button.
 let shippingCalculationGeneration = 0;
 let appliedCoupon = null; // Store applied coupon data
+let couponValidationGeneration = 0;
+let couponValidationPending = false;
 let pendingOrderResult = null; // Store DB order result for PayPal completion
 const buyNowStorageKey = 'flipandstrip_buy_now';
 const buyNowMaxAgeMs = 2 * 60 * 60 * 1000;
@@ -1369,6 +1371,7 @@ async function completeOrder(paypalOrderId, paypalTransactionId, orderId) {
  * Apply coupon code
  */
 async function applyCoupon() {
+    if (couponValidationPending || appliedCoupon) return;
     const input = document.getElementById('coupon-code');
     const code = input.value.trim().toUpperCase();
     const messageDiv = document.getElementById('coupon-message');
@@ -1391,6 +1394,9 @@ async function applyCoupon() {
     
     btn.disabled = true;
     btn.textContent = 'Applying...';
+    input.disabled = true;
+    couponValidationPending = true;
+    const generation = ++couponValidationGeneration;
     messageDiv.className = 'small mt-1';
     messageDiv.textContent = '';
     
@@ -1404,6 +1410,7 @@ async function applyCoupon() {
         });
         
         const data = await response.json();
+        if (generation !== couponValidationGeneration) return;
         
         if (response.ok && data.valid) {
             appliedCoupon = {
@@ -1424,6 +1431,7 @@ async function applyCoupon() {
 
             messageDiv.className = 'small mt-1 text-success';
             messageDiv.textContent = '✓ Coupon applied successfully!';
+            input.value = appliedCoupon.code;
             input.disabled = true;
             btn.style.display = 'none';
             
@@ -1439,6 +1447,7 @@ async function applyCoupon() {
             appliedCoupon = null;
         }
     } catch (error) {
+        if (generation !== couponValidationGeneration) return;
         console.error('Coupon validation error:', error);
         messageDiv.className = 'small mt-1 text-danger';
         messageDiv.textContent = 'Failed to validate coupon. Please try again.';
@@ -1449,8 +1458,13 @@ async function applyCoupon() {
         });
         appliedCoupon = null;
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Apply';
+        // A removed request cannot unlock or relabel a newer validation.
+        if (generation === couponValidationGeneration) {
+            couponValidationPending = false;
+            input.disabled = appliedCoupon !== null;
+            btn.disabled = false;
+            btn.textContent = 'Apply';
+        }
     }
 }
 
@@ -1458,6 +1472,8 @@ async function applyCoupon() {
  * Remove applied coupon
  */
 function removeCoupon() {
+    ++couponValidationGeneration;
+    couponValidationPending = false;
     const removedCoupon = appliedCoupon ? appliedCoupon.code : '';
     appliedCoupon = null;
     trackCheckoutEvent('coupon_removed', {
@@ -1470,6 +1486,8 @@ function removeCoupon() {
     
     input.value = '';
     input.disabled = false;
+    btn.disabled = false;
+    btn.textContent = 'Apply';
     btn.style.display = '';
     messageDiv.textContent = '';
     
