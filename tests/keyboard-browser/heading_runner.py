@@ -72,6 +72,53 @@ STORAGE_BLOBS.update(MALFORMED_BLOBS)
 QUANTITY_BLOBS.update(STORAGE_BLOBS)
 REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
+# Pin short-viewport navigation files and the already-reviewed main rotor files.
+SHORT_NAV_BLOBS = {
+  "docs/reviewed-product-facts.md": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "515fd5142bd04eaed3d03da5b3b86f25f8b0a060"
+  },
+  "includes/header.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "83b34fae1fd17cff9b1ba972021bdb1cbe4dfa4c"
+  },
+  "src/utils/ReviewedProductFacts.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "1db5e4468b9730b12cad79f41f7094c2144571fb"
+  },
+  "tests/admin-product-browser/guard-test.py": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "5aebb67f03dfa5cfab982c418cf538b81de0797c"
+  },
+  "tests/admin-product-browser/run.py": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "281b8da5208c5c823ab60346f287742df3bf59e4"
+  },
+  "tests/keyboard-browser/navbar.cjs": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "4f93133adbd8f9b12c54461713a12c6b909c3004"
+  },
+  "tests/rotor-reviewed-facts-test.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "ee9ce4400c99262ae33857245350e2806649a94e"
+  }
+}
+CATALOG_SCROLL_BLOBS.update({path: SHORT_NAV_BLOBS[path] for path in (
+    'tests/admin-product-browser/run.py', 'tests/admin-product-browser/guard-test.py',
+)})
+EMAIL_BLOBS.update(SHORT_NAV_BLOBS)
+MALFORMED_BLOBS.update(EMAIL_BLOBS)
+STORAGE_BLOBS.update(MALFORMED_BLOBS)
+QUANTITY_BLOBS.update(STORAGE_BLOBS)
+REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
+
 # Normalize only the exact reviewed, non-heading clipboard correction for the
 # historical heading identity controls. Runtime copies retain the actual fix.
 SHARE_FIXED_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
