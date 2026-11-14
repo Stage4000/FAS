@@ -377,12 +377,9 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
             const collapse = window.bootstrap?.Collapse?.getInstance(menu);
             if (!collapse) return;
 
-            // Keep the next focused control clear of the collapsed sticky header.
+            // Collapsing the menu moves the next focused control after Tab scrolls to it.
             menu.addEventListener('hidden.bs.collapse', () => {
-                if (document.activeElement !== relatedTarget) return;
-                const target = relatedTarget.getBoundingClientRect();
-                if (target.top < navbar.getBoundingClientRect().bottom
-                    || target.bottom > document.documentElement.clientHeight) {
+                if (document.activeElement === relatedTarget) {
                     relatedTarget.scrollIntoView({block: 'center', behavior: 'instant'});
                 }
             }, {once: true});

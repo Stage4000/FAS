@@ -82,7 +82,7 @@ SHORT_NAV_BLOBS = {
   "includes/header.php": {
     "mode": "100644",
     "type": "blob",
-    "sha": "83b34fae1fd17cff9b1ba972021bdb1cbe4dfa4c"
+    "sha": "6c6569fc27cc2d1c4d2054f124499846f9e62196"
   },
   "src/utils/ReviewedProductFacts.php": {
     "mode": "100644",
@@ -92,12 +92,12 @@ SHORT_NAV_BLOBS = {
   "tests/admin-product-browser/guard-test.py": {
     "mode": "100644",
     "type": "blob",
-    "sha": "5aebb67f03dfa5cfab982c418cf538b81de0797c"
+    "sha": "866ceadeec3618083b90eed15ff2a0dd554e16c4"
   },
   "tests/admin-product-browser/run.py": {
     "mode": "100644",
     "type": "blob",
-    "sha": "281b8da5208c5c823ab60346f287742df3bf59e4"
+    "sha": "a86af1e69f92f335fcde041e876ca3bb5f299f74"
   },
   "tests/keyboard-browser/navbar.cjs": {
     "mode": "100644",
