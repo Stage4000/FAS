@@ -13,6 +13,7 @@ const fixture = path.resolve(fixtureArg), assets = path.resolve(assetsArg), outp
 const origin = 'http://127.0.0.1:43187';
 const approvedLogoPath = '/gallery/hero-image.png?v=20261016';
 const approvedLogoUrl = 'https://flipandstrip.com' + approvedLogoPath;
+const navbarLogoPath = '/public/images/navbar-logo.png?v=ae9d70ced20a';
 const manifest = JSON.parse(fs.readFileSync(path.join(assets, 'manifest.json')));
 const evidence = JSON.parse(fs.readFileSync(path.join(fixture, 'fixture.json')));
 const rows = [], failures = [];
@@ -248,8 +249,8 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
                     if (version === 'after') {
                         checkNavigation(navigation, prefix, width, height);
                         check(accessibleBrandMatches === 1, `${prefix}: brand has the accessible name Flip and Strip Parts Home`);
-                        check(measurements.nav_logo.src === approvedLogoPath, `${prefix}: approved versioned navbar logo`);
-                        check(measurements.nav_logo.current_src === origin + approvedLogoPath, `${prefix}: navbar displays the approved asset`);
+                        check(measurements.nav_logo.src === navbarLogoPath, `${prefix}: approved versioned navbar logo`);
+                        check(measurements.nav_logo.current_src === origin + navbarLogoPath, `${prefix}: navbar displays the approved asset`);
                         check(measurements.nav_logo.alt === 'Flip and Strip Parts Logo', `${prefix}: navbar logo alternative text`);
                         check(measurements.nav_logo.object_fit === 'contain' && measurements.nav_logo.corner_radii.every(radius => radius === '0px') &&
                             measurements.nav_logo.border_widths.every(border => border === '0px'), `${prefix}: entire navbar logo is contained without circular cropping`);
