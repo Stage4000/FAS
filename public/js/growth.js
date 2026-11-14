@@ -45,13 +45,16 @@
                 const button=form.querySelector('[type=submit]');
                 const feedback=form.querySelector('[data-growth-status]');
                 const cart=form.hasAttribute('data-email-cart');
+                const newsletterSnapshot=cart?null:{email:form.elements.email.value,consent:form.elements.consent.checked};
                 button.disabled=true;status(feedback,'Saving…');
                 try {
                     const data=await api(cart?'save_cart':'signup',{email:form.elements.email.value.trim(),consent:form.elements.consent.checked,
                         ...(cart?{items:items(),send_now:true}:{})});
                     if(cart)active(true);
                     track(cart?'cart_saved':'newsletter_requested');
-                    status(feedback,data.message);form.reset();
+                    const unchanged=cart || (form.elements.email.value===newsletterSnapshot.email && form.elements.consent.checked===newsletterSnapshot.consent);
+                    status(feedback,unchanged?data.message:data.message+' Your newer form changes are still here and have not been submitted.');
+                    if(unchanged)form.reset();
                 } catch(error) {status(feedback,error.message,true);}
                 finally {button.disabled=false;}
             });
