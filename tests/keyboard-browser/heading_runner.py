@@ -72,6 +72,58 @@ STORAGE_BLOBS.update(MALFORMED_BLOBS)
 QUANTITY_BLOBS.update(STORAGE_BLOBS)
 REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
 
+# Pin the stock reconciliation and current main's reviewed rotor files.
+INVENTORY_QUANTITY_BLOBS = {
+  "admin/ebay-sync-health.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "4fd912aad6e5e2d513360a369a33b4018087df34"
+  },
+  "docs/reviewed-product-facts.md": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "515fd5142bd04eaed3d03da5b3b86f25f8b0a060"
+  },
+  "src/integrations/EbayAPI.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "0fcf9c088e4ed6c12c98b2021273a1f66de47cf7"
+  },
+  "src/utils/ReviewedProductFacts.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "1db5e4468b9730b12cad79f41f7094c2144571fb"
+  },
+  "tests/admin-product-browser/guard-test.py": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "081df2f00242851a3ee767d472245b3be0e59973"
+  },
+  "tests/admin-product-browser/run.py": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "ee904d1606265ac4b55c4921f641507856003d5a"
+  },
+  "tests/ebay-remaining-quantity-test.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "ac53e8cd9705355f1fdcd794e3adc2bd896d17ce"
+  },
+  "tests/rotor-reviewed-facts-test.php": {
+    "mode": "100644",
+    "type": "blob",
+    "sha": "ee9ce4400c99262ae33857245350e2806649a94e"
+  }
+}
+CATALOG_SCROLL_BLOBS.update({path: INVENTORY_QUANTITY_BLOBS[path] for path in (
+    'tests/admin-product-browser/run.py', 'tests/admin-product-browser/guard-test.py',
+)})
+EMAIL_BLOBS.update(INVENTORY_QUANTITY_BLOBS)
+MALFORMED_BLOBS.update(EMAIL_BLOBS)
+STORAGE_BLOBS.update(MALFORMED_BLOBS)
+QUANTITY_BLOBS.update(STORAGE_BLOBS)
+REVIEWED_OVERLAY.update(QUANTITY_BLOBS)
+
 # Normalize only the exact reviewed, non-heading clipboard correction for the
 # historical heading identity controls. Runtime copies retain the actual fix.
 SHARE_FIXED_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
