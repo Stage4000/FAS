@@ -1,6 +1,6 @@
 """Exact shipping-copy and historical identity controls; no app/browser/network."""
 from pathlib import Path
-import copy, hashlib, json
+import copy, hashlib, json, subprocess, tempfile
 import heading_runner as h
 import shipping_identity as s
 ROOT = Path(__file__).resolve().parents[2]
@@ -66,4 +66,26 @@ for path,expected in h.SHIPPING_INTEGRATION_BLOBS.items():
         reject(lambda b=bad:h.verify_tree(base,b,{}))
     bad = copy.deepcopy(tree);del bad[path]
     reject(lambda:h.verify_tree(base,bad,{}))
+# Exercise Git's actual non-cone sparse pattern matching, not a guessed glob rule.
+workflow = (ROOT/'.github/workflows/keyboard-browser.yml').read_text().splitlines()
+start = next(i for i,line in enumerate(workflow) if line.strip() == 'sparse-checkout: |') + 1
+end = start
+while end < len(workflow) and workflow[end].startswith('            '):
+    end += 1
+patterns = [line.strip() for line in workflow[start:end]]
+required = set(h.SHIPPING_INTEGRATION_BLOBS)
+with tempfile.TemporaryDirectory(prefix='shipping-sparse-') as temporary:
+    repository = Path(temporary)
+    subprocess.run(['git','init','-q',temporary],check=True,capture_output=True)
+    def included(rules):
+        (repository/'.git/info/exclude').write_text('\n'.join(rules)+'\n')
+        result = subprocess.run(['git','check-ignore','--no-index','-z','--stdin'],cwd=repository,
+                                input=b''.join(p.encode()+b'\0' for p in sorted(required)),
+                                capture_output=True,check=True)
+        return set(result.stdout.decode().split('\0')[:-1])
+    check(included(patterns) == required)
+    for path in ['api/shipping-estimate.php','.github/workflows/keyboard-browser.yml']:
+        line = '/' + path
+        check(patterns.count(line) == 1)
+        check(path not in included([p for p in patterns if p != line]))
 print(json.dumps({'passed':True,'checks':checks,'scope':'offline exact shipping copy, gallery/storage chains and finite tree controls'}))

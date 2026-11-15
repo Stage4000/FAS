@@ -40,10 +40,12 @@ jobs:
             !/src/config/config*.php
             /includes/
             /api/products.php
+            /api/shipping-estimate.php
             /public/
             /tests/
             /gallery/hero-image.png
             /gallery/favicons/favicon.png
+            /.github/workflows/keyboard-browser.yml
       - name: Check exact shipping source identities offline
         env:
           PYTHONDONTWRITEBYTECODE: '1'
