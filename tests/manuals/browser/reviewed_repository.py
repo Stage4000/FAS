@@ -22,8 +22,8 @@ HISTORICAL_MAIN = {
     'src/utils/ReviewedProductFacts.php': 'af5c5e4b277dd3005e825ec0f384756ed9441637',
     'tests/rotor-reviewed-facts-test.php': None,
 }
-INTEGRATED_MAIN = 'a2e07cd74c53493dc2b2da413b337fd63eb0272c'
-INTEGRATED_MAIN_TREE = '4dff9af619db68d9ed06bc4f2f0df5ae2e54c951'
+INTEGRATED_MAIN = '4399ed4b38334be6e28b788252dd483e007f835e'
+INTEGRATED_MAIN_TREE = 'a20da4afd4568e215c6f885da539fb4a0c950a74'
 MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
@@ -32,6 +32,7 @@ COMPATIBILITY = {
     '.github/workflows/keyboard-browser.yml': 'M',
     '.github/workflows/manual-reader-browser.yml': 'A',
     'tests/admin-product-browser/run.py': 'M',
+    'tests/admin-product-browser/guard-test.py': 'M',
     'tests/keyboard-browser/heading_runner.py': 'M',
     'tests/keyboard-browser/catalog-scroll-guard-test.py': 'M',
     MANIFEST: 'A',

@@ -385,7 +385,7 @@ style="cursor: pointer;">
                                         </div>
                                     <?php endif; ?>
                                     <?php if (!empty($product['condition_name'])): ?>
-                                        <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                                        <span class="badge bg-info text-dark product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                                     <?php endif; ?>
                                     <?php
                                     $priceInfo = getEffectivePrice((float)$product['price'], !empty($product['sale_price']) ? (float)$product['sale_price'] : null);

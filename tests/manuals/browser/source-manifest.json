@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "21d8807786fac9cca674dc487c78435a3385ea9d",
+    ".github/workflows/manual-reader-browser.yml": "632c6591c29e14e87b01cf7cce5f5d2bcac2d91f",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -346,16 +346,17 @@
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
     "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
     ".github/workflows/admin-product-acceptance.yml": "f915f285a1e97c729c7de6967c1034d795ff6c35",
-    ".github/workflows/keyboard-browser.yml": "07e26645f752c46c554b30f453afd30408d035d6",
-    "tests/admin-product-browser/run.py": "488114cec5795a98269adce0bdaa2c6ef5a37e20",
-    "tests/keyboard-browser/heading_runner.py": "79c067e949807fdd8ee20e16e0e0e43ab285afde",
+    ".github/workflows/keyboard-browser.yml": "4e88939a67cd7fc2e11539fe1e86e9bdd2025857",
+    "tests/admin-product-browser/run.py": "f36b147b7cb750bc60444247a81b8b6b899486a3",
+    "tests/keyboard-browser/heading_runner.py": "7bf2940f814dbf358ff0c6164c1f54a10f5040f0",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
-    "tests/manuals/browser/reviewed-repository.json": "661069bbd4f978a4a8652b15879b77c1fa2336d1",
-    "tests/manuals/browser/reviewed_repository.py": "3c97ba09e9b47d339fd92b234e2270e33f4c2794",
-    "tests/manuals/browser/repository-compatibility-test.py": "827438208855bd601cd6d1225e6630d54b8ba7bd",
+    "tests/manuals/browser/reviewed-repository.json": "d18003b93c10a3ff379fddcafe6da37cb1270af4",
+    "tests/manuals/browser/reviewed_repository.py": "f6d2db5dfdfaeb434456989cc534b9a92ebb9fe0",
+    "tests/manuals/browser/repository-compatibility-test.py": "89d75a37db931e5eb0d37390b8f010cee92b228f",
     "docs/manuals-whole-repository-gates.md": "f6ac9edc503c5a305eae67a4b3adb7abba63e8d1",
     "docs/manuals-motion-interruption.md": "2870ab5ca6b46465c43a32c5993285e90d03cf7a",
-    "docs/manuals-resize-navigation.md": "52fe8c05c36c1e7f5fc03e5878727514cd82db55"
+    "docs/manuals-resize-navigation.md": "52fe8c05c36c1e7f5fc03e5878727514cd82db55",
+    "tests/admin-product-browser/guard-test.py": "b0cb864f1d4c9452740069ee0517e141773b4a1f"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -834,6 +835,9 @@
     "tests/sale-schedule-test.py": "A",
     "tests/saved-search-rendering-test.cjs": "A",
     "tests/shipping-parcel-total-boundary-test.php": "A",
-    "tests/stale-inventory-csrf-http-test.py": "A"
+    "tests/stale-inventory-csrf-http-test.py": "A",
+    "includes/product-merchandising.php": "M",
+    "tests/condition-badge-contrast-test.py": "A",
+    "tests/contact-input-purpose-test.py": "A"
   }
 }
