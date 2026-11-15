@@ -58,6 +58,16 @@ class ShippingRules
         'WY' => 'WYOMING',
     ];
 
+    // USPS L005 and DMM 703.2.3.1 identify these destination prefix groups.
+    private const NON_CONTIGUOUS_ZIP_PREFIX_RANGES = [
+        [6, 9],       // Puerto Rico and U.S. Virgin Islands
+        [90, 99],     // Overseas military and diplomatic mail (AE)
+        [340, 340],   // Overseas military and diplomatic mail (AA)
+        [962, 966],   // Overseas military and diplomatic mail (AP)
+        [967, 969],   // Hawaii and Pacific postal regions
+        [995, 999],   // Alaska
+    ];
+
     private const DEFAULT_FREE_SHIPPING = [
         'enabled' => true,
         'product_flags_enabled' => true,
@@ -133,12 +143,22 @@ class ShippingRules
         }
 
         $state = self::normalizeLocationToken($address['state'] ?? $address['province'] ?? '');
-        if ($state === '') {
+        if (!isset(self::CONTINENTAL_US_STATES[$state]) && !in_array($state, self::CONTINENTAL_US_STATES, true)) {
             return false;
         }
 
-        return isset(self::CONTINENTAL_US_STATES[$state])
-            || in_array($state, self::CONTINENTAL_US_STATES, true);
+        $zip = $address['zip'] ?? '';
+        if ((is_string($zip) || is_int($zip))
+            && preg_match('/^([0-9]{3})[0-9]{2}(?:-?[0-9]{4})?$/D', trim((string)$zip), $matches)) {
+            $prefix = (int)$matches[1];
+            foreach (self::NON_CONTIGUOUS_ZIP_PREFIX_RANGES as [$first, $last]) {
+                if ($prefix >= $first && $prefix <= $last) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static function freeShippingRate(array $summary = []): array
@@ -147,7 +167,7 @@ class ShippingRules
             'courier_id' => 'free_shipping',
             'courier_name' => 'Flip and Strip',
             'service_name' => 'Free Shipping',
-            'delivery_time_text' => 'Free shipping applied to eligible continental US items',
+            'delivery_time_text' => 'Free shipping applied to eligible items',
             'total_charge' => 0.0,
             'currency' => 'USD',
             'is_free_shipping' => true,

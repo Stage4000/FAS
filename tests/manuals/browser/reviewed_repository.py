@@ -22,8 +22,8 @@ HISTORICAL_MAIN = {
     'src/utils/ReviewedProductFacts.php': 'af5c5e4b277dd3005e825ec0f384756ed9441637',
     'tests/rotor-reviewed-facts-test.php': None,
 }
-INTEGRATED_MAIN = '4399ed4b38334be6e28b788252dd483e007f835e'
-INTEGRATED_MAIN_TREE = 'a20da4afd4568e215c6f885da539fb4a0c950a74'
+INTEGRATED_MAIN = '73ad3d987a971ee99c36b6aeaddd9cf1ae0684e5'
+INTEGRATED_MAIN_TREE = 'b1626db71e9f668b3cdd13a2a41bcf74fa452f10'
 MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.

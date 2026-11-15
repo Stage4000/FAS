@@ -5,7 +5,7 @@ const {allowedCatalogFetch,allowedDocument,allowedLocalAsset,allowedCachedType}=
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const BASE='3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2';
 const FIX='d4ed1e5bc6e6eef56b50bac94065609602773788e04868bdbf18173fbfb2046e';
-const CART='e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60';
+const CART='25a6ab74534ce92ddceeb49343024c845f4f940c9322a9be46a00f51aea888fd';
 const good={id:'2',name:'Usable saved neighbor',price:7,quantity:1,stock:8,custom:{retain:['all',1]}};
 const seeds={mixed:' \n'+JSON.stringify([null,good])+'\n ',json:' \n[{broken JSON with saved cart evidence\n ',legacy:' '+JSON.stringify([{id:'1',price:10,quantity:1,stock:'2'}, {...good,id:2}])+'\n',normal:' '+JSON.stringify([{id:'1',name:'Normal synthetic part',price:10,quantity:2,stock:5},good])+'\n'};
 function install({raw,theme,malformed}){

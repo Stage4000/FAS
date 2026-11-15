@@ -5,7 +5,7 @@
   "includes/ebay-seller-rating.php": "ed862631680f1b8fd1feb59edfb071097c57adc3",
   "src/utils/Seo.php": "2f01a3eec77b112f998dafcb1ca09e5447ff9fc4",
   "src/utils/ResponsiveImage.php": "d8bfa725d5aaf7320b3c1052966376129379fdd4",
-  "src/utils/ShippingRules.php": "758e2adec9069fa5f8684597becdefaea9460a87",
+  "src/utils/ShippingRules.php": "ce56c43e6120af85c8e0a12f755d661619677c30",
   "src/utils/ProductCondition.php": "3ab1fe48eb2758cd5731e8a1416b5de36b42f064",
   "src/utils/ProductIdentifierOutput.php": "e4ab4abf3e49cfed079937981a49a40cc010cc2f",
   "src/utils/ReviewedProductFacts.php": "1db5e4468b9730b12cad79f41f7094c2144571fb",

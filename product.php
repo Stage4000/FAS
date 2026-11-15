@@ -230,7 +230,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="badge bg-secondary"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                         <?php endif; ?>
                         <?php if ($productFreeShipping): ?>
-                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping to continental US</span>
+                            <span class="badge bg-success ms-2"><i class="fas fa-truck-fast me-1"></i>Free shipping · Lower 48 + DC</span>
                         <?php endif; ?>
                     </div>
 
@@ -250,7 +250,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if ($productFreeShipping): ?>
                         <div class="alert alert-success border-0 shadow-sm small mb-4">
                             <i class="fas fa-truck-fast me-2"></i>
-                            This item qualifies for free shipping to continental US addresses. The $0 shipping option appears during checkout after an eligible address is entered.
+                            This item qualifies for free shipping to eligible addresses in the 48 contiguous states and Washington, DC. Enter your address at checkout to see the $0 option.
                         </div>
                     <?php endif; ?>
 
@@ -368,7 +368,7 @@ data-weight="<?php echo !empty($product['weight']) ? floatval($product['weight']
                         </div>
                         <div>
                             <h2 class="h6 fw-bold mb-1">Estimate Shipping Before Checkout</h2>
-                            <p class="small text-muted mb-0">Enter city, state, and ZIP to check estimated shipping or continental US free-shipping eligibility.</p>
+                            <p class="small text-muted mb-0">Enter your city, state, and ZIP to estimate shipping and check whether your address qualifies for free shipping.</p>
                         </div>
                     </div>
                         <form class="row g-2" data-shipping-estimator data-address-autofill data-estimate-mode="product" data-product-source=".product-detail-add-to-cart" data-quantity-source="#quantity-input" data-result-target="#product-shipping-estimate-result">

@@ -110,7 +110,7 @@ def main():
     assert len(policy['main']) == 513 and len(inventory['additions']) == 309
     # Keep all legacy constants/functions intact. Only the optional exact overlay
     # is added; omission reproduces the original checkout drift.
-    names = {'BADGE_INTEGRATION_BLOBS', 'CONTACT_INPUT_PURPOSE_BLOBS', 'SHIPPING_AMOUNT_BLOBS', 'REVIEWED_RELEASE_BLOBS', 'INTEGRATION_PATHS', 'REVIEWED_OVERLAY', 'QUANTITY_BLOBS', 'STORAGE_BLOBS', 'MALFORMED_BLOBS', 'EMAIL_BLOBS', 'CATALOG_SCROLL_BLOBS', 'EXPECTED_PATHS'}
+    names = {'SHIPPING_INTEGRATION_BLOBS', 'BADGE_INTEGRATION_BLOBS', 'CONTACT_INPUT_PURPOSE_BLOBS', 'SHIPPING_AMOUNT_BLOBS', 'REVIEWED_RELEASE_BLOBS', 'INTEGRATION_PATHS', 'REVIEWED_OVERLAY', 'QUANTITY_BLOBS', 'STORAGE_BLOBS', 'MALFORMED_BLOBS', 'EMAIL_BLOBS', 'CATALOG_SCROLL_BLOBS', 'EXPECTED_PATHS'}
     h = selected_guard(ROOT/'tests/keyboard-browser/heading_runner.py', names, {'verify_tree'})
     base = {'entries': inventory['main']}
     candidate = {p: policy['main'][p]['sha'] for p in h['EXPECTED_PATHS']}

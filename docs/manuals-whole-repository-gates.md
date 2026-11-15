@@ -92,20 +92,22 @@ candidate. These offline checks do not prove browser behavior or a production
 host/deployment boundary. Previously green manuals reader/shell evidence remains
 for its earlier exact head, not for an unexecuted compatibility commit.
 
-## November 15 current-main integration
+## November 15 post-shipping main integration
 
-Original 6993209/b99 inventories and manifests remain immutable. The additional
-full integrated-main inventory is pinned to a2e07cd74c53493dc2b2da413b337fd63eb0272c
-and its reconstructed tree. Only its exact finite changes may differ from the
-original main; deletions and overlap with manuals additions are rejected. This
-retains the merged coupon, catalog, reliability, shipping, navigation and image
-test changes without modifying manuals runtime. Shared-shell source pins now
-use those exact current-main bytes. The resulting candidate has 953 entries and
-477 changed paths relative to the original main, including existing integrated
-main changes. Policy inventory, source pins and guarded workflow dependencies
-are reviewed as a finite packet, not an automatic allowance for future main.
+Original 6993209/b99 inventories and manifests remain immutable. The complete
+integrated-main inventory now pins `73ad3d987a971ee99c36b6aeaddd9cf1ae0684e5`
+and tree `b1626db71e9f668b3cdd13a2a41bcf74fa452f10` (642 main entries).
+This retains merged contiguous-US ZIP checks and their exact browser inputs,
+with no manuals runtime edits. Four workflow/guard conflicts preserve both
+manuals compatibility and shipping preflights, their exact guards, isolation,
+permissions, thresholds and cleanup. The existing 19-entry shipping map changes
+only the two changed workflow/admin-runner compatibility postimages. The shared-shell
+ShippingRules pin follows exact current-main bytes; all other shared pins stay
+unchanged. This finite inventory does not accept future main automatically.
 
-Local policy verification passes 1,363 controls, including integrated inventory
-SHA/mode/path/add/remove and anchor mutations. All 20 native manuals JavaScript
-suites pass. Exact committed-head hosted browser/aggregate acceptance is still
-required. No live import, rights decision, publication or deployment is implied.
+Independent review and exact committed-source/offline controls are required
+before publication. Hosted synthetic, admin, keyboard and manual-reader acceptance
+must rerun on the exact integrated head; older green results do not accept it.
+Source integration does not authorize deployment, production migration, live
+intake, hosting-access retries or public activation. Technical capacity, private
+storage/CSP and backup/rollback safeguards remain.
