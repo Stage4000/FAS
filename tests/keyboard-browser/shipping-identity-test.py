@@ -1,6 +1,6 @@
 """Exact shipping-copy and historical identity controls; no app/browser/network."""
 from pathlib import Path
-import copy, hashlib, json, subprocess, tempfile
+import copy, hashlib, json, re, subprocess, tempfile
 import heading_runner as h
 import shipping_identity as s
 ROOT = Path(__file__).resolve().parents[2]
@@ -66,6 +66,13 @@ for path,expected in h.SHIPPING_INTEGRATION_BLOBS.items():
         reject(lambda b=bad:h.verify_tree(base,b,{}))
     bad = copy.deepcopy(tree);del bad[path]
     reject(lambda:h.verify_tree(base,bad,{}))
+# Both browser suites must bind their actual runtime and fixture Cart inputs.
+for name in ['storage-unavailable.cjs','malformed-hydration.cjs']:
+    source = (ROOT/'tests/keyboard-browser'/name).read_text()
+    match = re.search(r"const CART='([0-9a-f]{64})';",source)
+    check(match is not None and match.group(1) == h.sha256(raw['cart.php']))
+    check(source.count("assert.equal(hash(fs.readFileSync(path.join(__dirname,'../../cart.php'))),CART)") == 1)
+    check(source.count("assert.equal(fixture.source_sha256['cart.php'],CART)") == 1)
 # Exercise Git's actual non-cone sparse pattern matching, not a guessed glob rule.
 workflow = (ROOT/'.github/workflows/keyboard-browser.yml').read_text().splitlines()
 start = next(i for i,line in enumerate(workflow) if line.strip() == 'sparse-checkout: |') + 1
