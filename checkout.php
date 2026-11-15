@@ -1063,7 +1063,7 @@ function displayShippingOptions(rates, freeShippingSummary = null) {
     if (freeShippingSummary && freeShippingSummary.destination_eligible === false && getCheckoutItems().some(item => item.free_shipping)) {
         html += `
             <div class="alert alert-warning border-0 py-2 px-3 small mb-3">
-                <i class="fas fa-circle-info me-2"></i>Free shipping is limited to continental US addresses. Rates below include all items for this destination.
+                <i class="fas fa-circle-info me-2"></i>Free shipping is available only to eligible addresses in the 48 contiguous states and Washington, DC. Rates below include all items for this destination.
             </div>
         `;
     }
@@ -1072,8 +1072,8 @@ function displayShippingOptions(rates, freeShippingSummary = null) {
         const freeCount = Number(freeShippingSummary.item_count || 0);
         const ratedCount = Number(freeShippingSummary.rated_item_count || 0);
         const message = ratedCount > 0
-            ? `${freeCount} item${freeCount === 1 ? '' : 's'} qualify for continental US free shipping. Rates below only cover remaining items.`
-            : `All ${freeCount} item${freeCount === 1 ? '' : 's'} qualify for continental US free shipping.`;
+            ? `${freeCount} ${freeCount === 1 ? 'item qualifies' : 'items qualify'} for free shipping to this address. Rates below cover only the remaining items.`
+            : `${freeCount === 1 ? 'This item qualifies' : `All ${freeCount} items qualify`} for free shipping to this address.`;
         html += `
             <div class="alert alert-success border-0 py-2 px-3 small mb-3">
                 <i class="fas fa-truck-fast me-2"></i>${message}

@@ -201,7 +201,7 @@ function displayCartItems() {
         const productUrl = /^[1-9]\d*$/.test(productId) ? `/product/${productId}` : null;
         const itemTitle = productUrl ? `<a class="cart-product-link link-danger" href="${productUrl}">${itemName}</a>` : itemName;
         const sku = escapeHtml(item.sku || 'N/A');
-        const freeShippingBadge = item.free_shipping ? '<small class="text-success fw-semibold d-block mt-1"><i class="fas fa-truck-fast me-1"></i>Free shipping eligible for continental US addresses</small>' : '';
+        const freeShippingBadge = item.free_shipping ? '<small class="text-success fw-semibold d-block mt-1"><i class="fas fa-truck-fast me-1"></i>Free shipping eligible in the 48 contiguous states and Washington, DC</small>' : '';
 
         html += `
             <div class="card border-0 shadow-sm mb-3 cart-item-card card-entrance" style="animation-delay: ${index * 0.1}s;">

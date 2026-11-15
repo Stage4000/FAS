@@ -69,6 +69,18 @@ for country in ['CA','MX','US1','United States of America']:
 for state in ['PW','ZZ','AK']:
     cases.append((f'provider-unavailable-{state}',state,'US',False,manual,False,True))
 cases.append(('disabled','OR','US',True,dict(manual,enabled=False),False,False))
+case_zip = {}
+for zip_code, state, eligible in [('99501', 'OR', False), ('96813', 'OR', False), ('96910', 'CA', False),
+                                  ('00601', 'NY', False), ('09012', 'VA', False), ('34002', 'FL', False),
+                                  ('96691', 'CA', False), ('99501-1234', 'OR', False),
+                                  ('97201-1234', 'OR', True), ('00501', 'NY', True), ('20001', 'DC', True)]:
+    for mode, settings in [('manual', manual), ('automatic', automatic)]:
+        for mixed in [False, True]:
+            name = f'ZIP-{zip_code}-{mode}-mixed{mixed}'
+            case_zip[name] = zip_code
+            cases.append((name, state, 'US', eligible, settings, mixed, False))
+case_zip['ZIP-provider-unavailable'] = '99501'
+cases.append(('ZIP-provider-unavailable', 'OR', 'US', False, automatic, True, True))
 with tempfile.TemporaryDirectory(prefix='fas-destination-api-') as tmp:
     site=Path(tmp)
     for rel in ['api/shipping-rates.php','api/shipping-estimate.php']:
@@ -88,7 +100,7 @@ require __DIR__.'/api/'.$argv[1].'.php';
         for name,state,country,eligible,settings,mixed,provider_failure in cases:
             label=f'{endpoint}: {name}'
             items=[dict(id=1,quantity=2)] + ([dict(id=2,quantity=1)] if mixed else [])
-            address=dict(address1='100 Synthetic Road',city='Fixture City',state=state,zip='00000',country=country)
+            address=dict(address1='100 Synthetic Road',city='Fixture City',state=state,zip=case_zip.get(name,'00000'),country=country)
             (site/'case.json').write_text(json.dumps(dict(request=dict(items=items,address=address),products=products,settings=settings,provider_failure=provider_failure)))
             result=subprocess.run([PHP,'-d','allow_url_fopen=0','-d','display_errors=stderr','-d','disable_functions='+DISABLED,str(site/'run.php'),endpoint],capture_output=True,text=True,env=env,timeout=10)
             check(result.returncode==0,label+' clean process'); check(not result.stderr,label+' no warning/error output')
