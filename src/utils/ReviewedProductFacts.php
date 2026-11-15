@@ -5,10 +5,12 @@ namespace FAS\Utils;
 /** Owner-reviewed output facts, separate from immutable imported source values. */
 final class ReviewedProductFacts
 {
-    // Confirmed 2026-10-10. Match both existing record ID and exact source SKU.
+    // Match both existing record ID and exact source SKU; dates documented below.
     // Never infer from title/description or write these values into inventory.
     private const IDENTIFIERS = [
-        '6305' => ['sku'=>'10171 FAS', 'brand'=>'Wiseco', 'mpn'=>'PWR128-101'],
+        '6305' => ['sku'=>'10171 FAS', 'brand'=>'Wiseco', 'mpn'=>'PWR128-101'], // 2026-10-10
+        // Approved 2026-11-11; exact SKU and photographed EBC packaging/notes.
+        '6330' => ['sku'=>'10195 FAS', 'brand'=>'EBC', 'mpn'=>'MD6332D'],
     ];
     private const FINAL_SALE = [
         '6419' => 'FW103 FAS',

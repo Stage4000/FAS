@@ -16,6 +16,18 @@ def main():
     args = parser.parse_args()
     from heading_runner import verify_checkout
     checkout_identity = verify_checkout(ROOT)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/catalog-scroll-guard-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/catalog-scroll-policy-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/catalog-scroll-offset-test.cjs')], check=True)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/email-restore-guard-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore-policy-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/email-restore-preservation-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/email-action-lifecycle-test.cjs')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/cart-malformed-hydration-test.cjs')], check=True)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/malformed-identity-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/malformed-identity-test.cjs')], check=True)
+    subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/storage-identity-test.py')], check=True)
+    subprocess.run(['node', str(ROOT/'tests/keyboard-browser/storage-quantity-identity-test.cjs')], check=True)
     subprocess.run(['python3', str(ROOT/'tests/keyboard-browser/heading-unit-test.py')], check=True)
     subprocess.run(['node', str(ROOT/'tests/keyboard-browser/heading-policy-test.cjs')], check=True)
     output = args.output.resolve()
@@ -27,7 +39,7 @@ def main():
         for folder in ['src', 'includes', 'public']:
             shutil.copytree(ROOT / folder, site / folder, ignore=shutil.ignore_patterns(
                 'config*.php', 'uploads', '*.log', '*.db', '*.sqlite'))
-        for name in ['index.php', 'products.php', 'product.php', '404.php', 'cart.php']:
+        for name in ['index.php', 'products.php', 'product.php', '404.php', 'cart.php', 'recover-cart.php']:
             shutil.copy2(ROOT / name, site / name)
         (site / 'api').mkdir()
         shutil.copy2(ROOT / 'api/products.php', site / 'api/products.php')
@@ -100,6 +112,7 @@ unset($_fasSapi, $_fasCacheLoaded, $_fasCacheSetting, $_fasCacheApi, $_fasCacheS
 $p=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($p==='/') {require $_SERVER['DOCUMENT_ROOT'].'/index.php'; return true;}
 if ($p==='/cart') {require $_SERVER['DOCUMENT_ROOT'].'/cart.php'; return true;}
+if ($p==='/recover-cart.php') { if ($_SERVER['REQUEST_METHOD']!=='GET' || ($_SERVER['QUERY_STRING'] ?? '')!=='') { http_response_code(404); echo 'Fixture route not found'; return true; } require $_SERVER['DOCUMENT_ROOT'].'/recover-cart.php'; return true; }
 if ($p==='/products') {require $_SERVER['DOCUMENT_ROOT'].'/products.php'; return true;}
 if (preg_match('~^/product/([0-9]+)(?:/[^/]+)?$~',$p,$m)) {
  $_GET['id']=$m[1]; require $_SERVER['DOCUMENT_ROOT'].'/product.php'; return true;
@@ -137,11 +150,46 @@ require $_SERVER['DOCUMENT_ROOT'].'/404.php';
                 # if one fails, and fail the job if either acceptance suite fails.
                 results = [subprocess.run(['node', str(ROOT / 'tests/keyboard-browser' / script),
                             origin, str(args.assets.resolve()), str(output)]).returncode
-                           for script in ['navbar-unit-test.cjs', 'check.cjs', 'navbar.cjs']]
+                           for script in ['navbar-unit-test.cjs', 'quantity-rendering-unit-test.cjs', 'check.cjs', 'navbar.cjs', 'quantity.cjs']]
+                # This suite alone needs stock for native recommendation-add/quantity edits.
+                # Save and restore the existing disposable synthetic row exactly; all
+                # original suites above and historical heading variants below are unchanged.
+                with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                    original_quantity = db.execute('SELECT quantity FROM products WHERE id=1').fetchone()
+                    if original_quantity is None:
+                        raise RuntimeError('Missing synthetic id1 inventory for storage suite')
+                    if db.execute('UPDATE products SET quantity=5 WHERE id=1').rowcount != 1:
+                        raise RuntimeError('Unexpected synthetic storage inventory update')
+                try:
+                    results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/storage-unavailable.cjs'),
+                        origin, str(args.assets.resolve()), str(output)]).returncode)
+                finally:
+                    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                        if db.execute('UPDATE products SET quantity=? WHERE id=1', original_quantity).rowcount != 1:
+                            raise RuntimeError('Synthetic storage inventory restoration failed')
                 with sqlite3.connect(site/'database/flipandstrip.db') as db:
                     db.execute('DELETE FROM ebay_seller_rating_cache')
+                # Malformed suite alone uses stock5; preserve prior suite and heading seeds.
+                with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                    malformed_original_quantity = db.execute('SELECT quantity FROM products WHERE id=1').fetchone()
+                    if malformed_original_quantity is None:
+                        raise RuntimeError('Missing synthetic id1 inventory for malformed suite')
+                    if db.execute('UPDATE products SET quantity=5 WHERE id=1').rowcount != 1:
+                        raise RuntimeError('Unexpected synthetic malformed inventory update')
+                try:
+                    results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/malformed-hydration.cjs'),
+                        origin, str(args.assets.resolve()), str(output)]).returncode)
+                finally:
+                    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+                        if db.execute('UPDATE products SET quantity=? WHERE id=1', malformed_original_quantity).rowcount != 1:
+                            raise RuntimeError('Synthetic malformed inventory restoration failed')
+
                 from heading_runner import run_heading_variants
                 results.append(run_heading_variants(ROOT, site, origin, args.assets.resolve(), output))
+                results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/email-restore.cjs'),
+                    origin, str(args.assets.resolve()), str(output)]).returncode)
+                results.append(subprocess.run(['node', str(ROOT/'tests/keyboard-browser/catalog-scroll.cjs'),
+                    origin, str(args.assets.resolve()), str(output)]).returncode)
                 if any(results):
                     raise RuntimeError(f'Keyboard acceptance failed: {results}; inspect both reports')
             finally:

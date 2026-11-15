@@ -13,7 +13,7 @@ require_once __DIR__ . '/includes/header.php';
             
             <div class="card border-0 shadow-sm mb-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="card-body p-5">
-                    <h3 class="text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h3>
+                    <h2 class="h3 text-danger mb-3">Quality Motorcycle, ATV/UTV, Boat & Automotive Parts</h2>
                     <p class="lead">
                         Flip and Strip offers new and used motorcycle, ATV/UTV, boat, and automotive parts
                         from top manufacturers including Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki, BMW, and more.
@@ -24,7 +24,7 @@ require_once __DIR__ . '/includes/header.php';
                         Contact us if you have questions about a part or need help checking fitment.
                     </p>
                     
-                    <h4 class="mt-4 mb-3">What We Offer</h4>
+                    <h3 class="h4 mt-4 mb-3">What We Offer</h3>
                     <ul class="list-unstyled">
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> New and used parts</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Item-specific condition details</li>
@@ -35,7 +35,7 @@ require_once __DIR__ . '/includes/header.php';
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Live chat support via Tawk.to</li>
                     </ul>
                     
-                    <h4 class="mt-4 mb-3">Our Inventory</h4>
+                    <h3 class="h4 mt-4 mb-3">Our Inventory</h3>
                     <p>
                         We maintain a large inventory of motorcycle, ATV/UTV, boat, and automotive parts, including:
                     </p>
@@ -61,7 +61,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             
             <div class="text-center" data-aos="fade-up" data-aos-delay="200">
-                <h3 class="mb-4">Ready to Find Your Parts?</h3>
+                <h2 class="h3 mb-4">Ready to Find Your Parts?</h2>
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="/products" class="btn btn-danger btn-lg">Browse Products</a>
                     <a href="/contact" class="btn btn-danger btn-lg">Contact Us</a>

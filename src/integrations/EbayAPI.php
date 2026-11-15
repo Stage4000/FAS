@@ -825,8 +825,10 @@ class EbayAPI
             // Remove title from description if it appears at the beginning as a template artifact
             $description = $this->removeTemplatedTitleFromDescription($description, $itemTitle);
             
-            // Extract quantity and listing status
-            $quantity = (int)($item['Quantity'] ?? 0);
+            // Trading API Quantity includes units that have already sold.
+            $totalQuantity = max(0, (int) ($item['Quantity'] ?? 0));
+            $quantitySold = max(0, (int) ($item['SellingStatus']['QuantitySold'] ?? 0));
+            $quantity = max(0, $totalQuantity - $quantitySold);
             $listingStatus = $item['SellingStatus']['ListingStatus'] ?? '';
             
             // Skip ended/sold items - only import active listings

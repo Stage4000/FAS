@@ -12,7 +12,7 @@ const token=n=>n.repeat(64);
 const hash=(mode,n,action='confirm')=>mode==='recover'?'#'+token(n):'#'+action+'='+token(n);
 const value=(id,quantity=2,stock=4)=>({id,quantity,stock,price:10,name:'fixture '+id});
 function check(test,description){ checks++; if(!test)failures.push(description); }
-function fixture(mode='recover',cart=[{id:99,quantity:1}]){
+function fixture(mode='recover',cart=[{id:99,quantity:1,price:7,name:'fresh valid fixture'}]){
  const listeners={},handlers={},requests=[],nav=[],saved=new Map([['flipandstrip_cart',JSON.stringify(cart)]]);
  const button={disabled:false,textContent:'Continue',addEventListener:(name,fn)=>handlers[name]=fn};
  const feedback={textContent:''}; let revision=0;
@@ -53,12 +53,12 @@ async function scenario(name,fn){scenarios++;try{await fn(name);}catch(e){failur
  }
  for(const stored of ['not JSON','null','{}','0'])await scenario('malformed cart '+stored,async()=>{
   const f=fixture();f.saved.set('flipandstrip_cart',stored);const p=f.click();f.requests[0].resolve({items:[value(1)]});await p;
-  check(f.cartValue().length===1 && f.nav.length===1,'malformed local cart handled: '+stored);
+  check(f.saved.get('flipandstrip_cart')===stored && f.nav.length===0 && /Restoration paused/.test(f.feedback.textContent),'malformed cart kept unchanged: '+stored);
  });
  await scenario('merge retains old item, max quantity capped, server facts',async()=>{
-  const f=fixture('recover',[null,{id:99,quantity:1},{id:'1',quantity:7,price:1},{id:2,quantity:1}]);
+  const f=fixture('recover',[{id:99,quantity:1,price:7},{id:'1',quantity:7,price:1},{id:2,quantity:1,price:9}]);
   const p=f.click();f.requests[0].resolve({items:[value(1,2,3),value(2,2,4)]});await p;
-  const items=f.cartValue();check(items.length===3,'merge removes unusable row without losing unrelated ID');
+  const items=f.cartValue();check(items.length===3,'valid merge keeps unrelated ID');
   check(items.find(x=>String(x.id)==='1').quantity===3 && items.find(x=>String(x.id)==='1').price===10,'merge refreshes price and clamps quantity');
   check(items.find(x=>x.id===2).quantity===2,'saved higher quantity restored');
  });

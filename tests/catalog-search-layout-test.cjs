@@ -35,7 +35,7 @@ assert.doesNotMatch(block, /data-theme|color\s*:|background\s*:/, 'same geometry
 assert.equal((css.match(/#search-form/g) || []).length, 3, 'only three scoped search selectors');
 const form = php.match(/<form[^>]+id="search-form"[\s\S]*?<\/form>/)[0];
 assert.match(form, /<div class="input-group">\s*<input[^>]+id="product-search"/);
-assert.match(form, /<\?php if \(\$search\): \?>[\s\S]*Clear[\s\S]*<\?php endif; \?>/);
+assert.match(form, /<\?php if \(\$search !== null && \$search !== ''\): \?>[\s\S]*Clear[\s\S]*<\?php endif; \?>/);
 assert.match(form, /type="submit"[\s\S]*Search/);
 assert.match(form, /saved-search-save" type="button"/);
 assert.match(form, /name="search" value="<\?php echo htmlspecialchars\(\$search \?\? ''\); \?>"/);

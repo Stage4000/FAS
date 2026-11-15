@@ -48,13 +48,13 @@ function getSaleConfig(): ?array
     $now = time();
     if (!empty($sale['starts_at'])) {
         $ts = \FAS\Utils\Timezone::toUtcTimestamp($sale['starts_at']);
-        if ($ts !== false && $ts > $now) {
+        if ($ts === null || $ts > $now) {
             return null;
         }
     }
     if (!empty($sale['ends_at'])) {
         $ts = \FAS\Utils\Timezone::toUtcTimestamp($sale['ends_at']);
-        if ($ts !== false && $ts < $now) {
+        if ($ts === null || $ts < $now) {
             return null;
         }
     }

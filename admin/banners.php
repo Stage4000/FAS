@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/utils/CSRF.php';
 require_once __DIR__ . '/../src/config/Database.php';
 require_once __DIR__ . '/../src/utils/Timezone.php';
 require_once __DIR__ . '/../src/models/Banner.php';
@@ -8,9 +9,14 @@ require_once __DIR__ . '/../includes/banner-html.php';
 use FAS\Config\Database;
 use FAS\Models\Banner;
 use FAS\Utils\Timezone;
+use FAS\Utils\CSRF;
 
 $auth = new AdminAuth();
 $auth->requireLogin();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    CSRF::validateRequest();
+}
 
 $db = Database::getInstance()->getConnection();
 $bannerModel = new Banner($db);
@@ -72,12 +78,24 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
     $action = $_POST['action'] ?? '';
 
-    foreach (['starts_at', 'ends_at', 'countdown_end'] as $field) {
-        if (isset($_POST[$field])) {
-            $_POST[$field] = Timezone::fromUserInput($_POST[$field]);
+    if (in_array($action, ['create', 'update'], true)) {
+        foreach (['starts_at', 'ends_at', 'countdown_end'] as $field) {
+            $input = $_POST[$field] ?? '';
+            $provided = !is_string($input) || trim($input) !== '';
+            $parsed = is_string($input) && $provided ? Timezone::fromUserInput($input) : null;
+            if ($provided && $parsed === null) {
+                $error = 'Invalid date/time for ' . $field . '.';
+                break;
+            }
+            $_POST[$field] = $parsed;
+        }
+        if ($error === '' && $_POST['starts_at'] !== null && $_POST['ends_at'] !== null
+            && Timezone::toUtcTimestamp($_POST['ends_at']) < Timezone::toUtcTimestamp($_POST['starts_at'])) {
+            $error = 'End time must not be earlier than start time.';
         }
     }
 
+    if ($error === '') {
     switch ($action) {
         case 'create':
             try {
@@ -106,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
             }
             break;
     }
+    } // end validated action
 }
 
 $banners = [];
@@ -256,6 +275,7 @@ $textColorOptions = [
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <form method="POST" class="d-inline" data-admin-fragments="#banner-list" onsubmit="return confirm('Delete this banner?');">
+                                            <?= CSRF::tokenField() ?>
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int) $banner['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">
@@ -282,6 +302,7 @@ $textColorOptions = [
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" data-admin-fragments="#banner-list" data-admin-reset-on-success>
+                    <?= CSRF::tokenField() ?>
                     <input type="hidden" name="action" value="create">
                     <div class="modal-header">
                         <h5 class="modal-title"><i class="fas fa-bullhorn me-2"></i>Create New Banner</h5>
@@ -304,6 +325,7 @@ $textColorOptions = [
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" data-admin-fragments="#banner-list">
+                    <?= CSRF::tokenField() ?>
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" id="edit_id">
                     <div class="modal-header">

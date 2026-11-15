@@ -30,6 +30,25 @@ for index in range(9):
     rejected(lambda:h.decode_manifest(bad))
 bad=copy.deepcopy(manifest);bad['files'].append(bad['files'][0]);rejected(lambda:h.decode_manifest(bad))
 bad=copy.deepcopy(manifest);bad['files'][0]['path']='../config.php';rejected(lambda:h.decode_manifest(bad))
+# GBP source is exact, reversible, and cannot mask unrelated footer edits.
+footer = (suite.parents[1]/'includes/footer.php').read_bytes()
+pre_gbp = h.restore_pre_gbp_footer(footer)
+check(h.sha256(pre_gbp)==h.GBP_FOOTER_BEFORE_SHA256)
+check(pre_gbp + b'' != footer and len(footer)-len(pre_gbp)==230)
+for bad_footer in [pre_gbp, footer+b'changed', footer+h.GBP_FOOTER_LINE,
+                   footer.replace(b'Find us on Google',b'Changed link'),
+                   footer.replace(b'noopener noreferrer',b'noopener',1)]:
+    rejected(lambda:h.restore_pre_gbp_footer(bad_footer))
+
+# Quantity overlay pins precede the generic integration-file exception.
+main_bytes=(suite.parents[1]/'public/js/main.js').read_bytes()
+pre_storage=h.storage_identity.restore("public/js/main.js",main_bytes,strict=True)
+pre_quantity=h.restore_pre_quantity_main(pre_storage)
+check(h.sha256(pre_quantity)==h.QUANTITY_BEFORE_SHA256)
+for bad_main in [pre_quantity, pre_storage+b'changed', pre_storage+h.QUANTITY_GUARD,
+                 pre_storage.replace(b'Number.isFinite(newQuantity)',b'Number.isNaN(newQuantity)')]:
+    rejected(lambda:h.restore_pre_quantity_main(bad_main))
+
 # One valid synthetic mapping, then exactly one changed path per negative test.
 synthetic={path:('synthetic candidate '+path).encode() for path in baseline}
 synthetic_manifest=copy.deepcopy(manifest)
@@ -55,7 +74,8 @@ bad=dict(cart_candidate);bad['cart.php']+=b'changed';rejected(lambda:h.cart_rest
 
 # Exact clipboard delta is normalized for historical heading identity only.
 product=(suite.parents[1]/'product.php').read_bytes()
-check(h.sha256(product)==h.SHARE_FIXED_SHA256)
+check(h.sha256(product)==h.GALLERY_FIXED_SHA256)
+check(h.sha256(h.restore_pre_gallery_selection(product))==h.SHARE_FIXED_SHA256)
 restored_product=h.heading_identity_bytes('product.php',product)
 check(h.sha256(restored_product)==h.SHARE_PREIMAGE_SHA256)
 check(h.heading_identity_bytes('other.php',product)==product)

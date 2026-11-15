@@ -32,8 +32,8 @@ require_once __DIR__ . '/includes/header.php';
             <div id="empty-cart-message" class="card border-0 shadow-sm animate-scale" style="display: none;">
 <div class="card-body text-center py-5">
 <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
-<p class="h3">Your cart is empty</p>
-<p class="text-muted mb-4">Start with a popular category or high-demand part, then come back here to review totals before checkout.</p>
+<p id="empty-cart-title" class="h3">Your cart is empty</p>
+<p id="empty-cart-description" class="text-muted mb-4">Start with a popular category or high-demand part, then come back here to review totals before checkout.</p>
 <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
 <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
 <a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>
@@ -177,6 +177,10 @@ function displayCartItems() {
     const checkoutBtn = document.getElementById('checkout-btn');
     
     if (window.cart.cart.length === 0) {
+        if (window.cart.savedCartUnreadable) {
+            document.getElementById('empty-cart-title').textContent = 'No items added in this page session';
+            document.getElementById('empty-cart-description').textContent = 'Your saved cart could not be loaded. See the storage warning above before adding items.';
+        }
         cartItemsContainer.style.display = 'none';
         emptyCartMessage.style.display = 'block';
         checkoutBtn.style.display = 'none';

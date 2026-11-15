@@ -5,17 +5,106 @@ class ShoppingCart {
     constructor() {
         this.cart = this.loadCart();
         this.updateCartCount();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.updateStorageWarning(), { once: true });
+        } else {
+            this.updateStorageWarning();
+        }
     }
 
     loadCart() {
-        const cart = localStorage.getItem('flipandstrip_cart');
-        return cart ? JSON.parse(cart) : [];
+        let cart;
+        try {
+            cart = localStorage.getItem('flipandstrip_cart');
+        } catch (error) {
+            this.storageUnavailable = true;
+            this.savedCartUnreadable = true;
+            return [];
+        }
+        let parsedCart;
+        try {
+            parsedCart = cart === null ? [] : JSON.parse(cart);
+        } catch (error) {
+            return this.preserveMalformedCart();
+        }
+        return this.isUsableSavedCart(parsedCart) ? parsedCart : this.preserveMalformedCart();
+    }
+
+    preserveMalformedCart() {
+        this.storageUnavailable = true;
+        this.savedCartUnreadable = true;
+        this.savedCartMalformed = true;
+        return [];
+    }
+
+    isUsableSavedCart(cart) {
+        if (!Array.isArray(cart)) return false;
+        let total = 0;
+        let count = 0;
+        return cart.every(item => {
+            if (!item || typeof item !== 'object' || Array.isArray(item) ||
+                !Number.isInteger(item.quantity) || item.quantity < 1 ||
+                !Number.isFinite(item.price) || item.price < 0) return false;
+            // Match existing consumer coercions without changing any saved fields.
+            try {
+                for (const field of ['id', 'name', 'image', 'image_alt', 'sku']) {
+                    String(item[field] || '');
+                }
+                String(item.stock || 999);
+                for (const field of ['stock', 'weight', 'length', 'width', 'height']) {
+                    Number(item[field] || 1);
+                }
+            } catch (error) {
+                return false;
+            }
+            total += item.price * item.quantity;
+            count += item.quantity;
+            return Number.isFinite(total) && Number.isFinite(count);
+        });
     }
 
     saveCart() {
-        localStorage.setItem('flipandstrip_cart', JSON.stringify(this.cart));
+        if (!this.storageUnavailable) {
+            const serializedCart = JSON.stringify(this.cart);
+            try {
+                localStorage.setItem('flipandstrip_cart', serializedCart);
+            } catch (error) {
+                this.storageUnavailable = true;
+            }
+        }
+        this.updateStorageWarning();
         this.updateCartCount();
         document.dispatchEvent(new CustomEvent('fas:cart-changed'));
+    }
+
+    updateStorageWarning() {
+        if (!this.storageUnavailable || !document.body) return;
+        let warning = document.getElementById('cart-storage-warning');
+        if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'cart-storage-warning';
+            warning.className = 'container alert alert-warning my-3';
+            warning.setAttribute('role', 'status');
+            warning.setAttribute('aria-live', 'polite');
+            warning.setAttribute('aria-atomic', 'true');
+            document.body.prepend(warning);
+        }
+        const message = this.savedCartMalformed
+            ? 'Your saved cart could not be loaded because some saved data was not usable. This page has kept all original saved data unchanged, including any usable items. None of those saved items were loaded. Items shown are from this page session only. Changes are not being saved and will be lost when you leave or reload this page.'
+            : this.savedCartUnreadable
+            ? 'Your saved cart could not be loaded. Any items shown are from this page session only. Changes are not being saved and will be lost when you leave or reload this page. Your previously saved cart has not been overwritten.'
+            : 'Your cart changes could not be saved. You can keep editing on this page, but changes will be lost when you leave or reload this page. Your previously saved cart has not been overwritten.';
+        if (!warning.textContent) {
+            if (!this.storageWarningPending) {
+                this.storageWarningPending = true;
+                setTimeout(() => {
+                    warning.textContent = message;
+                    this.storageWarningPending = false;
+                }, 0);
+            }
+        } else if (warning.textContent !== message) {
+            warning.textContent = message;
+        }
     }
 
     getCartSummary() {
@@ -90,7 +179,7 @@ class ShoppingCart {
             quantity_added: 1
         });
         // Use animation instead of notification
-        if (window.showToast) {
+        if (window.showToast && !this.storageUnavailable) {
             window.showToast('Added to cart!', 'success');
         }
     }
@@ -108,6 +197,9 @@ class ShoppingCart {
         const item = this.cart.find(item => item.id === productId);
         if (item) {
             const newQuantity = parseInt(quantity);
+            if (!Number.isFinite(newQuantity)) {
+                return;
+            }
             const stockLimit = item.stock || 999;
             const previousQuantity = item.quantity;
 
@@ -115,7 +207,11 @@ class ShoppingCart {
                 this.removeItem(productId);
             } else if (newQuantity > stockLimit) {
                 // Don't allow exceeding stock limit
-                item.quantity = stockLimit;
+                const cappedQuantity = Number(stockLimit);
+                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {
+                    return;
+                }
+                item.quantity = cappedQuantity;
                 this.saveCart();
                 this.trackCartEvent('cart_stock_limit_hit', item, {
                     previous_quantity: previousQuantity,

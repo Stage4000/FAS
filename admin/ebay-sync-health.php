@@ -125,7 +125,10 @@ function eshRetryItem(PDO $db, EbaySyncHealth $syncHealth, array $config, string
     $price = $rawItem['SellingStatus']['CurrentPrice']['__value__']
         ?? $rawItem['StartPrice']['__value__']
         ?? 0;
-    $quantity = $rawItem['Quantity'] ?? 1;
+    // GetItem reports the total listed quantity, including units already sold.
+    $totalQuantity = max(0, (int) ($rawItem['Quantity'] ?? 1));
+    $quantitySold = max(0, (int) ($rawItem['SellingStatus']['QuantitySold'] ?? 0));
+    $quantity = max(0, $totalQuantity - $quantitySold);
     $url = $rawItem['ListingDetails']['ViewItemURL'] ?? ('https://www.ebay.com/itm/' . rawurlencode($ebayItemId));
 
     $itemData = [
