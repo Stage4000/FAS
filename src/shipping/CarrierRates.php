@@ -137,8 +137,8 @@ final class CarrierRates
                     || $parcel['length']+2*($parcel['width']+$parcel['height'])>130) return [];
             }
         }
-        // Revalidate quotes cached before carrier response-contract checks were added.
-        $key='quote:v3:'.$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
+        // Revalidate USPS quotes cached before aggregate amount bounds were enforced.
+        $key=($this->name==='usps'?'quote:v4:':'quote:v3:').$this->key.':'.hash('sha256',json_encode($shipment,JSON_THROW_ON_ERROR));
         $cached=$this->cache->get($key);
         if ($cached!==null) return $cached;
         $rates=$this->name==='usps'?$this->usps($shipment):$this->ups($shipment);
@@ -195,7 +195,14 @@ final class CarrierRates
             if ($common===null) { $common=$options; continue; }
             foreach ($common as $code=>&$rate) {
                 if (!isset($options[$code])) { unset($common[$code]); continue; }
-                $rate['total_charge']=(self::cents($rate['total_charge'])+self::cents($options[$code]['total_charge']))/100;
+                $subtotal=self::cents($rate['total_charge']);
+                $parcelCents=self::cents($options[$code]['total_charge']);
+                // Never let an oversized subtotal become null and reset on the next parcel.
+                // Keep the existing $100,000 amount ceiling for the entire service quote.
+                if ($subtotal===null || $parcelCents===null || $subtotal+$parcelCents>10000000) {
+                    unset($common[$code]); continue;
+                }
+                $rate['total_charge']=($subtotal+$parcelCents)/100;
                 $rate['parcel_services']=array_merge($rate['parcel_services'],$options[$code]['parcel_services']);
             }
             unset($rate);

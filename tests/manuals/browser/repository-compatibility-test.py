@@ -110,7 +110,7 @@ def main():
     assert len(policy['main']) == 513 and len(inventory['additions']) == 309
     # Keep all legacy constants/functions intact. Only the optional exact overlay
     # is added; omission reproduces the original checkout drift.
-    names = {'INTEGRATION_PATHS', 'REVIEWED_OVERLAY', 'QUANTITY_BLOBS', 'STORAGE_BLOBS', 'MALFORMED_BLOBS', 'EMAIL_BLOBS', 'CATALOG_SCROLL_BLOBS', 'EXPECTED_PATHS'}
+    names = {'SHIPPING_AMOUNT_BLOBS', 'REVIEWED_RELEASE_BLOBS', 'INTEGRATION_PATHS', 'REVIEWED_OVERLAY', 'QUANTITY_BLOBS', 'STORAGE_BLOBS', 'MALFORMED_BLOBS', 'EMAIL_BLOBS', 'CATALOG_SCROLL_BLOBS', 'EXPECTED_PATHS'}
     h = selected_guard(ROOT/'tests/keyboard-browser/heading_runner.py', names, {'verify_tree'})
     base = {'entries': inventory['main']}
     candidate = {p: policy['main'][p]['sha'] for p in h['EXPECTED_PATHS']}
@@ -251,6 +251,12 @@ def main():
         def mutate_policy(field, change):
             p=repo.root/field; obj=json.loads(p.read_text());change(obj);p.write_text(json.dumps(obj))
             check('reject policy mutation '+field,lambda:g.load_policy(repo.root),False);repo.restore()
+        for key in ['integrated_main_commit', 'integrated_main_tree']:
+            mutate_policy(g.INVENTORY, lambda x,k=key:x.update({k:'1'*40}))
+        for key,value in [('sha','1'*40),('mode','100755'),('path','unreviewed.txt')]:
+            mutate_policy(g.INVENTORY, lambda x,k=key,v=value:x['integrated_main'][0].update({k:v}))
+        mutate_policy(g.INVENTORY, lambda x:x['integrated_main'].pop())
+        mutate_policy(g.INVENTORY, lambda x:x['integrated_main'].append(dict(path='unreviewed.txt',mode='100644',type='blob',sha='1'*40)))
         mutate_policy(g.INVENTORY, lambda x:x['main'][0].update(sha='1'*40))
         mutate_policy(g.INVENTORY, lambda x:x['additions'][0].update(sha='1'*40))
         mutate_policy(g.INVENTORY, lambda x:x.update(baseline_manifest=x['baseline_manifest']+' '))

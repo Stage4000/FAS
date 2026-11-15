@@ -25,7 +25,7 @@ if (!file_exists($configFile)) {
             <h1 class="mb-5 fw-bold text-center" data-aos="fade-down">Contact Us</h1>
             
             <div class="mb-5" data-aos="fade-up" data-aos-delay="100">
-                <h3 class="mb-4">Send Us a Message</h3>
+                <h2 class="h3 mb-4">Send Us a Message</h2>
                 <div id="contact-alert" class="alert" style="display: none;"></div>
                 <form id="contact-form">
                     <div class="mb-3">
@@ -60,7 +60,7 @@ if (!file_exists($configFile)) {
         </div>
 
         <div class="alert alert-light border mt-5">
-            <h5><i class="fas fa-headset me-2"></i>Direct Support</h5>
+            <h2 class="h5"><i class="fas fa-headset me-2"></i>Direct Support</h2>
             <p class="mb-2">
                 <strong>Email support:</strong>
                 <a href="mailto:FLIPANDSTRIPCYCLES@GMAIL.COM">FLIPANDSTRIPCYCLES@GMAIL.COM</a>
@@ -73,7 +73,7 @@ if (!file_exists($configFile)) {
         </div>
 
         <div class="alert alert-secondary mt-5">
-            <h5><i class="fas fa-clock me-2"></i>Response Time</h5>
+            <h2 class="h5"><i class="fas fa-clock me-2"></i>Response Time</h2>
             <p class="mb-0">We typically respond to all inquiries within 24 hours during business days.</p>
         </div>
         </div>
@@ -110,12 +110,16 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         // Show alert
         alertDiv.style.display = 'block';
         if (result.success) {
+            const currentFormData = new FormData(form);
+            const hasNewerEdits = ['name', 'email', 'subject', 'message'].some(
+                field => currentFormData.get(field) !== formData.get(field)
+            );
             alertDiv.className = 'alert alert-success';
-            alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + result.message;
-            form.reset();
-            // Reset Turnstile widget if it exists (reset first widget without arguments)
-            if (window.turnstile && window.turnstile.reset) {
-                window.turnstile.reset();
+            alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + (hasNewerEdits
+                ? 'Your original message was accepted. Your newer edits have not been sent and are still in the form.'
+                : result.message);
+            if (!hasNewerEdits) {
+                form.reset();
             }
         } else {
             alertDiv.className = 'alert alert-danger';
@@ -133,6 +137,15 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         // Re-enable submit button
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+
+        // A submission can consume the token even if sending the email fails.
+        try {
+            if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                window.turnstile.reset();
+            }
+        } catch (error) {
+            // A widget reset failure must not change the submission result.
+        }
     }
 });
 </script>

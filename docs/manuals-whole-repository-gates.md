@@ -91,3 +91,21 @@ The hosted keyboard, admin and manuals jobs must all rerun on the exact reviewed
 candidate. These offline checks do not prove browser behavior or a production
 host/deployment boundary. Previously green manuals reader/shell evidence remains
 for its earlier exact head, not for an unexecuted compatibility commit.
+
+## November 15 current-main integration
+
+Original 6993209/b99 inventories and manifests remain immutable. The additional
+full integrated-main inventory is pinned to a2e07cd74c53493dc2b2da413b337fd63eb0272c
+and its reconstructed tree. Only its exact finite changes may differ from the
+original main; deletions and overlap with manuals additions are rejected. This
+retains the merged coupon, catalog, reliability, shipping, navigation and image
+test changes without modifying manuals runtime. Shared-shell source pins now
+use those exact current-main bytes. The resulting candidate has 953 entries and
+477 changed paths relative to the original main, including existing integrated
+main changes. Policy inventory, source pins and guarded workflow dependencies
+are reviewed as a finite packet, not an automatic allowance for future main.
+
+Local policy verification passes 1,363 controls, including integrated inventory
+SHA/mode/path/add/remove and anchor mutations. All 20 native manuals JavaScript
+suites pass. Exact committed-head hosted browser/aggregate acceptance is still
+required. No live import, rights decision, publication or deployment is implied.

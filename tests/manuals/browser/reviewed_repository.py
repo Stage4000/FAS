@@ -22,6 +22,8 @@ HISTORICAL_MAIN = {
     'src/utils/ReviewedProductFacts.php': 'af5c5e4b277dd3005e825ec0f384756ed9441637',
     'tests/rotor-reviewed-facts-test.php': None,
 }
+INTEGRATED_MAIN = 'a2e07cd74c53493dc2b2da413b337fd63eb0272c'
+INTEGRATED_MAIN_TREE = '4dff9af619db68d9ed06bc4f2f0df5ae2e54c951'
 MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
@@ -34,6 +36,7 @@ COMPATIBILITY = {
     'tests/keyboard-browser/catalog-scroll-guard-test.py': 'M',
     MANIFEST: 'A',
     INVENTORY: 'A',
+    'tests/manuals/browser/fullsite-pins.json': 'A',
     'tests/manuals/browser/reviewed_repository.py': 'A',
     'tests/manuals/browser/repository-compatibility-test.py': 'A',
     'docs/manuals-whole-repository-gates.md': 'A',
@@ -121,7 +124,8 @@ def load_policy(root):
     root = Path(root).resolve()
     inventory = decode(read_regular(root, INVENTORY))
     require(set(inventory) == {'main_commit', 'main_tree', 'manuals_commit', 'manuals_tree',
-                               'main', 'additions', 'baseline_manifest'}, 'Inventory keys differ')
+                               'main', 'additions', 'baseline_manifest',
+                               'integrated_main_commit', 'integrated_main_tree', 'integrated_main'}, 'Inventory keys differ')
     require((inventory['main_commit'], inventory['main_tree'], inventory['manuals_commit'], inventory['manuals_tree'])
             == (MAIN, MAIN_TREE, MANUALS, MANUALS_TREE), 'Immutable inventory anchors differ')
     main = entries_map(inventory['main'])
@@ -132,6 +136,14 @@ def load_policy(root):
     reviewed = dict(main, **additions)
     require(tree_hash(main) == MAIN_TREE and tree_hash(reviewed) == MANUALS_TREE,
             'Inventory does not reconstruct both immutable trees')
+    require((inventory['integrated_main_commit'], inventory['integrated_main_tree'])
+            == (INTEGRATED_MAIN, INTEGRATED_MAIN_TREE), 'Integrated main anchors differ')
+    integrated = entries_map(inventory['integrated_main'])
+    require(tree_hash(integrated) == INTEGRATED_MAIN_TREE, 'Integrated main inventory differs')
+    require(set(main) <= set(integrated) and not (set(integrated) & set(additions)),
+            'Integrated main must preserve originals and not overlap manuals')
+    main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
+    reviewed.update(integrated)
     old_bytes = inventory['baseline_manifest'].encode()
     require(blob(old_bytes) == reviewed[MANIFEST]['sha'], 'Original manifest identity differs')
     original = decode(old_bytes)
@@ -142,6 +154,7 @@ def load_policy(root):
     require(manifest['baseline'] == MAIN and manifest['baseline_tree'] == MAIN_TREE
             and manifest['scope'] == original['scope'], 'Manifest anchors/scope differ')
     changes = {p: 'A' for p in additions}
+    changes.update({p: 'M' if p in main else 'A' for p in main_delta})
     for path, status in COMPATIBILITY.items():
         require(status == ('M' if path in main else 'A'), 'Compatibility status differs')
         changes[path] = status
@@ -152,7 +165,8 @@ def load_policy(root):
     for path, oid in sources.items():
         require(isinstance(oid, str) and re.fullmatch('[0-9a-f]{40}', oid), 'Invalid source pin')
         if path not in COMPATIBILITY:
-            require(oid == original['source_blobs'][path] == reviewed[path]['sha'],
+            expected = integrated[path]['sha'] if path in main_delta else original['source_blobs'][path]
+            require(oid == expected == reviewed[path]['sha'],
                     'Immutable source pin changed: ' + path)
     for path in COMPATIBILITY:
         data = read_regular(root, path)
@@ -162,7 +176,7 @@ def load_policy(root):
     return {'expected': reviewed, 'changes': changes, 'main': main,
             'historical_main': {p: {'before': before, 'after': main[p]['sha']}
                                 for p, before in HISTORICAL_MAIN.items()},
-            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(HISTORICAL_MAIN)}}
+            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(HISTORICAL_MAIN) | set(main_delta)}}
 
 
 def git(root, *args):

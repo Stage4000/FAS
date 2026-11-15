@@ -18,6 +18,7 @@ on:
       - 'tests/keyboard-browser/heading_runner.py'
       - 'tests/keyboard-browser/catalog-scroll-guard-test.py'
       - 'tests/manuals/browser/source-manifest.json'
+      - 'tests/manuals/browser/fullsite-pins.json'
       - 'tests/manuals/browser/reviewed-repository.json'
       - 'tests/manuals/browser/reviewed_repository.py'
       - 'tests/manuals/browser/repository-compatibility-test.py'
@@ -61,6 +62,7 @@ jobs:
             /tests/keyboard-browser/heading_runner.py
             /tests/keyboard-browser/catalog-scroll-guard-test.py
             /tests/manuals/browser/source-manifest.json
+            /tests/manuals/browser/fullsite-pins.json
             /tests/manuals/browser/reviewed-repository.json
             /tests/manuals/browser/reviewed_repository.py
             /tests/manuals/browser/repository-compatibility-test.py

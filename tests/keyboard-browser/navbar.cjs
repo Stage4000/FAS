@@ -381,6 +381,45 @@ async function main() {
                 await seek('#navbarThemeToggle'); await capture('after-back');
                 row.navigation.back = page.url();
                 assert.equal(await page.locator('html').getAttribute('data-theme') || 'light', row.initialTheme);
+                if (width === 390 && colorScheme === 'light' && forcedColors === 'none'
+                    && reducedMotion === 'no-preference') {
+                    row.shortViewports = [];
+                    for (const viewport of [{width: 390, height: 260}, {width: 320, height: 200}]) {
+                        await page.setViewportSize(viewport);
+                        assert.equal((await page.goto(origin + '/', {waitUntil: 'networkidle'})).status(), 200);
+                        // Reserve the space occupied by stacked banners on the public page.
+                        await page.locator('.navbar').evaluate(navbar => {
+                            const notice = document.createElement('div');
+                            notice.style.height = '174px';
+                            navbar.before(notice);
+                        });
+                        await seek('.navbar-toggler');
+                        await page.keyboard.press('Enter');
+                        await settleCollapse(true);
+                        assert(await page.locator('#navbarNav').evaluate(menu => menu.scrollHeight > menu.clientHeight),
+                            'expanded menu scrolls on a short viewport');
+                        for (const selector of selectors) {
+                            await pressTo('Tab', selector);
+                            await page.waitForFunction(() => {
+                                const focus = document.activeElement;
+                                const rect = focus.getBoundingClientRect();
+                                const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                                return focus.matches(':focus-visible') && rect.top >= 0
+                                    && rect.bottom <= document.documentElement.clientHeight && !!hit && focus.contains(hit);
+                            }, null, {timeout: 1500});
+                        }
+                        await page.keyboard.press('Tab');
+                        await settleCollapse(false);
+                        await page.waitForFunction(() => {
+                            const focus = document.activeElement;
+                            const rect = focus.getBoundingClientRect();
+                            const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                            return !!focus.closest('#main-content') && rect.top >= 0
+                                && rect.bottom <= document.documentElement.clientHeight && !!hit && focus.contains(hit);
+                        }, null, {timeout: 1500});
+                        row.shortViewports.push({...viewport, controls: selectors.length, contentFocusVisible: true});
+                    }
+                }
                 assert(!/(?:Fatal error|Warning|Notice|Deprecated):/.test(await page.locator('body').innerText()), 'no PHP diagnostics');
                 assert.deepEqual(errors, [], 'no browser runtime errors');
                 assert.deepEqual(blocked, [], 'no unexpected requests');

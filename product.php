@@ -102,6 +102,9 @@ if ($mainImage && !in_array($mainImage, $images)) {
     array_unshift($images, $mainImage);
 }
 
+// Select the displayed hero, not the first stored photo; duplicate URLs select once.
+$activeImageIndex = array_search($mainImage, $images, true);
+
 // Structured data uses supplied photos, before the display-only fallback.
 $schemaImages = $images;
 
@@ -295,8 +298,8 @@ require_once __DIR__ . '/includes/header.php';
                         );
                         ?>
                         <?php if ($hasImage): ?>
-                            <button type="button" class="product-thumbnail <?= $index === 0 ? 'active' : '' ?>"
-                                aria-label="View product photo <?= $index + 1 ?>" aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>"
+                            <button type="button" class="product-thumbnail <?= $index === $activeImageIndex ? 'active' : '' ?>"
+                                aria-label="View product photo <?= $index + 1 ?>" aria-pressed="<?= $index === $activeImageIndex ? 'true' : 'false' ?>"
                                 data-image-attributes="<?= htmlspecialchars(\FAS\Utils\ResponsiveImage::attributes($image, '(min-width: 1400px) 636px, (min-width: 992px) 50vw, 100vw', 0, null, (string)($product['id'] ?? '')), ENT_QUOTES, 'UTF-8') ?>"
                                 data-full="<?= htmlspecialchars($image, ENT_QUOTES, 'UTF-8') ?>">
                                 <img <?= \FAS\Utils\ResponsiveImage::attributes($image, '80px', 320, null, (string)($product['id'] ?? '')) ?>

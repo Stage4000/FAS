@@ -107,6 +107,19 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/public/css/style.css?v=<?php echo filemtime(__DIR__ . '/../public/css/style.css'); ?>">
+    <style>
+        @media (max-width: 991.98px) {
+            #navbarNav.show {
+                max-height: var(--navbar-menu-height, none);
+                overflow-y: auto;
+                scroll-padding-block: .375rem;
+            }
+
+            #navbarNav.show .navbar-nav {
+                padding: .375rem;
+            }
+        }
+    </style>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/gallery/favicons/favicon.png">
@@ -281,7 +294,7 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Parts Home">
-                <img src="/gallery/hero-image.png?v=20261016" width="40" height="40" alt="Flip and Strip Parts Logo" class="d-inline-block align-text-top me-2" style="object-fit: contain; border: 0; border-radius: 0;">
+                <img src="/public/images/navbar-logo.png?v=ae9d70ced20a" width="40" height="40" alt="Flip and Strip Parts Logo" class="d-inline-block align-text-top me-2" style="object-fit: contain; border: 0; border-radius: 0;">
                 <span class="navbar-brand-name">FLIP AND STRIP PARTS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -330,4 +343,48 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
             </div>
         </div>
     </nav>
+    <script>
+    (() => {
+        const menu = document.getElementById('navbarNav');
+        const navbar = menu.closest('.navbar');
+        const collapsedLayout = window.matchMedia('(max-width: 991.98px)');
+
+        function fitOpenNavbar() {
+            if (!collapsedLayout.matches || !menu.classList.contains('show')) return;
+
+            const viewportHeight = document.documentElement.clientHeight;
+            const bounds = navbar.getBoundingClientRect();
+            const expandedBottom = bounds.bottom + menu.scrollHeight - menu.clientHeight;
+            // A banner may still be above the sticky navbar when the menu opens.
+            if (bounds.top > 0 && expandedBottom > viewportHeight) {
+                navbar.scrollIntoView({block: 'start', behavior: 'instant'});
+            }
+            const menuTop = Math.max(0, menu.getBoundingClientRect().top);
+            const bottomPadding = parseFloat(getComputedStyle(navbar).paddingBottom);
+            const available = Math.max(0, viewportHeight - menuTop - bottomPadding);
+            menu.style.setProperty('--navbar-menu-height', available + 'px');
+        }
+
+        menu.addEventListener('shown.bs.collapse', fitOpenNavbar);
+        menu.addEventListener('focusin', fitOpenNavbar);
+        window.addEventListener('resize', fitOpenNavbar);
+
+        navbar.addEventListener('focusout', ({relatedTarget}) => {
+            if (!collapsedLayout.matches || !menu.classList.contains('show')
+                || !relatedTarget || navbar.contains(relatedTarget)
+                || menu.scrollHeight <= menu.clientHeight) return;
+
+            const collapse = window.bootstrap?.Collapse?.getInstance(menu);
+            if (!collapse) return;
+
+            // Collapsing the menu moves the next focused control after Tab scrolls to it.
+            menu.addEventListener('hidden.bs.collapse', () => {
+                if (document.activeElement === relatedTarget) {
+                    relatedTarget.scrollIntoView({block: 'center', behavior: 'instant'});
+                }
+            }, {once: true});
+            collapse.hide();
+        });
+    })();
+    </script>
     <main id="main-content" tabindex="-1">
