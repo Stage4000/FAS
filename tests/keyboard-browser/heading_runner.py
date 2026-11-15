@@ -245,10 +245,13 @@ REVIEWED_OVERLAY.update(BADGE_INTEGRATION_BLOBS)
 
 # Reviewed input-purpose-only Contact markup and its exact offline regression.
 # No wildcard exclusions: any further byte or mode drift remains rejected.
-REVIEWED_OVERLAY.update({
+CONTACT_INPUT_PURPOSE_BLOBS = {
     'contact.php': {'mode': '100644', 'type': 'blob', 'sha': '52a106dbb898ecdf50c68dbaabfd7d08f80c089a'},
     'tests/contact-input-purpose-test.py': {'mode': '100644', 'type': 'blob', 'sha': '34b00ab77be32623d2547badc70241dd69b55416'},
-})
+}
+CATALOG_SCROLL_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
+QUANTITY_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
+REVIEWED_OVERLAY.update(CONTACT_INPUT_PURPOSE_BLOBS)
 
 def verify_tree(base, current, source_manifest):
     expected = {e['path']:{k:e[k] for k in ['mode','type','sha']} for e in base['entries']}
