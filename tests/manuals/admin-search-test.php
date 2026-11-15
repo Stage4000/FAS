@@ -1,0 +1,65 @@
+<?php
+declare(strict_types=1);
+require_once getenv('FAS_MANUAL_LIBRARY_SOURCE') ?: __DIR__.'/../../src/manuals/ManualLibrary.php';
+use FAS\Manuals\ManualLibrary;
+$checks=0;
+function check($condition,$message){global $checks;if(!$condition)throw new RuntimeException('FAIL: '.$message);$checks++;}
+function rejects(callable $fn,$message){try{$fn();}catch(Throwable $e){check(true,$message);return;}check(false,$message);}
+$db=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$allowed=true;$actions=[];$repo=new ManualLibrary($db,function($actor,$action)use(&$allowed,&$actions){$actions[]=$action;return $allowed&&$actor===42;});
+rejects(fn()=>$repo->listAdmin(42),'uninstalled rejected without installation');
+check(!ManualLibrary::installed($db),'read does not initialize');ManualLibrary::install($db);
+$empty=$repo->listAdmin(42);check($empty===['items'=>[],'total'=>0,'manufacturers'=>[],'manufacturers_truncated'=>false],'empty catalog facets');
+$file=['key'=>str_repeat('a',48).'.pdf','bytes'=>50,'sha256'=>str_repeat('b',64)];
+function addManual($repo,$file,$index,$overrides=[]){
+ $data=array_replace(ManualLibrary::blank(),['title'=>'Workshop reference '.$index,'manufacturer'=>'Acme','model'=>'ZX','years'=>'2026','description'=>'DescriptionOnlyNeedle','rights_note'=>'PrivateRightsNeedle','source_url'=>'https://example.invalid/SourceOnlyNeedle'],$overrides);
+ return $repo->create($data,$file,42,str_pad(dechex($index),48,'0',STR_PAD_LEFT));
+}
+for($i=1;$i<=35;$i++)addManual($repo,$file,$i);
+$db->exec("UPDATE main.manuals SET updated_at='2026-01-01T00:00:00Z'");
+$first=$repo->listAdmin(42);$second=$repo->listAdmin(42,30);
+check(count($first['manufacturers'])===1&&$first['manufacturers_truncated']===false,'small facets not truncated');
+check($first['total']===35&&count($first['items'])===30,'legacy call limit and total');
+check(array_column($first['items'],'id')===range(35,6),'id descending ties');
+check(array_column($second['items'],'id')===range(5,1),'second page no gaps');
+check($repo->listAdmin(42,35)['items']===[],'offset past final');
+$db->exec("UPDATE main.manuals SET updated_at='2027-01-01T00:00:00Z' WHERE id=1");
+check($repo->listAdmin(42)['items'][0]['id']===1,'updated time before id');
+check($repo->listAdmin(42,0,'ZX 2026','Acme')['total']===35,'AND tokens across fields with manufacturer');
+check($repo->listAdmin(42,30,'ZX 2026','Acme')['total']===35&&count($repo->listAdmin(42,30,'ZX 2026','Acme')['items'])===5,'filtered pagination preserves total');
+check($repo->listAdmin(42,0,'ZX missing')['total']===0,'all tokens required');
+check($repo->listAdmin(42,0,'','acme')['total']===0,'manufacturer exact case');
+check($repo->listAdmin(42,0,'acme')['total']===35,'manufacturer keyword included');
+foreach(['DescriptionOnlyNeedle','PrivateRightsNeedle','SourceOnlyNeedle','unverified'] as $word)check($repo->listAdmin(42,0,$word)['total']===0,'private and unrequested field excluded '.$word);
+addManual($repo,$file,36,['title'=>'Literal 100% _under slash\\pipe','manufacturer'=>'Quoted \' Mfg']);
+foreach(['%','_','\\',"100% _under",'slash\\pipe'] as $word)check($repo->listAdmin(42,0,$word)['total']===1,'wildcard literal '.$word);
+check($repo->listAdmin(42,0,'',"Quoted ' Mfg")['total']===1,'quoted exact manufacturer');
+check($repo->listAdmin(42,0,"' OR 1=1 --")['total']===0,'SQL-looking query is data');
+check($repo->listAdmin(42,0,'',"' OR 1=1 --")['total']===0,'SQL-looking manufacturer is data');
+addManual($repo,$file,37,['title'=>'水ポンプ 説明','manufacturer'=>'製造者','model'=>'型番','years'=>'2025']);
+check($repo->listAdmin(42,0,"水ポンプ\u{3000}型番",'製造者')['total']===1,'UTF8 whitespace tokens');
+check($repo->listAdmin(42,0,str_repeat('水',160))['total']===0,'query160 unicode chars accepted');
+check($repo->listAdmin(42,0,'',str_repeat('水',80))['total']===0,'manufacturer80unicode chars accepted');
+foreach([str_repeat('x',161),str_repeat('水',161),"bad\xff",implode(' ',array_fill(0,13,'x'))] as $q)rejects(fn()=>$repo->listAdmin(42,0,$q),'invalid query');
+foreach([str_repeat('x',81),str_repeat('水',81),"bad\xff"] as $m)rejects(fn()=>$repo->listAdmin(42,0,'',$m),'invalid manufacturer');
+foreach([-1,1000001] as $o)rejects(fn()=>$repo->listAdmin(42,$o),'invalid offset');
+check($repo->listAdmin(42,1000000)['items']===[],'maximum offset accepted');
+check($repo->listAdmin(42,0,implode(' ',array_fill(0,12,'Workshop')))['total']===35,'twelve tokens allowed');
+rejects(fn()=>$repo->listAdmin(42,0,[]),'arrayquery rejected');rejects(fn()=>$repo->listAdmin(42,0,'',[]),'arraymanufacturer rejected');
+foreach(range(38,140) as $i)addManual($repo,$file,$i,['manufacturer'=>'Mfg'.str_pad((string)$i,3,'0',STR_PAD_LEFT)]);
+$facet=$repo->listAdmin(42);check(count($facet['manufacturers'])===100&&$facet['manufacturers_truncated']===true,'100facet bound and truncation');
+check($repo->listAdmin(42,0,'','Mfg140')['total']===1,'exact filter outside suggestion cap');
+check($repo->listAdmin(42,0,'no such token')['manufacturers']===$facet['manufacturers'],'facets independent of query');
+$counts=array_column($facet['manufacturers'],'total','name');check((int)$counts['Acme']===35,'facet count accurate');
+$public=addManual($repo,$file,141,['title'=>'PublishedSnapshotNeedle','manufacturer'=>'Public Mfg','rights'=>'cleared','rights_note'=>'Synthetic test clearance']);
+$metadata=$public['draft'];$metadata['reviewed']=true;$public=$repo->save(141,1,$metadata,'publish',42);
+$metadata['title']='DraftOnlyNeedle';$metadata['manufacturer']='Draft Mfg';$repo->save(141,2,$metadata,'draft',42);
+check($repo->listAdmin(42,0,'DraftOnlyNeedle','Draft Mfg')['total']===1,'draft metadata searchable');
+check($repo->listAdmin(42,0,'PublishedSnapshotNeedle')['total']===0,'admin excludes stale published metadata');
+check($repo->searchPublished('PublishedSnapshotNeedle','Public Mfg')['total']===1,'published snapshot unchanged');
+check($repo->searchPublished('DraftOnlyNeedle')['total']===0,'public search never leaks draft');
+$snapshot=fn()=>json_encode([$db->query('SELECT * FROM main.manuals ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),$db->query('SELECT * FROM main.manual_history ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)]);
+$before=$snapshot();$actions=[];$repo->listAdmin(42,0,'Workshop','Acme');$repo->listAdmin(42,30);check($actions===['read','read'],'list uses only read authorization');
+$allowed=false;rejects(fn()=>$repo->listAdmin(42),'revoked actor denied');$allowed=true;rejects(fn()=>$repo->listAdmin(0),'missing actor denied');rejects(fn()=>$repo->listAdmin(7),'wrong actor denied');
+check($snapshot()===$before,'successful and failed searches do not mutate data/history');
+echo json_encode(['passed'=>true,'checks'=>$checks,'scope'=>'Synthetic in-memory SQLite; no live data or storage writes'])."\n";

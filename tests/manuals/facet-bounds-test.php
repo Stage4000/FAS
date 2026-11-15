@@ -1,0 +1,21 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../../src/manuals/ManualLibrary.php';
+use FAS\Manuals\ManualLibrary;
+$checks=0;function ok($v,$label){global $checks;if(!$v)throw new RuntimeException($label);$checks++;echo "PASS $label\n";}
+$db=new PDO('sqlite::memory:');$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);$repo=new ManualLibrary($db,fn()=>false);
+ok($repo->searchPublished()['manufacturers_truncated']===false,'uninstalled suggestions empty and not truncated');ManualLibrary::install($db);
+$insert=$db->prepare('INSERT INTO manuals(revision,request_key,draft_json,published_json,file_json,created_at,updated_at) VALUES(1,?,?,?,?,?,?)');$id=0;
+function add($mfg,$draftRights='cleared',$publishedRights='cleared',$title='Synthetic needle 100%_name') {global $insert,$id;$id++;$d=ManualLibrary::blank();$d['title']=$title;$d['manufacturer']=$mfg;$d['rights']=$draftRights;$d['rights_note']='Private evidence';$p=$d;$p['rights']=$publishedRights;$insert->execute([sprintf('%048x',$id),json_encode($d),json_encode($p),'{}','2026-01-01','2026-01-01']);}
+for($i=0;$i<100;$i++)add(sprintf('Maker %03d',$i));
+$r=$repo->searchPublished();ok(count($r['manufacturers'])===100&&!$r['manufacturers_truncated'],'exactly100 is not truncated');add('Maker 100');$r=$repo->searchPublished();ok(count($r['manufacturers'])===100&&$r['manufacturers_truncated'],'101 signals truncation');
+$off='ZZZ "<script>alert(1)</script>&%_';for($i=0;$i<25;$i++)add($off);add('Hidden draft','restricted');add('Hidden published','cleared','unverified');
+$r=$repo->searchPublished();ok($r['total']===126&&count($r['items'])===24,'public total/page unchanged');ok(!in_array($off,array_column($r['manufacturers'],'name'),true),'off-list selected name truly absent');ok(!in_array('Hidden draft',array_column($r['manufacturers'],'name'),true)&&!in_array('Hidden published',array_column($r['manufacturers'],'name'),true),'both rights gates apply to suggestions');
+$r=$repo->searchPublished('needle 100%_name',$off);ok($r['total']===25&&count($r['items'])===24,'off-list exact adversarial name filters and escaped query matches');ok(count($repo->searchPublished('needle 100%_name',$off,24)['items'])===1,'off-list pagination retains full results');ok($repo->searchPublished('',"ZZZ %")['total']===0,'manufacturer does not become wildcard');ok($repo->searchPublished('100X_name',$off)['total']===0,'query literal percent is not wildcard');ok($repo->searchPublished('100%Xname',$off)['total']===0,'query literal underscore is not wildcard');
+foreach($r['items'] as $item){ok($item['metadata']['manufacturer']===$off&&!isset($item['metadata']['rights_note'])&&!isset($item['file']),'off-list item public projection');}
+// Render the exact source form in isolation, not a copied template or web request.
+function manualsH($value){return htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
+$source=file_get_contents(__DIR__.'/../../manuals/index.php');$start=strpos($source,'<form method="get"');$end=strpos($source,'</p>',strpos($source,'id="manual-mfg-help"',$start))+4;$template=substr($source,$start,$end-$start);$result=$r;$mfg=$off;$query='"><img src=x onerror=alert(1)>';ob_start();eval('?>'.$template);$html=ob_get_clean();
+ok(str_contains($html,'value="'.manualsH($off).'"'),'selected off-list value remains escaped in input');ok(!str_contains($html,'<script>')&&!str_contains($html,'<img'),'adversarial names/query cannot create tags');ok(str_contains($html,'first 100 manufacturer suggestions')&&str_contains($html,'including one not suggested'),'explicit truncated disclosure and arbitrary name guidance');ok(str_contains($html,'list="manual-manufacturers"')&&str_contains($html,'maxlength="80"')&&str_contains($html,'aria-describedby="manual-mfg-help"'),'input has bounded accessible datalist wiring');ok(substr_count($html,'<option ')===100,'rendered suggestions bounded');
+$result['manufacturers']=[['name'=>'"<img src=x onerror=alert(1)>&','total'=>1]];$result['manufacturers_truncated']=false;ob_start();eval('?>'.$template);$html=ob_get_clean();ok(!str_contains($html,'<img')&&str_contains($html,'&lt;img'),'adversarial suggested name escaped in value and label');ok(!str_contains($html,'first 100 manufacturer suggestions'),'nontruncated list does not claim truncation');
+echo "$checks checks passed\n";

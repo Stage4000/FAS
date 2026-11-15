@@ -1,0 +1,11 @@
+# Local candidate: pending PDF-load ownership
+
+This delta builds on the reviewed local swipe-ownership reader (SHA256 `6ae92877da9f212a5c5c9b668c572ed284b930b62faeadddcdf0f9dad93b38d1`), itself based on published PR173 `3d0d57ce`. The combined delta is prepared for draft source/CI integration, not deployment or public activation. No blocked storage-review work is included.
+
+The reader previously registered its departure handler only after the PDF loading promise resolved. A large pending load therefore had no explicit departure cleanup, and late completion could continue reader initialization. The candidate registers the existing single handler before awaiting the document. Permanent departure marks the view disposed, cancels existing render work, clears view-owned state, disconnects its observer and requests destruction of the pending loading task. Repeated permanent departure is ignored. Persisted back/forward-cache departure retains the loader and observer, as before.
+
+A resolved PDF is assigned to active reader state only if the view remains active. Late success cannot render, enable controls or replace history; late errors/password callbacks cannot overwrite a departed UI. Active errors and password explanations remain unchanged. The existing rendering/cache/release logic and all PDF.js loading/security flags are otherwise unchanged.
+
+28 new deterministic tests cover pending permanent departure, repeated departure, late resolution/rejection/password callbacks, persisted pending completion, later permanent cleanup, normal ready flow and active failures. All prior 384 reader/swipe checks pass. The prior reviewed reader fails the early-handler assertion. Module syntax passes.
+
+These are controlled PDF.js/DOM stubs, not actual browser network cancellation, downloaded-byte savings, worker/native-memory release or native bfcache acceptance. No local browser launch was attempted because that route is denied. Independent Node review passed an additional 35 assertions and five semantic controls. Hosted integration includes a held-request/actual-worker termination case; its result must be checked separately. Native navigation/bfcache acceptance remains outstanding. No actual manual inputs, source publication, deployment, backend, permission, integrity or intake changes.

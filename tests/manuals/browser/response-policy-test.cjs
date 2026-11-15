@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const {unexpectedHttpResponse:unexpected}=require('./response-policy.cjs');
+let checks=0;
+const check=(value,label)=>{assert(value,label);checks++;console.log('PASS '+label);};
+const rights=[{path:'/manuals/file.php',status:404},{path:'/manuals/view.php',status:404}];
+const session=[{path:'/admin/manuals-file.php',status:403},{path:'/admin/login.php',status:401}];
+check(!unexpected('/manuals/file.php',404,rights),'Exact public file withdrawal allowed');
+check(!unexpected('/manuals/view.php',404,rights),'Exact public reader withdrawal allowed');
+check(!unexpected('/admin/manuals-file.php',403,session),'Exact private session revocation allowed');
+check(!unexpected('/admin/login.php',401,session),'Exact fixture login denial allowed');
+for(const status of [400,401,403,429,500,502,503])check(unexpected('/manuals/file.php',status,rights),'Unexpected public status rejected: '+status);
+for(const status of [404,429,500,503])check(unexpected('/admin/manuals-file.php',status,session),'Unexpected private status rejected: '+status);
+check(unexpected('/public/js/manual-reader.mjs',404,rights),'Missing reader asset is not a rights denial');
+check(unexpected('/admin/manuals-preview.php',401,session),'Wrong session-denial path rejected');
+check(unexpected('/manuals/file.php',404),'No blanket negative-status allowance');
+check(!unexpected('/manuals/file.php',200,rights),'Ordinary successful response accepted');
+assert.throws(()=>unexpected('/manuals/file.php',500,[{path:'/manuals/file.php',status:500}]),TypeError);checks++;console.log('PASS Policy cannot bless server failures');
+console.log(checks+' response-policy checks passed; no browser launched.');

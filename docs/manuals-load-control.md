@@ -1,0 +1,15 @@
+# Large-manual loading controls
+
+While the PDF.js loading task is pending, the reader exposes a native Stop loading button and reports progress through its existing polite status region. Known totals are rounded down to five-percent increments; reaching the reported total says that the download was received and pages are being prepared, not that rendering is finished. Unknown totals show coarse five-MiB received amounts. Duplicate progress messages are not repeatedly announced. Malformed counts are ignored.
+
+Stop loading permanently disposes this reader instance using the same owned teardown as permanent page departure, requests PDF.js loading-task destruction, hides the button and focuses the explanation. Late progress, password callbacks, document success/failure and repeated Stop/departure events cannot reactivate or overwrite the stopped reader. The original download link remains usable; reloading the page starts a deliberate new attempt. No automatic retry or background resume is added.
+
+The control disappears when document loading resolves or fails. If it owns keyboard focus, automatic completion transfers focus to the visible status; unrelated focus is preserved and permanent departure does not focus the outgoing page. It does not stop an already-ready reader or replace existing search Stop. Persisted back/forward-cache departure retains the pending task and control; permanent departure disposes them. Destruction failures in Stop, permanent departure and password failure do not revive the UI or cause an unhandled promise rejection. Password callbacks only own a still-pending load, never an already-ready document.
+
+PDF.js progress is advisory and may lack a reliable total. Requesting task destruction does not prove that a particular number of network bytes, server work, worker memory or native/GPU resources were saved. The existing PDF range/stream/auto-fetch flags, backend storage/rights gates and publication defaults are unchanged. Native assistive-device, actual-client-PDF and production-network acceptance remain separate.
+
+## Document-search terminal focus
+
+Search Stop, automatic completion, extraction failure and empty replacement hide the search Stop button. If it owns keyboard focus, focus moves to the existing visible search-status explanation, which stays outside the normal tab order. Unrelated focus is preserved. Only the current search may finish its controls; a superseded extraction cannot hide a newer Stop or refocus the page. Hidden terminal Stop activations are inert.
+
+Permanent reader departure hides search Stop without moving focus and makes later search submissions/Stop events inert. Persisted back/forward-cache departure leaves the resumable search intact. These changes do not alter search results, the 50-page result cap, complete-text extraction, cache budgets or backend/rights behavior. Deterministic focus tests use DOM/PDF stubs; hosted tests gate only the first real worker extraction before forwarding it unchanged and exercise keyboard Stop and automatic completion. Hardware assistive-device acceptance remains separate.

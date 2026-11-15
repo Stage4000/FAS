@@ -257,19 +257,29 @@ QUANTITY_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
 REVIEWED_OVERLAY.update(CONTACT_INPUT_PURPOSE_BLOBS)
 
 # Exact reviewed PR183 runtime and test inputs; all other paths stay immutable.
-SHIPPING_INTEGRATION_BLOBS = {'api/shipping-estimate.php': {'mode': '100644', 'type': 'blob', 'sha': '6f68638d9c961e75bfbb7594a616ffb868f4bc75'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': 'badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac'}, 'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': 'f9e80306880977e15f289caeee032e3ee969574f'}, 'includes/catalog-meta.php': {'mode': '100644', 'type': 'blob', 'sha': 'b77464e1cdf9f4b5684f1bde224dca683ab8a428'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'd00036ad68cd4d01cf1ae254d8f34d53c4a62478'}, 'public/js/shipping-estimator.js': {'mode': '100644', 'type': 'blob', 'sha': '13b11995172cabbf7be019232b45eed941c97a02'}, 'src/utils/ShippingRules.php': {'mode': '100644', 'type': 'blob', 'sha': 'ce56c43e6120af85c8e0a12f755d661619677c30'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2d2a87d91b7da36c51ecb8e9a9109dc7f7bb8248'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': 'cff7dd92c72f9aa7de1ae9e7af14e825a908cb9e'}, 'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'd72d25178e2ab3f414f6581eb4a15c9554a939fb'}, 'tests/free-shipping-destination-api-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7461b88e9cf1cf1d04cd16c61e0ec999a0a7ac52'}, 'tests/free-shipping-destination-test.php': {'mode': '100644', 'type': 'blob', 'sha': '4ebb3ba83755803c7bdd7effa8858a4f169607ba'}, 'tests/keyboard-browser/shipping_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '075be901e2f24af392495bb3d9977fe1586e0edc'}, 'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'dfc71b4c80215ac9e18b36239f30d9956722114b'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '38da96168a315f18613c3e02e9a48176b879138f'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'f0c6aaecdfceee85128a38c68590facbc5cee5ba'}, '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'c007f1556505b1e925d8d2774df6eab3139daa91'}, 'tests/keyboard-browser/malformed-hydration.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7100046f80307c2fb698be747bfcb085b4e67327'}, 'tests/keyboard-browser/storage-unavailable.cjs': {'mode': '100644', 'type': 'blob', 'sha': '4af982adb74194c9678ebdf10360eefe1acd40ed'}}
+SHIPPING_INTEGRATION_BLOBS = {'api/shipping-estimate.php': {'mode': '100644', 'type': 'blob', 'sha': '6f68638d9c961e75bfbb7594a616ffb868f4bc75'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': 'badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac'}, 'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': 'f9e80306880977e15f289caeee032e3ee969574f'}, 'includes/catalog-meta.php': {'mode': '100644', 'type': 'blob', 'sha': 'b77464e1cdf9f4b5684f1bde224dca683ab8a428'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'd00036ad68cd4d01cf1ae254d8f34d53c4a62478'}, 'public/js/shipping-estimator.js': {'mode': '100644', 'type': 'blob', 'sha': '13b11995172cabbf7be019232b45eed941c97a02'}, 'src/utils/ShippingRules.php': {'mode': '100644', 'type': 'blob', 'sha': 'ce56c43e6120af85c8e0a12f755d661619677c30'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2d2a87d91b7da36c51ecb8e9a9109dc7f7bb8248'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '1b744048bc19ac98cbcbcdd03bcebae5f7dfef32'}, 'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'd72d25178e2ab3f414f6581eb4a15c9554a939fb'}, 'tests/free-shipping-destination-api-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7461b88e9cf1cf1d04cd16c61e0ec999a0a7ac52'}, 'tests/free-shipping-destination-test.php': {'mode': '100644', 'type': 'blob', 'sha': '4ebb3ba83755803c7bdd7effa8858a4f169607ba'}, 'tests/keyboard-browser/shipping_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '075be901e2f24af392495bb3d9977fe1586e0edc'}, 'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'dfc71b4c80215ac9e18b36239f30d9956722114b'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '38da96168a315f18613c3e02e9a48176b879138f'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'f0c6aaecdfceee85128a38c68590facbc5cee5ba'}, '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'ffb4590c0651e25cf5a5eae85bbb818bc7205496'}, 'tests/keyboard-browser/malformed-hydration.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7100046f80307c2fb698be747bfcb085b4e67327'}, 'tests/keyboard-browser/storage-unavailable.cjs': {'mode': '100644', 'type': 'blob', 'sha': '4af982adb74194c9678ebdf10360eefe1acd40ed'}}
 MALFORMED_BLOBS.update({p: SHIPPING_INTEGRATION_BLOBS[p] for p in ('tests/keyboard-browser/storage-unavailable.cjs', 'tests/keyboard-browser/malformed-hydration.cjs')})
 STORAGE_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 CATALOG_SCROLL_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 QUANTITY_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 REVIEWED_OVERLAY.update(SHIPPING_INTEGRATION_BLOBS)
 
-def verify_tree(base, current, source_manifest):
+def manuals_policy(root, *, checkout=True):
+    import sys
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, str(root / 'tests/manuals/browser'))
+    from reviewed_repository import load_policy, verify_checkout
+    return verify_checkout(root) if checkout else load_policy(root)
+
+
+def verify_tree(base, current, source_manifest, reviewed_manuals=None):
     expected = {e['path']:{k:e[k] for k in ['mode','type','sha']} for e in base['entries']}
     expected.update(REVIEWED_OVERLAY)
     # Exact candidate blobs are derived from SHA-256-verified working bytes below.
     for path, blob in source_manifest.items():
         expected[path] = {'mode':'100644','type':'blob','sha':blob}
+    if reviewed_manuals is not None:
+        expected.update(reviewed_manuals)
     for path in set(expected) | set(current):
         if path in INTEGRATION_PATHS and path not in QUANTITY_BLOBS:
             if path not in current or current[path]['mode'] != '100644' or current[path]['type'] != 'blob':
@@ -280,6 +290,7 @@ def verify_tree(base, current, source_manifest):
         raise ValueError('Missing integration files')
 
 def verify_checkout(root):
+    manuals = manuals_policy(root)
     suite = root/'tests/keyboard-browser'
     manifest = json.loads((suite/'heading-sources.json').read_text())
     decode_manifest(manifest)
@@ -297,7 +308,7 @@ def verify_checkout(root):
         raise ValueError('Embedded baseline entries do not reconstruct pinned tree')
     current = parse_tree(subprocess.check_output(['git','ls-tree','-rz','HEAD'],cwd=root))
     blobs = {p:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest() for p,b in candidate.items()}
-    verify_tree(base,current,blobs)
+    verify_tree(base,current,blobs,manuals['overlay'])
     # Prevent untracked/modified files and symlinks entering copied runtime trees.
     copied = [root/p for p in EXPECTED_PATHS] + [root/'404.php']
     for folder in ['src','includes','public']:
