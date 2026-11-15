@@ -44,6 +44,10 @@ jobs:
             /tests/
             /gallery/hero-image.png
             /gallery/favicons/favicon.png
+      - name: Check exact shipping source identities offline
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 tests/keyboard-browser/shipping-identity-test.py
       - name: Install existing official browser test dependencies
         run: |
           sudo apt-get update -qq

@@ -2,6 +2,7 @@
 from pathlib import Path
 import base64, gzip, hashlib, json, re, sqlite3, subprocess
 import storage_identity
+import shipping_identity
 import malformed_identity
 import email_restore_identity
 
@@ -131,6 +132,7 @@ GALLERY_PREIMAGE_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda70
 GALLERY_INDEX_DECLARATION = b'// Select the displayed hero, not the first stored photo; duplicate URLs select once.\n$activeImageIndex = array_search($mainImage, $images, true);\n\n'
 
 def restore_pre_gallery_selection(data):
+    data = shipping_identity.restore('product.php', data)
     if sha256(data) != GALLERY_FIXED_SHA256:
         raise ValueError('Exact reviewed gallery source required')
     if data.count(GALLERY_INDEX_DECLARATION) != 1 or data.count(b'$index === $activeImageIndex ?') != 2:
@@ -174,6 +176,7 @@ def restore_pre_zero_search(path, data):
     return restored
 
 def heading_identity_bytes(path, data):
+    data = shipping_identity.restore(path, data)
     data = restore_pre_badge(path, data)
     if path in ZERO_SEARCH_HASHES and sha256(data) == ZERO_SEARCH_HASHES[path][0]:
         data = restore_pre_zero_search(path, data)
@@ -253,6 +256,13 @@ CATALOG_SCROLL_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
 QUANTITY_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
 REVIEWED_OVERLAY.update(CONTACT_INPUT_PURPOSE_BLOBS)
 
+# Exact reviewed PR183 runtime and test inputs; all other paths stay immutable.
+SHIPPING_INTEGRATION_BLOBS = {'api/shipping-estimate.php': {'mode': '100644', 'type': 'blob', 'sha': '6f68638d9c961e75bfbb7594a616ffb868f4bc75'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': 'badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac'}, 'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': 'f9e80306880977e15f289caeee032e3ee969574f'}, 'includes/catalog-meta.php': {'mode': '100644', 'type': 'blob', 'sha': 'b77464e1cdf9f4b5684f1bde224dca683ab8a428'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'd00036ad68cd4d01cf1ae254d8f34d53c4a62478'}, 'public/js/shipping-estimator.js': {'mode': '100644', 'type': 'blob', 'sha': '13b11995172cabbf7be019232b45eed941c97a02'}, 'src/utils/ShippingRules.php': {'mode': '100644', 'type': 'blob', 'sha': 'ce56c43e6120af85c8e0a12f755d661619677c30'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '55becac35be61cd22ceb1483021dc127b877bea2'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '7e3334a6f533a6389a8f3c8e888f321936f87c51'}, 'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'd72d25178e2ab3f414f6581eb4a15c9554a939fb'}, 'tests/free-shipping-destination-api-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7461b88e9cf1cf1d04cd16c61e0ec999a0a7ac52'}, 'tests/free-shipping-destination-test.php': {'mode': '100644', 'type': 'blob', 'sha': '4ebb3ba83755803c7bdd7effa8858a4f169607ba'}, 'tests/keyboard-browser/shipping_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '075be901e2f24af392495bb3d9977fe1586e0edc'}, 'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': '837eb3898ec9d0f89b948ecce0a46cc8df837c73'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '38da96168a315f18613c3e02e9a48176b879138f'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'f0c6aaecdfceee85128a38c68590facbc5cee5ba'}, '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'e7cb350ecf6f16b92bd0df0eeef27dc9c799a976'}}
+STORAGE_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
+CATALOG_SCROLL_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
+QUANTITY_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
+REVIEWED_OVERLAY.update(SHIPPING_INTEGRATION_BLOBS)
+
 def verify_tree(base, current, source_manifest):
     expected = {e['path']:{k:e[k] for k in ['mode','type','sha']} for e in base['entries']}
     expected.update(REVIEWED_OVERLAY)
@@ -324,6 +334,18 @@ def decode_manifest(manifest):
     return baseline
 
 def verify_candidate(manifest, candidate):
+    # Bind actual reviewed sources before historical copy normalization.
+    historical = {'product.php': 'e0283b86a81c7c5631f556f7671abe5ae838e7e475772990ea39b437dae8af03', 'cart.php': '31408066a41b8b31820f059059ff07e5647ede30083c3d7bbdec612bcda37b70'}
+    for entry in manifest['files']:
+        path = entry['path']
+        if path in historical and entry['candidate_sha256'] == historical[path]:
+            permitted = {shipping_identity.HASHES[path][0]}
+            # The heading fixture already restores the exact Cart storage overlay.
+            if path == 'cart.php':
+                permitted.add(historical[path])
+            if sha256(candidate[path]) not in permitted:
+                raise ValueError('Exact reviewed shipping candidate required: '+path)
+    candidate = {p: shipping_identity.restore(p, b) for p, b in candidate.items()}
     candidate = {p: restore_pre_badge(p, b) for p, b in candidate.items()}
     for entry in manifest['files']:
         if entry['path'] == 'api/products.php' and entry['candidate_sha256'] == ZERO_SEARCH_HASHES['api/products.php'][1] and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['api/products.php'][0]:
@@ -338,6 +360,7 @@ def verify_candidate(manifest, candidate):
             raise ValueError('Candidate identity mismatch: ' + entry['path'])
 
 def cart_restoration(candidate, baseline):
+    candidate = {p: shipping_identity.restore(p, b) for p, b in candidate.items()}
     # Restore only the Cart parent tag, not unrelated source or a remote ref.
     fixed = b'<h2 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h2>'
     old = b'<h4 class="h5 fw-bold text-center mb-3">Popular Parts Shoppers Are Viewing</h4>'
