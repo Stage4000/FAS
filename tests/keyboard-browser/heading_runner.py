@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 20510)
-Total output lines: 558
-
 """Invoked only by the existing loopback-isolated runner; never a standalone server."""
 from pathlib import Path
 import base64, gzip, hashlib, json, re, sqlite3, subprocess
@@ -144,7 +141,37 @@ def restore_pre_gallery_selection(data):
     return restored
 
 ZERO_SEARCH_HASHES = {
-    'products.php': ('66b7ab25fa1bc328bc845518ee6c…510 tokens truncated…
+    'products.php': ('66b7ab25fa1bc328bc845518ee6cf9d2efa7575ee7e7c5eeb49d850499a81ce1', CATALOG_REVIEWED_SHA256),
+    'api/products.php': ('d91ac82a3978dc9f5e3040023dfad33200feb5f98e89ee96c5f971c551b6ebbb', '1b1b9e3751bc24c944aff87ed2007fa78fbb40f4d1b2676c3b4a5575181db22f'),
+}
+ZERO_SEARCH_OLD = b'if ($search):'
+ZERO_SEARCH_NEW = b"if ($search !== null && $search !== ''):"
+
+# Exact contrast-only restoration keeps historical source controls unchanged.
+BADGE_HASHES = {'products.php': ('e89ed7935f711288bd06ec309ef4d127e488368dc5a137fbf7bd99f1a5dcedac', '66b7ab25fa1bc328bc845518ee6cf9d2efa7575ee7e7c5eeb49d850499a81ce1'), 'api/products.php': ('54927dd5c3708d6c6780e8de4424b1ae5579d49d305c0f45dad59c183b19a3e1', 'd91ac82a3978dc9f5e3040023dfad33200feb5f98e89ee96c5f971c551b6ebbb'), 'includes/product-merchandising.php': ('860f407a9688a6f31b86de3975192497c83e64f436a035c3d30ed17eaebb138a', 'bedf7fb2ae7e22639688e9af3b4fc4b55bb018e7bddca7f84081cc71e814148f')}
+
+def restore_pre_badge(path, data):
+    if path not in BADGE_HASHES or sha256(data) != BADGE_HASHES[path][0]:
+        return data
+    new = b'class="badge bg-info text-dark product-badge"'
+    old = b'class="badge bg-info product-badge"'
+    if data.count(new) != 1:
+        raise ValueError('Exact single reviewed badge substitution required')
+    restored = data.replace(new, old)
+    if sha256(restored) != BADGE_HASHES[path][1]:
+        raise ValueError('Badge restoration must equal exact reviewed preimage')
+    return restored
+
+def restore_pre_zero_search(path, data):
+    data = restore_pre_badge(path, data)
+    if path not in ZERO_SEARCH_HASHES or sha256(data) != ZERO_SEARCH_HASHES[path][0]:
+        raise ValueError('Exact reviewed zero-search renderer required')
+    if data.count(ZERO_SEARCH_NEW) != 2:
+        raise ValueError('Exact two zero-search presentation substitutions required')
+    restored = data.replace(ZERO_SEARCH_NEW, ZERO_SEARCH_OLD)
+    if sha256(restored) != ZERO_SEARCH_HASHES[path][1]:
+        raise ValueError('Zero-search restoration must equal exact published preimage')
+    return restored
 
 def heading_identity_bytes(path, data):
     data = restore_pre_badge(path, data)
