@@ -31,7 +31,7 @@ def materialize(cache):
         if not relative:
             continue
         path = Path(relative)
-        if path.suffix not in {'.php', '.css', '.js'}:
+        if path.suffix not in {'.php', '.css', '.js'} and relative != 'public/images/navbar-logo.png':
             continue
         if 'uploads' in path.parts or path.name.startswith('config'):
             continue
@@ -44,6 +44,8 @@ def materialize(cache):
         target = current / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(git('show', 'HEAD:' + relative))
+    nav_logo = (current / 'public/images/navbar-logo.png').read_bytes()
+    assert hashlib.sha256(nav_logo).hexdigest() == 'ae9d70ced20a198e39196d0ffc5440471a6578682b09226ce1d20834a7713154', 'Unexpected navbar logo'
     approved = (current / 'gallery/hero-image.png').read_bytes()
     assert hashlib.sha256(approved).hexdigest() == APPROVED_LOGO, 'Unexpected hero image'
     assert approved == (ROOT / 'gallery/hero-image.png').read_bytes(), 'Uncommitted hero image differs'

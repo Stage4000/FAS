@@ -1,6 +1,7 @@
 """Homepage copy regression: no runtime data or external services required."""
 from html.parser import HTMLParser
 from pathlib import Path
+import hashlib
 import re
 
 
@@ -48,7 +49,8 @@ nav_brand_link = next(attrs for tag, attrs in nav_brand.elements if tag == "a")
 assert nav_brand_link.get("aria-label") == "Flip and Strip Parts Home"
 assert nav_brand_link.get("href") == "/"
 nav_logo = next(attrs for tag, attrs in navigation.elements if tag == "img")
-assert nav_logo.get("src") == "/gallery/hero-image.png?v=20261016"
+assert nav_logo.get("src") == "/public/images/navbar-logo.png?v=ae9d70ced20a"
+assert hashlib.sha256((root / "public/images/navbar-logo.png").read_bytes()).hexdigest() == "ae9d70ced20a198e39196d0ffc5440471a6578682b09226ce1d20834a7713154"
 assert nav_logo.get("alt") == "Flip and Strip Parts Logo"
 assert (nav_logo.get("width"), nav_logo.get("height")) == ("40", "40")
 assert "object-fit: contain" in nav_logo.get("style", "") and "rounded-circle" not in nav_logo.get("class", "")

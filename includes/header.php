@@ -294,7 +294,7 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="/" aria-label="Flip and Strip Parts Home">
-                <img src="/gallery/hero-image.png?v=20261016" width="40" height="40" alt="Flip and Strip Parts Logo" class="d-inline-block align-text-top me-2" style="object-fit: contain; border: 0; border-radius: 0;">
+                <img src="/public/images/navbar-logo.png?v=ae9d70ced20a" width="40" height="40" alt="Flip and Strip Parts Logo" class="d-inline-block align-text-top me-2" style="object-fit: contain; border: 0; border-radius: 0;">
                 <span class="navbar-brand-name">FLIP AND STRIP PARTS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
