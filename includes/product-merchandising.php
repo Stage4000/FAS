@@ -75,7 +75,7 @@ alt="<?php echo htmlspecialchars($imageAltText); ?>"
 loading="lazy"
 decoding="async">
                     <?php if (!empty($product['condition_name'])): ?>
-                        <span class="badge bg-info product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
+                        <span class="badge bg-info text-dark product-badge"><?php echo htmlspecialchars($product['condition_name']); ?></span>
                     <?php endif; ?>
             <?php if ($priceInfo['on_sale']): ?>
                 <span class="badge bg-danger product-badge" style="top: <?php echo !empty($product['condition_name']) ? '50px' : '10px'; ?>;"><?php echo htmlspecialchars($priceInfo['sale_label']); ?></span>
