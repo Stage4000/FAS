@@ -35,7 +35,7 @@ print(json.dumps({'checks':checks,'passed':True,'scope':'Pure source identity; n
 
 for path in ('products.php','api/products.php'):
  data=candidate[path];before=h.restore_pre_zero_search(path,data)
- check(h.sha256(data)==h.ZERO_SEARCH_HASHES[path][0]);check(h.sha256(before)==h.ZERO_SEARCH_HASHES[path][1])
+ check(h.sha256(h.restore_pre_badge(path,data))==h.ZERO_SEARCH_HASHES[path][0]);check(h.sha256(before)==h.ZERO_SEARCH_HASHES[path][1])
  for bad in (before,data+b'changed',data[:-1],data.replace(h.ZERO_SEARCH_NEW,h.ZERO_SEARCH_OLD,1),b''):
   reject(lambda p=path,b=bad:h.verify_candidate(manifest,dict(candidate,**{p:b})))
   reject(lambda p=path,b=bad:h.restore_pre_zero_search(p,b))
