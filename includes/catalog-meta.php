@@ -54,8 +54,8 @@ $collectionMeta = [
     ],
     'free_shipping' => [
         'title' => 'Free Shipping Eligible Parts | Flip and Strip',
-        'description' => 'Shop parts that qualify for free shipping to continental US addresses.',
-        'copy' => 'These listings qualify for free shipping to continental US addresses. Confirm shipping options for your address at checkout.',
+        'description' => 'Shop parts eligible for free shipping in the 48 contiguous states and Washington, DC.',
+        'copy' => 'These listings qualify for free shipping to eligible addresses in the 48 contiguous states and Washington, DC. Confirm shipping options for your address at checkout.',
     ],
     'sale' => [
         'title' => 'Parts On Sale | Flip and Strip',

@@ -221,7 +221,7 @@ try {
             'service_name' => 'Free Shipping',
             'total_charge' => 0,
             'currency' => 'USD',
-            'delivery_time_text' => 'Eligible continental US address',
+            'delivery_time_text' => 'Free shipping to this address',
         ];
 
         echo json_encode([
@@ -237,8 +237,8 @@ try {
             'rates' => [$freeRate],
             'lowest_rate' => $freeRate,
             'message' => $destinationIsContinentalUs
-                ? 'All selected items qualify for free shipping to this continental US destination.'
-                : 'Free shipping is limited to continental US addresses.',
+                ? 'All selected items qualify for free shipping to this address.'
+                : 'Free shipping is available only to eligible addresses in the 48 contiguous states and Washington, DC.',
         ]);
         exit;
     }

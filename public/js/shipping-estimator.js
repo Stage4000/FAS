@@ -150,7 +150,7 @@ return null;
         }
 
         if (freeShipping.destination_eligible === false) {
-            html += '<div class="small text-warning mt-3"><i class="fas fa-circle-info me-1"></i>Free shipping only applies within the continental US.</div>';
+            html += '<div class="small text-warning mt-3"><i class="fas fa-circle-info me-1"></i>Free shipping is available only to eligible addresses in the 48 contiguous states and Washington, DC.</div>';
         }
 
         if (missingData.length > 0) {

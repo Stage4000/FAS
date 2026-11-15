@@ -77,6 +77,24 @@ destinationSame('size_weight',ShippingRules::getFreeShippingReason(['weight'=>1]
 destinationSame('',ShippingRules::getFreeShippingReason(['free_shipping'=>1],array_replace($manual,['enabled'=>false]),['country'=>'US','state'=>'OR']),'master disabled preserved');
 destinationSame(false,ShippingRules::productQualifiesForFreeShipping(['free_shipping'=>1],$manual,['country'=>'US','state'=>'PW']),'boolean wrapper excludes unsupported destination');
 destinationSame(true,ShippingRules::productQualifiesForFreeShipping(['free_shipping'=>1],$manual,['country'=>'US','state'=>'OR']),'boolean wrapper retains eligible destination');
+$outlyingZipCodes = ['00601', '00802', '00901', '09012', '09801', '09901', '34002', '96201', '96691',
+    '96799', '96813', '96910', '99501', '99801', '99901', '  99501-1234  ', '995011234', 99501];
+foreach ($outlyingZipCodes as $zip) {
+    $address = ['country' => 'US', 'state' => 'OR', 'zip' => $zip];
+    destinationSame(false, destinationEligible($address, (string)$zip), "$zip outside contiguous destinations");
+    destinationSame('', ShippingRules::getFreeShippingReason(['free_shipping' => 1], $manual, $address), "$zip no manual grant");
+    destinationSame('', ShippingRules::getFreeShippingReason(['weight' => 1], $automatic, $address), "$zip no automatic grant");
+}
+foreach (['NY' => '00501', 'NJ' => '08901', 'MA' => '01001', 'FL' => '34102', 'DC' => '20001',
+          'CA' => '96150', 'OR' => '97201-1234', 'WA' => '99403'] as $state => $zip) {
+    destinationSame(true, destinationEligible(['country' => 'U.S.', 'state' => $state, 'zip' => $zip], $zip), "$zip remains eligible");
+}
+foreach (['', null, [], '00000'] as $zip) {
+    destinationSame(true, destinationEligible(['country' => 'US', 'state' => 'OR', 'zip' => $zip], 'no definite ZIP'),
+        'state fallback for undetermined ZIP remains available');
+}
+destinationSame(false, destinationEligible(['country' => 'US', 'state' => 'AK', 'zip' => '97201'], 'Alaska-state'),
+    'contiguous ZIP cannot grant eligibility to an excluded state');
 $rate=ShippingRules::freeShippingRate(['item_count'=>3]);
 destinationSame(0.0,$rate['total_charge'],'free rate value unchanged');
 destinationSame(3,$rate['free_shipping_item_count'],'free rate quantity unchanged');

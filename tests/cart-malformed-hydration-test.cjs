@@ -8,9 +8,9 @@ const manifest=JSON.parse(fs.readFileSync(path.join(root,'tests/keyboard-browser
 const before=zlib.gunzipSync(Buffer.from(manifest.files['public/js/main.js'].baseline_gzip_b64,'base64')).toString('utf8');assert.equal(digest(before),'3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2');
 const capBlock="                const cappedQuantity = Number(stockLimit);\n                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {\n                    return;\n                }\n                item.quantity = cappedQuantity;";assert.equal(source.split(capBlock).length,2);const guardOnly=source.replace(capBlock,'                item.quantity = stockLimit;');assert.equal(digest(guardOnly),'f2a8bb3dc24e98bedf2eeb1cbadcf27f58ff5ab946e80afdc4b974317f969458');
 const sources={baseline:before,candidate:source,'hydration-only':guardOnly};
-const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'e3c6f6ee0b91ed5c849ef38bb314abbcdb69cbfef5bcb70bdb58c124495f3d60');
-const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'9e3cadeef6c560aa8238e4aebba0b62235966e95b44f90ce2b366a9788d1253a');
-const shippingSource=fs.readFileSync(path.join(root,'public/js/shipping-estimator.js'),'utf8');assert.equal(digest(shippingSource),'246cf147b1e467abc143ce00c963b44396428684bb20b67f688aa59628093156');
+const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'25a6ab74534ce92ddceeb49343024c845f4f940c9322a9be46a00f51aea888fd');
+const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'80f5360e95143fc8f60cad429614211bdbdf4f9f530a2c563404387ee87c1662');
+const shippingSource=fs.readFileSync(path.join(root,'public/js/shipping-estimator.js'),'utf8');assert.equal(digest(shippingSource),'d8ec6212b70eeed09692f08b55fbb9e0c6c74c7c06a63f438903c503da8a6884');
 let malformedReport,stockReport;
 const seed=[{id:'1',name:'Synthetic <part>',sku:'SYN',price:10,quantity:2,stock:5,custom:{retain:true}},{id:'2',name:'Other',price:7,quantity:1,stock:8}];
 function fixture(variant,mode,ready='loading',raw=JSON.stringify(seed)){
