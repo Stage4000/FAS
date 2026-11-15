@@ -37,6 +37,8 @@ COMPATIBILITY = {
     MANIFEST: 'A',
     INVENTORY: 'A',
     'tests/manuals/browser/fullsite-pins.json': 'A',
+    'tests/manuals/browser/prepare-fullsite.py': 'A',
+    'tests/manuals/browser/fullsite-check.cjs': 'A',
     'tests/manuals/browser/reviewed_repository.py': 'A',
     'tests/manuals/browser/repository-compatibility-test.py': 'A',
     'docs/manuals-whole-repository-gates.md': 'A',

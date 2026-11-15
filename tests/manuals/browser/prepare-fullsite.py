@@ -21,7 +21,7 @@ def fullsite(out,php):
  text=text.replace(needle,"'/admin/manuals.php'=>'/admin/manuals.php','/admin/manuals-edit.php'=>'/admin/manuals-edit.php',"+needle)
  # Exact local CSS/presentation-JS assets only. Business JS is blocked by browser;
  # its bytes are copied solely for unmodified footer filemtime calls.
- allowed=['/gallery/hero-image.png','/gallery/favicons/favicon.png','/public/css/style.css','/admin/css/admin-style.css','/admin/css/admin-notifications.css','/public/js/theme-toggle.js','/public/js/runtime-guard.js','/public/js/timezone.js','/public/js/animations.js','/public/js/manual-editor.js']
+ allowed=['/public/images/navbar-logo.png','/gallery/hero-image.png','/gallery/favicons/favicon.png','/public/css/style.css','/admin/css/admin-style.css','/admin/css/admin-notifications.css','/public/js/theme-toggle.js','/public/js/runtime-guard.js','/public/js/timezone.js','/public/js/animations.js','/public/js/manual-editor.js']
  text=text.replace("$static=['/public/css/manuals.css'",'$static='+repr(allowed)[:-1]+",'/public/css/manuals.css'")
  text=text.replace("!str_starts_with($file,$site.'/public/')","!(str_starts_with($file,$site.'/public/')||str_starts_with($file,$site.'/admin/css/')||str_starts_with($file,$site.'/gallery/'))")
  text=text.replace("$mime=[", "$mime=['png'=>'image/png',")

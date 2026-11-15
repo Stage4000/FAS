@@ -71,6 +71,7 @@ jobs:
             /public/js/theme-toggle.js
             /gallery/favicons/favicon.png
             /gallery/hero-image.png
+            /public/images/navbar-logo.png
             /manuals/
             /public/css/manuals.css
             /public/js/manual-editor.js
