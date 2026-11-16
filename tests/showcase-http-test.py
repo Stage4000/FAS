@@ -76,11 +76,13 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
             return response.status, result, response.headers
 
     with (temp / 'server.log').open('wb') as log:
+        # Xdebug develop segfaults on the native startup overflow warning in
+        # affected runtimes. Disable instrumentation, never PHP size validation.
         def start_server(listen_port, post_limit):
             return subprocess.Popen([PHP, '-d', 'file_uploads=1', '-d', 'upload_max_filesize=6M', '-d', 'post_max_size='+post_limit,
-                '-d', 'display_errors=0', '-d', 'log_errors=1', '-d', f'upload_tmp_dir={temp}', '-d', f'session.save_path={temp}',
+                '-d', 'xdebug.mode=off', '-d', 'display_errors=0', '-d', 'log_errors=1', '-d', f'upload_tmp_dir={temp}', '-d', f'session.save_path={temp}',
                 '-S', f'127.0.0.1:{listen_port}', str(ROOT / 'tests/showcase-http-router.php')],
-                cwd=temp, env=env, stdout=log, stderr=log, creationflags=flags)
+                cwd=temp, env=dict(env, XDEBUG_MODE='off'), stdout=log, stderr=log, creationflags=flags)
         server = start_server(port, '7M')
         try:
             deadline = time.monotonic() + 10
@@ -173,6 +175,7 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
             exact = png + b'\0' * (6 * 1024 * 1024 - len(png))
             check(submit(image=exact)[0] == 200, 'Exact 6 MiB input accepted and normalized')
             check(submit(image=exact + b'x')[0] == 400, 'PHP upload-size error rejected')
+            check(submit(image=b'x' * (7 * 1024 * 1024 + 1))[0] == 400, 'Original full-size native POST overflow rejected')
             # Exercise native post_max_size rejection without relying on delivery of a
             # multi-megabyte body after PHP has already rejected it. Keep the separate
             # exact 6MiB and +1 file-limit checks above; disconnect is never acceptance.
@@ -202,7 +205,7 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
             print((temp / 'server.log').read_text(errors='replace')[-3000:], flush=True)
             if 'overflow' in locals(): print('overflow process exit:', overflow.returncode, flush=True)
             diagnostic = subprocess.run([PHP,'-r', 'echo json_encode(["extensions"=>get_loaded_extensions(),"opcache_cli"=>ini_get("opcache.enable_cli"),"xdebug_mode"=>ini_get("xdebug.mode"),"upload_progress"=>ini_get("session.upload_progress.enabled"),"post_reading"=>ini_get("enable_post_data_reading")]);'],capture_output=True,text=True)
-            print('native runtime settings:',diagnostic.stdout,flush=True)
+            print('CLI defaults (fixture servers force Xdebug off):',diagnostic.stdout,flush=True)
             raise
         finally:
             server.terminate()
