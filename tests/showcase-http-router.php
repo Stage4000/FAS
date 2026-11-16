@@ -13,6 +13,10 @@ use FAS\Showcase\ShowcaseViews;
 session_start();
 header('Cache-Control: private, no-store'); header('X-Content-Type-Options: nosniff');
 header('Content-Type: application/json; charset=utf-8');
+// Keyed synthetic diagnostic only; never part of an application route.
+header('X-Showcase-Post-Limit: ' . ini_get('post_max_size'));
+header('X-Showcase-Request-Length: ' . ($_SERVER['CONTENT_LENGTH'] ?? '0'));
+header('X-Showcase-Empty-Native: ' . ($_POST === [] && $_FILES === [] ? '1' : '0'));
 $db = new PDO('sqlite:' . getenv('FAS_SHOWCASE_FIXTURE_DB'), null, null, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $db->exec('PRAGMA foreign_keys=ON');
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

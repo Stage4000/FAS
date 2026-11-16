@@ -117,7 +117,7 @@ def main():
     b99 = dict(policy['main'], **g.entries_map(inventory['additions']))
     check('legacy keyboard rejects exact 309 manuals additions', lambda: h['verify_tree'](base, b99, candidate), False)
     check('keyboard accepts only verified exact overlay', lambda: h['verify_tree'](base, policy['expected'], candidate, policy['overlay']))
-    for rel in [e['path'] for e in inventory['additions']] + list(g.HISTORICAL_MAIN) + ['admin/products.php', 'includes/header.php']:
+    for rel in [e['path'] for e in inventory['additions']] + list(g.SHOWCASE_ADDITIONS) + list(g.HISTORICAL_MAIN) + ['admin/products.php', 'includes/header.php']:
         for kind in ['modified', 'missing', 'mode', 'type']:
             tree = copy.deepcopy(policy['expected'])
             if kind == 'modified': tree[rel]['sha'] = '1'*40
@@ -266,7 +266,26 @@ def main():
         mutate_policy(g.MANIFEST, lambda x:x['source_blobs'].update({'unreviewed':'1'*40}))
         mutate_policy(g.MANIFEST, lambda x:x['source_blobs'].pop('manuals/index.php'))
         mutate_policy(g.MANIFEST, lambda x:x.update(scope='widened'))
+        for rel in g.SHOWCASE_ADDITIONS:
+            mutate_policy(g.MANIFEST, lambda x,p=rel:x['source_blobs'].update({p:'1'*40}))
+            mutate_policy(g.MANIFEST, lambda x,p=rel:x['source_blobs'].pop(p))
+            mutate_policy(g.MANIFEST, lambda x,p=rel:x['allowed_changes'].update({p:'M'}))
         check('exact sparse candidate restored',lambda:g.verify_checkout(repo.root))
+        # Every new path is exact even when materialized or Git hides dirty bytes.
+        for rel in g.SHOWCASE_ADDITIONS:
+            target=repo.root/rel;target.parent.mkdir(parents=True,exist_ok=True)
+            data=(ROOT/rel).read_bytes();target.write_bytes(data)
+            repo.git('hash-object','-w','--',rel);repo.git('update-index','--no-skip-worktree','--',rel)
+            check('materialized exact showcase '+rel,lambda:g.verify_checkout(repo.root))
+            for flag in ['--assume-unchanged','--skip-worktree']:
+                repo.git('update-index',flag,'--',rel);target.write_bytes(data+b'changed')
+                check('reject hidden showcase edit '+flag+' '+rel,lambda:g.verify_checkout(repo.root),False)
+                target.write_bytes(data);repo.git('update-index','--no-assume-unchanged','--',rel)
+                repo.git('update-index','--no-skip-worktree','--',rel)
+            target.unlink()
+            check('reject absent nonsparse showcase '+rel,lambda:g.verify_checkout(repo.root),False)
+            repo.git('update-index','--skip-worktree','--',rel)
+        check('all showcase sparse exclusions remain exact',lambda:g.verify_checkout(repo.root))
         # Git's own path-pattern matcher exercises the actual non-cone sparse
         # rules. Positive matches here mean included paths in sparse-checkout.
         for workflow in ['admin-product-acceptance','keyboard-browser','manual-reader-browser']:
@@ -277,6 +296,7 @@ def main():
             patterns=[x.strip() for x in lines[start:end]]
             (repo.root/'.git/info/exclude').write_text('\n'.join(patterns)+'\n')
             required=set(g.COMPATIBILITY)|{'public/css/style.css'}
+            if workflow == 'manual-reader-browser': required.update(g.SHOWCASE_ADDITIONS)
             raw=repo.git('check-ignore','--no-index','-z','--stdin',data=b''.join(p.encode()+b'\0' for p in sorted(required)))
             assert set(raw.decode().split('\0')[:-1])==required,workflow+' sparse dependencies missing'
             check('actual sparse patterns include every policy dependency '+workflow,lambda:None)
@@ -304,3 +324,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

@@ -11,6 +11,16 @@ use FAS\Showcase\ShowcaseRepository;
 
 const SR_TEXT = 'Synthetic reviewed photo permission. Test fixture only.';
 $srChecks = 0;
+function srSqlTransactionActive(PDO $db): bool
+{
+    try { $db->exec('BEGIN DEFERRED'); }
+    catch (PDOException $error) {
+        if (strpos($error->getMessage(), 'cannot start a transaction within a transaction') === false) throw $error;
+        return true;
+    }
+    $db->exec('ROLLBACK');
+    return false;
+}
 function srCheck(bool $ok, string $message): void {
     global $srChecks;
     if (!$ok) { throw new RuntimeException($message); }
@@ -116,7 +126,7 @@ srCheck(srUsage($db) === ['entries' => 2, 'bytes' => $photoBytes * 2], 'Exact by
 // No private values in callback snapshots; strict true, active authorization required.
 $callbackCalls = [];
 $guarded = srRepo($db, 100, 10000000, static function ($actor,$action,$snapshot) use (&$callbackCalls,$db): bool {
-    $callbackCalls[] = [$actor,$action,$snapshot,$db->inTransaction()]; return $actor === 7;
+    $callbackCalls[] = [$actor,$action,$snapshot,srSqlTransactionActive($db)]; return $actor === 7;
 });
 srReject(static function () use ($guarded,$first): void { $guarded->readForModeration($first['id'],8); }, RuntimeException::class, 'Unauthorized review');
 srReject(static function () use ($repo,$first,$review): void { $repo->moderate($first['id'],8,1,$review['photo_sha256'],$review['consent_text_sha256'],'approved','review'); }, RuntimeException::class, 'Unauthorized decision');
@@ -169,7 +179,7 @@ $db->exec('CREATE UNIQUE INDEX synthetic_unique_email ON showcase_submissions(co
 $failedVersion = srSubmission([], 'failure-v1');
 $repo->accept($failedVersion,SR_TEXT,srKey('failure-setup'));
 srReject(static function () use ($repo,$failedVersion): void { $repo->accept($failedVersion,SR_TEXT,srKey('failure-insert')); }, PDOException::class, 'Insertion failure is atomic');
-srCheck(!$db->inTransaction(), 'Failed insertion releases owned transaction');
+srCheck(!srSqlTransactionActive($db), 'Failed insertion releases owned transaction');
 // Independent synthetic database to force failure after archiving a new version.
 $atomicDb = srDb(); ShowcaseRepository::initializeSchema($atomicDb); $atomicRepo = srRepo($atomicDb);
 $atomicFirst = $atomicRepo->accept($submission, SR_TEXT, srKey('atomic-first'));
@@ -184,18 +194,37 @@ srCheck($afterAuditFailure['status'] === 'approved' && $afterAuditFailure['versi
 srCheck((int)$atomicDb->query('SELECT COUNT(*) FROM showcase_moderation_audit')->fetchColumn() === 1, 'No partial duplicate audit');
 $thrower = srRepo($atomicDb,100,10000000,static function (): bool { throw new RuntimeException('Authorization lookup unavailable'); });
 srReject(static function () use ($thrower,$atomicFirst,$review): void { $thrower->moderate($atomicFirst['id'],7,2,$review['photo_sha256'],$review['consent_text_sha256'],'withdrawn','reason'); }, RuntimeException::class, 'Throwing authorization fails closed');
-srCheck(!$atomicDb->inTransaction(), 'Authorization exception rolls back acquired transaction');
+srCheck(!srSqlTransactionActive($atomicDb), 'Authorization exception rolls back acquired transaction');
 srCheck($atomicRepo->readForModeration($atomicFirst['id'],7)['status'] === 'approved', 'Authorization error preserves state');
 
 // Caller-owned transactions must never be committed or rolled back.
-foreach (['pdo','sql'] as $start) {
-    if ($start === 'pdo') { $db->beginTransaction(); } else { $db->exec('BEGIN IMMEDIATE'); }
+foreach (['pdo','sql','deferred','plain'] as $start) {
+    if ($start === 'pdo') { $db->beginTransaction(); } else { $db->exec($start === 'sql' ? 'BEGIN IMMEDIATE' : ($start === 'deferred' ? 'BEGIN DEFERRED' : 'BEGIN')); }
     $db->exec('CREATE TABLE caller_owned_test(value INTEGER)');
     $db->exec('INSERT INTO caller_owned_test VALUES(42)');
     srReject(static function () use ($repo,$submission): void { $repo->accept($submission,SR_TEXT,srKey('ambient')); }, LogicException::class, 'Ambient transaction rejected');
     srReject(static function () use ($db): void { ShowcaseRepository::initializeSchema($db); }, LogicException::class, 'Initialization rejects ambient transaction');
-    srCheck($db->inTransaction() && (int)$db->query('SELECT value FROM caller_owned_test')->fetchColumn() === 42, 'Caller transaction untouched');
+    srCheck(srSqlTransactionActive($db) && (int)$db->query('SELECT value FROM caller_owned_test')->fetchColumn() === 42, 'Caller transaction untouched');
     $db->exec('ROLLBACK');
+}
+
+// Failed ownership probes must never release a caller transaction or proceed.
+class SRProbePDO extends PDO {
+    public $fail = ''; public $rollbacks = 0;
+    #[\ReturnTypeWillChange]
+    public function exec($sql) {
+        if ($sql === 'ROLLBACK') ++$this->rollbacks;
+        if ($sql === $this->fail) throw new RuntimeException('synthetic probe failure');
+        return parent::exec($sql);
+    }
+}
+foreach (['BEGIN DEFERRED','ROLLBACK'] as $failure) {
+    $probe = new SRProbePDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+    $probe->exec('PRAGMA foreign_keys=ON');$probe->fail=$failure;
+    srReject(static function () use ($probe): void { ShowcaseRepository::initializeSchema($probe); }, $failure === 'BEGIN DEFERRED' ? LogicException::class : RuntimeException::class, 'Probe errors reject initialization');
+    srCheck($probe->rollbacks === ($failure === 'BEGIN DEFERRED' ? 0 : 1), 'Only a successful owned probe attempts rollback');
+    srCheck((int)$probe->query("SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'showcase_%'")->fetchColumn() === 0, 'Failed probe creates no schema');
+    $probe->fail=''; if (srSqlTransactionActive($probe)) $probe->exec('ROLLBACK');
 }
 
 // Incompatible connection settings are rejected explicitly without changing them.
@@ -297,14 +326,14 @@ try {
     $fileDb->exec('BEGIN IMMEDIATE');
     $fileDb->exec('CREATE TABLE caller_lock_marker(value INTEGER)');
     srReject(static function () use ($otherRepo,$submission): void { $otherRepo->accept($submission,SR_TEXT,srKey('lock')); }, PDOException::class, 'Contended BEGIN fails safely');
-    srCheck($fileDb->inTransaction() && !$otherDb->inTransaction(), 'Failed BEGIN never rolls back another writer');
+    srCheck(srSqlTransactionActive($fileDb) && !srSqlTransactionActive($otherDb), 'Failed BEGIN never rolls back another writer');
     $fileDb->exec('ROLLBACK');
     // A reader permits BEGIN IMMEDIATE and writes, but blocks COMMIT in DELETE mode.
     $fileDb->exec('BEGIN');
     $fileDb->query('SELECT COUNT(*) FROM showcase_submissions')->fetchColumn();
     $commitSubmission = srSubmission([], 'commit-failure-v1');
     srReject(static function () use ($otherRepo,$commitSubmission): void { $otherRepo->accept($commitSubmission,SR_TEXT,srKey('commit-busy')); }, PDOException::class, 'Busy COMMIT rolls back accepted data and consent');
-    srCheck(!$otherDb->inTransaction() && $fileDb->inTransaction(), 'Failed commit releases only owned writer transaction');
+    srCheck(!srSqlTransactionActive($otherDb) && srSqlTransactionActive($fileDb), 'Failed commit releases only owned writer transaction');
     srCheck((int)$otherDb->query("SELECT COUNT(*) FROM showcase_consent_versions WHERE version='commit-failure-v1'")->fetchColumn() === 0 && srUsage($otherDb)['entries'] === 1, 'Busy commit leaves no partial data');
     $fileDb->exec('ROLLBACK');
     $retryAfterCommit = $otherRepo->accept($commitSubmission,SR_TEXT,srKey('commit-busy'));
@@ -312,7 +341,7 @@ try {
     $otherRepo = null; $otherDb = null;
 } finally {
     foreach ($processes as $process) { if (is_resource($process)) { proc_terminate($process); proc_close($process); } }
-    if ($fileDb instanceof PDO && $fileDb->inTransaction()) { $fileDb->exec('ROLLBACK'); }
+    if ($fileDb instanceof PDO && srSqlTransactionActive($fileDb)) { $fileDb->exec('ROLLBACK'); }
     $otherRepo = null; $otherDb = null;
     $fileDb = null;
     foreach ($temporary as $path) { if (is_file($path)) { unlink($path); } }

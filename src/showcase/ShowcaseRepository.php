@@ -381,6 +381,15 @@ final class ShowcaseRepository
         if ($db->inTransaction()) {
             throw new \LogicException('Showcase operations require ownership of their transaction.');
         }
+        // Older PDO_SQLite does not report SQL-started transactions. A nested
+        // BEGIN fails without changing the caller's transaction. Never roll it back.
+        try {
+            $db->exec('BEGIN DEFERRED');
+        } catch (\Throwable $error) {
+            throw new \LogicException('Cannot establish exclusive transaction ownership.', 0, $error);
+        }
+        // Only the successful empty probe belongs to this operation.
+        $db->exec('ROLLBACK');
         $journal = strtolower((string)$db->query('PRAGMA main.journal_mode')->fetchColumn());
         $persistent = false;
         foreach ($db->query('PRAGMA database_list')->fetchAll(\PDO::FETCH_ASSOC) as $database) {

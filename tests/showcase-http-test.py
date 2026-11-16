@@ -76,10 +76,12 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
             return response.status, result, response.headers
 
     with (temp / 'server.log').open('wb') as log:
-        server = subprocess.Popen([PHP, '-d', 'file_uploads=1', '-d', 'upload_max_filesize=6M', '-d', 'post_max_size=7M',
-            '-d', 'display_errors=0', '-d', 'log_errors=1', '-d', f'upload_tmp_dir={temp}', '-d', f'session.save_path={temp}',
-            '-S', f'127.0.0.1:{port}', str(ROOT / 'tests/showcase-http-router.php')],
-            cwd=temp, env=env, stdout=log, stderr=log, creationflags=flags)
+        def start_server(listen_port, post_limit):
+            return subprocess.Popen([PHP, '-d', 'file_uploads=1', '-d', 'upload_max_filesize=6M', '-d', 'post_max_size='+post_limit,
+                '-d', 'display_errors=0', '-d', 'log_errors=1', '-d', f'upload_tmp_dir={temp}', '-d', f'session.save_path={temp}',
+                '-S', f'127.0.0.1:{listen_port}', str(ROOT / 'tests/showcase-http-router.php')],
+                cwd=temp, env=env, stdout=log, stderr=log, creationflags=flags)
+        server = start_server(port, '7M')
         try:
             deadline = time.monotonic() + 10
             while True:
@@ -171,7 +173,27 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
             exact = png + b'\0' * (6 * 1024 * 1024 - len(png))
             check(submit(image=exact)[0] == 200, 'Exact 6 MiB input accepted and normalized')
             check(submit(image=exact + b'x')[0] == 400, 'PHP upload-size error rejected')
-            check(submit(image=b'x' * (7 * 1024 * 1024 + 1))[0] == 400, 'POST overflow fails closed even when PHP empties arrays')
+            # Exercise native post_max_size rejection without relying on delivery of a
+            # multi-megabyte body after PHP has already rejected it. Keep the separate
+            # exact 6MiB and +1 file-limit checks above; disconnect is never acceptance.
+            with socket.socket() as reserve:
+                reserve.bind(('127.0.0.1', 0)); overflow_port = reserve.getsockname()[1]
+            overflow = start_server(overflow_port, '1K'); original_base = base
+            try:
+                base = f'http://127.0.0.1:{overflow_port}'
+                deadline = time.monotonic() + 10
+                while True:
+                    try: call('/fixture/counts'); break
+                    except (OSError, urllib.error.URLError):
+                        if overflow.poll() is not None or time.monotonic() >= deadline: raise
+                        time.sleep(.03)
+                overflow_result = submit(image=png + b'\0' * 2048)
+                check(overflow_result[0] == 400, 'POST overflow fails closed even when PHP empties arrays')
+                check(overflow_result[2]['X-Showcase-Post-Limit'] == '1K', 'Dedicated native POST ceiling is effective')
+                check(int(overflow_result[2]['X-Showcase-Request-Length']) > 1024, 'Actual multipart request exceeds native POST ceiling')
+                check(overflow_result[2]['X-Showcase-Empty-Native'] == '1', 'PHP actually emptied both native POST and FILES')
+            finally:
+                base = original_base; overflow.terminate(); overflow.wait(timeout=5)
             check(call('/fixture/counts')[1] == {'submissions':2,'audit':2}, 'Final storage contains only intended records')
             print(f'Showcase real HTTP: {checks} assertions passed.')
         finally:
