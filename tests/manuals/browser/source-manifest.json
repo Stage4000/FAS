@@ -348,7 +348,7 @@
     ".github/workflows/admin-product-acceptance.yml": "3097874d01c6ab7aba1626684d6142171217a263",
     ".github/workflows/keyboard-browser.yml": "05a1633cae9e8156d71c0b82f3dcc8a209489584",
     "tests/admin-product-browser/run.py": "1b744048bc19ac98cbcbcdd03bcebae5f7dfef32",
-    "tests/keyboard-browser/heading_runner.py": "8bede5049ac200c8c8aae703631324d041387892",
+    "tests/keyboard-browser/heading_runner.py": "b67064c9f3e9b117e0e7fb98d9cb972a0b039447",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
     "tests/manuals/browser/reviewed-repository.json": "2e8387efb83c4b12d78a31fe694dd57288bdeee8",
     "tests/manuals/browser/reviewed_repository.py": "be34d631334117d27ef5e10280d7a04d3b80658e",
