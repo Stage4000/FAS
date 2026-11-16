@@ -65,7 +65,11 @@ with tempfile.TemporaryDirectory(prefix='showcase-admin-browser-') as d:
    check(duplicate.status==409,'stale/repeated snapshot rejected')
    page.reload();check(page.locator('ol li').count()==1,'duplicate did not write')
    # Back/forward after state change must expose fresh review, not stale choices.
-   page.go_back(wait_until='commit');page.go_forward(wait_until='commit');page.reload()
+   page.go_back(wait_until='commit')
+   page.wait_for_function("document.readyState==='complete' && document.querySelector('script[data-showcase-history-guard]')!==null")
+   page.go_forward(wait_until='commit')
+   page.wait_for_function("document.readyState==='complete' && document.querySelector('script[data-showcase-history-guard]')!==null")
+   page.reload()
    check(page.get_by_role('button',name='Approve',exact=True).count()==0,'history returns current state')
    page.get_by_label('Reason for this decision (required)').fill('Browser withdrawal')
    page.get_by_role('button',name='Withdraw',exact=True).click();page.wait_for_url('**/admin/detail.php?id='+id)

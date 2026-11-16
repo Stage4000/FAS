@@ -199,7 +199,10 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
         except BaseException:
             log.flush()
             print('Native PHP fixture diagnostic (synthetic loopback only):', flush=True)
-            print((temp / 'server.log').read_text(errors='replace')[-5000:], flush=True)
+            print((temp / 'server.log').read_text(errors='replace')[-3000:], flush=True)
+            if 'overflow' in locals(): print('overflow process exit:', overflow.returncode, flush=True)
+            diagnostic = subprocess.run([PHP,'-r', 'echo json_encode(["extensions"=>get_loaded_extensions(),"opcache_cli"=>ini_get("opcache.enable_cli"),"xdebug_mode"=>ini_get("xdebug.mode"),"upload_progress"=>ini_get("session.upload_progress.enabled"),"post_reading"=>ini_get("enable_post_data_reading")]);'],capture_output=True,text=True)
+            print('native runtime settings:',diagnostic.stdout,flush=True)
             raise
         finally:
             server.terminate()
