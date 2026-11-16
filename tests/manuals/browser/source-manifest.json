@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "632c6591c29e14e87b01cf7cce5f5d2bcac2d91f",
+    ".github/workflows/manual-reader-browser.yml": "7d8eb18500a78f265b459135c681b76782e820b5",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -345,18 +345,25 @@
     "tests/manuals/reader-load-control-test.cjs": "0ca1ed4c61a38e1418c6e84b865105cebef6c397",
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
     "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
-    ".github/workflows/admin-product-acceptance.yml": "f915f285a1e97c729c7de6967c1034d795ff6c35",
-    ".github/workflows/keyboard-browser.yml": "ffb4590c0651e25cf5a5eae85bbb818bc7205496",
+    ".github/workflows/admin-product-acceptance.yml": "3097874d01c6ab7aba1626684d6142171217a263",
+    ".github/workflows/keyboard-browser.yml": "05a1633cae9e8156d71c0b82f3dcc8a209489584",
     "tests/admin-product-browser/run.py": "1b744048bc19ac98cbcbcdd03bcebae5f7dfef32",
-    "tests/keyboard-browser/heading_runner.py": "8bede5049ac200c8c8aae703631324d041387892",
+    "tests/keyboard-browser/heading_runner.py": "b67064c9f3e9b117e0e7fb98d9cb972a0b039447",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
     "tests/manuals/browser/reviewed-repository.json": "2e8387efb83c4b12d78a31fe694dd57288bdeee8",
-    "tests/manuals/browser/reviewed_repository.py": "84132d47d75b65035f34434edd99e2eced1d6bfe",
+    "tests/manuals/browser/reviewed_repository.py": "be34d631334117d27ef5e10280d7a04d3b80658e",
     "tests/manuals/browser/repository-compatibility-test.py": "a41c7ab9d0f1b598a1eabd9aaa8eb45800f11f4b",
-    "docs/manuals-whole-repository-gates.md": "ec642d320a2305f9ace379cf2e055871371facc6",
+    "docs/manuals-whole-repository-gates.md": "19a0a0185b79871f6c41d16adabbf3b5917111b4",
     "docs/manuals-motion-interruption.md": "2870ab5ca6b46465c43a32c5993285e90d03cf7a",
     "docs/manuals-resize-navigation.md": "52fe8c05c36c1e7f5fc03e5878727514cd82db55",
-    "tests/admin-product-browser/guard-test.py": "2d2a87d91b7da36c51ecb8e9a9109dc7f7bb8248"
+    "tests/admin-product-browser/guard-test.py": "2d2a87d91b7da36c51ecb8e9a9109dc7f7bb8248",
+    "src/marketing/Growth.php": "11b42ad23954ae8033b5e855776cb6f04c7b0e59",
+    "tests/growth-generation-test.py": "4088a45990f41d365d94d0879c17acbd861e08fa",
+    "tests/fixtures/growth-generation/race.php": "3b28a8278a28753128f56756055d3bad65fcdcfc",
+    "tests/fixtures/growth-generation/same-second.php": "be441d68094a89ec88c5a3ea16dd8a01f995252d",
+    "tests/fixtures/growth-generation/payload.php": "0519c31dbd437e5502969d3d5c0716209aaaba9e",
+    "tests/fixtures/growth-generation/legacy.php": "b1b34a8241082c6660b2e1c0fb4063e8e779d5fd",
+    "tests/fixtures/growth-generation/tokens.php": "8d314d07e0ffbfca1e80b1833862796cc88fb58d"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -847,6 +854,13 @@
     "tests/keyboard-browser/shipping-identity-test.py": "A",
     "tests/keyboard-browser/shipping_identity.py": "A",
     "tests/keyboard-browser/storage-unavailable.cjs": "M",
-    "tests/keyboard-browser/storage_identity.py": "M"
+    "tests/keyboard-browser/storage_identity.py": "M",
+    "src/marketing/Growth.php": "M",
+    "tests/growth-generation-test.py": "A",
+    "tests/fixtures/growth-generation/race.php": "A",
+    "tests/fixtures/growth-generation/same-second.php": "A",
+    "tests/fixtures/growth-generation/payload.php": "A",
+    "tests/fixtures/growth-generation/legacy.php": "A",
+    "tests/fixtures/growth-generation/tokens.php": "A"
   }
 }

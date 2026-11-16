@@ -172,7 +172,7 @@ final class Growth
                 [$hash,$email,json_encode($minimal),$sendNow?self::CART_CONSENT:self::REMINDER_CONSENT,$now,$now,$now+1209600,self::hash($restore),self::hash($unsub),$now+86400,$floor,json_encode($payload)]);
             $id=(int)$this->run('SELECT id FROM growth_carts WHERE owner_hash=?',[$hash])->fetchColumn();
             if($sendNow)$this->queue('cart:'.$id.':'.intdiv($now,86400),$email,'cart_link',$payload,$id);
-            $this->queue('reminder:'.$id.':'.$now,$email,'cart_reminder',$payload,$id);
+            $this->queue('reminder:'.$id.':'.self::hash($restore),$email,'cart_reminder',$payload,$id);
             $this->run("UPDATE growth_messages SET due=? WHERE cart_id=? AND kind='cart_reminder' AND status='queued'",[$now+86400,$id]);
         });
     }
@@ -218,6 +218,12 @@ final class Growth
         if($this->run('SELECT status FROM growth_contacts WHERE email=?',[$m['email']])->fetchColumn()==='unsubscribed')return false;
         $cart=$this->run('SELECT * FROM growth_carts WHERE id=?',[$m['cart_id']])->fetch();
         if(!$cart || $cart['status']!=='open' || $cart['expires']<=$this->now())return false;
+        // A claimed message must still belong to this exact recipient/cart generation.
+        $payload=json_decode($m['payload'],true);
+        if($m['email']!==$cart['email'] || !is_array($payload)
+            || !is_string($payload['restore']??null) || !is_string($payload['unsubscribe']??null)
+            || !hash_equals($cart['restore_hash'],self::hash($payload['restore']))
+            || !hash_equals($cart['unsubscribe_hash'],self::hash($payload['unsubscribe'])))return false;
         if($this->purchaseState($cart)!=='open' || !$this->catalog(json_decode($cart['items'],true)))return false;
         if($m['kind']==='cart_reminder' && $cart['reminder_due']>$this->now()) {
             $this->run("UPDATE growth_messages SET status='queued',due=?,claimed_at=NULL WHERE id=?",[$cart['reminder_due'],$m['id']]);
