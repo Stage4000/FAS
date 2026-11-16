@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'tests/growth-generation-test.py'
+      - 'tests/fixtures/growth-generation/**'
       - '*.php'
       - 'src/**'
       - 'includes/**'
@@ -31,6 +33,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'tests/growth-generation-test.py'
+      - 'tests/fixtures/growth-generation/**'
       - '*.php'
       - 'src/**'
       - 'includes/**'
@@ -68,6 +72,13 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /src/marketing/Growth.php
+            /tests/growth-generation-test.py
+            /tests/fixtures/growth-generation/race.php
+            /tests/fixtures/growth-generation/same-second.php
+            /tests/fixtures/growth-generation/payload.php
+            /tests/fixtures/growth-generation/legacy.php
+            /tests/fixtures/growth-generation/tokens.php
             /*.php
             /src/
             !/src/config/config*.php

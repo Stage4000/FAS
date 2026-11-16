@@ -111,3 +111,16 @@ must rerun on the exact integrated head; older green results do not accept it.
 Source integration does not authorize deployment, production migration, live
 intake, hosting-access retries or public activation. Technical capacity, private
 storage/CSP and backup/rollback safeguards remain.
+
+## November 16 reminder generation reconciliation
+
+The finite compatibility map adds exactly Growth.php and six synthetic test files.
+The original historical inventories, pins and normalizers remain unchanged.
+Growth.php retains current-main pricing; only reminder dedupe and recipient/token
+validity before deferral/quota change. The five PHP harnesses use disposable
+SQLite and collecting senders, with no provider calls. The portable discovered
+regression runs all five with external PHP transport functions disabled.
+
+This source change does not close the final eligibility-to-transport window or
+hold locks across transport. Legacy timestamp messages need no migration.
+Exact-head hosted checks and production acceptance remain separate gates.

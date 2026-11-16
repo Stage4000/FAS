@@ -28,6 +28,14 @@ MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
 COMPATIBILITY = {
+    # Exact reminder generation runtime and disposable regression overlay.
+    'src/marketing/Growth.php': 'M',
+    'tests/growth-generation-test.py': 'A',
+    'tests/fixtures/growth-generation/race.php': 'A',
+    'tests/fixtures/growth-generation/same-second.php': 'A',
+    'tests/fixtures/growth-generation/payload.php': 'A',
+    'tests/fixtures/growth-generation/legacy.php': 'A',
+    'tests/fixtures/growth-generation/tokens.php': 'A',
     '.github/workflows/admin-product-acceptance.yml': 'M',
     '.github/workflows/keyboard-browser.yml': 'M',
     '.github/workflows/manual-reader-browser.yml': 'A',
