@@ -46,6 +46,19 @@ def selected_guard(path, names, functions):
     return namespace
 
 
+def showcase_fixture_bytes(root, rel):
+    g.require(rel in g.SHOWCASE_ADDITIONS, 'Unreviewed disposable source path')
+    source=root/rel
+    if source.exists() or source.is_symlink():
+        data=g.read_regular(root,rel)
+    else:
+        g.require(g.git(root,'ls-files','-t','-z','--',rel)==b'S '+rel.encode()+b'\0',
+                  'Absent disposable source is not a sparse exclusion: '+rel)
+        data=g.git(root,'show','HEAD:'+rel)
+    g.require(g.blob(data)==g.SHOWCASE_ADDITIONS[rel], 'Disposable showcase source differs: '+rel)
+    return data
+
+
 class Repository:
     def __init__(self, base, policy):
         self.root = base / 'repo'; self.root.mkdir()
@@ -271,10 +284,23 @@ def main():
             mutate_policy(g.MANIFEST, lambda x,p=rel:x['source_blobs'].pop(p))
             mutate_policy(g.MANIFEST, lambda x,p=rel:x['allowed_changes'].update({p:'M'}))
         check('exact sparse candidate restored',lambda:g.verify_checkout(repo.root))
+        rel='src/showcase/ShowcasePhoto.php';data=showcase_fixture_bytes(ROOT,rel)
+        repo.git('hash-object','-w','--stdin',data=data)
+        check('exact sparse committed fixture bytes',lambda:showcase_fixture_bytes(repo.root,rel))
+        repo.git('update-index','--no-skip-worktree','--',rel)
+        check('reject missing nonsparse disposable source',lambda:showcase_fixture_bytes(repo.root,rel),False)
+        repo.git('update-index','--skip-worktree','--',rel)
+        target=repo.root/rel;target.parent.mkdir(parents=True,exist_ok=True);target.symlink_to('absent.php')
+        check('reject dangling disposable source',lambda:showcase_fixture_bytes(repo.root,rel),False);target.unlink()
+        target.write_bytes(data+b'changed')
+        check('reject hidden physical disposable drift',lambda:showcase_fixture_bytes(repo.root,rel),False);target.unlink()
+        wrong=copy.deepcopy(policy['expected']);wrong[rel]['sha']=repo.git('hash-object','-w','--stdin',data=data+b'changed').decode().strip()
+        repo.install(wrong)
+        check('reject wrong committed disposable bytes',lambda:showcase_fixture_bytes(repo.root,rel),False);repo.restore()
         # Every new path is exact even when materialized or Git hides dirty bytes.
         for rel in g.SHOWCASE_ADDITIONS:
             target=repo.root/rel;target.parent.mkdir(parents=True,exist_ok=True)
-            data=(ROOT/rel).read_bytes();target.write_bytes(data)
+            data=showcase_fixture_bytes(ROOT,rel);target.write_bytes(data)
             repo.git('hash-object','-w','--',rel);repo.git('update-index','--no-skip-worktree','--',rel)
             check('materialized exact showcase '+rel,lambda:g.verify_checkout(repo.root))
             for flag in ['--assume-unchanged','--skip-worktree']:

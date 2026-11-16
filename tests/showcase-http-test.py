@@ -196,6 +196,11 @@ with tempfile.TemporaryDirectory(prefix='.showcase-http-', dir=ROOT / 'tests') a
                 base = original_base; overflow.terminate(); overflow.wait(timeout=5)
             check(call('/fixture/counts')[1] == {'submissions':2,'audit':2}, 'Final storage contains only intended records')
             print(f'Showcase real HTTP: {checks} assertions passed.')
+        except BaseException:
+            log.flush()
+            print('Native PHP fixture diagnostic (synthetic loopback only):', flush=True)
+            print((temp / 'server.log').read_text(errors='replace')[-5000:], flush=True)
+            raise
         finally:
             server.terminate()
             try:

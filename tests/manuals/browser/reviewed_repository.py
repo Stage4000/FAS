@@ -139,7 +139,7 @@ SHOWCASE_ADDITIONS = {
     "tests/showcase-gallery-guards.py": "8b62f28e863c7699e644d86dde8f490fd59fd75d",
     "tests/showcase-gallery-test.php": "696aeca04b3e934c68d71e9db4d83dcdd533142a",
     "tests/showcase-http-router.php": "3f4e6c5c787a1064210de4187a317702837ac1c2",
-    "tests/showcase-http-test.py": "48d171d893b86bcc52c08617cd6302db7dbb1267",
+    "tests/showcase-http-test.py": "790cc7619bbb02ea72e0bdcb3c83efd9fb0e46e7",
     "tests/showcase-intake-revocation-test.php": "2bc3ca742983319fde5646ff680dd94813b15206",
     "tests/showcase-intake-runtime-test.php": "1054056e8978616fca8d0ff1ce4dc79a7b7b7384",
     "tests/showcase-private-storage-guard.py": "5b7459380f8ae0e57823648833e1a4cb2c2ad092",
