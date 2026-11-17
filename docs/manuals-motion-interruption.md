@@ -122,3 +122,27 @@ early/mid/late forward/back interior desktop, narrow and desktop cover turns.
 Capture success is expressly not visual acceptance: inspect the PNG pixels.
 Geometry/native suites do not establish realism, natural-duration performance,
 real touch hardware, actual manuals compatibility or production readiness.
+
+
+## Continuous face shading and natural observation
+
+The compositor now paints each flat region as one affine image and divides only
+its cylindrical curl into32constant-distance strips. Front and back faces are
+clipped at the shared cylinder crest and shaded once with continuous gradients.
+This aims to remove per-triangle alpha seams and flat-shaded crease facets without an
+additional raster surface, PDF render, texture cache or a larger pixel budget.
+
+Separate official browser contexts observe uninterrupted native190/210ms phases
+on desktop and narrow view, forward and backward, with repeated timing samples.
+They never pause/seek/finish/cancel the observed effects. Bounded rAF records and
+completed-paint mutation observations retain effect timing, phase gaps, scheduling
+interval distributions and painted-progress jumps. A separate pixel-recording pass
+retains actual compositor PNGs and pixel differences; its readback/encoding costs
+are explicit and excluded from the timing-only sample. Settled screenshots are
+captured after motion to review the actual DOM handoff. Browser version, viewport,
+DPR, visibility, reduced-motion state and hardware concurrency are recorded.
+
+These shared hosted headless Chromium observations do not establish display FPS,
+real-device smoothness, total GPU/worker/native memory or universal performance.
+Actual held and natural pixels still require independent review; neither passing
+functional tests nor increasing a timer/threshold substitutes for visual acceptance.

@@ -123,17 +123,20 @@ export function cornerFold(u, v, progress, width, height) {
   const p = Math.max(0, Math.min(1, progress));
   if (p === 0) return {x:u, y:v, shade:0, back:false};
   if (p === 1) return {x:-u, y:v, shade:0, back:true};
-  const dx = 2 * width * p, dy = .22 * Math.min(width, height) * Math.sin(Math.PI * p);
-  const length = Math.hypot(dx, dy), nx = dx / length, ny = dy / length;
-  const mx = width - dx / 2, my = height - dy / 2;
+  const {nx,ny,mx,my,radius}=cornerFoldFrame(p,width,height);
   const d = (u - mx) * nx + (v - my) * ny;
   if (d <= 0) return {x:u, y:v, shade:0, back:false};
-  const radius = Math.min(.06 * width * Math.sin(Math.PI * p), length / (4 * Math.PI));
   const angle = Math.min(Math.PI, d / radius);
   const along = d < Math.PI * radius ? radius * Math.sin(angle) : Math.PI * radius - d;
   const lift = radius * (1 - Math.cos(angle));
   return {x:u + (along - d) * nx, y:v + (along - d) * ny - .5 * lift,
     shade:.12 + .3 * Math.sin(angle), back:angle > Math.PI / 2};
+}
+
+function cornerFoldFrame(p,width,height) {
+  const dx=2*width*p,dy=.22*Math.min(width,height)*Math.sin(Math.PI*p),length=Math.hypot(dx,dy);
+  return {nx:dx/length,ny:dy/length,mx:width-dx/2,my:height-dy/2,
+    radius:Math.min(.06*width*Math.sin(Math.PI*p),length/(4*Math.PI))};
 }
 
 const root = document.querySelector('[data-manual-reader]');
@@ -359,47 +362,72 @@ async function initialize(root) {
           pageImage(forward ? (old.length===2 ? old[0] : null) : (staged.length===2 ? staged[0] : null),spine-w);
           pageImage(forward ? (staged.length===2 ? staged[1] : null) : (old.length===2 ? old[1] : null),spine);
         }
-        // Triangles share the same fold map; the entire gutter remains a fixed
-        // edge of the sheet rather than translating as a detached rectangle.
-        const cells = 48, mesh = [];
-        for(let y=0;y<=cells;y++) {
-          const row=[];
-          for(let x=0;x<=cells;x++) {
-            const u=x/cells, v=y/cells, point=cornerFold(u*w,v*h,fold,w,h);
-            row.push({u,v,x:spine+dir*point.x,y:top+point.y,shade:point.shade,back:point.back});
+        if (fold === 0 || fold === 1) {
+          pageImage(fold === 0 ? front : back, (fold === 0 ? dir === 1 : dir === -1) ? spine : spine-w);
+        } else {
+          const profile=cornerFoldFrame(fold,w,h),{nx,ny,mx,my,radius}=profile;
+          const distance=q=>(q.x-mx)*nx+(q.y-my)*ny;
+          const rectangle=[{x:0,y:0},{x:w,y:0},{x:w,y:h},{x:0,y:h}];
+          // Clip in paper coordinates. Flat regions are one affine image each;
+          // only the cylindrical band needs strips, with a shared crease edge.
+          const cut=(polygon,limit,above)=>{
+            const result=[];
+            for(let i=0;i<polygon.length;i++){
+              const a=polygon[i],b=polygon[(i+1)%polygon.length],da=distance(a)-limit,db=distance(b)-limit;
+              const inside=above?da>=0:da<=0,next=above?db>=0:db<=0;
+              if(inside)result.push(a);
+              if(inside!==next){const t=da/(da-db);result.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}
+            }
+            return result;
+          };
+          const mapped=q=>{const value=cornerFold(q.x,q.y,fold,w,h);return {x:spine+dir*value.x,y:top+value.y};};
+          const path=polygon=>{ctx.beginPath();polygon.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();};
+          const shape=polygon=>{
+            const result=[];
+            for(let i=0;i<polygon.length;i++){
+              const a=polygon[i],b=polygon[(i+1)%polygon.length];
+              for(let k=0;k<32;k++)result.push(mapped({x:a.x+(b.x-a.x)*k/32,y:a.y+(b.y-a.y)*k/32}));
+            }
+            return result;
+          };
+          const extent=rectangle.map(distance),minimum=Math.min(...extent),maximum=Math.max(...extent),arc=Math.PI*radius;
+          // The two faces are painted separately, including their continuous
+          // gradient. Hidden front shading cannot darken the visible reverse.
+          for(const reverse of [false,true]){
+            const face=cut(rectangle,arc/2,reverse);
+            if(face.length<3)continue;
+            const outline=shape(face),image=reverse?back:front;
+            ctx.save();path(outline);ctx.clip();
+            const bounds=reverse?[arc/2,...Array.from({length:16},(_,i)=>arc*(17+i)/32),Math.max(arc,maximum)]:[Math.min(0,minimum),...Array.from({length:17},(_,i)=>arc*i/32)];
+            for(let i=0;i<bounds.length-1;i++){
+              const low=bounds[i],high=bounds[i+1];
+              if(high-low<1e-7)continue;
+              const polygon=cut(cut(rectangle,low,true),high,false);
+              if(polygon.length<3)continue;
+              const target=polygon.map(mapped),center=target.reduce((sum,q)=>({x:sum.x+q.x/target.length,y:sum.y+q.y/target.length}),{x:0,y:0});
+              const area=target.reduce((sum,q,j)=>sum+q.x*target[(j+1)%target.length].y-q.y*target[(j+1)%target.length].x,0);
+              if(Math.abs(area)<.01)continue;
+              const expanded=target.map(q=>{const dx=q.x-center.x,dy=q.y-center.y,length=Math.hypot(dx,dy);return length?{x:q.x+2*dx/length,y:q.y+2*dy/length}:q;});
+              // Approximate each curved distance interval with an affine image;
+              // the flat regions are exact and no triangular tiles are used.
+              const a={x:mx+nx*low,y:my+ny*low},b={x:mx+nx*high,y:my+ny*high},c={x:a.x-ny,y:a.y+nx};
+              const mirror=reverse?dir===1:dir===-1;
+              const source=q=>({x:(mirror?1-q.x/w:q.x/w)*image.width,y:q.y/h*image.height});
+              const [A,B,C]=[a,b,c].map(mapped),[sa,sb,sc]=[a,b,c].map(source);
+              const det=(sb.x-sa.x)*(sc.y-sa.y)-(sc.x-sa.x)*(sb.y-sa.y);
+              const xx=((B.x-A.x)*(sc.y-sa.y)-(C.x-A.x)*(sb.y-sa.y))/det;
+              const xy=((C.x-A.x)*(sb.x-sa.x)-(B.x-A.x)*(sc.x-sa.x))/det;
+              const yx=((B.y-A.y)*(sc.y-sa.y)-(C.y-A.y)*(sb.y-sa.y))/det;
+              const yy=((C.y-A.y)*(sb.x-sa.x)-(B.y-A.y)*(sc.x-sa.x))/det;
+              ctx.save();path(expanded);ctx.clip();
+              ctx.transform(xx,yx,xy,yy,A.x-xx*sa.x-xy*sa.y,A.y-yx*sa.x-yy*sa.y);ctx.drawImage(image,0,0);ctx.restore();
+            }
+            const origin={x:spine+dir*mx,y:top+my},normal={x:dir*nx,y:ny};
+            const low=reverse?-radius*ny:0,high=radius*(1-.5*ny);
+            const gradient=ctx.createLinearGradient(origin.x+normal.x*low,origin.y+normal.y*low,origin.x+normal.x*high,origin.y+normal.y*high);
+            gradient.addColorStop(0,`rgba(18,16,12,${reverse?.12*Math.sin(Math.PI*fold):0})`);
+            gradient.addColorStop(1,'rgba(18,16,12,.42)');ctx.fillStyle=gradient;path(outline);ctx.fill();ctx.restore();
           }
-          mesh.push(row);
-        }
-        const triangles=[];
-        for(let y=0;y<cells;y++)for(let x=0;x<cells;x++) {
-          triangles.push([mesh[y][x],mesh[y][x+1],mesh[y+1][x+1]], [mesh[y][x],mesh[y+1][x+1],mesh[y+1][x]]);
-        }
-        triangles.sort((a,b)=>Number(a.some(p=>p.back))-Number(b.some(p=>p.back)));
-        const shades=[];
-        for(const triangle of triangles) {
-          const isBack=triangle.filter(p=>p.back).length>=2, image=isBack?back:front;
-          if (!image?.width || !image.height) continue;
-          const source=triangle.map(p=>({x:((isBack ? dir===1 : dir===-1)?1-p.u:p.u)*image.width,y:p.v*image.height}));
-          const [a,b,c]=source, [A,B,C]=triangle;
-          const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);
-          if (Math.abs((B.x-A.x)*(C.y-A.y)-(C.x-A.x)*(B.y-A.y))<.01) continue;
-          const xx=((B.x-A.x)*(c.y-a.y)-(C.x-A.x)*(b.y-a.y))/det;
-          const xy=((C.x-A.x)*(b.x-a.x)-(B.x-A.x)*(c.x-a.x))/det;
-          const yx=((B.y-A.y)*(c.y-a.y)-(C.y-A.y)*(b.y-a.y))/det;
-          const yy=((C.y-A.y)*(b.x-a.x)-(B.y-A.y)*(c.x-a.x))/det;
-          // Subpixel overlap closes raster clip seams; the source mapping is
-          // unchanged, so adjacent triangles still sample the same page ink.
-          const center={x:(A.x+B.x+C.x)/3,y:(A.y+B.y+C.y)/3};
-          const clip=triangle.map(p=>{const dx=p.x-center.x,dy=p.y-center.y,length=Math.hypot(dx,dy);return {x:p.x+.7*dx/length,y:p.y+.7*dy/length};});
-          ctx.save();ctx.beginPath();ctx.moveTo(clip[0].x,clip[0].y);ctx.lineTo(clip[1].x,clip[1].y);ctx.lineTo(clip[2].x,clip[2].y);ctx.closePath();ctx.clip();
-          ctx.transform(xx,yx,xy,yy,A.x-xx*a.x-xy*a.y,A.y-yx*a.x-yy*a.y);ctx.drawImage(image,0,0);ctx.restore();
-          shades.push({triangle,shade:(A.shade+B.shade+C.shade)/3});
-        }
-        // Shade only after every texture tile is painted. A later neighboring
-        // tile must never erase an earlier tile's shading at the overlap.
-        for(const {triangle,shade} of shades){
-          const [A,B,C]=triangle;
-          if(shade>0){ctx.fillStyle=`rgba(18,16,12,${shade})`;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.fill();}
         }
         const shadow=ctx.createLinearGradient(spine-10,0,spine+10,0);
         shadow.addColorStop(0,'#0000');shadow.addColorStop(.5,'#0003');shadow.addColorStop(1,'#0000');
