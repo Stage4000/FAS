@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'api/products.php'
+      - 'api/saved-search.php'
+      - 'tests/catalog-heading-identity-test.py'
+      - 'tests/form-input-shape-test.php'
+      - 'tests/saved-search-capture-test.php'
       - 'admin/sale.php'
       - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
@@ -38,6 +43,11 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'api/products.php'
+      - 'api/saved-search.php'
+      - 'tests/catalog-heading-identity-test.py'
+      - 'tests/form-input-shape-test.php'
+      - 'tests/saved-search-capture-test.php'
       - 'admin/sale.php'
       - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
@@ -82,6 +92,7 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /api/saved-search.php
             /admin/sale.php
             /src/marketing/Growth.php
             /admin/banners.php

@@ -175,7 +175,44 @@ def restore_pre_zero_search(path, data):
         raise ValueError('Zero-search restoration must equal exact published preimage')
     return restored
 
+ORIGINAL_INLINE_NOTIFICATION_FORM = b"""<form class="saved-search-notify-form border rounded-3 p-3 mb-3" data-saved-search-notify>
+<div class="small fw-semibold mb-2"><i class="fas fa-bell text-danger me-1"></i>Notify me when similar parts arrive</div>
+<div class="row g-2 align-items-start">
+<div class="col-lg">
+<input type="email" class="form-control form-control-sm" name="email" placeholder="Email address" autocomplete="email" required>
+</div>
+<div class="col-lg-auto">
+<button class="btn btn-danger btn-sm w-100" type="submit">Notify Me</button>
+</div>
+</div>
+<label class="form-check small text-muted mt-2 mb-0">
+<input class="form-check-input" type="checkbox" name="consent" value="1" required>
+I agree to be contacted only about matching Flip and Strip inventory.
+</label>
+<div class="saved-search-notify-status small mt-2" aria-live="polite"></div>
+</form>
+"""
+NOTIFICATION_RESTORATIONS = {
+    'products.php': ('bea9dc98c5536124c9030d27cf9f8f89b2025337783fe14c2cb56d82847278f3', 'e89ed7935f711288bd06ec309ef4d127e488368dc5a137fbf7bd99f1a5dcedac',
+        b"<?php require __DIR__ . '/includes/saved-search-notify-form.php'; ?>\n", ORIGINAL_INLINE_NOTIFICATION_FORM),
+    'api/products.php': ('c25a611f5630caf8fe1d5113b8243491385642c220d3804e29894bb3a32b9b4d', '54927dd5c3708d6c6780e8de4424b1ae5579d49d305c0f45dad59c183b19a3e1',
+        b"<?php require __DIR__ . '/../includes/saved-search-notify-form.php'; ?>\n", b''),
+}
+
+
+def restore_pre_notification_form(path, data):
+    current, previous, include, inline = NOTIFICATION_RESTORATIONS[path]
+    if sha256(data) != current or data.count(include) != 1:
+        raise ValueError('Exact reviewed saved-search renderer required: ' + path)
+    restored = data.replace(include, inline, 1)
+    if sha256(restored) != previous or previous != BADGE_HASHES[path][0]:
+        raise ValueError('Saved-search restoration must match the preceding renderer: ' + path)
+    return restored
+
+
 def heading_identity_bytes(path, data):
+    if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
+        data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)
     data = restore_pre_badge(path, data)
     if path in ZERO_SEARCH_HASHES and sha256(data) == ZERO_SEARCH_HASHES[path][0]:
@@ -377,6 +414,12 @@ def verify_candidate(manifest, candidate):
             if sha256(candidate[path]) not in permitted:
                 raise ValueError('Exact reviewed shipping candidate required: '+path)
     candidate = {p: shipping_identity.restore(p, b) for p, b in candidate.items()}
+    historical_catalog = {'products.php': CATALOG_PREIMAGE_SHA256,
+                          'api/products.php': ZERO_SEARCH_HASHES['api/products.php'][1]}
+    for entry in manifest['files']:
+        path = entry['path']
+        if path in historical_catalog and entry['candidate_sha256'] == historical_catalog[path]:
+            candidate[path] = restore_pre_notification_form(path, candidate[path])
     candidate = {p: restore_pre_badge(p, b) for p, b in candidate.items()}
     for entry in manifest['files']:
         if entry['path'] == 'api/products.php' and entry['candidate_sha256'] == ZERO_SEARCH_HASHES['api/products.php'][1] and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['api/products.php'][0]:
@@ -542,6 +585,31 @@ def php_diagnostics(text):
     return [line for line in text.splitlines() if re.search(
         r'(?:PHP\s+(?:Warning|Notice|Deprecated|Fatal error|Parse error)|Uncaught\s|SQLSTATE\[)',line)]
 
+NOTIFICATION_BASELINE_HASHES = {
+    'products.php': ('fc1415e9b54262b5d8d34a9cb521e779f1ae78dae8abcca589ea9255501a8055',
+        '0ba3c8f0e26418bd890b4c3a31cb6910716a2ba37a325bce319548ee9463e53d'),
+    'api/products.php': ('62a33018504ec723f24c80002939f4de95e5291e5c9b2035293945711966851c',
+        '6e8568b74b8e39c48f1905a6191d3813f7620a7efdd05d4ff23eb755216847cc'),
+}
+
+
+def browser_notification_baseline(baseline):
+    """Render the same notification form on both sides of the historical heading comparison."""
+    result = dict(baseline)
+    api_anchor = b'<div class="d-flex flex-wrap gap-2">\n<a href="/products/motorcycle"'
+    for path, (before, after) in NOTIFICATION_BASELINE_HASHES.items():
+        include = NOTIFICATION_RESTORATIONS[path][2]
+        original = ORIGINAL_INLINE_NOTIFICATION_FORM if path == 'products.php' else api_anchor
+        replacement = include if path == 'products.php' else include + api_anchor
+        data = baseline[path]
+        if sha256(data) != before or data.count(original) != 1:
+            raise ValueError('Expected the immutable heading fixture: ' + path)
+        result[path] = data.replace(original, replacement, 1)
+        if sha256(result[path]) != after:
+            raise ValueError('Unexpected notification-form comparison fixture: ' + path)
+    return result
+
+
 def run_heading_variants(root, site, origin, assets, output):
     suite = root / 'tests/keyboard-browser'
     manifest = json.loads((suite / 'heading-sources.json').read_text())
@@ -550,6 +618,7 @@ def run_heading_variants(root, site, origin, assets, output):
     candidate = {p: storage_identity.restore(p, data) for p, data in runtime_candidate.items()}
     verify_candidate(manifest, candidate)  # Fail closed before any heading browser starts.
     restored = cart_restoration(candidate, baseline)
+    browser_baseline = browser_notification_baseline(baseline)
     heading_output = output / 'headings'
     heading_output.mkdir()
     reports = {}; failures = []
@@ -567,6 +636,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'candidate_sha256': {p: sha256(b) for p,b in candidate.items()},
                 'storage_runtime_sha256': {p: sha256(b) for p,b in runtime_candidate.items()},
                 'baseline_sha256': {p: sha256(b) for p,b in baseline.items()},
+                'notification_baseline_sha256': {p: sha256(browser_baseline[p]) for p in NOTIFICATION_BASELINE_HASHES},
                 'synthetic_seed_sha256': sha256(seed),
                 'checkout':verify_checkout(root),
                 'test_sha256': {str(p.relative_to(root)): sha256(p.read_bytes()) for p in suite.iterdir() if p.is_file()},
@@ -577,7 +647,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'state_reset':'Identical inventory via SQLite backup; fresh synthetic security/growth stores and isolated PHP sessions for each variant; no active browser between variants.',
                 'scope': 'synthetic local PHP rendering only; no deployment/provider acceptance'}
     try:
-        for variant, source in [('candidate', candidate), ('baseline', baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
+        for variant, source in [('candidate', candidate), ('baseline', browser_baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
             for path, data in source.items():
                 (site / path).write_bytes(data)
             # SQLite backup API handles journal/WAL state; never copy only a live main DB.

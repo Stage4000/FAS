@@ -28,6 +28,15 @@ MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
 COMPATIBILITY = {
+    # Saved-search capture and the two catalog notification renderers.
+    'api/products.php': 'M',
+    'api/saved-search.php': 'M',
+    'includes/saved-search-notify-form.php': 'A',
+    'products.php': 'M',
+    'src/utils/SavedSearchCapture.php': 'M',
+    'tests/catalog-heading-identity-test.py': 'A',
+    'tests/form-input-shape-test.php': 'M',
+    'tests/saved-search-capture-test.php': 'A',
     'admin/sale.php': 'M',
     'tests/sale-schedule-http-test.py': 'A',
     # Exact checkout discount row presentation and lifecycle regression.

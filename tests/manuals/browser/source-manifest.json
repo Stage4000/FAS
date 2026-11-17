@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "a8d45fd875c53eeaa64824828906026927986d09",
+    ".github/workflows/manual-reader-browser.yml": "6c9462c54bf56227e0cca582733c37d23a827ba8",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -345,18 +345,18 @@
     "tests/manuals/reader-load-control-test.cjs": "0ca1ed4c61a38e1418c6e84b865105cebef6c397",
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
     "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
-    ".github/workflows/admin-product-acceptance.yml": "83a60c2aeff35ce34fda030a2a1b98bd89f575ef",
-    ".github/workflows/keyboard-browser.yml": "3897804a70f590a58d19e163f7e60e50dda89422",
-    "tests/admin-product-browser/run.py": "bf1f640aa26ba6754b0a4bc733d682c49096450a",
-    "tests/keyboard-browser/heading_runner.py": "3b3c3d3f2b6425e96b20acc4006d1f0bfa3df7fc",
+    ".github/workflows/admin-product-acceptance.yml": "bf04fcd267451f4743b58996a68e86b90dbd86c4",
+    ".github/workflows/keyboard-browser.yml": "a9e403ffc6bfff1fa3656eab9840b1284c36483f",
+    "tests/admin-product-browser/run.py": "569c6951c57c9c5ba6849c8907e7a7734899b25e",
+    "tests/keyboard-browser/heading_runner.py": "8c0403430e90289a07ad43878c91b1351ca40a4f",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
     "tests/manuals/browser/reviewed-repository.json": "2e8387efb83c4b12d78a31fe694dd57288bdeee8",
-    "tests/manuals/browser/reviewed_repository.py": "42e07d3cac0fe94b5425732b1f984df799346281",
+    "tests/manuals/browser/reviewed_repository.py": "eb8ba486db0e63a88db2a750dda78fdfc2b7ae4c",
     "tests/manuals/browser/repository-compatibility-test.py": "8d5d95d81cc1e71b2c882575f1f7d622167e9879",
     "docs/manuals-whole-repository-gates.md": "19a0a0185b79871f6c41d16adabbf3b5917111b4",
     "docs/manuals-motion-interruption.md": "2870ab5ca6b46465c43a32c5993285e90d03cf7a",
     "docs/manuals-resize-navigation.md": "52fe8c05c36c1e7f5fc03e5878727514cd82db55",
-    "tests/admin-product-browser/guard-test.py": "a7b520d7e189eb60216ad572faa8ec931ffd5034",
+    "tests/admin-product-browser/guard-test.py": "c5b7e331da8ddb7ce0805bedd0d26fa0d631cd07",
     "src/marketing/Growth.php": "11b42ad23954ae8033b5e855776cb6f04c7b0e59",
     "tests/growth-generation-test.py": "4088a45990f41d365d94d0879c17acbd861e08fa",
     "tests/fixtures/growth-generation/race.php": "3b28a8278a28753128f56756055d3bad65fcdcfc",
@@ -461,7 +461,15 @@
     "tests/cart-malformed-hydration-test.cjs": "f438c7cb5485f3af73cebcd97305ab708e75e418",
     "tests/keyboard-browser/shipping-identity-test.py": "521825d16bd731688264ae08d34aef9f672d3aac",
     "admin/sale.php": "446b11231130a080199715c35ea94b608f9bec0f",
-    "tests/sale-schedule-http-test.py": "81f95b3523e5f82ab877bf6e4ac973bc77ce73e7"
+    "tests/sale-schedule-http-test.py": "81f95b3523e5f82ab877bf6e4ac973bc77ce73e7",
+    "api/products.php": "0a2d249d1d42369eaca44d348b63feeff5681f1b",
+    "api/saved-search.php": "46331530a434f827655a81f56c87cb7b19070dfa",
+    "products.php": "655e3bca25ad5e8ef5b28a357c1c40dabef68ca6",
+    "src/utils/SavedSearchCapture.php": "32422d69bf328705e8d48458700193d2a450ff66",
+    "includes/saved-search-notify-form.php": "75a773af8dc82988be07246c5da2e30f98d49cdf",
+    "tests/form-input-shape-test.php": "36cc4f28616e6aa9ed3685a18958c288777bf7ec",
+    "tests/saved-search-capture-test.php": "c912fd58025e81ff0acb28c37359eb90417a4281",
+    "tests/catalog-heading-identity-test.py": "2c44a61309ac838a5acbd79c3f9e9f5b378e46ac"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -1051,6 +1059,11 @@
     "tests/showcase-session-http-test.py": "A",
     "tests/showcase-session-router.php": "A",
     "tests/showcase-session-test.php": "A",
-    "src/utils/Timezone.php": "M"
+    "src/utils/Timezone.php": "M",
+    "api/saved-search.php": "M",
+    "src/utils/SavedSearchCapture.php": "M",
+    "includes/saved-search-notify-form.php": "A",
+    "tests/form-input-shape-test.php": "M",
+    "tests/saved-search-capture-test.php": "A"
   }
 }
