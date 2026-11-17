@@ -264,6 +264,15 @@ CATALOG_SCROLL_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 QUANTITY_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 REVIEWED_OVERLAY.update(SHIPPING_INTEGRATION_BLOBS)
 
+# Exact coupon summary presentation overlay; historical inventories stay pinned.
+COUPON_SUMMARY_BLOBS = {'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': '55fbb9cd5d9da429d5b7314d3de41de1bd995ad4'}, 'tests/checkout-coupon-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c696139b8dd15d47ead2001ffa59353756bfe138'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '34f97b78860a70b3b3a352f58fdb571e868e21d4'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '3ea3bb19653541f89a070eda613648c008665cdc'}}
+CATALOG_SCROLL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+EMAIL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+MALFORMED_BLOBS.update(COUPON_SUMMARY_BLOBS)
+STORAGE_BLOBS.update(COUPON_SUMMARY_BLOBS)
+QUANTITY_BLOBS.update(COUPON_SUMMARY_BLOBS)
+REVIEWED_OVERLAY.update(COUPON_SUMMARY_BLOBS)
+
 def manuals_policy(root, *, checkout=True):
     import sys
     sys.dont_write_bytecode = True

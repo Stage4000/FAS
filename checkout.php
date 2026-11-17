@@ -181,7 +181,7 @@ require_once __DIR__ . '/includes/header.php';
                         <span>Subtotal:</span>
                         <span id="checkout-subtotal">$0.00</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2" id="discount-row" style="display: none !important;">
+                    <div class="d-none justify-content-between mb-2" id="discount-row">
                         <span>
                             Discount (<span id="discount-code"></span>)
                             <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeCoupon()" style="font-size: 0.8rem;">Remove</button>
@@ -1174,12 +1174,11 @@ function updateCheckoutSummary() {
     
     // Update discount display
     const discountRow = document.getElementById('discount-row');
+    discountRow.classList.toggle('d-none', !appliedCoupon);
+    discountRow.classList.toggle('d-flex', appliedCoupon !== null);
     if (appliedCoupon) {
-        discountRow.style.display = 'flex';
         document.getElementById('discount-code').textContent = appliedCoupon.code;
         document.getElementById('checkout-discount').textContent = `-$${discount.toFixed(2)}`;
-    } else {
-        discountRow.style.display = 'none';
     }
     
     const total = subtotal - discount + tax + shipping;

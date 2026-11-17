@@ -13,10 +13,22 @@ function section(from, to) {
 }
 const declarations = section('let appliedCoupon =', 'let pendingOrderResult =');
 const functions = section('async function applyCoupon()', '\n</script>');
+const summary = section('function updateCheckoutSummary()', '\n/**').replace('function updateCheckoutSummary()', 'function renderCheckoutSummary()');
+const rowMarkup = source.match(/<div\b[^>]*\bid="discount-row"[^>]*>/g);
+assert.equal(rowMarkup?.length, 1, 'unique discount summary row');
+const rowClasses = rowMarkup[0].match(/\bclass="([^"]*)"/)[1].split(/\s+/);
 function fixture() {
     const nodes = new Map();
     for (const id of ['coupon-code', 'coupon-message', 'apply-coupon-btn']) {
         nodes.set(id, {value: '', disabled: false, textContent: '', className: '', style: {display: ''}});
+    }
+    for (const id of ['discount-row', 'discount-code', 'checkout-discount', 'checkout-subtotal', 'checkout-tax', 'checkout-shipping', 'checkout-total']) {
+        const classes = new Set(id === 'discount-row' ? rowClasses : []);
+        nodes.set(id, {textContent: '', style: {}, classList: {
+            add: value => classes.add(value), remove: value => classes.delete(value),
+            contains: value => classes.has(value),
+            toggle: (value, enabled) => enabled ? classes.add(value) : classes.delete(value)
+        }});
     }
     nodes.get('apply-coupon-btn').textContent = 'Apply';
     const requests = [], events = [], errors = [];
@@ -26,10 +38,13 @@ function fixture() {
         getCheckoutSubtotal: () => 80,
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url, options, resolve, reject})),
         trackCheckoutEvent: (...args) => events.push(args),
-        updateCheckoutSummary: () => summaries++,
+        selectedShippingRate: {cost: 7.50}, window: {},
+        updateCheckoutSummary: () => {summaries++; context.renderCheckoutSummary();},
         console: {error: (...args) => errors.push(args)}
     });
-    vm.runInContext(declarations + functions + '\nglobalThis.api = {applyCoupon, removeCoupon, state: () => appliedCoupon};', context, {timeout: 1000});
+    vm.runInContext(declarations + summary + functions + '\nglobalThis.api = {applyCoupon, removeCoupon, state: () => appliedCoupon};', context, {timeout: 1000});
+    context.renderCheckoutSummary();
+    const row = nodes.get('discount-row');
     const input = nodes.get('coupon-code'), button = nodes.get('apply-coupon-btn'), message = nodes.get('coupon-message');
     function response(i, outcome = 'valid', code = 'SYNTHA') {
         if (!requests[i]) { check(false, 'expected synthetic request ' + i + ' before ' + outcome + ' response'); return; }
@@ -39,9 +54,9 @@ function fixture() {
             return outcome === 'valid' ? {valid: true, code, discount_type: 'percentage', discount_value: 10, discount_amount: 8, description: 'Synthetic coupon'} : {valid: false, message: 'Synthetic rejected code'};
         }});
     }
-    function snapshot() { return JSON.parse(JSON.stringify({coupon: context.api.state(), input, button, message, events, errors: errors.length, summaries})); }
+    function snapshot() { return JSON.parse(JSON.stringify({coupon: context.api.state(), input, button, message, events, errors: errors.length, summaries, discountVisible: row.classList.contains('d-flex') && !row.classList.contains('d-none'), total: nodes.get('checkout-total').textContent})); }
     function userEdit(value) {if (!input.disabled) input.value = value;}
-    return {api: context.api, requests, input, button, message, events, errors, response, snapshot, userEdit};
+    return {api: context.api, nodes, row, requests, input, button, message, events, errors, response, snapshot, userEdit};
 }
 let checks = 0, scenarios = 0;
 const failures = [];
@@ -54,14 +69,26 @@ function applied(f, code, label) {
     check(f.button.style.display === 'none', label + ': apply hidden');
     check(!f.button.disabled && f.button.textContent === 'Apply', label + ': button reset');
     check(f.message.className.includes('text-success'), label + ': success status');
+    check(f.row.classList.contains('d-flex') && !f.row.classList.contains('d-none'), label + ': discount row shown');
+    check(f.nodes.get('discount-code').textContent === code && f.nodes.get('checkout-discount').textContent === '-$8.00', label + ': accepted discount row values');
+    check(f.nodes.get('checkout-total').textContent === '$79.50', label + ': discount and selected shipping total');
 }
 function cleared(f, label) {
     check(f.api.state() === null, label + ': no coupon');
     check(f.input.value === '' && !f.input.disabled, label + ': editable empty input');
     check(f.button.style.display === '' && !f.button.disabled && f.button.textContent === 'Apply', label + ': usable apply button');
     check(f.message.textContent === '', label + ': message cleared');
+    check(f.row.classList.contains('d-none') && !f.row.classList.contains('d-flex'), label + ': discount row hidden');
+    check(f.nodes.get('checkout-total').textContent === '$87.50', label + ': undiscounted total and selected shipping restored');
 }
 (async () => {
+    check(rowClasses.includes('d-none') && !rowClasses.includes('d-flex'), 'discount row hidden before initial summary render');
+    {
+        scenarios++;
+        const f = fixture();
+        check(f.row.classList.contains('d-none') && !f.row.classList.contains('d-flex'), 'discount row stays hidden after initial summary render');
+        check(f.nodes.get('checkout-total').textContent === '$87.50', 'initial total preserves subtotal and selected shipping');
+    }
     {
         scenarios++;
         const f = fixture(); f.input.value = '   '; await f.api.applyCoupon();
