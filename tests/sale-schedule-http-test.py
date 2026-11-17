@@ -52,6 +52,10 @@ with tempfile.TemporaryDirectory(prefix='fas-banner-request-') as tmp:
     candidate = ROOT
     shutil.copyfile(candidate/'admin/sale.php', site/'admin/sale.php')
     shutil.copyfile(candidate/'includes/sale-helper.php', site/'includes/sale-helper.php')
+    (site / 'fixture-sale-readback.php').write_text(
+        "<?php require __DIR__ . '/includes/sale-helper.php'; echo json_encode(getSaleConfig());\n",
+        encoding='utf-8',
+    )
     (site / 'database').mkdir()
     (site / 'admin/css').mkdir(exist_ok=True)
     (site / 'admin/css/admin-notifications.css').touch()
@@ -85,7 +89,9 @@ with tempfile.TemporaryDirectory(prefix='fas-banner-request-') as tmp:
     env['FAS_SECURITY_DB_PATH'] = str(base / 'private/security.sqlite')
     env.pop('FAS_TRUSTED_PROXY_CIDRS', None)
     server_log = open(base / 'server.log', 'w')
-    server = subprocess.Popen([PHP, '-d', 'disable_functions=mail,curl_exec,curl_multi_exec,fsockopen,pfsockopen,stream_socket_client,socket_connect', '-d', 'allow_url_fopen=0', '-d',
+    server = subprocess.Popen([PHP, '-d', 'disable_functions=mail,curl_exec,curl_multi_exec,fsockopen,pfsockopen,stream_socket_client,socket_connect', '-d', 'allow_url_fopen=0',
+        '-d', 'opcache.enable_cli=1', '-d', 'opcache.validate_timestamps=1', '-d', 'opcache.revalidate_freq=60',
+        '-d', 'opcache.file_update_protection=0', '-d',
         'session.save_path="' + str(base / 'sessions') + '"', '-S', '127.0.0.1:' + str(port), '-t', str(site)],
         env=env, stdout=server_log, stderr=server_log)
     def request(path='/admin/sale.php', data=None, who=None):
@@ -179,6 +185,36 @@ with tempfile.TemporaryDirectory(prefix='fas-banner-request-') as tmp:
         request(data=dict(payload, csrf_token=csrf, label='Edited', **fields), who=admin)
         check(config()['sale']['starts_at'] == '2027-01-02 10:00:17',
               'Unchanged date in older form preserves newer saved schedule')
+
+        for key in ('starts_at', 'ends_at'):
+            schedule = {'starts_at': '2027-01-01 10:00:17', 'ends_at': '2027-01-03 10:00:42'}
+            seed(**schedule)
+            fresh = ScheduleFields(request(who=admin)[2]).values
+            older = ScheduleFields(request(who=other)[2]).values
+            original_value = older[key]
+            fresh[key] = ''
+            status, _, body = request(data=dict(payload, csrf_token=csrf, **fresh), who=admin)
+            schedule[key] = None
+            check(status == 200 and original_value and 'Sale settings saved successfully!' in body
+                  and config()['sale'][key] is None, 'First administrator clears ' + key)
+            status, _, body = request(data=dict(payload, csrf_token=foreign, label='Older form label', **older), who=other)
+            saved = config()['sale']
+            check(status == 200 and 'Sale settings saved successfully!' in body and saved['label'] == 'Older form label'
+                  and all(saved[date] == value for date, value in schedule.items()),
+                  'Older form saves its label and preserves the cleared ' + key)
+
+        seed(starts_at=past, ends_at=future, label='Before save')
+        fields = ScheduleFields(request(who=admin)[2]).values
+        status, _, body = request('/fixture-sale-readback.php')
+        initial = json.loads(body)
+        check(status == 200 and initial and initial['label'] == 'Before save' and initial['ends_at'] == future,
+              'Storefront helper reads the initial active sale')
+        fields['ends_at'] = ''
+        request(data=dict(payload, csrf_token=csrf, label='After save', **fields), who=admin)
+        status, _, body = request('/fixture-sale-readback.php')
+        updated = json.loads(body)
+        check(status == 200 and updated and updated['label'] == 'After save' and updated['ends_at'] is None,
+              'Storefront helper observes the new sale immediately despite the cache revalidation interval')
 
         fields = ScheduleFields(request(who=admin)[2]).values
         fields.update(starts_at='2027-01-02T12:00', ends_at='', schedule_timezone='Asia/Kolkata')
