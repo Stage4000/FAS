@@ -34,6 +34,10 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /checkout.php
+            /tests/cart-malformed-hydration-test.cjs
+            /tests/checkout-coupon-lifecycle-test.cjs
+            /tests/keyboard-browser/shipping-identity-test.py
             /.github/workflows/showcase-browser-acceptance.yml
             /admin/showcase-detail.php
             /admin/showcase-moderate.php

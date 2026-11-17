@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'tests/cart-malformed-hydration-test.cjs'
+      - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
       - 'tests/fixtures/growth-generation/**'
       - '*.php'
@@ -34,6 +36,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'tests/cart-malformed-hydration-test.cjs'
+      - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
       - 'tests/fixtures/growth-generation/**'
       - '*.php'

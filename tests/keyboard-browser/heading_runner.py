@@ -264,6 +264,25 @@ CATALOG_SCROLL_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 QUANTITY_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 REVIEWED_OVERLAY.update(SHIPPING_INTEGRATION_BLOBS)
 
+# Exact coupon summary presentation overlay; historical inventories stay pinned.
+COUPON_SUMMARY_BLOBS = {
+    '.github/workflows/admin-product-acceptance.yml': {'mode': '100644', 'type': 'blob', 'sha': 'dc6c4ecb58c4e1025825bf2adc5df6490cd9888c'},
+    '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'e89c3c1d8bdbacf9fd124dadc77e05f76473e0ca'},
+    '.github/workflows/manual-reader-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'ec59c301a1f28d01bb3503da0041854832bc5b17'},
+    'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': '55fbb9cd5d9da429d5b7314d3de41de1bd995ad4'},
+    'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '620774b24e9e1b451ca6285efa4202793308e515'},
+    'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '2e46d53b01c77c87e91fd65ce0e80c04d4b7755d'},
+    'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'f438c7cb5485f3af73cebcd97305ab708e75e418'},
+    'tests/checkout-coupon-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c696139b8dd15d47ead2001ffa59353756bfe138'},
+    'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'b03b8686f6e7bd812150f262ed405378a31a7340'},
+}
+CATALOG_SCROLL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+EMAIL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+MALFORMED_BLOBS.update(COUPON_SUMMARY_BLOBS)
+STORAGE_BLOBS.update(COUPON_SUMMARY_BLOBS)
+QUANTITY_BLOBS.update(COUPON_SUMMARY_BLOBS)
+REVIEWED_OVERLAY.update(COUPON_SUMMARY_BLOBS)
+
 def manuals_policy(root, *, checkout=True):
     import sys
     sys.dont_write_bytecode = True

@@ -28,6 +28,11 @@ MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
 COMPATIBILITY = {
+    # Exact checkout discount row presentation and lifecycle regression.
+    'checkout.php': 'M',
+    'tests/checkout-coupon-lifecycle-test.cjs': 'A',
+    'tests/cart-malformed-hydration-test.cjs': 'M',
+    'tests/keyboard-browser/shipping-identity-test.py': 'A',
     # Reviewed banner UTC input and countdown presentation.
     'admin/banners.php': 'M',
     'includes/header.php': 'M',
