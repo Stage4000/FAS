@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "6c9462c54bf56227e0cca582733c37d23a827ba8",
+    ".github/workflows/manual-reader-browser.yml": "856f4137bb2214ecb249a0401573b96f0d475d61",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -36,7 +36,7 @@
     "public/css/manuals.css": "48919a7182e948cf104f4c0566b1bbcb24c9905a",
     "public/css/style.css": "b6c36199b40dc6af75d6a5433671b01cf9c8b052",
     "public/js/address-autofill.js": "ba64493f647f701942ef90f9148408654aa272a4",
-    "public/js/analytics.js": "41ddcebfcee0056a70141655416a4c9f40855f9a",
+    "public/js/analytics.js": "ab6e86db443145db471f7297cb7c9d86c91e8838",
     "public/js/animations.js": "05466ef96483b75b64362567f306af37f1b12f6d",
     "public/js/growth.js": "1c84708e8cc8cf021f943f8c6f17b537d2eb2692",
     "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
@@ -272,7 +272,7 @@
     "tests/manuals/browser/dependency_check.py": "33b3fdf534449a450504bbd892f623738c2501ed",
     "tests/manuals/browser/fixture-check.py": "870fd6234b303c64166842aef2a7c0a4640c6a2e",
     "tests/manuals/browser/fullsite-check.cjs": "a25a99400363dbce57c18e534021feac78d6fb31",
-    "tests/manuals/browser/fullsite-pins.json": "fd1bff44c12c08b173f9cef33d3713f1ad21907e",
+    "tests/manuals/browser/fullsite-pins.json": "dbc20506a465c35aa1c2f9a7ab6cf01473dff970",
     "tests/manuals/browser/guard-test.py": "de704cd75eb04caa0ffb800235ae5447ddba33b2",
     "tests/manuals/browser/prepare-assets.py": "b9dbad7a2d3143c42b4db84638997eddd20c950b",
     "tests/manuals/browser/prepare-fullsite.py": "c62b4dfc17e6d45d5b714def8c6e3f36693a576f",
@@ -345,13 +345,13 @@
     "tests/manuals/reader-load-control-test.cjs": "0ca1ed4c61a38e1418c6e84b865105cebef6c397",
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
     "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
-    ".github/workflows/admin-product-acceptance.yml": "bf04fcd267451f4743b58996a68e86b90dbd86c4",
-    ".github/workflows/keyboard-browser.yml": "a9e403ffc6bfff1fa3656eab9840b1284c36483f",
+    ".github/workflows/admin-product-acceptance.yml": "2e7f0a432cdc7a6c344ce7ca028f398b14fee112",
+    ".github/workflows/keyboard-browser.yml": "def2abfeff6f31529e7df72d21298fed713dbae9",
     "tests/admin-product-browser/run.py": "569c6951c57c9c5ba6849c8907e7a7734899b25e",
     "tests/keyboard-browser/heading_runner.py": "8c0403430e90289a07ad43878c91b1351ca40a4f",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
     "tests/manuals/browser/reviewed-repository.json": "2e8387efb83c4b12d78a31fe694dd57288bdeee8",
-    "tests/manuals/browser/reviewed_repository.py": "eb8ba486db0e63a88db2a750dda78fdfc2b7ae4c",
+    "tests/manuals/browser/reviewed_repository.py": "11205a8cf512206c20f2151a6a38c17641d04c61",
     "tests/manuals/browser/repository-compatibility-test.py": "8d5d95d81cc1e71b2c882575f1f7d622167e9879",
     "docs/manuals-whole-repository-gates.md": "19a0a0185b79871f6c41d16adabbf3b5917111b4",
     "docs/manuals-motion-interruption.md": "2870ab5ca6b46465c43a32c5993285e90d03cf7a",
@@ -469,7 +469,8 @@
     "includes/saved-search-notify-form.php": "75a773af8dc82988be07246c5da2e30f98d49cdf",
     "tests/form-input-shape-test.php": "36cc4f28616e6aa9ed3685a18958c288777bf7ec",
     "tests/saved-search-capture-test.php": "c912fd58025e81ff0acb28c37359eb90417a4281",
-    "tests/catalog-heading-identity-test.py": "2c44a61309ac838a5acbd79c3f9e9f5b378e46ac"
+    "tests/catalog-heading-identity-test.py": "2c44a61309ac838a5acbd79c3f9e9f5b378e46ac",
+    "tests/analytics-link-classification-test.cjs": "f667e88ea1b2ebd9340fdc2ef6a831606a9663eb"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -1064,6 +1065,8 @@
     "src/utils/SavedSearchCapture.php": "M",
     "includes/saved-search-notify-form.php": "A",
     "tests/form-input-shape-test.php": "M",
-    "tests/saved-search-capture-test.php": "A"
+    "tests/saved-search-capture-test.php": "A",
+    "public/js/analytics.js": "M",
+    "tests/analytics-link-classification-test.cjs": "A"
   }
 }

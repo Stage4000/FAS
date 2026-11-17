@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'tests/analytics-link-classification-test.cjs'
       - 'api/products.php'
       - 'api/saved-search.php'
       - 'products.php'
@@ -59,6 +60,7 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /tests/analytics-link-classification-test.cjs
             /api/products.php
             /api/saved-search.php
             /products.php

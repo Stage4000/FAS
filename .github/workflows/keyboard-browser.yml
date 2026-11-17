@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'tests/analytics-link-classification-test.cjs'
       - 'api/products.php'
       - 'api/saved-search.php'
       - 'tests/catalog-heading-identity-test.py'
@@ -43,6 +44,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'tests/analytics-link-classification-test.cjs'
       - 'api/products.php'
       - 'api/saved-search.php'
       - 'tests/catalog-heading-identity-test.py'
@@ -92,6 +94,7 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /tests/analytics-link-classification-test.cjs
             /api/saved-search.php
             /admin/sale.php
             /src/marketing/Growth.php
