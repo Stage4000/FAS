@@ -57,16 +57,19 @@ base = {'entries':[{'path':'src/runtime.php','mode':'100644','type':'blob','sha'
 tree = {'src/runtime.php':{'mode':'100644','type':'blob','sha':'base'}}
 tree.update({p:{'mode':'100644','type':'blob','sha':'reviewed'} for p in h.INTEGRATION_PATHS})
 tree.update(copy.deepcopy(h.REVIEWED_OVERLAY))
-h.verify_tree(base,tree,{}); check(True)
-current_inputs = {**h.SHIPPING_INTEGRATION_BLOBS, **h.COUPON_SUMMARY_BLOBS}
+historical_inputs = {**h.SHIPPING_INTEGRATION_BLOBS, **h.COUPON_SUMMARY_BLOBS}
+reviewed = h.manuals_policy(ROOT, checkout=False)['overlay']
+current_inputs = {path: reviewed.get(path, entry) for path, entry in historical_inputs.items()}
+tree.update(copy.deepcopy(current_inputs))
+h.verify_tree(base,tree,{},current_inputs); check(True)
 for path,expected in current_inputs.items():
     data = (ROOT/path).read_bytes()
     check(hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() == expected['sha'])
     for field,value in [('sha','0'*40),('mode','100755'),('type','tree')]:
         bad = copy.deepcopy(tree);bad[path][field] = value
-        reject(lambda b=bad:h.verify_tree(base,b,{}))
+        reject(lambda b=bad:h.verify_tree(base,b,{},current_inputs))
     bad = copy.deepcopy(tree);del bad[path]
-    reject(lambda:h.verify_tree(base,bad,{}))
+    reject(lambda:h.verify_tree(base,bad,{},current_inputs))
 # Both browser suites must bind their actual runtime and fixture Cart inputs.
 for name in ['storage-unavailable.cjs','malformed-hydration.cjs']:
     source = (ROOT/'tests/keyboard-browser'/name).read_text()

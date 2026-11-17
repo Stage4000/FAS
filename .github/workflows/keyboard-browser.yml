@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'admin/sale.php'
+      - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
@@ -36,6 +38,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'admin/sale.php'
+      - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
@@ -78,6 +82,7 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /admin/sale.php
             /src/marketing/Growth.php
             /admin/banners.php
             /tests/growth-generation-test.py

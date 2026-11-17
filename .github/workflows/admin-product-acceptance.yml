@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'checkout.php'
+      - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/keyboard-browser/shipping-identity-test.py'
@@ -52,6 +53,7 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /tests/sale-schedule-http-test.py
             /checkout.php
             /tests/cart-malformed-hydration-test.cjs
             /tests/checkout-coupon-lifecycle-test.cjs
