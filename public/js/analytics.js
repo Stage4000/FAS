@@ -897,7 +897,7 @@
 
             const text = (link.textContent || link.getAttribute('aria-label') || '').trim().slice(0, 120);
             const productMatch = url.pathname.match(/^\/product\/([^/]+)/);
-            if (productMatch) {
+            if (productMatch && url.hostname === location.hostname) {
                 const cardData = dataFromProductElement(link.closest('.product-card'));
                 track('product_click', Object.assign({
                     product_id: productMatch[1],

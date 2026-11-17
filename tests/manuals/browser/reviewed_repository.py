@@ -27,7 +27,11 @@ INTEGRATED_MAIN_TREE = 'b1626db71e9f668b3cdd13a2a41bcf74fa452f10'
 MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
+ANALYTICS_BLOB = 'ab6e86db443145db471f7297cb7c9d86c91e8838'
+ANALYTICS_TEST_BLOB = 'f667e88ea1b2ebd9340fdc2ef6a831606a9663eb'
 COMPATIBILITY = {
+    'tests/analytics-link-classification-test.cjs': 'A',
+    'public/js/analytics.js': 'M',
     # Saved-search capture and the two catalog notification renderers.
     'api/products.php': 'M',
     'api/saved-search.php': 'M',
@@ -301,6 +305,8 @@ def load_policy(root):
             expected = integrated[path]['sha'] if path in main_delta else original['source_blobs'][path]
             require(oid == expected == reviewed[path]['sha'],
                     'Immutable source pin changed: ' + path)
+    require(sources['tests/analytics-link-classification-test.cjs'] == ANALYTICS_TEST_BLOB, 'Exact analytics regression pin mismatch')
+    require(sources['public/js/analytics.js'] == ANALYTICS_BLOB, 'Exact analytics source pin mismatch')
     for path in COMPATIBILITY:
         data = read_regular(root, path)
         oid = blob(data)
