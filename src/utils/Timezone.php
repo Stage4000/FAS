@@ -118,7 +118,7 @@ class Timezone
         return $dateTime->format('Y-m-d\TH:i');
     }
 
-    public static function fromUserInput($value, bool $rejectNormalization = false): ?string
+    public static function fromUserInput($value, bool $rejectNormalization = false, ?string $inputTimezone = null): ?string
     {
         $raw = trim((string)$value);
         if ($raw === '') {
@@ -126,7 +126,7 @@ class Timezone
         }
 
         try {
-            $dateTime = new \DateTimeImmutable($raw, new \DateTimeZone(self::userTimezone()));
+            $dateTime = new \DateTimeImmutable($raw, new \DateTimeZone($inputTimezone ?? self::userTimezone()));
             if ($rejectNormalization) {
                 $errors = \DateTimeImmutable::getLastErrors();
                 if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {

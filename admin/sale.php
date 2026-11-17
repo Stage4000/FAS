@@ -23,10 +23,34 @@ $sale       = $config['sale'] ?? [
     'ends_at'   => '',
 ];
 
+$scheduleTimezone = Timezone::userTimezone();
+
+function saleScheduleField(array $fields, string $key, $stored, string $timezone): ?string
+{
+    $saved = is_string($stored) && $stored !== '' ? $stored : null;
+    if (!array_key_exists($key, $fields)) {
+        return $saved;
+    }
+    $input = $fields[$key];
+    if (!is_string($input)) {
+        return null;
+    }
+    // The minute picker cannot distinguish repeated hours or display saved seconds.
+    // An unchanged field retains the current stored value, even after another admin's edit.
+    $rendered = $fields['original_' . $key] ?? Timezone::toUserInput($saved);
+    if ($input === $rendered) {
+        return $saved;
+    }
+    return Timezone::fromUserInput($input, true, $timezone);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid security token. Please try again.';
+    } elseif (!Timezone::isValidTimezone($_POST['schedule_timezone'] ?? $scheduleTimezone)) {
+        $error = 'Reload the sale form to confirm its time zone.';
     } else {
+        $inputTimezone = $_POST['schedule_timezone'] ?? $scheduleTimezone;
         $type  = in_array($_POST['type'] ?? '', ['percentage', 'fixed'], true)
                     ? $_POST['type']
                     : 'percentage';
@@ -41,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $endInput = $_POST['ends_at'] ?? '';
         $startProvided = !is_string($startInput) || trim($startInput) !== '';
         $endProvided = !is_string($endInput) || trim($endInput) !== '';
-        $startsAt = is_string($startInput) && $startProvided ? Timezone::fromUserInput($startInput) : null;
-        $endsAt = is_string($endInput) && $endProvided ? Timezone::fromUserInput($endInput) : null;
+        $startsAt = saleScheduleField($_POST, 'starts_at', $sale['starts_at'] ?? null, $inputTimezone);
+        $endsAt = saleScheduleField($_POST, 'ends_at', $sale['ends_at'] ?? null, $inputTimezone);
 
         // A failed parse must not silently clear a supplied schedule.
         if ($startProvided && $startsAt === null) {
@@ -144,6 +168,10 @@ if (!empty($sale['enabled'])) {
                 </div>
                 <div class="card-body">
                     <form method="POST">
+                        <input type="hidden" name="schedule_timezone" value="<?= htmlspecialchars($scheduleTimezone, ENT_QUOTES, 'UTF-8') ?>">
+                        <?php foreach (['starts_at', 'ends_at'] as $field): ?>
+                            <input type="hidden" name="original_<?= $field ?>" value="<?= htmlspecialchars(Timezone::toUserInput($sale[$field] ?? null), ENT_QUOTES, 'UTF-8') ?>">
+                        <?php endforeach; ?>
                         <?php echo CSRF::tokenField(); ?>
 
                         <div class="mb-3 form-check form-switch">
@@ -185,15 +213,16 @@ if (!empty($sale['enabled'])) {
                             <div class="form-text">Short text shown on product cards. Leave blank for "Save X%" auto-label.</div>
                         </div>
 
+                        <p class="form-text mb-2">Schedule times are shown in <?= htmlspecialchars($scheduleTimezone, ENT_QUOTES, 'UTF-8') ?>.</p>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Starts At <small class="text-muted">(optional)</small></label>
-                                <input type="datetime-local" name="starts_at" class="form-control"
+                                <label class="form-label fw-semibold" for="sale-starts-at">Starts At <small class="text-muted">(optional)</small></label>
+                                <input type="datetime-local" id="sale-starts-at" name="starts_at" class="form-control"
                                        value="<?php echo htmlspecialchars(Timezone::toUserInput($sale['starts_at'] ?? null)); ?>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Ends At <small class="text-muted">(optional)</small></label>
-                                <input type="datetime-local" name="ends_at" class="form-control"
+                                <label class="form-label fw-semibold" for="sale-ends-at">Ends At <small class="text-muted">(optional)</small></label>
+                                <input type="datetime-local" id="sale-ends-at" name="ends_at" class="form-control"
                                        value="<?php echo htmlspecialchars(Timezone::toUserInput($sale['ends_at'] ?? null)); ?>">
                             </div>
                         </div>

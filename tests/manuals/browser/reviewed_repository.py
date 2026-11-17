@@ -28,6 +28,8 @@ MANIFEST = 'tests/manuals/browser/source-manifest.json'
 INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
 COMPATIBILITY = {
+    'admin/sale.php': 'M',
+    'tests/sale-schedule-http-test.py': 'A',
     # Exact checkout discount row presentation and lifecycle regression.
     'checkout.php': 'M',
     'tests/checkout-coupon-lifecycle-test.cjs': 'A',
