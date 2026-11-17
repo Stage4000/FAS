@@ -1,0 +1,9 @@
+# Dormant public response controller
+
+`ShowcasePublicController` composes the existing bounded approved-only repository projection and escaped gallery view. It is not loaded by any entry route. It creates no session/schema/configuration and performs no moderation, coupon or email action.
+
+Trusted server construction requires the exact reviewed consent version and SHA256 plus a fixed same-origin photo path. No consent defaults ship. The enablement callback must return literal true, independently of moderation approval; it is checked before access, for every candidate, and before returning a successful response. Consent identity is pinned by the controller and the repository's final snapshot checks. Missing/unapproved/wrong-consent/withdrawn images all return the same generic 404. Unexpected failures return a generic 503 without internal details. Gallery is fixed to the newest 20 candidates (policy filtering can reduce it), accepts no query parameters, and does not expose emails. Both HTML and JPEG responses are private/no-store with nosniff. Methods other than GET return 405; no HEAD/cache/conditional range protocol is implemented.
+
+The downstream entry must use a fixed dispatch value, emit the returned status/headers/body without adding caches, and integrate the approved current theme. Public proxy/CDN behavior and real TLS/browser acceptance remain untested. Withdrawal removes subsequent repository reads; bytes already returned or in flight cannot be retracted. Do not add a public route or enable a gate without completing existing publication/privacy/retention and release approvals. The module does not resolve unresolved coupon timing/eligibility or monthly prize rules.
+
+Synthetic SQLite tests exercise state filtering, exact consent version/hash, malformed query/body/methods, strict and mid-request gates, privacy, escaping, errors and withdrawal. No real data or server was accessed.

@@ -1,0 +1,5 @@
+# Dormant intake enablement rechecks
+
+The application now rechecks the literal-true enablement callback after trusted actor resolution, after charged rate admission, in the inner controller/request gates, and before persisting or returning a newly issued GET form. This prevents stale initial enablement from authorizing work after those callbacks revoke it. Rate attempts already charged are not refunded. POST receipts already committed are not concealed by a final response gate; this is not cancellation of transactions already in flight. Trusted callbacks and host resource isolation remain deployment responsibilities.
+
+60 synthetic checks cover false, integer 1, string true and null revocations during actor resolution, rate clock and GET form clock; no form bucket or submission is persisted. The original source fails the regression. Full existing suite is rerun. No production bootstrap, policy values, publishing, coupon, email, draw or deployment is enabled. Browser/TLS/host and existing release gates remain.

@@ -66,6 +66,103 @@ COMPATIBILITY = {
 }
 
 
+# Finite reviewed showcase additions. Sparse exclusion is not a source exemption:
+# the entire committed tree and all materialized bytes remain verified.
+SHOWCASE_ADDITIONS = {
+    ".github/workflows/showcase-browser-acceptance.yml": "fc4819ad087bded6ed64ed48dcbf107e878023d4",
+    "admin/showcase-detail.php": "e3e0660dd7885224cfcc5c2d8e8bbca6a7c69c2f",
+    "admin/showcase-moderate.php": "f20c022785a75e6c88b14bc13bfb0f37978ac8c7",
+    "admin/showcase-photo.php": "aedf3092e05da131569208dccfbde0330ceadd7e",
+    "admin/showcase-queue.php": "fca6c5004225f27ae9fedd4b296a369c623d37dc",
+    "docs/customer-showcase-foundation.md": "9a050fc443ee4d4ee79cf53ba6bc42bc3eda3657",
+    "docs/showcase-admin-app-integration.md": "ac4ac824ac94910e80e602a135bea1bb0f74e4d9",
+    "docs/showcase-admin-controller.md": "b6d64be901333f9b2c23ce39924cf1c359334be7",
+    "docs/showcase-admin-entry.md": "2865f31d095f572767209c97361afc8f4e5518a1",
+    "docs/showcase-admin-history-privacy.md": "49233def47db935661ea632788e35f811e46cef5",
+    "docs/showcase-admin-runtime.md": "dafe104f3496bcd751bf2b94e767313f3f05c412",
+    "docs/showcase-concurrency.md": "100a57a3364589385471d21d8f08b272020e1141",
+    "docs/showcase-controller-integration.md": "362cd6f97e00fd69cd693c2c05b82e2b562bc3b6",
+    "docs/showcase-gallery-integration.md": "7ec2366f43e5274992cab3c83db42803c77c9876",
+    "docs/showcase-intake-application.md": "f57b5bc5b1b1e65cbc9a1daa54f58a6eafe2880d",
+    "docs/showcase-intake-revocation.md": "2aa4817de5e80e73e4fbd838e4423dab0f1f3c98",
+    "docs/showcase-intake-runtime.md": "2093ca9f0578992bcb24322b1590520a9fd1c6cc",
+    "docs/showcase-private-storage.md": "fa64cdb3f56ecee0c428593443b90ac7ddb62aab",
+    "docs/showcase-public-controller.md": "018f5fdd964193c7137111c8f2321c43a250ad30",
+    "docs/showcase-public-entry.md": "a94a82f2fbff86dcb040cad77ea4fa4a87e40a04",
+    "docs/showcase-public-runtime.md": "02b4fa11619965cf6a8acc96f526e0319eb5a650",
+    "docs/showcase-rate-admission.md": "5acab5f1cde0abe17af59033a3476712167559ea",
+    "docs/showcase-request-integration.md": "1134f59a3f7ee05204b70ef25e49b171e8aaeb4f",
+    "docs/showcase-root-route.md": "5d2dc22fc19e43f00c04fd4ca0784f0edc6e671a",
+    "docs/showcase-session-integration.md": "1d422bc30773c667c7d13f17615d8ccd4a69ae13",
+    "showcase-gallery.php": "9642d4f345ce5f074f8c4d15d6811fee532a0165",
+    "showcase-photo.php": "5d83ab87e46ee7df8ea4b4fb8b81b226dffe4acb",
+    "showcase.php": "6324d874e18f8a3c9276af822ddc88655c9c95fd",
+    "src/showcase/ShowcaseAdminAuthorization.php": "5837374c064563e279551e341f2928481eecdab7",
+    "src/showcase/ShowcaseAdminController.php": "2b1002f587be191fa4b6fafb4cebe03f2a01178d",
+    "src/showcase/ShowcaseAdminRuntime.php": "3041ef34bbce05134ededdd47a18959c11eccc2d",
+    "src/showcase/ShowcaseConcurrency.php": "a523b206945740c641362bc415c45e98144a54cd",
+    "src/showcase/ShowcaseForm.php": "83efa24645c830eda3318231212b5ccf7f5f19dc",
+    "src/showcase/ShowcaseIntakeApplication.php": "a43dbf83c077e4d6f637dc2a45cf6ff7624b015e",
+    "src/showcase/ShowcaseIntakeController.php": "703aa12bdb4a0d33bc116ea6fd8c49319286dee8",
+    "src/showcase/ShowcaseIntakeRuntime.php": "87e9322995371480d59e6a0a24cd6a646e39d259",
+    "src/showcase/ShowcasePhoto.php": "3f853e102f1e076bc230d0e2dca6fe421d0d64f5",
+    "src/showcase/ShowcasePrivateStorage.php": "c44232b3d534c8fbf72a5062954068e8cdd370d8",
+    "src/showcase/ShowcasePublicController.php": "767ce1cc768d8d58c44119d5e5d422daf7890024",
+    "src/showcase/ShowcasePublicRuntime.php": "a49b4dc7cf64413a74246f6285d9fe0340f35591",
+    "src/showcase/ShowcaseRateAdmission.php": "65a16c253b704708fe29f5df42ecead9b25bd15a",
+    "src/showcase/ShowcaseRepository.php": "3e8071604930961a468072b78534456b5701d87d",
+    "src/showcase/ShowcaseRequest.php": "31fac09cf1d06a6a67e6481dc526d68116a06236",
+    "src/showcase/ShowcaseSessionForms.php": "0aea12fbcaf9c67d411e07a2c00dfd0589c7f5e4",
+    "src/showcase/ShowcaseSubmission.php": "8656cf609a4de7f9e199fac006f2e8e2605e894c",
+    "src/showcase/ShowcaseViews.php": "f9d2518c8c6632c76f0e0bd93e542ea5958e89d2",
+    "src/showcase/admin-entry.php": "057507428020bce8add171efd22ef612d3fc7b11",
+    "src/showcase/public-entry.php": "664e3ebf79e3ebd9ae6592a0bf9859501e4aa116",
+    "tests/fixtures/README.txt": "21ffc13b9129914961ab189ae58f9e518cf3654e",
+    "tests/fixtures/admin-auth-main.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
+    "tests/showcase-admin-authorization-test.php": "3d5e2584562d634f978c41a00475dd897e29221b",
+    "tests/showcase-admin-browser-check.py": "c4226ded4a604fe12313da4b9e2be1b1adc9f8a5",
+    "tests/showcase-admin-controller-guard.py": "3132fb5a2231bb190f5987decca26c89e9051a85",
+    "tests/showcase-admin-controller-test.php": "ab8c01f97bc5f4ed0c28a264b5532b068568f2ef",
+    "tests/showcase-admin-current-app-test.php": "fbb473e9c77301788c7247d0909271d5a7078096",
+    "tests/showcase-admin-entry-test.py": "9bd12de17e09434ae27086bc55469e0f27ccaef8",
+    "tests/showcase-admin-guard.py": "05325870ca9a1f38dec0f95142122a8d78692006",
+    "tests/showcase-admin-http-router.php": "dbfeac586730c20f3b8083aabac741abdc11dff4",
+    "tests/showcase-admin-http-test.py": "1b4df03295354ce0ba98a781a2126b23db32827e",
+    "tests/showcase-admin-runtime-test.py": "ab71ac93325260c17a2009538015acd954227cb6",
+    "tests/showcase-application-guard.py": "7825d99e151ab25e7a1dc5c652577db00fd9404b",
+    "tests/showcase-application-http-test.py": "baf09d1879b29b3adbdf953066a56a684145dff8",
+    "tests/showcase-application-router.php": "a095d10a44e600d3597415be0f8f7d029b6caa4e",
+    "tests/showcase-boundary-test.php": "7cb325c626abf9ebc0ce4289f347c79c058775ae",
+    "tests/showcase-concurrency-guard.py": "a3c5484b435be11be708c490c14caccb50918fcd",
+    "tests/showcase-concurrency-process-test.py": "bd67022bfb306cc7d5e5d440d06506ec86d9d27d",
+    "tests/showcase-concurrency-test.php": "1c71123928fb5672ef6352ed309ccbdfc20af6ec",
+    "tests/showcase-controller-guards.py": "d3729fb5418ff6d2be30307c02489babfdc74783",
+    "tests/showcase-controller-http-test.py": "db08cbcbd6a7b4a3009632a115579b6155aa92af",
+    "tests/showcase-controller-router.php": "6fe244fa658f863c3449bc065dee00f8158045f6",
+    "tests/showcase-foundation-test.php": "d4991d94c96427c953c3640110a0836199b51c00",
+    "tests/showcase-gallery-guards.py": "8b62f28e863c7699e644d86dde8f490fd59fd75d",
+    "tests/showcase-gallery-test.php": "696aeca04b3e934c68d71e9db4d83dcdd533142a",
+    "tests/showcase-http-router.php": "3f4e6c5c787a1064210de4187a317702837ac1c2",
+    "tests/showcase-http-test.py": "6c5294e418801bb48432ad7095cbb0caf0b69fa4",
+    "tests/showcase-intake-revocation-test.php": "2bc3ca742983319fde5646ff680dd94813b15206",
+    "tests/showcase-intake-runtime-test.php": "1054056e8978616fca8d0ff1ce4dc79a7b7b7384",
+    "tests/showcase-private-storage-guard.py": "5b7459380f8ae0e57823648833e1a4cb2c2ad092",
+    "tests/showcase-private-storage-test.php": "4461016145c91b3c159c0497d3b381b2e4fd1191",
+    "tests/showcase-public-controller-test.php": "95d31b7f503999cbfe3243e44945709831cc3dcf",
+    "tests/showcase-public-entry-test.py": "273d6cce00b1a22262170c03a5de55244e483120",
+    "tests/showcase-public-runtime-test.php": "7e3c5325b7c82647d43b37ad79fe2dcf954a5731",
+    "tests/showcase-rate-guard.py": "80d694fb7814d7d9924e1702efd4a452f5b5e21b",
+    "tests/showcase-rate-test.php": "92398c9ac6d1bae20c12bb85263184d40791197e",
+    "tests/showcase-repository-test.php": "50ebb83749778d98c056863a0994d1eb660d4683",
+    "tests/showcase-request-test.php": "2eeb2977802a5c27287bdd3a92ec3fb11fb8950f",
+    "tests/showcase-root-smoke.py": "099bdf338f864b157c1f1ecd38cc536d3cc48de4",
+    "tests/showcase-session-guard.py": "fc40321fcfab476cc4980c669cbc146ce96070d7",
+    "tests/showcase-session-http-test.py": "4ad1f8e05ac37ce593977476e9c348e68ff534a7",
+    "tests/showcase-session-router.php": "b89b31fb59cfd9d2d5badf2f8931727ca521b16d",
+    "tests/showcase-session-test.php": "4d375c3cf0a297433631b5884549ee6b9b20ce64"
+}
+
+
 def require(ok, message):
     if not ok:
         raise RuntimeError(message)
@@ -159,6 +256,8 @@ def load_policy(root):
             'Integrated main must preserve originals and not overlap manuals')
     main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
     reviewed.update(integrated)
+    require(len(SHOWCASE_ADDITIONS) == 91 and not (set(SHOWCASE_ADDITIONS) & set(reviewed)),
+            'Showcase additions must be exactly additive')
     old_bytes = inventory['baseline_manifest'].encode()
     require(blob(old_bytes) == reviewed[MANIFEST]['sha'], 'Original manifest identity differs')
     original = decode(old_bytes)
@@ -173,13 +272,16 @@ def load_policy(root):
     for path, status in COMPATIBILITY.items():
         require(status == ('M' if path in main else 'A'), 'Compatibility status differs')
         changes[path] = status
+    changes.update({p: 'A' for p in SHOWCASE_ADDITIONS})
     require(manifest['allowed_changes'] == changes, 'Exact changed path/status map required')
     sources = manifest['source_blobs']
-    require(set(sources) == (set(original['source_blobs']) | set(COMPATIBILITY)) - {MANIFEST},
+    require(set(sources) == (set(original['source_blobs']) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS)) - {MANIFEST},
             'Exact source pin keys required')
     for path, oid in sources.items():
         require(isinstance(oid, str) and re.fullmatch('[0-9a-f]{40}', oid), 'Invalid source pin')
-        if path not in COMPATIBILITY:
+        if path in SHOWCASE_ADDITIONS:
+            require(oid == SHOWCASE_ADDITIONS[path], 'Exact showcase source pin mismatch: ' + path)
+        elif path not in COMPATIBILITY:
             expected = integrated[path]['sha'] if path in main_delta else original['source_blobs'][path]
             require(oid == expected == reviewed[path]['sha'],
                     'Immutable source pin changed: ' + path)
@@ -188,10 +290,12 @@ def load_policy(root):
         oid = blob(data)
         require(path == MANIFEST or oid == sources[path], 'Compatibility source pin mismatch: ' + path)
         reviewed[path] = {'mode': '100644', 'type': 'blob', 'sha': oid}
+    reviewed.update({p: {'mode': '100644', 'type': 'blob', 'sha': oid}
+                     for p, oid in SHOWCASE_ADDITIONS.items()})
     return {'expected': reviewed, 'changes': changes, 'main': main,
             'historical_main': {p: {'before': before, 'after': main[p]['sha']}
                                 for p, before in HISTORICAL_MAIN.items()},
-            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(HISTORICAL_MAIN) | set(main_delta)}}
+            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS) | set(HISTORICAL_MAIN) | set(main_delta)}}
 
 
 def git(root, *args):
@@ -253,3 +357,4 @@ def verify_checkout(root):
 
 if __name__ == '__main__':
     print(json.dumps(verify_checkout(Path(__file__).resolve().parents[3])['receipt'], indent=2))
+
