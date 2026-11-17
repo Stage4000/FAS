@@ -128,7 +128,7 @@ export function cornerFold(u, v, progress, width, height) {
   const mx = width - dx / 2, my = height - dy / 2;
   const d = (u - mx) * nx + (v - my) * ny;
   if (d <= 0) return {x:u, y:v, shade:0, back:false};
-  const radius = Math.min(.035 * width * Math.sin(Math.PI * p), length / (4 * Math.PI));
+  const radius = Math.min(.06 * width * Math.sin(Math.PI * p), length / (4 * Math.PI));
   const angle = Math.min(Math.PI, d / radius);
   const along = d < Math.PI * radius ? radius * Math.sin(angle) : Math.PI * radius - d;
   const lift = radius * (1 - Math.cos(angle));
@@ -361,7 +361,7 @@ async function initialize(root) {
         }
         // Triangles share the same fold map; the entire gutter remains a fixed
         // edge of the sheet rather than translating as a detached rectangle.
-        const cells = 28, mesh = [];
+        const cells = 48, mesh = [];
         for(let y=0;y<=cells;y++) {
           const row=[];
           for(let x=0;x<=cells;x++) {
@@ -386,7 +386,11 @@ async function initialize(root) {
           const xy=((C.x-A.x)*(b.x-a.x)-(B.x-A.x)*(c.x-a.x))/det;
           const yx=((B.y-A.y)*(c.y-a.y)-(C.y-A.y)*(b.y-a.y))/det;
           const yy=((C.y-A.y)*(b.x-a.x)-(B.y-A.y)*(c.x-a.x))/det;
-          ctx.save();ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.clip();
+          // Subpixel overlap closes raster clip seams; the source mapping is
+          // unchanged, so adjacent triangles still sample the same page ink.
+          const center={x:(A.x+B.x+C.x)/3,y:(A.y+B.y+C.y)/3};
+          const clip=triangle.map(p=>{const dx=p.x-center.x,dy=p.y-center.y,length=Math.hypot(dx,dy);return {x:p.x+.7*dx/length,y:p.y+.7*dy/length};});
+          ctx.save();ctx.beginPath();ctx.moveTo(clip[0].x,clip[0].y);ctx.lineTo(clip[1].x,clip[1].y);ctx.lineTo(clip[2].x,clip[2].y);ctx.closePath();ctx.clip();
           ctx.transform(xx,yx,xy,yy,A.x-xx*a.x-xy*a.y,A.y-yx*a.x-yy*a.y);ctx.drawImage(image,0,0);ctx.restore();
           const shade=(A.shade+B.shade+C.shade)/3;
           if(shade>0){ctx.fillStyle=`rgba(18,16,12,${shade})`;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.fill();}

@@ -42,7 +42,7 @@
     "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
     "public/js/manual-editor.js": "b1a93b0debbabc81e5719d775b6d95aaa2d24c53",
     "public/js/manual-reader-loader.mjs": "cfe3f7c18bfa9e24f811307cae003156f5722a5c",
-    "public/js/manual-reader.mjs": "fc16e75d9cc0f7df75ec2a50ab055020007be40d",
+    "public/js/manual-reader.mjs": "4e25ba4818b825ea48946a9d229a2241f8670f09",
     "public/js/runtime-guard.js": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97",
     "public/js/theme-toggle.js": "34430acbe4b431f680c686cd40f52be41a1484bc",
     "public/js/timezone.js": "789840c70d84c0486a86ebe4a03a4684184d42bc",
