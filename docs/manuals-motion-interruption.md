@@ -98,3 +98,27 @@ calling this integration release-ready. Deterministic source/DOM/PDF controls
 are not browser animation, layout, focus or performance proof. There has been
 no local browser launch and no retry of a denied operation. Publication requires
 separate authorization; merge/deployment and actual manual import remain held.
+
+
+## Original attached corner fold candidate (2026-11-17)
+
+The two native 190/210 ms effects now drive a bounded original canvas fold,
+using the existing old/new PDF page textures. A diagonal crease starts at the
+outer bottom corner; its rounded band bends the paper while the full gutter
+edge remains on the book plane. Cover opening/closing recenters the whole book
+and its common hinge together. Interior spreads do not translate the hinge.
+Single-page backward navigation unfolds the destination from that same hinge.
+The compositor is a temporary, noninteractive, aria-hidden surface capped at
+four million backing pixels, in addition to existing page canvases. It releases
+on completion, Off, OS reduction, superseding navigation, resize or teardown.
+Old textures survive only until their owning fold settles; they are then zeroed.
+A compositor paint error closes the temporary surface and cancels that native
+effect, exposing the actual retained book rather than leaving it hidden.
+
+The original browser cases retain actual native effects/cancellation promises.
+Representation checks now require fold-progress keyframes and a live painted
+surface rather than literal whole-sheet rotateY. Added paused captures cover
+early/mid/late forward/back interior desktop, narrow and desktop cover turns.
+Capture success is expressly not visual acceptance: inspect the PNG pixels.
+Geometry/native suites do not establish realism, natural-duration performance,
+real touch hardware, actual manuals compatibility or production readiness.

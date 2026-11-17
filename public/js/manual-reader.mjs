@@ -117,6 +117,25 @@ export function createTextCache(maxCharacters = 2_000_000, maxEntries = 80) {
   };
 }
 
+// A developable fold starts at the free bottom corner. Points on the spine
+// stay on the book plane; a bounded cylindrical band rounds the moving crease.
+export function cornerFold(u, v, progress, width, height) {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p === 0) return {x:u, y:v, shade:0, back:false};
+  if (p === 1) return {x:-u, y:v, shade:0, back:true};
+  const dx = 2 * width * p, dy = .22 * Math.min(width, height) * Math.sin(Math.PI * p);
+  const length = Math.hypot(dx, dy), nx = dx / length, ny = dy / length;
+  const mx = width - dx / 2, my = height - dy / 2;
+  const d = (u - mx) * nx + (v - my) * ny;
+  if (d <= 0) return {x:u, y:v, shade:0, back:false};
+  const radius = Math.min(.035 * width * Math.sin(Math.PI * p), length / (4 * Math.PI));
+  const angle = Math.min(Math.PI, d / radius);
+  const along = d < Math.PI * radius ? radius * Math.sin(angle) : Math.PI * radius - d;
+  const lift = radius * (1 - Math.cos(angle));
+  return {x:u + (along - d) * nx, y:v + (along - d) * ny - .5 * lift,
+    shade:.12 + .3 * Math.sin(angle), back:angle > Math.PI / 2};
+}
+
 const root = document.querySelector('[data-manual-reader]');
 if (root) initialize(root);
 async function initialize(root) {
@@ -139,7 +158,7 @@ async function initialize(root) {
   };
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   const pageResources = createPageResourceTracker();
-  let renders = [], animations = [], manualMotionOff = false;
+  let renders = [], animations = [], manualMotionOff = false, activeCurl = null;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
   let pendingDraw = null;
   let pageInputEdited = false;
@@ -149,7 +168,7 @@ async function initialize(root) {
   const wide = () => stage.clientWidth >= 740;
   const spread = () => preferredSpread && wide();
   const say = message => { status.textContent = message; };
-  const stopAnimations = () => { animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
+  const stopAnimations = () => { activeCurl?.close(); animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
   const updateMotion = () => {
     if (disposed) return;
     const off = manualMotionOff || reducedMotion.matches;
@@ -166,10 +185,19 @@ async function initialize(root) {
     if (disposed || reducedMotion.matches) return;
     manualMotionOff = !manualMotionOff; updateMotion();
   });
-  const animate = async (element, frames, options) => {
+  const animate = async (element, frames, options, paint = null) => {
     if (manualMotionOff || reducedMotion.matches || !element.animate) return;
     const animation = element.animate(frames, options); animations.push(animation);
-    try { await animation.finished; } catch (_) { /* Preference changes, newer navigation or teardown may cancel motion. */ }
+    let frame;
+    const update = () => {
+      if (!paint || !animations.includes(animation)) return;
+      try { paint(animation.effect.getComputedTiming().progress ?? 0); }
+      catch (_) { activeCurl?.close(); paint = null; animation.cancel(); return; }
+      frame = window.requestAnimationFrame(update);
+    };
+    try { if (paint) update(); await animation.finished; if (paint) paint(1); }
+    catch (_) { /* Preference changes, newer navigation or teardown may cancel motion. */ }
+    finally { if (frame !== undefined) window.cancelAnimationFrame(frame); animations = animations.filter(a => a !== animation); }
   };
   const pendingText = new Map();
   const textFor = async number => {
@@ -284,10 +312,100 @@ async function initialize(root) {
   };
   // Resizing to zero releases pixels without waiting for detached DOM garbage collection.
   const releaseCanvas = canvas => { canvas.width = 0; canvas.height = 0; };
+  // One bounded compositor reads the already rendered PDF canvases. It does
+  // not render another PDF page or retain a second document/texture cache.
+  function startCurl(staged, forward) {
+    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !book.getBoundingClientRect) return null;
+    const old = papers.filter(p => !p.hidden).map(p => p.querySelector('canvas'));
+    if (!old.length || !old[0].getContext('2d')?.drawImage) return null;
+    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !papers[0].animate) return null;
+    const surface = document.createElement('canvas'), ctx = surface.getContext('2d');
+    if (!ctx) return null;
+    const box = stage.getBoundingClientRect(), frontRect = old[forward ? old.length-1 : 0].getBoundingClientRect();
+    const single = old.length === 1 && staged.length === 1;
+    const dir = single || forward ? 1 : -1;
+    const front = single && !forward ? staged[0] : old[forward ? old.length-1 : 0];
+    const back = single ? (forward ? staged[0] : old[0]) : staged[forward ? 0 : staged.length-1];
+    const startSpine = (dir === 1 ? frontRect.left : frontRect.right) - box.left - stage.clientLeft;
+    const endWidth = parseFloat(back.style.width), endHeight = parseFloat(back.style.height);
+    const endSpine = staged.length === 2 ? stage.clientWidth / 2 : (stage.clientWidth - endWidth) / 2;
+    const top = frontRect.top - box.top - stage.clientTop;
+    const width = stage.clientWidth, height = stage.clientHeight;
+    const scale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / (width * height)));
+    surface.width = Math.max(1, Math.floor(width * scale)); surface.height = Math.max(1, Math.floor(height * scale));
+    Object.assign(surface.style, {position:'absolute', pointerEvents:'none', zIndex:'2', width:`${width}px`, height:`${height}px`});
+    surface.setAttribute('aria-hidden','true'); surface.dataset.cornerCurl = 'true';
+    const position = stage.style.position, visibility = book.style.visibility;
+    stage.style.position = 'relative'; book.style.visibility = 'hidden'; stage.append(surface);
+    let closed = false;
+    const owner = {
+      close() {
+        if (closed) return; closed = true;
+        surface.remove(); releaseCanvas(surface);
+        if (activeCurl === owner) { activeCurl = null; book.style.visibility = visibility; stage.style.position = position; }
+      },
+      paint(progress) {
+        if (closed || activeCurl !== owner) return;
+        const p = Math.max(0, Math.min(1, progress)), fold = single && !forward ? 1-p : p;
+        const w = frontRect.width + (endWidth-frontRect.width)*p, h = frontRect.height + (endHeight-frontRect.height)*p;
+        const spine = startSpine + (endSpine-startSpine)*p;
+        surface.style.left = `${stage.scrollLeft}px`; surface.style.top = `${stage.scrollTop}px`;
+        ctx.setTransform(surface.width/width,0,0,surface.height/height,0,0); ctx.clearRect(0,0,width,height);
+        ctx.save();
+        if (single) { ctx.beginPath(); ctx.rect(spine,top,w,h); ctx.clip(); }
+        const pageImage = (image,x) => { if (image?.width && image.height) ctx.drawImage(image,x,top,w,h); };
+        if (single) pageImage(forward ? staged[0] : old[0],spine);
+        else {
+          pageImage(forward ? (old.length===2 ? old[0] : null) : (staged.length===2 ? staged[0] : null),spine-w);
+          pageImage(forward ? (staged.length===2 ? staged[1] : null) : (old.length===2 ? old[1] : null),spine);
+        }
+        // Triangles share the same fold map; the entire gutter remains a fixed
+        // edge of the sheet rather than translating as a detached rectangle.
+        const cells = 28, mesh = [];
+        for(let y=0;y<=cells;y++) {
+          const row=[];
+          for(let x=0;x<=cells;x++) {
+            const u=x/cells, v=y/cells, point=cornerFold(u*w,v*h,fold,w,h);
+            row.push({u,v,x:spine+dir*point.x,y:top+point.y,shade:point.shade,back:point.back});
+          }
+          mesh.push(row);
+        }
+        const triangles=[];
+        for(let y=0;y<cells;y++)for(let x=0;x<cells;x++) {
+          triangles.push([mesh[y][x],mesh[y][x+1],mesh[y+1][x+1]], [mesh[y][x],mesh[y+1][x+1],mesh[y+1][x]]);
+        }
+        triangles.sort((a,b)=>Number(a.some(p=>p.back))-Number(b.some(p=>p.back)));
+        for(const triangle of triangles) {
+          const isBack=triangle.filter(p=>p.back).length>=2, image=isBack?back:front;
+          if (!image?.width || !image.height) continue;
+          const source=triangle.map(p=>({x:((isBack ? dir===1 : dir===-1)?1-p.u:p.u)*image.width,y:p.v*image.height}));
+          const [a,b,c]=source, [A,B,C]=triangle;
+          const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);
+          if (Math.abs((B.x-A.x)*(C.y-A.y)-(C.x-A.x)*(B.y-A.y))<.01) continue;
+          const xx=((B.x-A.x)*(c.y-a.y)-(C.x-A.x)*(b.y-a.y))/det;
+          const xy=((C.x-A.x)*(b.x-a.x)-(B.x-A.x)*(c.x-a.x))/det;
+          const yx=((B.y-A.y)*(c.y-a.y)-(C.y-A.y)*(b.y-a.y))/det;
+          const yy=((C.y-A.y)*(b.x-a.x)-(B.y-A.y)*(c.x-a.x))/det;
+          ctx.save();ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.clip();
+          ctx.transform(xx,yx,xy,yy,A.x-xx*a.x-xy*a.y,A.y-yx*a.x-yy*a.y);ctx.drawImage(image,0,0);ctx.restore();
+          const shade=(A.shade+B.shade+C.shade)/3;
+          if(shade>0){ctx.fillStyle=`rgba(18,16,12,${shade})`;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.fill();}
+        }
+        const shadow=ctx.createLinearGradient(spine-10,0,spine+10,0);
+        shadow.addColorStop(0,'#0000');shadow.addColorStop(.5,'#0003');shadow.addColorStop(1,'#0000');
+        ctx.fillStyle=shadow;ctx.fillRect(spine-10,top,20,h);ctx.restore();
+        surface.dataset.progress = String(p);
+      }
+    };
+    activeCurl = owner;
+    try { owner.paint(0); } catch (error) { owner.close(); throw error; }
+    return owner;
+  }
   async function draw(requested, turn = false, updateHash = true) {
     if (!pdf || disposed) return;
     cancelOutlineSelection();
-    const ownedCanvases = new Set();
+    const ownedCanvases = new Set(), retiredCanvases = new Set();
+    let curl = null;
     let ownedPages = [];
     const oldPage = page, token = ++renderEpoch;
     renders.forEach(task => { try { task.cancel(); } catch (_) {} }); renders = []; stopAnimations();
@@ -328,14 +446,15 @@ async function initialize(root) {
       if (token !== renderEpoch) return;
       if (turn && visiblePages.length && oldPage !== targetPage) {
         const leaf = targetPage > oldPage ? papers[visiblePages.length - 1] : papers[0];
-        await animate(leaf, [{transform: 'rotateY(0deg)', filter:'brightness(1)'}, {transform: `rotateY(${targetPage > oldPage ? -82 : 82}deg)`, filter:'brightness(.65)'}], {duration:190,easing:'ease-in',fill:'none'});
+        curl = startCurl(staged, targetPage > oldPage);
+        await animate(leaf, [{'--manual-turn-progress':'0'}, {'--manual-turn-progress':'.5'}], {duration:190,easing:'ease-in',fill:'none'}, curl ? p => curl.paint(p / 2) : null);
       }
       if (token !== renderEpoch) return;
       papers.forEach((paper, i) => {
         paper.hidden = !staged[i];
         const previous = paper.querySelector('canvas');
         if (staged[i]) { previous.replaceWith(staged[i]); ownedCanvases.delete(staged[i]); paper.querySelector('[data-page-label]').textContent = selected[i]; }
-        releaseCanvas(previous);
+        if (curl) retiredCanvases.add(previous); else releaseCanvas(previous);
       });
       page = targetPage;
       visiblePages = selected;
@@ -351,8 +470,9 @@ async function initialize(root) {
       if (pendingDraw?.token === token) pendingDraw = null;
       if (turn && oldPage !== page) {
         const leaf = page > oldPage ? papers[0] : papers[selected.length - 1];
-        await animate(leaf, [{transform:`rotateY(${page > oldPage ? 82 : -82}deg)`,filter:'brightness(.7)'},{transform:'rotateY(0deg)',filter:'brightness(1)'}], {duration:210,easing:'ease-out',fill:'none'});
+        await animate(leaf, [{'--manual-turn-progress':'.5'},{'--manual-turn-progress':'1'}], {duration:210,easing:'ease-out',fill:'none'}, curl ? p => curl.paint(.5 + p / 2) : null);
       }
+      curl?.close();
       await displayText(selected, token);
     } catch (error) {
       if (token !== renderEpoch || error?.name === 'RenderingCancelledException') return;
@@ -364,6 +484,8 @@ async function initialize(root) {
       // draw settling after supersession cannot clear the newer owner's intent.
       if (pendingDraw?.token === token) pendingDraw = null;
       // Uncommitted canvases include earlier pages when a later page fails or supersedes.
+      curl?.close();
+      retiredCanvases.forEach(releaseCanvas);
       ownedCanvases.forEach(releaseCanvas);
       ownedPages.forEach(proxy => pageResources.release(proxy));
     }
