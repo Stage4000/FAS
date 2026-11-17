@@ -994,6 +994,64 @@ test('lazy-display-text-real-worker',async(p,ctx)=>{
   summary.measurements.push({label:'lazy-display-text',closedTurnsWorkerTextRequests:0,openingSpreadRequests:2,completeClosedSearchTotalRequests:7,reopeningAddedRequests:0,limits:'Actual worker message counts for a synthetic 7-page PDF, not production CPU/heap/network savings.'});
 });
 
+// Rendered phase evidence is captured for human pixel review; capture success is
+// deliberately not labeled corner-curl visual acceptance.
+test('rendered-turn-phase-evidence',async p=>{
+  await p.addInitScript(()=>{
+    const native=Element.prototype.animate;
+    window.__fasTurnVisual={armed:false,entries:[]};
+    Element.prototype.animate=function(frames,options){
+      const a=Reflect.apply(native,this,[frames,options]),q=window.__fasTurnVisual;
+      if(q.armed&&this.matches('[data-paper]')&&[190,210].includes(a.effect.getTiming().duration)){
+        a.pause();a.currentTime=0;q.entries.push({animation:a,element:this,duration:a.effect.getTiming().duration});
+      }
+      return a;
+    };
+  });
+  const frames=[];
+  for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+    await p.setViewportSize(viewport);await open(p,ids.book,'#page=4');
+    const wide=viewport.width===1440;await ready(p,wide?[4,5]:[4]);
+    await p.locator('[data-stage]').scrollIntoViewIfNeeded();
+    const clip=await p.locator('[data-stage]').boundingBox();
+    assert(clip&&clip.x>=0&&clip.y>=0&&clip.y+clip.height<=viewport.height+1,'stage wholly visible before motion; screenshots never resize viewport');
+    for(const direction of ['forward','backward']){
+      await p.evaluate(()=>{window.__fasTurnVisual.armed=true;window.__fasTurnVisual.entries=[];});
+      await p.locator('[data-stage]').focus();
+      await p.keyboard.press(direction==='forward'?'ArrowRight':'ArrowLeft');
+      await p.waitForFunction(()=>{const q=window.__fasTurnVisual;return q.entries.length===1&&q.entries[0].animation.playState==='paused'&&!q.entries[0].animation.pending;});
+      async function frame(label,index,time){
+        const value=await p.evaluate(async({index,time})=>{
+          const entry=window.__fasTurnVisual.entries[index],a=entry.animation;
+          a.currentTime=time;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+          return {phase:index,duration:entry.duration,currentTime:a.currentTime,progress:a.effect.getComputedTiming().progress,
+            state:a.playState,transform:getComputedStyle(entry.element).transform,transformOrigin:getComputedStyle(entry.element).transformOrigin,
+            leaf:rect(entry.element),book:rect(document.querySelector('[data-book]')),stage:rect(document.querySelector('[data-stage]')),
+            labels:[...document.querySelectorAll('[data-paper]:not([hidden]) [data-page-label]')].map(e=>e.textContent),
+            backing:[...document.querySelectorAll('[data-paper]:not([hidden]) canvas')].map(e=>({width:e.width,height:e.height}))};
+        },{index,time});
+        assert.equal(value.state,'paused');assert.equal(value.currentTime,time);assert(value.progress>0&&value.progress<1);
+        assert(value.backing.every(c=>c.width>0&&c.height>0),'actual PDF canvases remain rendered');
+        assert(Math.abs(value.stage.width-clip.width)<1&&Math.abs(value.stage.height-clip.height)<1&&Math.abs(value.stage.x-clip.x)<1&&Math.abs(value.stage.y-clip.y)<1,'capture does not perturb geometry');
+        const file=`turn-visual-${viewport.width}-${direction}-${label}.png`;
+        await p.screenshot({path:path.join(output,file),clip});
+        frames.push({file,viewport,direction,label,...value});
+      }
+      await frame('early',0,60);
+      await p.evaluate(()=>window.__fasTurnVisual.entries[0].animation.finish());
+      await p.waitForFunction(()=>{const q=window.__fasTurnVisual;return q.entries.length===2&&q.entries[1].animation.playState==='paused'&&!q.entries[1].animation.pending;});
+      await frame('midpoint',1,10);await frame('late',1,150);
+      await p.evaluate(()=>{const q=window.__fasTurnVisual;q.armed=false;q.entries[1].animation.finish();});
+      await ready(p,direction==='forward'?(wide?[6,7]:[5]):(wide?[4,5]:[4]));
+    }
+  }
+  assert.equal(frames.length,12);
+  fs.writeFileSync(path.join(output,'turn-visual-evidence.json'),JSON.stringify({verdict:'requires_pixel_review',syntheticPdf:true,
+    timing:'Genuine 190ms outgoing / 210ms incoming animations sampled at total elapsed60/200/340ms; paused for capture, not a performance result.',frames},null,2));
+  summary.measurements.push({label:'rendered-turn-phase-evidence',frames:frames.length,visualAcceptance:'not_established_by_capture_test'});
+},{reducedMotion:'no-preference'});
+
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
   browser=await chromium.launch({headless:true});summary.browser=browser.version();
