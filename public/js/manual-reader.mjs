@@ -375,6 +375,7 @@ async function initialize(root) {
           triangles.push([mesh[y][x],mesh[y][x+1],mesh[y+1][x+1]], [mesh[y][x],mesh[y+1][x+1],mesh[y+1][x]]);
         }
         triangles.sort((a,b)=>Number(a.some(p=>p.back))-Number(b.some(p=>p.back)));
+        const shades=[];
         for(const triangle of triangles) {
           const isBack=triangle.filter(p=>p.back).length>=2, image=isBack?back:front;
           if (!image?.width || !image.height) continue;
@@ -392,7 +393,12 @@ async function initialize(root) {
           const clip=triangle.map(p=>{const dx=p.x-center.x,dy=p.y-center.y,length=Math.hypot(dx,dy);return {x:p.x+.7*dx/length,y:p.y+.7*dy/length};});
           ctx.save();ctx.beginPath();ctx.moveTo(clip[0].x,clip[0].y);ctx.lineTo(clip[1].x,clip[1].y);ctx.lineTo(clip[2].x,clip[2].y);ctx.closePath();ctx.clip();
           ctx.transform(xx,yx,xy,yy,A.x-xx*a.x-xy*a.y,A.y-yx*a.x-yy*a.y);ctx.drawImage(image,0,0);ctx.restore();
-          const shade=(A.shade+B.shade+C.shade)/3;
+          shades.push({triangle,shade:(A.shade+B.shade+C.shade)/3});
+        }
+        // Shade only after every texture tile is painted. A later neighboring
+        // tile must never erase an earlier tile's shading at the overlap.
+        for(const {triangle,shade} of shades){
+          const [A,B,C]=triangle;
           if(shade>0){ctx.fillStyle=`rgba(18,16,12,${shade})`;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.closePath();ctx.fill();}
         }
         const shadow=ctx.createLinearGradient(spine-10,0,spine+10,0);
