@@ -31,6 +31,8 @@ COMPATIBILITY = {
     # Exact checkout discount row presentation and lifecycle regression.
     'checkout.php': 'M',
     'tests/checkout-coupon-lifecycle-test.cjs': 'A',
+    'tests/cart-malformed-hydration-test.cjs': 'M',
+    'tests/keyboard-browser/shipping-identity-test.py': 'A',
     # Reviewed banner UTC input and countdown presentation.
     'admin/banners.php': 'M',
     'includes/header.php': 'M',
