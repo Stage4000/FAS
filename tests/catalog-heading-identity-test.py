@@ -49,3 +49,14 @@ for path in ('products.php','api/products.php'):
   reject(lambda:h.restore_pre_zero_search(path,data))
  finally:h.ZERO_SEARCH_HASHES[path]=prior
 print(json.dumps({'checks':checks,'passed':True,'scope':'Exact catalog and API zero-query identity, not hosted acceptance'}))
+
+
+historical = h.decode_manifest(manifest)
+aligned = h.browser_notification_baseline(historical)
+check({p for p in historical if aligned[p] != historical[p]} == {'products.php', 'api/products.php'})
+for p, (before, after) in h.NOTIFICATION_BASELINE_HASHES.items():
+ check(h.sha256(historical[p]) == before and h.sha256(aligned[p]) == after)
+ check(aligned[p].count(h.NOTIFICATION_RESTORATIONS[p][2]) == 1)
+ for invalid in (aligned[p], historical[p][:-1], historical[p]+b'changed'):
+  reject(lambda p=p, value=invalid: h.browser_notification_baseline(dict(historical, **{p:value})))
+print(json.dumps({'checks':checks,'passed':True,'scope':'Exact browser notification fixtures for heading comparisons'}))

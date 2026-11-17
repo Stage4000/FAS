@@ -585,6 +585,31 @@ def php_diagnostics(text):
     return [line for line in text.splitlines() if re.search(
         r'(?:PHP\s+(?:Warning|Notice|Deprecated|Fatal error|Parse error)|Uncaught\s|SQLSTATE\[)',line)]
 
+NOTIFICATION_BASELINE_HASHES = {
+    'products.php': ('fc1415e9b54262b5d8d34a9cb521e779f1ae78dae8abcca589ea9255501a8055',
+        '0ba3c8f0e26418bd890b4c3a31cb6910716a2ba37a325bce319548ee9463e53d'),
+    'api/products.php': ('62a33018504ec723f24c80002939f4de95e5291e5c9b2035293945711966851c',
+        '6e8568b74b8e39c48f1905a6191d3813f7620a7efdd05d4ff23eb755216847cc'),
+}
+
+
+def browser_notification_baseline(baseline):
+    """Render the same notification form on both sides of the historical heading comparison."""
+    result = dict(baseline)
+    api_anchor = b'<div class="d-flex flex-wrap gap-2">\n<a href="/products/motorcycle"'
+    for path, (before, after) in NOTIFICATION_BASELINE_HASHES.items():
+        include = NOTIFICATION_RESTORATIONS[path][2]
+        original = ORIGINAL_INLINE_NOTIFICATION_FORM if path == 'products.php' else api_anchor
+        replacement = include if path == 'products.php' else include + api_anchor
+        data = baseline[path]
+        if sha256(data) != before or data.count(original) != 1:
+            raise ValueError('Expected the immutable heading fixture: ' + path)
+        result[path] = data.replace(original, replacement, 1)
+        if sha256(result[path]) != after:
+            raise ValueError('Unexpected notification-form comparison fixture: ' + path)
+    return result
+
+
 def run_heading_variants(root, site, origin, assets, output):
     suite = root / 'tests/keyboard-browser'
     manifest = json.loads((suite / 'heading-sources.json').read_text())
@@ -593,6 +618,7 @@ def run_heading_variants(root, site, origin, assets, output):
     candidate = {p: storage_identity.restore(p, data) for p, data in runtime_candidate.items()}
     verify_candidate(manifest, candidate)  # Fail closed before any heading browser starts.
     restored = cart_restoration(candidate, baseline)
+    browser_baseline = browser_notification_baseline(baseline)
     heading_output = output / 'headings'
     heading_output.mkdir()
     reports = {}; failures = []
@@ -610,6 +636,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'candidate_sha256': {p: sha256(b) for p,b in candidate.items()},
                 'storage_runtime_sha256': {p: sha256(b) for p,b in runtime_candidate.items()},
                 'baseline_sha256': {p: sha256(b) for p,b in baseline.items()},
+                'notification_baseline_sha256': {p: sha256(browser_baseline[p]) for p in NOTIFICATION_BASELINE_HASHES},
                 'synthetic_seed_sha256': sha256(seed),
                 'checkout':verify_checkout(root),
                 'test_sha256': {str(p.relative_to(root)): sha256(p.read_bytes()) for p in suite.iterdir() if p.is_file()},
@@ -620,7 +647,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'state_reset':'Identical inventory via SQLite backup; fresh synthetic security/growth stores and isolated PHP sessions for each variant; no active browser between variants.',
                 'scope': 'synthetic local PHP rendering only; no deployment/provider acceptance'}
     try:
-        for variant, source in [('candidate', candidate), ('baseline', baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
+        for variant, source in [('candidate', candidate), ('baseline', browser_baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
             for path, data in source.items():
                 (site / path).write_bytes(data)
             # SQLite backup API handles journal/WAL state; never copy only a live main DB.
