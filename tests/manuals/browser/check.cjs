@@ -996,7 +996,7 @@ test('lazy-display-text-real-worker',async(p,ctx)=>{
 
 // Rendered phase evidence is captured for human pixel review; capture success is
 // deliberately not labeled corner-curl visual acceptance.
-test('rendered-turn-phase-evidence',async p=>{
+for(const viewport of [{width:1440,height:1000},{width:390,height:1000}])test(`rendered-turn-phase-evidence-${viewport.width}`,async p=>{
   await p.addInitScript(()=>{
     const native=Element.prototype.animate;
     window.__fasTurnVisual={armed:false,entries:[]};
@@ -1009,8 +1009,8 @@ test('rendered-turn-phase-evidence',async p=>{
     };
   });
   const frames=[];
-  for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
-    await p.setViewportSize(viewport);await open(p,ids.book,'#page=4');
+  {
+    await open(p,ids.book,'#page=4');
     const wide=viewport.width===1440;await ready(p,wide?[4,5]:[4]);
     await p.locator('[data-stage]').scrollIntoViewIfNeeded();
     const clip=await p.locator('[data-stage]').boundingBox();
@@ -1046,11 +1046,11 @@ test('rendered-turn-phase-evidence',async p=>{
       await ready(p,direction==='forward'?(wide?[6,7]:[5]):(wide?[4,5]:[4]));
     }
   }
-  assert.equal(frames.length,12);
-  fs.writeFileSync(path.join(output,'turn-visual-evidence.json'),JSON.stringify({verdict:'requires_pixel_review',syntheticPdf:true,
+  assert.equal(frames.length,6);
+  fs.writeFileSync(path.join(output,`turn-visual-evidence-${viewport.width}.json`),JSON.stringify({verdict:'requires_pixel_review',syntheticPdf:true,
     timing:'Genuine 190ms outgoing / 210ms incoming animations sampled at total elapsed60/200/340ms; paused for capture, not a performance result.',frames},null,2));
   summary.measurements.push({label:'rendered-turn-phase-evidence',frames:frames.length,visualAcceptance:'not_established_by_capture_test'});
-},{reducedMotion:'no-preference'});
+},{viewport,reducedMotion:'no-preference'});
 
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
