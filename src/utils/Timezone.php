@@ -118,7 +118,7 @@ class Timezone
         return $dateTime->format('Y-m-d\TH:i');
     }
 
-    public static function fromUserInput($value): ?string
+    public static function fromUserInput($value, bool $rejectNormalization = false): ?string
     {
         $raw = trim((string)$value);
         if ($raw === '') {
@@ -127,6 +127,20 @@ class Timezone
 
         try {
             $dateTime = new \DateTimeImmutable($raw, new \DateTimeZone(self::userTimezone()));
+            if ($rejectNormalization) {
+                $errors = \DateTimeImmutable::getLastErrors();
+                if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+                    return null;
+                }
+
+                // A datetime-local value can name a wall time skipped at a DST transition.
+                if (preg_match('/\A(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}(?::\d{2})?)(?:\.\d+)?\z/', $raw, $local)) {
+                    $format = strlen($local[2]) === 5 ? 'Y-m-d\TH:i' : 'Y-m-d\TH:i:s';
+                    if ($dateTime->format($format) !== $local[1] . 'T' . $local[2]) {
+                        return null;
+                    }
+                }
+            }
             return $dateTime->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
             return null;

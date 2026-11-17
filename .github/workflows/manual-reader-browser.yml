@@ -126,6 +126,7 @@ jobs:
             /tests/showcase-session-router.php
             /tests/showcase-session-test.php
             /src/marketing/Growth.php
+            /admin/banners.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php
             /tests/fixtures/growth-generation/same-second.php

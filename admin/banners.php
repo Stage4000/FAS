@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
         foreach (['starts_at', 'ends_at', 'countdown_end'] as $field) {
             $input = $_POST[$field] ?? '';
             $provided = !is_string($input) || trim($input) !== '';
-            $parsed = is_string($input) && $provided ? Timezone::fromUserInput($input) : null;
+            $parsed = is_string($input) && $provided ? Timezone::fromUserInput($input, rejectNormalization: true) : null;
             if ($provided && $parsed === null) {
                 $error = 'Invalid date/time for ' . $field . '.';
                 break;
