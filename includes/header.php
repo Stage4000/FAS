@@ -207,9 +207,11 @@ if (!function_exists('fasIsEbayOutboundUrl')) {
                 var end = new Date(span.getAttribute('data-end')).getTime();
                 var diff = end - now;
                 if (diff <= 0) {
-                    // Countdown has hit zero — dismiss the parent banner immediately
                     var parentBanner = span.closest('.alert-banner');
-                    if (parentBanner) {
+                    if (parentBanner && parentBanner.hasAttribute('data-expires')) {
+                        // The banner's explicit schedule controls placement; only the timer has ended.
+                        span.remove();
+                    } else if (parentBanner) {
                         var id = parentBanner.id.replace('banner-', '');
                         autoDismissBanner(id);
                     } else {

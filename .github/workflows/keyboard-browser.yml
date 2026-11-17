@@ -9,6 +9,7 @@ on:
       - '*.php'
       - 'src/**'
       - 'includes/**'
+      - 'admin/banners.php'
       - 'public/**'
       - 'tests/keyboard-browser/**'
       - 'tests/fixtures/security-catalog.sql'
@@ -38,6 +39,7 @@ on:
       - '*.php'
       - 'src/**'
       - 'includes/**'
+      - 'admin/banners.php'
       - 'public/**'
       - 'tests/keyboard-browser/**'
       - 'tests/fixtures/security-catalog.sql'
@@ -73,6 +75,7 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /src/marketing/Growth.php
+            /admin/banners.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php
             /tests/fixtures/growth-generation/same-second.php

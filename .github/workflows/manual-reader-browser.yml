@@ -35,6 +35,7 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /src/marketing/Growth.php
+            /admin/banners.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php
             /tests/fixtures/growth-generation/same-second.php
