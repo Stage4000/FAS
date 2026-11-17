@@ -34,6 +34,14 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /api/products.php
+            /api/saved-search.php
+            /includes/saved-search-notify-form.php
+            /products.php
+            /src/utils/SavedSearchCapture.php
+            /tests/catalog-heading-identity-test.py
+            /tests/form-input-shape-test.php
+            /tests/saved-search-capture-test.php
             /admin/sale.php
             /tests/sale-schedule-http-test.py
             /checkout.php

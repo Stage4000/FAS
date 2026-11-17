@@ -67,17 +67,12 @@ class SavedSearchCapture
      */
     public function record(array $data): bool
     {
-        $this->ensureTable();
-
-        $stmt = $this->db->prepare(
-            "INSERT INTO saved_search_leads (
-                email, label, search_url, search_query, manufacturer, model,
-                category, collection, source_page, context_json, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-
-        return $stmt->execute([
-            strtolower(trim((string)($data['email'] ?? ''))),
+        $email = $this->nullableString($data['email'] ?? null);
+        if ($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \InvalidArgumentException('A valid email is required.');
+        }
+        $values = [
+            strtolower($email),
             $this->nullableString($data['label'] ?? null, 255),
             $this->nullableString($data['search_url'] ?? null),
             $this->nullableString($data['search_query'] ?? null, 255),
@@ -86,20 +81,42 @@ class SavedSearchCapture
             $this->nullableString($data['category'] ?? null, 255),
             $this->nullableString($data['collection'] ?? null, 80),
             $this->nullableString($data['source_page'] ?? null),
-            json_encode($data['context'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            json_encode($data['context'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
             gmdate('Y-m-d H:i:s'),
-        ]);
+        ];
+
+        $this->ensureTable();
+        $stmt = $this->db->prepare(
+            "INSERT INTO saved_search_leads (
+                email, label, search_url, search_query, manufacturer, model,
+                category, collection, source_page, context_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+
+        return $stmt->execute($values);
     }
 
-    private function nullableString($value, ?int $maxLength = null): ?string
+    private function nullableString($value, ?int $maxBytes = null): ?string
     {
-        $text = trim((string)($value ?? ''));
+        if ($value === null) {
+            return null;
+        }
+        if (!is_string($value) || preg_match('//u', $value) !== 1) {
+            throw new \InvalidArgumentException('Expected valid UTF-8 text.');
+        }
+        $text = trim($value);
         if ($text === '') {
             return null;
         }
-        if ($maxLength !== null && strlen($text) > $maxLength) {
-            return substr($text, 0, $maxLength);
+        if ($maxBytes === null || strlen($text) <= $maxBytes) {
+            return $text;
         }
-        return $text;
+
+        // If the first omitted byte continues a character, omit that whole character.
+        $end = $maxBytes;
+        while ((ord($text[$end]) & 0xC0) === 0x80) {
+            --$end;
+        }
+        return substr($text, 0, $end);
     }
 }

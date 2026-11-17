@@ -42,6 +42,15 @@ if (!$consent) {
     exit;
 }
 
+foreach (['label', 'url', 'search', 'manufacturer', 'model', 'category', 'collection', 'source_page', 'page_url'] as $field) {
+    $value = $input[$field] ?? null;
+    if ($value !== null && (!is_string($value) || preg_match('//u', $value) !== 1)) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'Search details must be valid text.']);
+        exit;
+    }
+}
+
 try {
     $capture = new SavedSearchCapture(Database::getInstance()->getConnection());
     $saved = $capture->record([
@@ -65,6 +74,9 @@ try {
         'success' => $saved,
         'message' => $saved ? 'Saved. We can use this request when similar parts are added.' : 'Unable to save this request.',
     ]);
+} catch (InvalidArgumentException | JsonException) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => 'Search details must be valid text.']);
 } catch (Throwable $e) {
     error_log('Saved search capture failed: ' . $e->getMessage());
     http_response_code(500);

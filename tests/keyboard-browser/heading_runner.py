@@ -175,7 +175,44 @@ def restore_pre_zero_search(path, data):
         raise ValueError('Zero-search restoration must equal exact published preimage')
     return restored
 
+ORIGINAL_INLINE_NOTIFICATION_FORM = b"""<form class="saved-search-notify-form border rounded-3 p-3 mb-3" data-saved-search-notify>
+<div class="small fw-semibold mb-2"><i class="fas fa-bell text-danger me-1"></i>Notify me when similar parts arrive</div>
+<div class="row g-2 align-items-start">
+<div class="col-lg">
+<input type="email" class="form-control form-control-sm" name="email" placeholder="Email address" autocomplete="email" required>
+</div>
+<div class="col-lg-auto">
+<button class="btn btn-danger btn-sm w-100" type="submit">Notify Me</button>
+</div>
+</div>
+<label class="form-check small text-muted mt-2 mb-0">
+<input class="form-check-input" type="checkbox" name="consent" value="1" required>
+I agree to be contacted only about matching Flip and Strip inventory.
+</label>
+<div class="saved-search-notify-status small mt-2" aria-live="polite"></div>
+</form>
+"""
+NOTIFICATION_RESTORATIONS = {
+    'products.php': ('bea9dc98c5536124c9030d27cf9f8f89b2025337783fe14c2cb56d82847278f3', 'e89ed7935f711288bd06ec309ef4d127e488368dc5a137fbf7bd99f1a5dcedac',
+        b"<?php require __DIR__ . '/includes/saved-search-notify-form.php'; ?>\n", ORIGINAL_INLINE_NOTIFICATION_FORM),
+    'api/products.php': ('c25a611f5630caf8fe1d5113b8243491385642c220d3804e29894bb3a32b9b4d', '54927dd5c3708d6c6780e8de4424b1ae5579d49d305c0f45dad59c183b19a3e1',
+        b"<?php require __DIR__ . '/../includes/saved-search-notify-form.php'; ?>\n", b''),
+}
+
+
+def restore_pre_notification_form(path, data):
+    current, previous, include, inline = NOTIFICATION_RESTORATIONS[path]
+    if sha256(data) != current or data.count(include) != 1:
+        raise ValueError('Exact reviewed saved-search renderer required: ' + path)
+    restored = data.replace(include, inline, 1)
+    if sha256(restored) != previous or previous != BADGE_HASHES[path][0]:
+        raise ValueError('Saved-search restoration must match the preceding renderer: ' + path)
+    return restored
+
+
 def heading_identity_bytes(path, data):
+    if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
+        data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)
     data = restore_pre_badge(path, data)
     if path in ZERO_SEARCH_HASHES and sha256(data) == ZERO_SEARCH_HASHES[path][0]:
@@ -377,6 +414,12 @@ def verify_candidate(manifest, candidate):
             if sha256(candidate[path]) not in permitted:
                 raise ValueError('Exact reviewed shipping candidate required: '+path)
     candidate = {p: shipping_identity.restore(p, b) for p, b in candidate.items()}
+    historical_catalog = {'products.php': CATALOG_PREIMAGE_SHA256,
+                          'api/products.php': ZERO_SEARCH_HASHES['api/products.php'][1]}
+    for entry in manifest['files']:
+        path = entry['path']
+        if path in historical_catalog and entry['candidate_sha256'] == historical_catalog[path]:
+            candidate[path] = restore_pre_notification_form(path, candidate[path])
     candidate = {p: restore_pre_badge(p, b) for p, b in candidate.items()}
     for entry in manifest['files']:
         if entry['path'] == 'api/products.php' and entry['candidate_sha256'] == ZERO_SEARCH_HASHES['api/products.php'][1] and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['api/products.php'][0]:

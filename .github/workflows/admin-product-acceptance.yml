@@ -4,6 +4,12 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'api/products.php'
+      - 'api/saved-search.php'
+      - 'products.php'
+      - 'tests/catalog-heading-identity-test.py'
+      - 'tests/form-input-shape-test.php'
+      - 'tests/saved-search-capture-test.php'
       - 'checkout.php'
       - 'tests/sale-schedule-http-test.py'
       - 'tests/cart-malformed-hydration-test.cjs'
@@ -53,6 +59,12 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /api/products.php
+            /api/saved-search.php
+            /products.php
+            /tests/catalog-heading-identity-test.py
+            /tests/form-input-shape-test.php
+            /tests/saved-search-capture-test.php
             /tests/sale-schedule-http-test.py
             /checkout.php
             /tests/cart-malformed-hydration-test.cjs
