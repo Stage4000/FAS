@@ -175,7 +175,44 @@ def restore_pre_zero_search(path, data):
         raise ValueError('Zero-search restoration must equal exact published preimage')
     return restored
 
+ORIGINAL_INLINE_NOTIFICATION_FORM = b"""<form class="saved-search-notify-form border rounded-3 p-3 mb-3" data-saved-search-notify>
+<div class="small fw-semibold mb-2"><i class="fas fa-bell text-danger me-1"></i>Notify me when similar parts arrive</div>
+<div class="row g-2 align-items-start">
+<div class="col-lg">
+<input type="email" class="form-control form-control-sm" name="email" placeholder="Email address" autocomplete="email" required>
+</div>
+<div class="col-lg-auto">
+<button class="btn btn-danger btn-sm w-100" type="submit">Notify Me</button>
+</div>
+</div>
+<label class="form-check small text-muted mt-2 mb-0">
+<input class="form-check-input" type="checkbox" name="consent" value="1" required>
+I agree to be contacted only about matching Flip and Strip inventory.
+</label>
+<div class="saved-search-notify-status small mt-2" aria-live="polite"></div>
+</form>
+"""
+NOTIFICATION_RESTORATIONS = {
+    'products.php': ('bea9dc98c5536124c9030d27cf9f8f89b2025337783fe14c2cb56d82847278f3', 'e89ed7935f711288bd06ec309ef4d127e488368dc5a137fbf7bd99f1a5dcedac',
+        b"<?php require __DIR__ . '/includes/saved-search-notify-form.php'; ?>\n", ORIGINAL_INLINE_NOTIFICATION_FORM),
+    'api/products.php': ('c25a611f5630caf8fe1d5113b8243491385642c220d3804e29894bb3a32b9b4d', '54927dd5c3708d6c6780e8de4424b1ae5579d49d305c0f45dad59c183b19a3e1',
+        b"<?php require __DIR__ . '/../includes/saved-search-notify-form.php'; ?>\n", b''),
+}
+
+
+def restore_pre_notification_form(path, data):
+    current, previous, include, inline = NOTIFICATION_RESTORATIONS[path]
+    if sha256(data) != current or data.count(include) != 1:
+        raise ValueError('Exact reviewed saved-search renderer required: ' + path)
+    restored = data.replace(include, inline, 1)
+    if sha256(restored) != previous or previous != BADGE_HASHES[path][0]:
+        raise ValueError('Saved-search restoration must match the preceding renderer: ' + path)
+    return restored
+
+
 def heading_identity_bytes(path, data):
+    if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
+        data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)
     data = restore_pre_badge(path, data)
     if path in ZERO_SEARCH_HASHES and sha256(data) == ZERO_SEARCH_HASHES[path][0]:
@@ -257,12 +294,31 @@ QUANTITY_BLOBS.update(CONTACT_INPUT_PURPOSE_BLOBS)
 REVIEWED_OVERLAY.update(CONTACT_INPUT_PURPOSE_BLOBS)
 
 # Exact reviewed PR183 runtime and test inputs; all other paths stay immutable.
-SHIPPING_INTEGRATION_BLOBS = {'api/shipping-estimate.php': {'mode': '100644', 'type': 'blob', 'sha': '6f68638d9c961e75bfbb7594a616ffb868f4bc75'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': 'badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac'}, 'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': 'f9e80306880977e15f289caeee032e3ee969574f'}, 'includes/catalog-meta.php': {'mode': '100644', 'type': 'blob', 'sha': 'b77464e1cdf9f4b5684f1bde224dca683ab8a428'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'd00036ad68cd4d01cf1ae254d8f34d53c4a62478'}, 'public/js/shipping-estimator.js': {'mode': '100644', 'type': 'blob', 'sha': '13b11995172cabbf7be019232b45eed941c97a02'}, 'src/utils/ShippingRules.php': {'mode': '100644', 'type': 'blob', 'sha': 'ce56c43e6120af85c8e0a12f755d661619677c30'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '2d2a87d91b7da36c51ecb8e9a9109dc7f7bb8248'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '1b744048bc19ac98cbcbcdd03bcebae5f7dfef32'}, 'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'd72d25178e2ab3f414f6581eb4a15c9554a939fb'}, 'tests/free-shipping-destination-api-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7461b88e9cf1cf1d04cd16c61e0ec999a0a7ac52'}, 'tests/free-shipping-destination-test.php': {'mode': '100644', 'type': 'blob', 'sha': '4ebb3ba83755803c7bdd7effa8858a4f169607ba'}, 'tests/keyboard-browser/shipping_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '075be901e2f24af392495bb3d9977fe1586e0edc'}, 'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'dfc71b4c80215ac9e18b36239f30d9956722114b'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '38da96168a315f18613c3e02e9a48176b879138f'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'f0c6aaecdfceee85128a38c68590facbc5cee5ba'}, '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': '05a1633cae9e8156d71c0b82f3dcc8a209489584'}, 'tests/keyboard-browser/malformed-hydration.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7100046f80307c2fb698be747bfcb085b4e67327'}, 'tests/keyboard-browser/storage-unavailable.cjs': {'mode': '100644', 'type': 'blob', 'sha': '4af982adb74194c9678ebdf10360eefe1acd40ed'}}
+SHIPPING_INTEGRATION_BLOBS = {'api/shipping-estimate.php': {'mode': '100644', 'type': 'blob', 'sha': '6f68638d9c961e75bfbb7594a616ffb868f4bc75'}, 'cart.php': {'mode': '100644', 'type': 'blob', 'sha': 'badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac'}, 'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': 'f9e80306880977e15f289caeee032e3ee969574f'}, 'includes/catalog-meta.php': {'mode': '100644', 'type': 'blob', 'sha': 'b77464e1cdf9f4b5684f1bde224dca683ab8a428'}, 'product.php': {'mode': '100644', 'type': 'blob', 'sha': 'd00036ad68cd4d01cf1ae254d8f34d53c4a62478'}, 'public/js/shipping-estimator.js': {'mode': '100644', 'type': 'blob', 'sha': '13b11995172cabbf7be019232b45eed941c97a02'}, 'src/utils/ShippingRules.php': {'mode': '100644', 'type': 'blob', 'sha': 'ce56c43e6120af85c8e0a12f755d661619677c30'}, 'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '0513965cf4e250dd719fcb4fecbff9b87ba4a0f6'}, 'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '4547ac37856456d64fbbd926c22bfe8a50c5c35d'}, 'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'd72d25178e2ab3f414f6581eb4a15c9554a939fb'}, 'tests/free-shipping-destination-api-test.py': {'mode': '100644', 'type': 'blob', 'sha': '7461b88e9cf1cf1d04cd16c61e0ec999a0a7ac52'}, 'tests/free-shipping-destination-test.php': {'mode': '100644', 'type': 'blob', 'sha': '4ebb3ba83755803c7bdd7effa8858a4f169607ba'}, 'tests/keyboard-browser/shipping_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '075be901e2f24af392495bb3d9977fe1586e0edc'}, 'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'dfc71b4c80215ac9e18b36239f30d9956722114b'}, 'tests/keyboard-browser/storage_identity.py': {'mode': '100644', 'type': 'blob', 'sha': '38da96168a315f18613c3e02e9a48176b879138f'}, 'tests/keyboard-browser/heading-unit-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'f0c6aaecdfceee85128a38c68590facbc5cee5ba'}, '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': '856ac38990bd6275be4e69f8b50da7288a4b0a7a'}, 'tests/keyboard-browser/malformed-hydration.cjs': {'mode': '100644', 'type': 'blob', 'sha': '7100046f80307c2fb698be747bfcb085b4e67327'}, 'tests/keyboard-browser/storage-unavailable.cjs': {'mode': '100644', 'type': 'blob', 'sha': '4af982adb74194c9678ebdf10360eefe1acd40ed'}}
 MALFORMED_BLOBS.update({p: SHIPPING_INTEGRATION_BLOBS[p] for p in ('tests/keyboard-browser/storage-unavailable.cjs', 'tests/keyboard-browser/malformed-hydration.cjs')})
 STORAGE_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 CATALOG_SCROLL_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 QUANTITY_BLOBS.update(SHIPPING_INTEGRATION_BLOBS)
 REVIEWED_OVERLAY.update(SHIPPING_INTEGRATION_BLOBS)
+
+# Exact coupon summary presentation overlay; historical inventories stay pinned.
+COUPON_SUMMARY_BLOBS = {
+    '.github/workflows/admin-product-acceptance.yml': {'mode': '100644', 'type': 'blob', 'sha': 'dc6c4ecb58c4e1025825bf2adc5df6490cd9888c'},
+    '.github/workflows/keyboard-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'e89c3c1d8bdbacf9fd124dadc77e05f76473e0ca'},
+    '.github/workflows/manual-reader-browser.yml': {'mode': '100644', 'type': 'blob', 'sha': 'ec59c301a1f28d01bb3503da0041854832bc5b17'},
+    'checkout.php': {'mode': '100644', 'type': 'blob', 'sha': '55fbb9cd5d9da429d5b7314d3de41de1bd995ad4'},
+    'tests/admin-product-browser/guard-test.py': {'mode': '100644', 'type': 'blob', 'sha': '620774b24e9e1b451ca6285efa4202793308e515'},
+    'tests/admin-product-browser/run.py': {'mode': '100644', 'type': 'blob', 'sha': '2e46d53b01c77c87e91fd65ce0e80c04d4b7755d'},
+    'tests/cart-malformed-hydration-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'f438c7cb5485f3af73cebcd97305ab708e75e418'},
+    'tests/checkout-coupon-lifecycle-test.cjs': {'mode': '100644', 'type': 'blob', 'sha': 'c696139b8dd15d47ead2001ffa59353756bfe138'},
+    'tests/keyboard-browser/shipping-identity-test.py': {'mode': '100644', 'type': 'blob', 'sha': 'b03b8686f6e7bd812150f262ed405378a31a7340'},
+}
+CATALOG_SCROLL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+EMAIL_BLOBS.update(COUPON_SUMMARY_BLOBS)
+MALFORMED_BLOBS.update(COUPON_SUMMARY_BLOBS)
+STORAGE_BLOBS.update(COUPON_SUMMARY_BLOBS)
+QUANTITY_BLOBS.update(COUPON_SUMMARY_BLOBS)
+REVIEWED_OVERLAY.update(COUPON_SUMMARY_BLOBS)
 
 def manuals_policy(root, *, checkout=True):
     import sys
@@ -358,6 +414,12 @@ def verify_candidate(manifest, candidate):
             if sha256(candidate[path]) not in permitted:
                 raise ValueError('Exact reviewed shipping candidate required: '+path)
     candidate = {p: shipping_identity.restore(p, b) for p, b in candidate.items()}
+    historical_catalog = {'products.php': CATALOG_PREIMAGE_SHA256,
+                          'api/products.php': ZERO_SEARCH_HASHES['api/products.php'][1]}
+    for entry in manifest['files']:
+        path = entry['path']
+        if path in historical_catalog and entry['candidate_sha256'] == historical_catalog[path]:
+            candidate[path] = restore_pre_notification_form(path, candidate[path])
     candidate = {p: restore_pre_badge(p, b) for p, b in candidate.items()}
     for entry in manifest['files']:
         if entry['path'] == 'api/products.php' and entry['candidate_sha256'] == ZERO_SEARCH_HASHES['api/products.php'][1] and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['api/products.php'][0]:
@@ -523,6 +585,31 @@ def php_diagnostics(text):
     return [line for line in text.splitlines() if re.search(
         r'(?:PHP\s+(?:Warning|Notice|Deprecated|Fatal error|Parse error)|Uncaught\s|SQLSTATE\[)',line)]
 
+NOTIFICATION_BASELINE_HASHES = {
+    'products.php': ('fc1415e9b54262b5d8d34a9cb521e779f1ae78dae8abcca589ea9255501a8055',
+        '0ba3c8f0e26418bd890b4c3a31cb6910716a2ba37a325bce319548ee9463e53d'),
+    'api/products.php': ('62a33018504ec723f24c80002939f4de95e5291e5c9b2035293945711966851c',
+        '6e8568b74b8e39c48f1905a6191d3813f7620a7efdd05d4ff23eb755216847cc'),
+}
+
+
+def browser_notification_baseline(baseline):
+    """Render the same notification form on both sides of the historical heading comparison."""
+    result = dict(baseline)
+    api_anchor = b'<div class="d-flex flex-wrap gap-2">\n<a href="/products/motorcycle"'
+    for path, (before, after) in NOTIFICATION_BASELINE_HASHES.items():
+        include = NOTIFICATION_RESTORATIONS[path][2]
+        original = ORIGINAL_INLINE_NOTIFICATION_FORM if path == 'products.php' else api_anchor
+        replacement = include if path == 'products.php' else include + api_anchor
+        data = baseline[path]
+        if sha256(data) != before or data.count(original) != 1:
+            raise ValueError('Expected the immutable heading fixture: ' + path)
+        result[path] = data.replace(original, replacement, 1)
+        if sha256(result[path]) != after:
+            raise ValueError('Unexpected notification-form comparison fixture: ' + path)
+    return result
+
+
 def run_heading_variants(root, site, origin, assets, output):
     suite = root / 'tests/keyboard-browser'
     manifest = json.loads((suite / 'heading-sources.json').read_text())
@@ -531,6 +618,7 @@ def run_heading_variants(root, site, origin, assets, output):
     candidate = {p: storage_identity.restore(p, data) for p, data in runtime_candidate.items()}
     verify_candidate(manifest, candidate)  # Fail closed before any heading browser starts.
     restored = cart_restoration(candidate, baseline)
+    browser_baseline = browser_notification_baseline(baseline)
     heading_output = output / 'headings'
     heading_output.mkdir()
     reports = {}; failures = []
@@ -548,6 +636,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'candidate_sha256': {p: sha256(b) for p,b in candidate.items()},
                 'storage_runtime_sha256': {p: sha256(b) for p,b in runtime_candidate.items()},
                 'baseline_sha256': {p: sha256(b) for p,b in baseline.items()},
+                'notification_baseline_sha256': {p: sha256(browser_baseline[p]) for p in NOTIFICATION_BASELINE_HASHES},
                 'synthetic_seed_sha256': sha256(seed),
                 'checkout':verify_checkout(root),
                 'test_sha256': {str(p.relative_to(root)): sha256(p.read_bytes()) for p in suite.iterdir() if p.is_file()},
@@ -558,7 +647,7 @@ def run_heading_variants(root, site, origin, assets, output):
                 'state_reset':'Identical inventory via SQLite backup; fresh synthetic security/growth stores and isolated PHP sessions for each variant; no active browser between variants.',
                 'scope': 'synthetic local PHP rendering only; no deployment/provider acceptance'}
     try:
-        for variant, source in [('candidate', candidate), ('baseline', baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
+        for variant, source in [('candidate', candidate), ('baseline', browser_baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
             for path, data in source.items():
                 (site / path).write_bytes(data)
             # SQLite backup API handles journal/WAL state; never copy only a live main DB.

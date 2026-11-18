@@ -238,6 +238,7 @@ unset($suggestionParams['page'], $suggestionParams['collection']);
 </div>
 </div>
 <?php endif; ?>
+<?php require __DIR__ . '/../includes/saved-search-notify-form.php'; ?>
 <div class="d-flex flex-wrap gap-2">
 <a href="/products/motorcycle" class="btn btn-outline-danger btn-sm">Motorcycle Parts</a>
 <a href="/products/atv" class="btn btn-outline-danger btn-sm">ATV / UTV Parts</a>

@@ -17,8 +17,15 @@ foreach (array_slice($argv, 1) as $arg) {
 
 function extractValidation($root, $endpoint) {
     $specs = [
-        'contact-form' => ['// Get POST data', '// Verify Turnstile if enabled', ['7732e909026c4435c15a760cf81f383ea973a8288436b95ee1f2207bcb101360', '9b25f4fd2e3f67aa5983e02c6533981062ae9302e43dab26a7bef3cf71f017d3']],
-        'saved-search' => ["\n\n\$email = ", "try {\n    \$capture = new SavedSearchCapture", ['22ef3b36fbbbb1d569f64a3e6a13b1dd326bb97d71d1dba9c8e46c8a14418dd7', 'abfad7c6a6f6c2690dd05d69b09cf1c8cab47a2859fc287f57d26ab847d80aad']],
+        'contact-form' => ['// Get POST data', '// Verify Turnstile if enabled', [
+            '7732e909026c4435c15a760cf81f383ea973a8288436b95ee1f2207bcb101360' => 2,
+            '9b25f4fd2e3f67aa5983e02c6533981062ae9302e43dab26a7bef3cf71f017d3' => 2,
+        ]],
+        'saved-search' => ["\n\n\$email = ", "try {\n    \$capture = new SavedSearchCapture", [
+            '22ef3b36fbbbb1d569f64a3e6a13b1dd326bb97d71d1dba9c8e46c8a14418dd7' => 2,
+            'abfad7c6a6f6c2690dd05d69b09cf1c8cab47a2859fc287f57d26ab847d80aad' => 2,
+            'cc2297270c17aa0306042a83228bae67c3dd650525ae9ae15d3d11aad02ad58f' => 3,
+        ]],
     ];
     [$start, $end, $allowed] = $specs[$endpoint];
     $source = file_get_contents($root . '/api/' . $endpoint . '.php');
@@ -28,11 +35,11 @@ function extractValidation($root, $endpoint) {
     $a = strpos($source, $start); $b = strpos($source, $end);
     if ($b <= $a) { throw new RuntimeException('Invalid extraction bounds'); }
     $slice = substr($source, $a, $b - $a);
-    if (!in_array(hash('sha256', $slice), $allowed, true)) {
+    $expectedExits = $allowed[hash('sha256', $slice)] ?? null;
+    if ($expectedExits === null) {
         throw new RuntimeException('Unreviewed validation slice: ' . $endpoint);
     }
     // Only these reviewed slices are executable. Replace their exits, not validation.
-    $expectedExits = 2;
     if (substr_count($slice, 'exit;') !== $expectedExits) {
         throw new RuntimeException('Exit guard changed');
     }
@@ -131,6 +138,19 @@ foreach ([false, null, 0, '0', '', 'false', 'off', 'no', 'invalid', 2, [], ['yes
 }
 $cases[] = ['saved-search', 'consent-missing', ['email' => 'a@example.com'], $noConsent];
 $cases[] = ['saved-search', 'email-rejection-precedes-consent', ['email' => 'bad', 'consent' => false], $invalidSaved];
+
+$validSaved = ['email' => 'a@example.com', 'consent' => true];
+$invalidText = rejected(422, 'error', 'Search details must be valid text.');
+$nonText = ['array' => ['gear'], 'object' => (object)['label' => 'gear'],
+    'boolean' => true, 'integer' => 123, 'float' => 1.5, 'bad-utf8' => "\xFF"];
+foreach (['label', 'url', 'search', 'manufacturer', 'model', 'category', 'collection', 'source_page', 'page_url'] as $field) {
+    foreach ($nonText as $kind => $value) {
+        $cases[] = ['saved-search', "$field/$kind", $validSaved + [$field => $value], $invalidText];
+    }
+    foreach ([null, '', '0', '試験ギア'] as $index => $value) {
+        $cases[] = ['saved-search', "$field/valid-$index", $validSaved + [$field => $value], accepted($validSaved)];
+    }
+}
 $passed = 0; $failed = []; $details = [];
 foreach ($cases as [$endpoint, $label, $data, $expected]) {
     $actual = validateSlice($slices[$endpoint], $endpoint, $data);

@@ -4,11 +4,22 @@ on:
   push:
     branches: [main]
     paths:
+      - 'tests/analytics-link-classification-test.cjs'
+      - 'api/products.php'
+      - 'api/saved-search.php'
+      - 'tests/catalog-heading-identity-test.py'
+      - 'tests/form-input-shape-test.php'
+      - 'tests/saved-search-capture-test.php'
+      - 'admin/sale.php'
+      - 'tests/sale-schedule-http-test.py'
+      - 'tests/cart-malformed-hydration-test.cjs'
+      - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
       - 'tests/fixtures/growth-generation/**'
       - '*.php'
       - 'src/**'
       - 'includes/**'
+      - 'admin/banners.php'
       - 'public/**'
       - 'tests/keyboard-browser/**'
       - 'tests/fixtures/security-catalog.sql'
@@ -33,11 +44,22 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'tests/analytics-link-classification-test.cjs'
+      - 'api/products.php'
+      - 'api/saved-search.php'
+      - 'tests/catalog-heading-identity-test.py'
+      - 'tests/form-input-shape-test.php'
+      - 'tests/saved-search-capture-test.php'
+      - 'admin/sale.php'
+      - 'tests/sale-schedule-http-test.py'
+      - 'tests/cart-malformed-hydration-test.cjs'
+      - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/growth-generation-test.py'
       - 'tests/fixtures/growth-generation/**'
       - '*.php'
       - 'src/**'
       - 'includes/**'
+      - 'admin/banners.php'
       - 'public/**'
       - 'tests/keyboard-browser/**'
       - 'tests/fixtures/security-catalog.sql'
@@ -72,7 +94,11 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /tests/analytics-link-classification-test.cjs
+            /api/saved-search.php
+            /admin/sale.php
             /src/marketing/Growth.php
+            /admin/banners.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php
             /tests/fixtures/growth-generation/same-second.php
