@@ -1,4 +1,5 @@
 """Invoked only by the existing loopback-isolated runner; never a standalone server."""
+from contextlib import closing, contextmanager
 from pathlib import Path
 import base64, gzip, hashlib, json, re, sqlite3, subprocess
 import storage_identity
@@ -131,7 +132,24 @@ GALLERY_FIXED_SHA256 = 'cbfbccac53984a56b6334f82dd75521fb26f4c402a3ea76331c42bfb
 GALLERY_PREIMAGE_SHA256 = '687bebc45b6088379e3dc845c6eed1488dcd518f5e583259dda7060fec3acc88'
 GALLERY_INDEX_DECLARATION = b'// Select the displayed hero, not the first stored photo; duplicate URLs select once.\n$activeImageIndex = array_search($mainImage, $images, true);\n\n'
 
+GALLERY_FOCUS_SHA256 = '47fb898d2b529eceb109a6b0997d85befc2aac3fc13a2263eeb050ab6e7d07ca'
+
+
+def restore_pre_gallery_focus(data):
+    if sha256(data) != GALLERY_FOCUS_SHA256:
+        raise ValueError('Exact reviewed thumbnail focus source required')
+    padded = b'product-thumbnails mt-3 d-flex gap-2 p-2"'
+    start = data.index(b"const productThumbnails = document.querySelector('.product-thumbnails');\n")
+    end = data.index(b'// Quantity controls\n', start)
+    restored = (data[:start] + data[end:]).replace(padded, b'product-thumbnails mt-3 d-flex gap-2"', 1)
+    if sha256(restored) != shipping_identity.HASHES['product.php'][0]:
+        raise ValueError('Thumbnail focus restoration differs from the reviewed product page')
+    return restored
+
+
 def restore_pre_gallery_selection(data):
+    if sha256(data) == GALLERY_FOCUS_SHA256:
+        data = restore_pre_gallery_focus(data)
     data = shipping_identity.restore('product.php', data)
     if sha256(data) != GALLERY_FIXED_SHA256:
         raise ValueError('Exact reviewed gallery source required')
@@ -211,6 +229,8 @@ def restore_pre_notification_form(path, data):
 
 
 def heading_identity_bytes(path, data):
+    if path == 'product.php' and sha256(data) == GALLERY_FOCUS_SHA256:
+        data = restore_pre_gallery_focus(data)
     if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
         data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)
@@ -404,9 +424,12 @@ def decode_manifest(manifest):
 def verify_candidate(manifest, candidate):
     # Bind actual reviewed sources before historical copy normalization.
     historical = {'product.php': 'e0283b86a81c7c5631f556f7671abe5ae838e7e475772990ea39b437dae8af03', 'cart.php': '31408066a41b8b31820f059059ff07e5647ede30083c3d7bbdec612bcda37b70'}
+    candidate = dict(candidate)
     for entry in manifest['files']:
         path = entry['path']
         if path in historical and entry['candidate_sha256'] == historical[path]:
+            if path == 'product.php':
+                candidate[path] = restore_pre_gallery_focus(candidate[path])
             permitted = {shipping_identity.HASHES[path][0]}
             # The heading fixture already restores the exact Cart storage overlay.
             if path == 'cart.php':
@@ -534,10 +557,16 @@ def evaluate_reports(reports):
         errors += compare_visuals(reports[variant], reports['candidate'])
     return errors
 
+@contextmanager
+def fixture_database(path):
+    with closing(sqlite3.connect(path)) as connection, connection:
+        yield connection
+
+
 def seed_recommendations(site):
     # This is the existing disposable SQLite fixture, never a supplied live DB.
     dbpath = site / 'database/flipandstrip.db'
-    with sqlite3.connect(dbpath) as db:
+    with fixture_database(dbpath) as db:
         db.row_factory = sqlite3.Row
         # The existing security fixture has empty orders/order_items but omits
         # orders.created_at, which the actual best-seller query references.
@@ -558,7 +587,7 @@ def seed_recommendations(site):
 
 def seed_seller(site):
     # Disposable database only; real helper/model getLatest uses this exact schema.
-    with sqlite3.connect(site/'database/flipandstrip.db') as db:
+    with fixture_database(site/'database/flipandstrip.db') as db:
         db.execute("CREATE TABLE IF NOT EXISTS ebay_seller_rating_cache (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    store_name TEXT NOT NULL UNIQUE,\n    seller_name TEXT,\n    feedback_score INTEGER,\n    positive_feedback_percent REAL,\n    store_url TEXT,\n    last_fetched_at TEXT,\n    last_error TEXT,\n    created_at TEXT DEFAULT (datetime('now')),\n    updated_at TEXT DEFAULT (datetime('now'))\n);")
         if db.execute('SELECT count(*) FROM ebay_seller_rating_cache').fetchone()[0]:
             raise ValueError('Expected empty synthetic seller cache')
@@ -566,7 +595,7 @@ def seed_seller(site):
                    ('synthetic-heading-store','Synthetic Heading Seller',123,99.8,'https://example.invalid/synthetic-seller','2026-09-30'))
 
 def restore_database(seed_path, database):
-    with sqlite3.connect(seed_path) as source, sqlite3.connect(database) as target:
+    with fixture_database(seed_path) as source, fixture_database(database) as target:
         source.backup(target)
 
 def reset_ephemeral_state(base):
@@ -628,7 +657,7 @@ def run_heading_variants(root, site, origin, assets, output):
     # setup and session-local data cannot bias the presentation comparison.
     database = site / 'database/flipandstrip.db'
     seed_path = heading_output/'synthetic-seed.sqlite'
-    with sqlite3.connect(database) as source, sqlite3.connect(seed_path) as target:
+    with fixture_database(database) as source, fixture_database(seed_path) as target:
         source.backup(target)
     seed = seed_path.read_bytes()
     identity = {'base': EXPECTED_BASE, 'manifest_sha256': sha256((suite/'heading-sources.json').read_bytes()),

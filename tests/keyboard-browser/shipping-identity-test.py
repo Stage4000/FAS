@@ -24,8 +24,12 @@ raw = {p:(ROOT/p).read_bytes() for p in h.EXPECTED_PATHS}
 check(set(s.HASHES) == set(s.COPIES) == {'product.php', 'cart.php'})
 check([len(s.COPIES[p]) for p in ['product.php','cart.php']] == [3,1])
 h.verify_candidate(manifest,raw); check(True)
+product_before_focus = h.restore_pre_gallery_focus(raw['product.php'])
+for mutation in [product_before_focus, raw['product.php'].replace(b'gap-2 p-2"', b'gap-2"'),
+                 raw['product.php'].replace(b".product-thumbnail:focus-visible", b".product-thumbnail")]:
+    reject(lambda b=mutation:h.verify_candidate(manifest,dict(raw,**{'product.php':b})))
 for path in s.HASHES:
-    current = raw[path]
+    current = product_before_focus if path == 'product.php' else raw[path]
     prior = s.restore(path,current)
     check(h.sha256(current) == s.HASHES[path][0])
     check(h.sha256(prior) == s.HASHES[path][1] and prior != current)
@@ -50,7 +54,7 @@ fixture = {p:h.storage_identity.restore(p,b) for p,b in raw.items()}
 h.verify_candidate(manifest,fixture); check(True)
 h.cart_restoration(fixture,h.decode_manifest(manifest)); check(True)
 h.residual_restoration(fixture); check(True)
-check(h.sha256(s.restore('product.php',raw['product.php'])) == h.GALLERY_FIXED_SHA256)
+check(h.sha256(s.restore('product.php',product_before_focus)) == h.GALLERY_FIXED_SHA256)
 check(h.sha256(h.restore_pre_gallery_selection(raw['product.php'])) == h.GALLERY_PREIMAGE_SHA256)
 check(h.sha256(h.storage_identity.restore('cart.php',raw['cart.php'],strict=True)) == h.storage_identity.manifest()['files']['cart.php']['before_sha256'])
 base = {'entries':[{'path':'src/runtime.php','mode':'100644','type':'blob','sha':'base'}]}

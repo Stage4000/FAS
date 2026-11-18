@@ -142,7 +142,10 @@ def verify_candidate(*, compatibility=None) -> dict:
     for path, pins in EXPECTED_RUNTIME.items():
         require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
                 "Reviewed runtime preimage mismatch")
-        require(git("rev-parse", "HEAD:" + path) == pins["after"],
+        expected_after = pins["after"]
+        if compatibility is not None and path == "product.php":
+            expected_after = compatibility["overlay"][path]["sha"]
+        require(git("rev-parse", "HEAD:" + path) == expected_after,
                 "Reviewed runtime candidate mismatch")
     if compatibility is not None:
         for path, pins in compatibility["historical_main"].items():
