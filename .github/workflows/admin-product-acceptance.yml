@@ -16,6 +16,8 @@ on:
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/keyboard-browser/shipping-identity-test.py'
+      - 'tests/keyboard-browser/heading-unit-test.py'
+      - 'product.php'
       - 'tests/growth-generation-test.py'
       - 'tests/fixtures/growth-generation/**'
       - 'admin/**'
@@ -60,6 +62,8 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /product.php
+            /tests/keyboard-browser/heading-unit-test.py
             /tests/analytics-link-classification-test.cjs
             /api/products.php
             /api/saved-search.php

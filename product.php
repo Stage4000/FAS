@@ -287,7 +287,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Thumbnail Gallery -->
             <?php if (!empty($images) && count($images) > 1): ?>
-                <div class="product-thumbnails mt-3 d-flex gap-2" aria-label="Choose a product photo">
+                <div class="product-thumbnails mt-3 d-flex gap-2 p-2" aria-label="Choose a product photo">
                     <?php foreach ($images as $index => $image): ?>
                         <?php
                         // Check if image is external or local
@@ -535,6 +535,13 @@ window.FAS_PRODUCT_DATA = {
 </script>
 
 <script>
+const productThumbnails = document.querySelector('.product-thumbnails');
+productThumbnails?.addEventListener('focusin', (event) => {
+    if (event.target.matches('.product-thumbnail:focus-visible')) {
+        event.target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });
+    }
+});
+
 // Quantity controls
 document.getElementById('decrease-qty').addEventListener('click', function() {
     const input = document.getElementById('quantity-input');

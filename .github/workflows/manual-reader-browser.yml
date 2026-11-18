@@ -34,6 +34,8 @@ jobs:
           fetch-depth: 60
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /product.php
+            /tests/keyboard-browser/heading-unit-test.py
             /tests/analytics-link-classification-test.cjs
             /api/products.php
             /api/saved-search.php
