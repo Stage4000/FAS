@@ -33,6 +33,9 @@ GALLERY_FOCUS_BLOB = 'f0261fb7c43544d14881b7cc952e28d7176267f3'
 COMPATIBILITY = {
     'product.php': 'M',
     'tests/keyboard-browser/heading-unit-test.py': 'M',
+    # Menu visibility and keyboard focus after leaving the compact navigation.
+    'public/css/style.css': 'M',
+    'tests/keyboard-browser/navbar.cjs': 'M',
     'tests/analytics-link-classification-test.cjs': 'A',
     'public/js/analytics.js': 'M',
     # Saved-search capture and the two catalog notification renderers.

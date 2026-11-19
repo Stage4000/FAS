@@ -204,6 +204,36 @@ async function captureStableOutline(page, geometryReader, options, record = () =
     return {geometry, after, bytes, settlement};
 }
 
+function paintedMenuStrokes(bounds, bytes) {
+    const image = decodeScreenshot(bytes);
+    const x = Math.floor(bounds.left + bounds.width / 2);
+    const top = Math.ceil(bounds.top);
+    const background = image.pixel(x, top);
+    const strokes = [];
+    let last = null;
+    for (let y = top + 1; y < Math.floor(bounds.bottom); y++) {
+        const ratio = contrast(image.pixel(x, y), background);
+        if (ratio < 3) {
+            last = null;
+        } else if (last) {
+            last.minContrast = Math.min(last.minContrast, ratio);
+        } else {
+            last = {start: y, minContrast: ratio};
+            strokes.push(last);
+        }
+    }
+    assert.equal(strokes.length, 3, 'three visible menu strokes at 3:1 contrast or better');
+    return strokes;
+}
+
+function mainFocusVisible() {
+    const focus = document.activeElement;
+    const rect = focus.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return !!focus.closest('#main-content') && focus.matches(':focus-visible') && rect.top >= 0 &&
+        rect.bottom <= document.documentElement.clientHeight && !!hit && focus.contains(hit);
+}
+
 async function main() {
     const {chromium} = require('playwright');
     const [origin, assetsArg, outputArg] = process.argv.slice(2);
@@ -321,6 +351,16 @@ async function main() {
                 if (mobile) {
                     await pressTo('Tab', '.navbar-toggler');
                     assert.equal(await page.locator('#navbarNav').isVisible(), false);
+                    if (forcedColors === 'active') {
+                        const file = prefix + '-forced-colors-menu-icon.png';
+                        const {bytes} = await captureStableOutline(page, focusedGeometry, {path: path.join(output, file)});
+                        const bounds = await page.locator('.navbar-toggler-icon').evaluate(icon => {
+                            const {left, top, bottom, width} = icon.getBoundingClientRect();
+                            return {left, top, bottom, width};
+                        });
+                        row.screenshots.push({file, sha256: digest(bytes), label: 'forced-colors-menu-icon'});
+                        row.menuIconStrokes = paintedMenuStrokes(bounds, bytes);
+                    }
                     await page.keyboard.press('Enter'); await settleCollapse(true);
                 }
                 for (let i = 0; i < selectors.length; i++) {
@@ -328,7 +368,17 @@ async function main() {
                 }
                 await page.keyboard.press('Tab');
                 assert(await page.evaluate(() => !!document.activeElement.closest('#main-content')), 'Tab leaves navbar for content');
-                for (let i = selectors.length - 1; i >= 0; i--) await pressTo('Shift+Tab', selectors[i]);
+                let reverseStart = selectors.length - 1;
+                if (mobile) {
+                    await settleCollapse(false);
+                    await page.waitForFunction(mainFocusVisible, null, {timeout: 1500});
+                    row.contentFocusVisible = true;
+                    await pressTo('Shift+Tab', '.navbar-toggler');
+                    await page.keyboard.press('Enter'); await settleCollapse(true);
+                    for (const selector of selectors) await pressTo('Tab', selector);
+                    reverseStart--;
+                }
+                for (let i = reverseStart; i >= 0; i--) await pressTo('Shift+Tab', selectors[i]);
                 for (let i = 1; i < selectors.length; i++) await pressTo('Tab', selectors[i]);
                 if (javaScriptEnabled) {
                     const opposite = row.initialTheme === 'dark' ? 'light' : 'dark';
@@ -384,8 +434,13 @@ async function main() {
                 if (width === 390 && colorScheme === 'light' && forcedColors === 'none'
                     && reducedMotion === 'no-preference') {
                     row.shortViewports = [];
-                    for (const viewport of [{width: 390, height: 260}, {width: 320, height: 200}]) {
-                        await page.setViewportSize(viewport);
+                    const shortCases = [
+                        {width: 390, height: 340, scrolls: false},
+                        {width: 390, height: 260, scrolls: true},
+                        {width: 320, height: 200, scrolls: true},
+                    ];
+                    for (const {width, height, scrolls} of shortCases) {
+                        await page.setViewportSize({width, height});
                         assert.equal((await page.goto(origin + '/', {waitUntil: 'networkidle'})).status(), 200);
                         // Reserve the space occupied by stacked banners on the public page.
                         await page.locator('.navbar').evaluate(navbar => {
@@ -396,8 +451,8 @@ async function main() {
                         await seek('.navbar-toggler');
                         await page.keyboard.press('Enter');
                         await settleCollapse(true);
-                        assert(await page.locator('#navbarNav').evaluate(menu => menu.scrollHeight > menu.clientHeight),
-                            'expanded menu scrolls on a short viewport');
+                        assert.equal(await page.locator('#navbarNav').evaluate(menu => menu.scrollHeight > menu.clientHeight),
+                            scrolls, 'exercise both fitting and scrollable short menus');
                         for (const selector of selectors) {
                             await pressTo('Tab', selector);
                             await page.waitForFunction(() => {
@@ -410,14 +465,8 @@ async function main() {
                         }
                         await page.keyboard.press('Tab');
                         await settleCollapse(false);
-                        await page.waitForFunction(() => {
-                            const focus = document.activeElement;
-                            const rect = focus.getBoundingClientRect();
-                            const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                            return !!focus.closest('#main-content') && rect.top >= 0
-                                && rect.bottom <= document.documentElement.clientHeight && !!hit && focus.contains(hit);
-                        }, null, {timeout: 1500});
-                        row.shortViewports.push({...viewport, controls: selectors.length, contentFocusVisible: true});
+                        await page.waitForFunction(mainFocusVisible, null, {timeout: 1500});
+                        row.shortViewports.push({width, height, scrolls, controls: selectors.length, contentFocusVisible: true});
                     }
                 }
                 assert(!/(?:Fatal error|Warning|Notice|Deprecated):/.test(await page.locator('body').innerText()), 'no PHP diagnostics');
