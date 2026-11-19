@@ -241,15 +241,18 @@ def main():
         check('reject ignored untracked source',lambda:g.verify_checkout(repo.root),False);(repo.root/'ignored.txt').unlink()
         repo.git('update-index','--cacheinfo','100644,'+'1'*40+','+rel)
         check('reject dirty index',lambda:g.verify_checkout(repo.root),False);repo.restore()
-        rel = 'public/css/style.css'
+        # Use an unchanged ordinary source to exercise the worktree verifier.
+        rel = 'includes/footer.php'
+        assert rel not in g.COMPATIBILITY
         target = repo.root/rel;target.parent.mkdir(parents=True,exist_ok=True)
-        data=(ROOT/rel).read_bytes();assert g.blob(data)==policy['main'][rel]['sha']
+        data=g.read_regular(ROOT,rel);assert g.blob(data)==policy['main'][rel]['sha']
         target.write_bytes(data);repo.git('hash-object','-w','--',rel)
         repo.git('update-index','--no-skip-worktree','--',rel)
         check('materialized exact main bytes',lambda:g.verify_checkout(repo.root))
         for flag in ['--assume-unchanged','--skip-worktree']:
             repo.git('update-index',flag,'--',rel);target.write_bytes(data+b'changed')
-            check('reject hidden main edit '+flag,lambda:g.verify_checkout(repo.root),False)
+            check('reject hidden main edit '+flag,lambda:g.verify_checkout(repo.root),False,
+                  reason='Materialized source differs: '+rel)
             target.write_bytes(data);repo.git('update-index','--no-assume-unchanged','--',rel)
             repo.git('update-index','--no-skip-worktree','--',rel)
         target.chmod(0o755)
@@ -321,7 +324,7 @@ def main():
             while end<len(lines) and lines[end].startswith('            '):end+=1
             patterns=[x.strip() for x in lines[start:end]]
             (repo.root/'.git/info/exclude').write_text('\n'.join(patterns)+'\n')
-            required=set(g.COMPATIBILITY)|{'public/css/style.css'}
+            required=set(g.COMPATIBILITY)|{'includes/footer.php'}
             if workflow == 'manual-reader-browser': required.update(g.SHOWCASE_ADDITIONS)
             raw=repo.git('check-ignore','--no-index','-z','--stdin',data=b''.join(p.encode()+b'\0' for p in sorted(required)))
             assert set(raw.decode().split('\0')[:-1])==required,workflow+' sparse dependencies missing'
