@@ -241,11 +241,31 @@ def restore_pre_navbar_palette(data):
     return restored
 
 
+HERO_BEFORE_SHA256 = '7f1c9b9cc276323f116645fb6baa1451ead3ff80db3e0a4cbc5a2ddc1edab70f'
+HERO_AFTER_SHA256 = '54252fc3d80149b7bcc4b7f9d75f13cd9d7040832000648453fd7015526d71f8'
+HERO_PRIOR_IMG = (
+    b'                <img src="gallery/hero-image.png?v=20261016" '
+    b'alt="Flip and Strip Parts - Your Powersports Parts House" '
+    b'style="max-width: 300px; height: auto;" class="img-fluid">'
+)
+
+
+def restore_pre_responsive_hero(data):
+    if sha256(data) != HERO_AFTER_SHA256:
+        raise ValueError('Exact reviewed responsive hero required')
+    restored, count = re.subn(rb'(?ms)^ {16}<picture>\n.*?^ {16}</picture>$', HERO_PRIOR_IMG, data)
+    if count != 1 or sha256(restored) != HERO_BEFORE_SHA256:
+        raise ValueError('Hero restoration must equal exact preimage')
+    return restored
+
+
 def heading_identity_bytes(path, data):
     if path == 'product.php' and sha256(data) == GALLERY_FOCUS_SHA256:
         data = restore_pre_gallery_focus(data)
     if path == 'public/css/style.css' and sha256(data) == NAVBAR_PALETTE_SHA256:
         data = restore_pre_navbar_palette(data)
+    if path == 'index.php' and sha256(data) == HERO_AFTER_SHA256:
+        return restore_pre_responsive_hero(data)
     if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
         data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)

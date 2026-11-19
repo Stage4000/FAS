@@ -36,6 +36,12 @@ jobs:
           sparse-checkout: |
             /product.php
             /tests/keyboard-browser/heading-unit-test.py
+            /index.php
+            /tests/homepage-visual/prepare-fixture.py
+            /tests/homepage-visual/check-layout.cjs
+            /public/images/hero-image-300.webp
+            /public/images/hero-image-600.webp
+            /public/images/hero-image-900.webp
             /tests/analytics-link-classification-test.cjs
             /api/products.php
             /api/saved-search.php

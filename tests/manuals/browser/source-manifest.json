@@ -3,7 +3,7 @@
   "baseline_tree": "8fdf7f25f130ddbda16d7b27ecc90fb6c7699345",
   "scope": "Integrated v2 source-only candidate. Independent final review and actual hosted browser execution remain required. No deployment authorization.",
   "source_blobs": {
-    ".github/workflows/manual-reader-browser.yml": "0b7a2158691e00aa0f05fed94109bb47ef9ccaab",
+    ".github/workflows/manual-reader-browser.yml": "b1817f6b48d56cb0c5cceb3d3c828ada6e6286d4",
     "admin/auth.php": "f387c7c6657d247e0709951b17f5da45f160aa74",
     "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
     "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
@@ -345,13 +345,13 @@
     "tests/manuals/reader-load-control-test.cjs": "0ca1ed4c61a38e1418c6e84b865105cebef6c397",
     "docs/manuals-load-control.md": "67229f43aa348fa082f7c908c8745a92dc67c736",
     "tests/manuals/reader-search-focus-test.cjs": "64fc71e2a23a3d1848a6852c4b00e11518c65c60",
-    ".github/workflows/admin-product-acceptance.yml": "d04ece45ed43d8d5fa7fd9000fe4c8e5c569fa43",
+    ".github/workflows/admin-product-acceptance.yml": "0077329183440e9f993e313aab848125064afb08",
     ".github/workflows/keyboard-browser.yml": "def2abfeff6f31529e7df72d21298fed713dbae9",
     "tests/admin-product-browser/run.py": "ad7ce2a2a5581f9f52eb9b194e5ff7a5733f9a9a",
-    "tests/keyboard-browser/heading_runner.py": "b41067b918d347ec6dea9e9be4e06bf97b7d7bcb",
+    "tests/keyboard-browser/heading_runner.py": "542cc2c00f7b6b50761af7520a2edee24dc02b27",
     "tests/keyboard-browser/catalog-scroll-guard-test.py": "5a94b782b711fe81f8ff8bfa5d0844b88b18472f",
     "tests/manuals/browser/reviewed-repository.json": "2e8387efb83c4b12d78a31fe694dd57288bdeee8",
-    "tests/manuals/browser/reviewed_repository.py": "56624e100d5bdb8b6b611b6e2ac153e41b3f7b9c",
+    "tests/manuals/browser/reviewed_repository.py": "95d3ed63d2195c0f58276ee4fada904e35c7c062",
     "tests/manuals/browser/repository-compatibility-test.py": "8d5d95d81cc1e71b2c882575f1f7d622167e9879",
     "docs/manuals-whole-repository-gates.md": "19a0a0185b79871f6c41d16adabbf3b5917111b4",
     "docs/manuals-motion-interruption.md": "2870ab5ca6b46465c43a32c5993285e90d03cf7a",
@@ -472,8 +472,14 @@
     "tests/catalog-heading-identity-test.py": "2c44a61309ac838a5acbd79c3f9e9f5b378e46ac",
     "tests/analytics-link-classification-test.cjs": "f667e88ea1b2ebd9340fdc2ef6a831606a9663eb",
     "product.php": "f0261fb7c43544d14881b7cc952e28d7176267f3",
-    "tests/keyboard-browser/heading-unit-test.py": "4c634c84434e031e915c953303e2ab28b353b4e7",
-    "tests/keyboard-browser/navbar.cjs": "01116533f908c604bf37a2cdf603afc135484619"
+    "tests/keyboard-browser/heading-unit-test.py": "797a9394d79f02926853aefb87e3a41a601e9181",
+    "tests/keyboard-browser/navbar.cjs": "01116533f908c604bf37a2cdf603afc135484619",
+    "index.php": "a1f4ace5da9904e24b3c290c2a320923eea165bb",
+    "public/images/hero-image-300.webp": "84a51ce6c3127a74b581138e9ad996b994adc220",
+    "public/images/hero-image-600.webp": "a92f988a309e89f34e555f9a52bd110ee7dc3be7",
+    "public/images/hero-image-900.webp": "642a8d88d53ae8bf4fa8be8fa1e932a4fd9ea7be",
+    "tests/homepage-visual/check-layout.cjs": "68793d9a93100e141638f6a788d9bcc51ae5b086",
+    "tests/homepage-visual/prepare-fixture.py": "41c1201d621a655b193c57f83a05d9b4a504dc60"
   },
   "allowed_changes": {
     ".github/workflows/manual-reader-browser.yml": "A",
@@ -1071,6 +1077,10 @@
     "tests/saved-search-capture-test.php": "A",
     "public/js/analytics.js": "M",
     "tests/analytics-link-classification-test.cjs": "A",
-    "public/css/style.css": "M"
+    "public/css/style.css": "M",
+    "index.php": "M",
+    "public/images/hero-image-300.webp": "A",
+    "public/images/hero-image-600.webp": "A",
+    "public/images/hero-image-900.webp": "A"
   }
 }

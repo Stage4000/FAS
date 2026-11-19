@@ -94,7 +94,10 @@ jobs:
             /database/schema.sqlite.sql
             /scripts/security-maintenance.php
             /tests/admin-product-browser/
+            /index.php
             /tests/homepage-visual/prepare-assets.py
+            /tests/homepage-visual/prepare-fixture.py
+            /tests/homepage-visual/check-layout.cjs
             /.github/workflows/admin-product-acceptance.yml
             /.github/workflows/keyboard-browser.yml
             /.github/workflows/manual-reader-browser.yml

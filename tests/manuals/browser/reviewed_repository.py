@@ -36,6 +36,13 @@ COMPATIBILITY = {
     # Menu visibility and keyboard focus after leaving the compact navigation.
     'public/css/style.css': 'M',
     'tests/keyboard-browser/navbar.cjs': 'M',
+    # Responsive homepage branding and the offline browser fixture that renders it.
+    'index.php': 'M',
+    'public/images/hero-image-300.webp': 'A',
+    'public/images/hero-image-600.webp': 'A',
+    'public/images/hero-image-900.webp': 'A',
+    'tests/homepage-visual/prepare-fixture.py': 'M',
+    'tests/homepage-visual/check-layout.cjs': 'M',
     'tests/analytics-link-classification-test.cjs': 'A',
     'public/js/analytics.js': 'M',
     # Saved-search capture and the two catalog notification renderers.
