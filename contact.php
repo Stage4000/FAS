@@ -27,7 +27,9 @@ if (!file_exists($configFile)) {
             <div class="mb-5" data-aos="fade-up" data-aos-delay="100">
                 <h2 class="h3 mb-4">Send Us a Message</h2>
                 <div id="contact-alert" class="alert" style="display: none;"></div>
-                <form id="contact-form">
+                <p id="contact-unavailable" role="status">The message form is unavailable until it finishes loading. If it stays unavailable, use the Direct Support email or text links below.</p>
+                <form id="contact-form" method="post" action="/api/contact-form.php">
+                    <fieldset id="contact-fields" disabled>
                     <div class="mb-3">
                         <label for="name" class="form-label">Name *</label>
                         <input type="text" class="form-control" id="name" name="name" autocomplete="name" required>
@@ -56,6 +58,7 @@ if (!file_exists($configFile)) {
                     <button type="submit" class="btn btn-danger btn-lg w-100" id="submit-btn">
                         <i class="fas fa-paper-plane"></i> Send Message
                     </button>
+                    </fieldset>
         </form>
         </div>
 
@@ -97,9 +100,8 @@ document.getElementById('contact-form').addEventListener('submit', async functio
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     
     // Get form data
-    const formData = new FormData(form);
-    
     try {
+        const formData = new FormData(form);
         const response = await fetch('/api/contact-form.php', {
             method: 'POST',
             body: formData
@@ -148,6 +150,9 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         }
     }
 });
+// Enable only after the handler above has been installed successfully.
+document.getElementById('contact-fields').disabled = false;
+document.getElementById('contact-unavailable').hidden = true;
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
