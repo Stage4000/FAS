@@ -289,9 +289,15 @@ def load_policy(root):
             'Integrated main must preserve originals and not overlap manuals')
     main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
     reviewed.update(integrated)
-    # Keep the already-merged contact form readiness fix pinned to its exact bytes.
-    main_delta['contact.php'] = dict(integrated['contact.php'], sha='5ec0eb84bd8a42334d71913430daca20e88e5043')
-    reviewed['contact.php'] = main_delta['contact.php']
+    # Pin the contact form readiness change and its matching offline fixtures.
+    contact_postimages = {
+        'contact.php': '5ec0eb84bd8a42334d71913430daca20e88e5043',
+        'tests/contact-pending-edits-test.cjs': 'd6c9fa0f2d43ae2de34e79c961e1f06f53b44717',
+        'tests/contact-retry-test.cjs': '4ced3041b3ba9c66e7b39453bbd7996ceeacd76f',
+    }
+    for path, oid in contact_postimages.items():
+        main_delta[path] = dict(integrated[path], sha=oid)
+    reviewed.update(main_delta)
     require(len(SHOWCASE_ADDITIONS) == 91 and not (set(SHOWCASE_ADDITIONS) & set(reviewed)),
             'Showcase additions must be exactly additive')
     old_bytes = inventory['baseline_manifest'].encode()

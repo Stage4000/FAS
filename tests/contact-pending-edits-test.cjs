@@ -39,8 +39,12 @@ function environment(widget = 'present') {
     addEventListener(type, handler) { assert.equal(type, 'submit'); assert.equal(state.handler, null); state.handler = handler; },
     reset() { state.reset++; for (const field of Object.keys(fields)) fields[field] = ''; }
   };
+  const elements = {
+    'contact-form': form, 'submit-btn': button, 'contact-alert': alert,
+    'contact-fields': { disabled: true }, 'contact-unavailable': { hidden: false }
+  };
   const document = {
-    getElementById(id) { assert.ok(['contact-form', 'submit-btn', 'contact-alert'].includes(id)); return { 'contact-form': form, 'submit-btn': button, 'contact-alert': alert }[id]; }
+    getElementById(id) { assert.ok(Object.hasOwn(elements, id)); return elements[id]; }
   };
   class SyntheticFormData {
     constructor(target) { assert.equal(target, form); this.values = { ...fields }; state.snapshots.push({ ...this.values }); }

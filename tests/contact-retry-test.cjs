@@ -9,6 +9,8 @@ const crypto = require('node:crypto');
 
 const sourcePath = path.resolve(process.argv[2] || path.join(__dirname, '../contact.php'));
 const source = fs.readFileSync(sourcePath, 'utf8');
+const fieldsetTag = source.match(/<fieldset\b[^>]*\bid="contact-fields"[^>]*>/)?.[0] ?? '';
+assert.match(fieldsetTag, /\sdisabled(?=\s|>)/, 'form fields start disabled in the actual markup');
 const inlineScripts = [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
   .map(match => match[1])
   .filter(script => script.includes("document.getElementById('contact-form').addEventListener('submit'"));
@@ -56,11 +58,15 @@ function environment(widget = 'present') {
     style: { display: 'none' }, className: 'alert', innerHTML: '',
     scrollIntoView(options) { state.scrolls.push({ ...options }); }
   };
+  const fieldset = { disabled: true };
+  const unavailable = { hidden: false };
   const form = {
     fields,
     addEventListener(event, fn) {
       assert.equal(event, 'submit');
       assert.equal(state.handler, null, 'one registered submit handler');
+      assert.equal(fieldset.disabled, true, 'fields remain disabled until the submit handler is installed');
+      assert.equal(unavailable.hidden, false, 'readiness message remains visible during setup');
       state.handler = fn;
     },
     reset() {
@@ -68,10 +74,14 @@ function environment(widget = 'present') {
       for (const key of Object.keys(fields)) fields[key] = '';
     }
   };
+  const elements = {
+    'contact-form': form, 'submit-btn': button, 'contact-alert': alert,
+    'contact-fields': fieldset, 'contact-unavailable': unavailable
+  };
   const document = {
     getElementById(id) {
-      assert.ok(['contact-form', 'submit-btn', 'contact-alert'].includes(id), 'only known DOM elements accessed');
-      return { 'contact-form': form, 'submit-btn': button, 'contact-alert': alert }[id];
+      assert.ok(Object.hasOwn(elements, id), 'only known DOM elements accessed');
+      return elements[id];
     }
   };
   const window = {};
@@ -114,6 +124,8 @@ function environment(widget = 'present') {
   });
   script.runInContext(context, { timeout: 1000 });
   assert.equal(typeof state.handler, 'function', 'actual source registered handler');
+  assert.equal(fieldset.disabled, false, 'the installed handler enables the fields');
+  assert.equal(unavailable.hidden, true, 'readiness message is hidden after setup');
   function submit() {
     return state.handler({ target: form, preventDefault() { state.prevented++; } });
   }
