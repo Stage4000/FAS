@@ -228,9 +228,44 @@ def restore_pre_notification_form(path, data):
     return restored
 
 
+NAVBAR_PALETTE_SHA256 = '43a2d0ccd6d7a0e2da3fce7bdafb6631237f5b8e76a9be1c0fb5362fd6a918da'
+NAVBAR_PALETTE_MARKER = b'/* The Bootstrap SVG keeps its original color'
+
+
+def restore_pre_navbar_palette(data):
+    if sha256(data) != NAVBAR_PALETTE_SHA256:
+        raise ValueError('Exact reviewed menu palette required')
+    restored, marker, _ = data.partition(NAVBAR_PALETTE_MARKER)
+    if not marker or sha256(restored) != CATALOG_SCROLL_AFTER_SHA256:
+        raise ValueError('Menu palette restoration must equal exact preimage')
+    return restored
+
+
+HERO_BEFORE_SHA256 = '7f1c9b9cc276323f116645fb6baa1451ead3ff80db3e0a4cbc5a2ddc1edab70f'
+HERO_AFTER_SHA256 = '54252fc3d80149b7bcc4b7f9d75f13cd9d7040832000648453fd7015526d71f8'
+HERO_PRIOR_IMG = (
+    b'                <img src="gallery/hero-image.png?v=20261016" '
+    b'alt="Flip and Strip Parts - Your Powersports Parts House" '
+    b'style="max-width: 300px; height: auto;" class="img-fluid">'
+)
+
+
+def restore_pre_responsive_hero(data):
+    if sha256(data) != HERO_AFTER_SHA256:
+        raise ValueError('Exact reviewed responsive hero required')
+    restored, count = re.subn(rb'(?ms)^ {16}<picture>\n.*?^ {16}</picture>$', HERO_PRIOR_IMG, data)
+    if count != 1 or sha256(restored) != HERO_BEFORE_SHA256:
+        raise ValueError('Hero restoration must equal exact preimage')
+    return restored
+
+
 def heading_identity_bytes(path, data):
     if path == 'product.php' and sha256(data) == GALLERY_FOCUS_SHA256:
         data = restore_pre_gallery_focus(data)
+    if path == 'public/css/style.css' and sha256(data) == NAVBAR_PALETTE_SHA256:
+        data = restore_pre_navbar_palette(data)
+    if path == 'index.php' and sha256(data) == HERO_AFTER_SHA256:
+        return restore_pre_responsive_hero(data)
     if path in NOTIFICATION_RESTORATIONS and sha256(data) == NOTIFICATION_RESTORATIONS[path][0]:
         data = restore_pre_notification_form(path, data)
     data = shipping_identity.restore(path, data)
@@ -398,7 +433,7 @@ def verify_checkout(root):
     copied += [root/p for p in ['tests/catalog-scroll-offset-test.cjs','recover-cart.php', 'tests/email-action-lifecycle-test.cjs', 'tests/growth-client-test.cjs', 'tests/email-restore-preservation-test.cjs','tests/cart-malformed-hydration-test.cjs','checkout.php','public/js/shipping-estimator.js','tests/fixtures/security-catalog.sql','tests/homepage-visual/prepare-assets.py',
                               'gallery/hero-image.png','gallery/favicons/favicon.png']]
     for path in copied:
-        name=str(path.relative_to(root)); data=path.read_bytes()
+        name=path.relative_to(root).as_posix(); data=path.read_bytes()
         blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
         if path.is_symlink() or current.get(name,{}).get('sha') != blob:
             raise ValueError('Untracked/modified copied source or integration: '+name)
@@ -406,7 +441,7 @@ def verify_checkout(root):
             'tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=root,text=True).strip(),
             'base_tree':base['base_tree'], 'integration_blobs':{p:current[p]['sha'] for p in sorted(INTEGRATION_PATHS)},
             'workflow_blob':current['.github/workflows/keyboard-browser.yml']['sha'],
-            'consumed_sha256':{str(p.relative_to(root)):sha256(p.read_bytes()) for p in sorted(set(copied))},
+            'consumed_sha256':{p.relative_to(root).as_posix():sha256(p.read_bytes()) for p in sorted(set(copied))},
             'guard':'Every tracked path outside nine source files and eight named integration files equals verified baseline plus exact reviewed overlay; copied bytes equal checkout blobs.'}
 
 def decode_manifest(manifest):
@@ -449,8 +484,9 @@ def verify_candidate(manifest, candidate):
             raise ValueError('Exact reviewed zero-search API renderer required')
         if entry['path'] == 'products.php' and entry['candidate_sha256'] == CATALOG_PREIMAGE_SHA256 and sha256(candidate[entry['path']]) != ZERO_SEARCH_HASHES['products.php'][0]:
             raise ValueError('Exact reviewed catalog candidate required')
-        if entry['path'] == 'public/css/style.css' and entry['candidate_sha256'] == CATALOG_SCROLL_BEFORE_SHA256 and sha256(candidate[entry['path']]) != CATALOG_SCROLL_AFTER_SHA256:
-            raise ValueError('Exact reviewed catalog CSS candidate required')
+        if entry['path'] == 'public/css/style.css' and entry['candidate_sha256'] == CATALOG_SCROLL_BEFORE_SHA256:
+            if sha256(candidate[entry['path']]) not in {CATALOG_SCROLL_AFTER_SHA256, NAVBAR_PALETTE_SHA256}:
+                raise ValueError('Exact reviewed catalog CSS candidate required')
         if entry['path'] == 'product.php' and entry['candidate_sha256'] == SHARE_PREIMAGE_SHA256 and sha256(candidate['product.php']) != GALLERY_FIXED_SHA256:
             raise ValueError('Exact reviewed gallery candidate required')
         if sha256(heading_identity_bytes(entry['path'], candidate[entry['path']])) != entry['candidate_sha256']:

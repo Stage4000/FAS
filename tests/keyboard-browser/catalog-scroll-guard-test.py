@@ -17,7 +17,9 @@ def reject(fn):
 
 root=Path(__file__).resolve().parents[2]
 compatibility=h.manuals_policy(root, checkout=False)['overlay']
-candidate=(root/'public/css/style.css').read_bytes()
+stylesheet=(root/'public/css/style.css').read_bytes()
+check(h.sha256(stylesheet)==h.NAVBAR_PALETTE_SHA256)
+candidate=h.restore_pre_navbar_palette(stylesheet)
 check(h.sha256(candidate)==h.CATALOG_SCROLL_AFTER_SHA256)
 baseline=h.restore_pre_catalog_scroll(candidate)
 check(h.sha256(baseline)==h.CATALOG_SCROLL_BEFORE_SHA256)
@@ -30,6 +32,10 @@ css_entry=next(e for e in manifest['files'] if e['path']=='public/css/style.css'
 check(css_entry['candidate_sha256']==h.CATALOG_SCROLL_BEFORE_SHA256)
 one={'files':[css_entry]}
 h.verify_candidate(one,{'public/css/style.css':candidate});check(True)
+check(h.heading_identity_bytes('public/css/style.css',stylesheet)==baseline)
+h.verify_candidate(one,{'public/css/style.css':stylesheet});check(True)
+reject(lambda:h.restore_pre_navbar_palette(stylesheet+b'changed'))
+reject(lambda:h.verify_candidate(one,{'public/css/style.css':stylesheet+b'changed'}))
 for mutation in [baseline,candidate+b'changed',candidate+h.CATALOG_SCROLL_NEW,
     candidate.replace(h.CATALOG_SCROLL_NEW,b'#main-content, #productContent { scroll-margin-top: 6rem; }'),
     candidate.replace(h.CATALOG_SCROLL_NEW,b'#main-content, #productsContent { scroll-margin-top: 0; }')]:

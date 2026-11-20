@@ -2,7 +2,7 @@
 // Pure URL predicates and exact CSS controls, no browser/server/network.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {allowedScrollFetch,allowedScrollDocument}=require('./catalog-scroll-policy.cjs');
-const {AFTER,BEFORE,NEW,digest,baselineCss}=require('./catalog-scroll-identity.cjs');
+const {AFTER_WITH_NAVBAR_PALETTE,BEFORE_WITH_NAVBAR_PALETTE,NEW,digest,baselineCss}=require('./catalog-scroll-identity.cjs');
 const origin='http://127.0.0.1:43210';let checks=0;
 const check=(actual,expected)=>{checks++;assert.equal(actual,expected);};
 for(const query of ['page=2&category=motorcycle&include_sidebar=1','category=motorcycle&search=Synthetic&include_sidebar=1','&include_sidebar=1']) {
@@ -29,7 +29,8 @@ for(const query of ['include_sidebar=1','page=3&category=motorcycle&include_side
     'category=motorcycle&search=Other&include_sidebar=1','category=motorcycle&page=2&include_sidebar=1'])
     check(allowedScrollFetch(new URL(origin+'/api/products.php?'+query),origin,'GET','fetch'),false);
 const candidate=fs.readFileSync(path.join(__dirname,'../../public/css/style.css'));
-check(digest(candidate),AFTER);const baseline=baselineCss(candidate);check(digest(baseline),BEFORE);
+check(digest(candidate),AFTER_WITH_NAVBAR_PALETTE);
+const baseline=baselineCss(candidate);check(digest(baseline),BEFORE_WITH_NAVBAR_PALETTE);
 for(const mutation of [baseline,Buffer.concat([candidate,Buffer.from('changed')]),
     Buffer.from(candidate.toString().replace(NEW,NEW+'\n'+NEW)),
     Buffer.from(candidate.toString().replace('6rem','0'))]) {

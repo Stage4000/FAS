@@ -1,5 +1,5 @@
 {
-  "includes/header.php": "586913e8bb8eefcf79a5a74f39fd02b406bbc10d",
+  "includes/header.php": "e847d822770ad8b58985ed203f63f72348380a7d",
   "includes/footer.php": "2ad0d3cb8581fc09e71d307650606149c6dc7009",
   "includes/banner-html.php": "57d06bf2b5100a6aad308e56f9f8fd9b57647d5d",
   "includes/ebay-seller-rating.php": "ed862631680f1b8fd1feb59edfb071097c57adc3",
@@ -14,7 +14,7 @@
   "admin/css/admin-style.css": "61aea4e802731d01af115ae4688ea5088f91f47c",
   "admin/css/admin-notifications.css": "39af8610c1ae4c1a57f00ddcfb56187745123545",
   "admin/js/pwa-installer.js": "219726d12457c2bbda36304ff5ee064aeba46ccb",
-  "public/css/style.css": "b6c36199b40dc6af75d6a5433671b01cf9c8b052",
+  "public/css/style.css": "19a38b3a107f051c128b269d442d656cb0a28666",
   "public/js/runtime-guard.js": "1d83555ee6d9f3a8cacc87882ee84d3964e25e97",
   "public/js/timezone.js": "789840c70d84c0486a86ebe4a03a4684184d42bc",
   "public/js/analytics.js": "ab6e86db443145db471f7297cb7c9d86c91e8838",

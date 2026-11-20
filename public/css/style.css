@@ -1844,3 +1844,32 @@ footer a:hover {
     transition: none;
 }
 
+/* The Bootstrap SVG keeps its original color when the system replaces the button background. */
+@media (forced-colors: active) {
+    .navbar .navbar-toggler {
+        background-color: ButtonFace;
+        border-color: ButtonText;
+    }
+
+    .navbar .navbar-toggler-icon {
+        position: relative;
+        background-image: none;
+    }
+
+    .navbar .navbar-toggler-icon::before,
+    .navbar .navbar-toggler-icon::after {
+        content: "";
+        position: absolute;
+        inset-inline: .2em;
+        border-block-start: 2px solid ButtonText;
+    }
+
+    .navbar .navbar-toggler-icon::before {
+        inset-block: .35em;
+        border-block-end: 2px solid ButtonText;
+    }
+
+    .navbar .navbar-toggler-icon::after {
+        inset-block-start: calc(50% - 1px);
+    }
+}

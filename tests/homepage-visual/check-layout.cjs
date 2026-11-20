@@ -14,6 +14,8 @@ const origin = 'http://127.0.0.1:43187';
 const approvedLogoPath = '/gallery/hero-image.png?v=20261016';
 const approvedLogoUrl = 'https://flipandstrip.com' + approvedLogoPath;
 const navbarLogoPath = '/public/images/navbar-logo.png?v=ae9d70ced20a';
+const heroSources = [300, 600, 900].map(width => '/public/images/hero-image-' + width + '.webp');
+const fixtureImages = new Set([navbarLogoPath.split('?')[0], ...heroSources]);
 const manifest = JSON.parse(fs.readFileSync(path.join(assets, 'manifest.json')));
 const evidence = JSON.parse(fs.readFileSync(path.join(fixture, 'fixture.json')));
 const rows = [], failures = [];
@@ -24,7 +26,7 @@ for (const resource of Object.values(manifest)) {
     assert.equal(sha256(fs.readFileSync(path.join(assets, resource.file))), resource.sha256);
 }
 const mime = filename => ({'.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png',
-    '.jpg': 'image/jpeg', '.html': 'text/html'})[path.extname(filename)] || 'application/octet-stream';
+    '.jpg': 'image/jpeg', '.webp': 'image/webp', '.html': 'text/html'})[path.extname(filename)] || 'application/octet-stream';
 
 // Capture text ranges as well as the flex item's box: overflowing text can escape
 // a correctly sized brand box without changing that box's own dimensions.
@@ -129,7 +131,8 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
                         }
                         const relative = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
                         const file = path.resolve(root, relative);
-                        const allowed = relative === 'index.html' || /^(public\/.*\.(css|js)|gallery\/.*\.(png|jpg))$/.test(relative);
+                        const allowed = relative === 'index.html' || fixtureImages.has(url.pathname) ||
+                            /^(public\/.*\.(css|js)|gallery\/.*\.(png|jpg))$/.test(relative);
                         if (allowed && file.startsWith(root + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
                             return route.fulfill({status: 200, path: file, contentType: mime(file)});
                         }
@@ -192,7 +195,8 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
                             links: [...document.querySelectorAll('a')].map(node => node.getAttribute('href')),
                             shopping_links: [...document.querySelectorAll('.hero-section a,.cta-section a')].map(node => node.getAttribute('href')),
                             logo: {loaded: hero.querySelector('img').complete && hero.querySelector('img').naturalWidth > 0,
-                                src: hero.querySelector('img').getAttribute('src'), alt: hero.querySelector('img').alt,
+                                src: hero.querySelector('img').getAttribute('src'), current_src: hero.querySelector('img').currentSrc,
+                                alt: hero.querySelector('img').alt,
                                 natural_width: hero.querySelector('img').naturalWidth},
                             roboto_loaded: [...document.fonts].some(font => font.family.replace(/['"]/g, '') === 'Roboto' && font.status === 'loaded'),
                             hero_font_size: getComputedStyle(hero.querySelector('h1')).fontSize,
@@ -265,6 +269,13 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
                         check(measurements.cta === 'Great parts at Great Prices', `${prefix}: approved CTA`);
                         check(measurements.description === 'New & used motorcycle, ATV/UTV, boat & automotive parts from Harley Davidson, Yamaha, Honda, Kawasaki, Suzuki & more.', `${prefix}: retained product/brand description`);
                         check(measurements.logo.src === 'gallery/hero-image.png?v=20261016', `${prefix}: approved versioned logo`);
+                        check(measurements.logo.current_src === origin + heroSources[0], `${prefix}: 300px WebP selected at 1×`);
+                        const heroRequests = requests.filter(entry => {
+                            const pathname = new URL(entry.url).pathname;
+                            return heroSources.includes(pathname) || pathname === '/gallery/hero-image.png';
+                        });
+                        check(heroRequests.length === 1 && heroRequests[0].url === measurements.logo.current_src,
+                            `${prefix}: exactly one hero image requested`);
                         check(measurements.logo.alt === 'Flip and Strip Parts - Your Powersports Parts House', `${prefix}: approved logo alternative text`);
                         check(JSON.stringify(measurements.shopping_links) === JSON.stringify(['/products', 'products', 'contact']), `${prefix}: unchanged shopping links`);
                         for (const element of measurements.hero_elements) {
@@ -287,7 +298,8 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
             check(!!before && !!after, `${width}: baseline and candidate both rendered`);
             if (before && after) {
                 check(after.document_width <= before.document_width + 1, `${width}: no new page-width overflow (${before.document_width} -> ${after.document_width})`);
-                check(JSON.stringify(after.links) === JSON.stringify(before.links), `${width}: all rendered link destinations unchanged`);
+                check(JSON.stringify(after.links) === JSON.stringify(['#main-content', ...before.links]),
+                    `${width}: approved skip link and unchanged remaining link destinations`);
                 const key = node => JSON.stringify([node.tag, node.id, node.class]);
                 const oldOverflow = new Set(before.overflow.map(key));
                 check(after.overflow.every(node => oldOverflow.has(key(node))), `${width}: no newly overflowing elements`);
@@ -295,7 +307,7 @@ const checkNavigation = (nav, prefix, width, height, expanded = false) => {
         }
     } finally {
         await browser.close();
-        const report = {...evidence, browser: 'Playwright Chromium 1.58.2',
+        const report = {...evidence, browser: `Chromium ${browser.version()} via Playwright ${require('playwright/package.json').version}`,
             rendering_note: 'Exact PHP and CSS. Synthetic inventory; no seller rating or banners. Analytics and address-autofill scripts disabled. Reduced motion, light theme. Public presentation dependencies fulfilled from local cache; namespace has loopback only.',
             passed: failures.length === 0, failures, measurements: rows, presentation_assets: manifest};
         fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n');

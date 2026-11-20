@@ -138,13 +138,20 @@ def verify_candidate(*, compatibility=None) -> dict:
         if compatibility is not None:
             expected = compatibility["overlay"].get(path, {"sha": expected})["sha"]
         require(git("rev-parse", "HEAD:" + path) == expected, "Reviewed storage blob mismatch: " + path)
-    # Permit only the exact reviewed storage warning/runtime delta; no arbitrary runtime changes.
+    reviewed_navbar = {
+        'includes/header.php': 'e847d822770ad8b58985ed203f63f72348380a7d',
+        'public/css/style.css': '19a38b3a107f051c128b269d442d656cb0a28666',
+    }
+    # Compare each reviewed runtime file with its pinned before/after bytes.
     for path, pins in EXPECTED_RUNTIME.items():
         require(git("rev-parse", BASELINE + ":" + path) == pins["before"],
                 "Reviewed runtime preimage mismatch")
         expected_after = pins["after"]
-        if compatibility is not None and path == "product.php":
-            expected_after = compatibility["overlay"][path]["sha"]
+        if compatibility is not None:
+            if path in {"contact.php", "product.php"}:
+                expected_after = compatibility["overlay"][path]["sha"]
+            else:
+                expected_after = reviewed_navbar.get(path, expected_after)
         require(git("rev-parse", "HEAD:" + path) == expected_after,
                 "Reviewed runtime candidate mismatch")
     if compatibility is not None:

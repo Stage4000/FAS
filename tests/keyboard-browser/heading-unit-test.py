@@ -49,6 +49,22 @@ for bad_main in [pre_quantity, pre_storage+b'changed', pre_storage+h.QUANTITY_GU
                  pre_storage.replace(b'Number.isFinite(newQuantity)',b'Number.isNaN(newQuantity)')]:
     rejected(lambda:h.restore_pre_quantity_main(bad_main))
 
+# The historical heading identity admits only the exact menu palette change.
+navbar_css = (suite.parents[1] / 'public/css/style.css').read_bytes()
+prior_css = h.restore_pre_navbar_palette(navbar_css)
+check(h.sha256(prior_css) == h.CATALOG_SCROLL_AFTER_SHA256)
+check(h.sha256(h.heading_identity_bytes('public/css/style.css', navbar_css)) == h.CATALOG_SCROLL_BEFORE_SHA256)
+for changed_css in [prior_css, navbar_css + b'\n', navbar_css.replace(b'border-color: ButtonText', b'border-color: Canvas', 1)]:
+    rejected(lambda: h.restore_pre_navbar_palette(changed_css))
+
+# The historical heading identity admits only the exact responsive markup.
+home = (suite.parents[1] / 'index.php').read_bytes()
+prior_home = h.restore_pre_responsive_hero(home)
+check(h.sha256(prior_home) == h.HERO_BEFORE_SHA256)
+check(h.heading_identity_bytes('index.php', home) == prior_home)
+for changed_home in [prior_home, home + b'\n', home.replace(b'900w', b'800w', 1)]:
+    rejected(lambda: h.restore_pre_responsive_hero(changed_home))
+
 # One valid synthetic mapping, then exactly one changed path per negative test.
 synthetic={path:('synthetic candidate '+path).encode() for path in baseline}
 synthetic_manifest=copy.deepcopy(manifest)
