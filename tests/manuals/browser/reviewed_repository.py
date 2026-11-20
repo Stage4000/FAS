@@ -289,6 +289,9 @@ def load_policy(root):
             'Integrated main must preserve originals and not overlap manuals')
     main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
     reviewed.update(integrated)
+    # Keep the already-merged contact form readiness fix pinned to its exact bytes.
+    main_delta['contact.php'] = dict(integrated['contact.php'], sha='5ec0eb84bd8a42334d71913430daca20e88e5043')
+    reviewed['contact.php'] = main_delta['contact.php']
     require(len(SHOWCASE_ADDITIONS) == 91 and not (set(SHOWCASE_ADDITIONS) & set(reviewed)),
             'Showcase additions must be exactly additive')
     old_bytes = inventory['baseline_manifest'].encode()

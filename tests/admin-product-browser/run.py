@@ -148,7 +148,7 @@ def verify_candidate(*, compatibility=None) -> dict:
                 "Reviewed runtime preimage mismatch")
         expected_after = pins["after"]
         if compatibility is not None:
-            if path == "product.php":
+            if path in {"contact.php", "product.php"}:
                 expected_after = compatibility["overlay"][path]["sha"]
             else:
                 expected_after = reviewed_navbar.get(path, expected_after)
