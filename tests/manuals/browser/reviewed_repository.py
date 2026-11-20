@@ -290,12 +290,16 @@ def load_policy(root):
     main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
     reviewed.update(integrated)
     # Pin the contact form readiness change and its matching offline fixtures.
-    contact_postimages = {
+    reviewed_postimages = {
         'contact.php': '5ec0eb84bd8a42334d71913430daca20e88e5043',
         'tests/contact-pending-edits-test.cjs': 'd6c9fa0f2d43ae2de34e79c961e1f06f53b44717',
         'tests/contact-retry-test.cjs': '4ced3041b3ba9c66e7b39453bbd7996ceeacd76f',
+        # Exact catalog scroll controls retain the new menu colors.
+        'tests/keyboard-browser/catalog-scroll-identity.cjs': '4e4907a7268cacc2e582a749b7086bc26ddf60a6',
+        'tests/keyboard-browser/catalog-scroll-policy-test.cjs': 'cfdaf9e84f597edafa61040468c82c475b1edb9b',
+        'tests/keyboard-browser/catalog-scroll.cjs': '818a94719167a1e0fb7773f9403f4c75d2ca4726',
     }
-    for path, oid in contact_postimages.items():
+    for path, oid in reviewed_postimages.items():
         main_delta[path] = dict(integrated[path], sha=oid)
     reviewed.update(main_delta)
     require(len(SHOWCASE_ADDITIONS) == 91 and not (set(SHOWCASE_ADDITIONS) & set(reviewed)),

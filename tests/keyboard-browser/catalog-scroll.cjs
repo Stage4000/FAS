@@ -2,7 +2,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path');
-const {AFTER, BEFORE, digest, baselineCss} = require('./catalog-scroll-identity.cjs');
+const {digest, baselineCss} = require('./catalog-scroll-identity.cjs');
 const {allowedScrollDocument, allowedScrollFetch} = require('./catalog-scroll-policy.cjs');
 const {allowedLocalAsset, allowedCachedType} = require('./heading-policy.cjs');
 
@@ -98,6 +98,7 @@ async function main() {
     for (const entry of Object.values(manifest)) assert.equal(digest(fs.readFileSync(path.join(assets,entry.file))),entry.sha256);
     const runtime = fs.readFileSync(path.join(__dirname,'../../public/css/style.css'));
     const old = baselineCss(runtime);
+    const source = {candidate:digest(runtime),baseline:digest(old)};
     const {chromium} = require('playwright'), browser = await chromium.launch({headless:true});
     const rows = []; let passed = false;
     try {
@@ -127,7 +128,7 @@ async function main() {
                     if (allowedScrollDocument(url,origin,method,type) || allowedLocalAsset(url,origin,method,type)) {
                         if (type==='stylesheet' && url.pathname==='/public/css/style.css') {
                             const response=await route.fetch();
-                            assert.equal(response.status(),200);assert.equal(digest(await response.body()),AFTER,'server CSS is exact reviewed candidate');
+                            assert.equal(response.status(),200);assert.equal(digest(await response.body()),source.candidate,'server CSS is exact reviewed candidate');
                             row.cssRequests++;
                             return route.fulfill({response,body:variant==='baseline'?old:runtime});
                         }
@@ -193,7 +194,7 @@ async function main() {
         await browser.close();
         fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({passed,fixture,
             scope:'actual products.php/API/header/CSS; existing synthetic motorcycle inventory, empty eBay category client; native keys; no live inventory/provider/deployment acceptance',
-            source:{candidate:AFTER,baseline:BEFORE},test_sha256:digest(fs.readFileSync(__filename)),rows},null,2)+'\n');
+            source,test_sha256:digest(fs.readFileSync(__filename)),rows},null,2)+'\n');
     }
     assert(passed,'catalog scroll acceptance or exact CSS negative controls failed');
 }
