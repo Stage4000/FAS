@@ -294,4 +294,20 @@ async function probeResize(){
  }});
  console.log(JSON.stringify(observations,null,2));
 }
+// Geometry is tested independently of the DOM adapters: all points on the
+// spine stay fixed, including extreme page aspect ratios and both fold ends.
+{
+ const source=fs.readFileSync(__dirname+'/../../public/js/manual-reader.mjs','utf8');
+ const geometry={};vm.createContext(geometry);
+ vm.runInContext(source.slice(source.indexOf('export function cornerFold'),source.indexOf('const root = document.querySelector')).replaceAll('export ',''),geometry);
+ for(const [w,h] of [[560,720],[350,450],[140,720],[1440,140]])for(let step=0;step<=100;step++){
+  const p=step/100;
+  for(const v of [0,h/2,h]){const a=geometry.cornerFold(0,v,p,w,h);assert(Math.abs(a.x)<1e-8&&Math.abs(a.y-v)<1e-8,'full spine remains on the book plane');}
+  for(const u of [0,w/2,w])for(const v of [0,h/2,h]){const a=geometry.cornerFold(u,v,p,w,h);assert([a.x,a.y,a.shade].every(Number.isFinite));assert(a.shade>=0&&a.shade<=.43);}
+ }
+ const early=geometry.cornerFold(560,720,.08,560,720),fixed=geometry.cornerFold(0,0,.08,560,720);
+ check(early.x!==560&&early.y!==720&&fixed.x===0&&fixed.y===0,'turn starts at the free corner and retains its spine');
+ check(geometry.cornerFold(560,720,-1,560,720).x===560&&geometry.cornerFold(560,720,2,560,720).x===-560,'fold progress clamps to exact flat endpoints');
+ check(geometry.cornerFold(560,720,1,560,720).back,'completed fold exposes the opposite paper face');
+}
 (async()=>{if(process.argv.includes('--probe-motion'))return probeMotion();if(process.argv.includes('--probe-resize'))return probeResize();if(process.argv.includes('--resize-only')){await resizeChecks();console.log(checks+' resize-navigation checks passed with DOM/PDF stubs, not a browser.');return;}await run();await run(true);await motionChecks();await resizeChecks();console.log(checks+' canvas lifecycle checks passed with deterministic DOM/PDF stubs; not browser heap measurements.');})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>clearTimeout(watchdog));

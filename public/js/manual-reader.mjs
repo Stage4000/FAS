@@ -117,6 +117,28 @@ export function createTextCache(maxCharacters = 2_000_000, maxEntries = 80) {
   };
 }
 
+// A developable fold starts at the free bottom corner. Points on the spine
+// stay on the book plane; a bounded cylindrical band rounds the moving crease.
+export function cornerFold(u, v, progress, width, height) {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p === 0) return {x:u, y:v, shade:0, back:false};
+  if (p === 1) return {x:-u, y:v, shade:0, back:true};
+  const {nx,ny,mx,my,radius}=cornerFoldFrame(p,width,height);
+  const d = (u - mx) * nx + (v - my) * ny;
+  if (d <= 0) return {x:u, y:v, shade:0, back:false};
+  const angle = Math.min(Math.PI, d / radius);
+  const along = d < Math.PI * radius ? radius * Math.sin(angle) : Math.PI * radius - d;
+  const lift = radius * (1 - Math.cos(angle));
+  return {x:u + (along - d) * nx, y:v + (along - d) * ny - .5 * lift,
+    shade:.12 + .3 * Math.sin(angle), back:angle > Math.PI / 2};
+}
+
+function cornerFoldFrame(p,width,height) {
+  const dx=2*width*p,dy=.22*Math.min(width,height)*Math.sin(Math.PI*p),length=Math.hypot(dx,dy);
+  return {nx:dx/length,ny:dy/length,mx:width-dx/2,my:height-dy/2,
+    radius:Math.min(.06*width*Math.sin(Math.PI*p),length/(4*Math.PI))};
+}
+
 const root = document.querySelector('[data-manual-reader]');
 if (root) initialize(root);
 async function initialize(root) {
@@ -139,7 +161,7 @@ async function initialize(root) {
   };
   let pdf = null, page = 1, zoom = 1, preferredSpread = true, renderEpoch = 0, searchEpoch = 0;
   const pageResources = createPageResourceTracker();
-  let renders = [], animations = [], manualMotionOff = false;
+  let renders = [], animations = [], manualMotionOff = false, activeCurl = null;
   let visiblePages = [], resizeTimer, lastWidth = stage.clientWidth;
   let pendingDraw = null;
   let pageInputEdited = false;
@@ -149,7 +171,7 @@ async function initialize(root) {
   const wide = () => stage.clientWidth >= 740;
   const spread = () => preferredSpread && wide();
   const say = message => { status.textContent = message; };
-  const stopAnimations = () => { animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
+  const stopAnimations = () => { activeCurl?.close(); animations.forEach(a => a.cancel()); animations = []; papers.forEach(p => { p.style.transform = ''; }); };
   const updateMotion = () => {
     if (disposed) return;
     const off = manualMotionOff || reducedMotion.matches;
@@ -166,10 +188,19 @@ async function initialize(root) {
     if (disposed || reducedMotion.matches) return;
     manualMotionOff = !manualMotionOff; updateMotion();
   });
-  const animate = async (element, frames, options) => {
+  const animate = async (element, frames, options, paint = null) => {
     if (manualMotionOff || reducedMotion.matches || !element.animate) return;
     const animation = element.animate(frames, options); animations.push(animation);
-    try { await animation.finished; } catch (_) { /* Preference changes, newer navigation or teardown may cancel motion. */ }
+    let frame;
+    const update = () => {
+      if (!paint || !animations.includes(animation)) return;
+      try { paint(animation.effect.getComputedTiming().progress ?? 0); }
+      catch (_) { activeCurl?.close(); paint = null; animation.cancel(); return; }
+      frame = window.requestAnimationFrame(update);
+    };
+    try { if (paint) update(); await animation.finished; if (paint) paint(1); }
+    catch (_) { /* Preference changes, newer navigation or teardown may cancel motion. */ }
+    finally { if (frame !== undefined) window.cancelAnimationFrame(frame); animations = animations.filter(a => a !== animation); }
   };
   const pendingText = new Map();
   const textFor = async number => {
@@ -284,10 +315,135 @@ async function initialize(root) {
   };
   // Resizing to zero releases pixels without waiting for detached DOM garbage collection.
   const releaseCanvas = canvas => { canvas.width = 0; canvas.height = 0; };
+  // One bounded compositor reads the already rendered PDF canvases. It does
+  // not render another PDF page or retain a second document/texture cache.
+  function startCurl(staged, forward) {
+    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !book.getBoundingClientRect) return null;
+    const old = papers.filter(p => !p.hidden).map(p => p.querySelector('canvas'));
+    if (!old.length || !old[0].getContext('2d')?.drawImage) return null;
+    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !papers[0].animate) return null;
+    const surface = document.createElement('canvas'), ctx = surface.getContext('2d');
+    if (!ctx) return null;
+    const box = stage.getBoundingClientRect(), frontRect = old[forward ? old.length-1 : 0].getBoundingClientRect();
+    const single = old.length === 1 && staged.length === 1;
+    const dir = single || forward ? 1 : -1;
+    const front = single && !forward ? staged[0] : old[forward ? old.length-1 : 0];
+    const back = single ? (forward ? staged[0] : old[0]) : staged[forward ? 0 : staged.length-1];
+    const startSpine = (dir === 1 ? frontRect.left : frontRect.right) - box.left - stage.clientLeft;
+    const endWidth = parseFloat(back.style.width), endHeight = parseFloat(back.style.height);
+    const endSpine = staged.length === 2 ? stage.clientWidth / 2 : (stage.clientWidth - endWidth) / 2;
+    const top = frontRect.top - box.top - stage.clientTop;
+    const width = stage.clientWidth, height = stage.clientHeight;
+    const scale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / (width * height)));
+    surface.width = Math.max(1, Math.floor(width * scale)); surface.height = Math.max(1, Math.floor(height * scale));
+    Object.assign(surface.style, {position:'absolute', pointerEvents:'none', zIndex:'2', width:`${width}px`, height:`${height}px`});
+    surface.setAttribute('aria-hidden','true'); surface.dataset.cornerCurl = 'true';
+    const position = stage.style.position, visibility = book.style.visibility;
+    stage.style.position = 'relative'; book.style.visibility = 'hidden'; stage.append(surface);
+    let closed = false;
+    const owner = {
+      close() {
+        if (closed) return; closed = true;
+        surface.remove(); releaseCanvas(surface);
+        if (activeCurl === owner) { activeCurl = null; book.style.visibility = visibility; stage.style.position = position; }
+      },
+      paint(progress) {
+        if (closed || activeCurl !== owner) return;
+        const p = Math.max(0, Math.min(1, progress)), fold = single && !forward ? 1-p : p;
+        const w = frontRect.width + (endWidth-frontRect.width)*p, h = frontRect.height + (endHeight-frontRect.height)*p;
+        const spine = startSpine + (endSpine-startSpine)*p;
+        surface.style.left = `${stage.scrollLeft}px`; surface.style.top = `${stage.scrollTop}px`;
+        ctx.setTransform(surface.width/width,0,0,surface.height/height,0,0); ctx.clearRect(0,0,width,height);
+        ctx.save();
+        if (single) { ctx.beginPath(); ctx.rect(spine,top,w,h); ctx.clip(); }
+        const pageImage = (image,x) => { if (image?.width && image.height) ctx.drawImage(image,x,top,w,h); };
+        if (single) pageImage(forward ? staged[0] : old[0],spine);
+        else {
+          pageImage(forward ? (old.length===2 ? old[0] : null) : (staged.length===2 ? staged[0] : null),spine-w);
+          pageImage(forward ? (staged.length===2 ? staged[1] : null) : (old.length===2 ? old[1] : null),spine);
+        }
+        if (fold === 0 || fold === 1) {
+          pageImage(fold === 0 ? front : back, (fold === 0 ? dir === 1 : dir === -1) ? spine : spine-w);
+        } else {
+          const profile=cornerFoldFrame(fold,w,h),{nx,ny,mx,my,radius}=profile;
+          const distance=q=>(q.x-mx)*nx+(q.y-my)*ny;
+          const rectangle=[{x:0,y:0},{x:w,y:0},{x:w,y:h},{x:0,y:h}];
+          // Clip in paper coordinates. Flat regions are one affine image each;
+          // only the cylindrical band needs strips, with a shared crease edge.
+          const cut=(polygon,limit,above)=>{
+            const result=[];
+            for(let i=0;i<polygon.length;i++){
+              const a=polygon[i],b=polygon[(i+1)%polygon.length],da=distance(a)-limit,db=distance(b)-limit;
+              const inside=above?da>=0:da<=0,next=above?db>=0:db<=0;
+              if(inside)result.push(a);
+              if(inside!==next){const t=da/(da-db);result.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}
+            }
+            return result;
+          };
+          const mapped=q=>{const value=cornerFold(q.x,q.y,fold,w,h);return {x:spine+dir*value.x,y:top+value.y};};
+          const path=polygon=>{ctx.beginPath();polygon.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();};
+          const shape=polygon=>{
+            const result=[];
+            for(let i=0;i<polygon.length;i++){
+              const a=polygon[i],b=polygon[(i+1)%polygon.length];
+              for(let k=0;k<32;k++)result.push(mapped({x:a.x+(b.x-a.x)*k/32,y:a.y+(b.y-a.y)*k/32}));
+            }
+            return result;
+          };
+          const extent=rectangle.map(distance),minimum=Math.min(...extent),maximum=Math.max(...extent),arc=Math.PI*radius;
+          // The two faces are painted separately, including their continuous
+          // gradient. Hidden front shading cannot darken the visible reverse.
+          for(const reverse of [false,true]){
+            const face=cut(rectangle,arc/2,reverse);
+            if(face.length<3)continue;
+            const outline=shape(face),image=reverse?back:front;
+            ctx.save();path(outline);ctx.clip();
+            const bounds=reverse?[arc/2,...Array.from({length:16},(_,i)=>arc*(17+i)/32),Math.max(arc,maximum)]:[Math.min(0,minimum),...Array.from({length:17},(_,i)=>arc*i/32)];
+            for(let i=0;i<bounds.length-1;i++){
+              const low=bounds[i],high=bounds[i+1];
+              if(high-low<1e-7)continue;
+              const polygon=cut(cut(rectangle,low,true),high,false);
+              if(polygon.length<3)continue;
+              const target=polygon.map(mapped),center=target.reduce((sum,q)=>({x:sum.x+q.x/target.length,y:sum.y+q.y/target.length}),{x:0,y:0});
+              const area=target.reduce((sum,q,j)=>sum+q.x*target[(j+1)%target.length].y-q.y*target[(j+1)%target.length].x,0);
+              if(Math.abs(area)<.01)continue;
+              const expanded=target.map(q=>{const dx=q.x-center.x,dy=q.y-center.y,length=Math.hypot(dx,dy);return length?{x:q.x+2*dx/length,y:q.y+2*dy/length}:q;});
+              // Approximate each curved distance interval with an affine image;
+              // the flat regions are exact and no triangular tiles are used.
+              const a={x:mx+nx*low,y:my+ny*low},b={x:mx+nx*high,y:my+ny*high},c={x:a.x-ny,y:a.y+nx};
+              const mirror=reverse?dir===1:dir===-1;
+              const source=q=>({x:(mirror?1-q.x/w:q.x/w)*image.width,y:q.y/h*image.height});
+              const [A,B,C]=[a,b,c].map(mapped),[sa,sb,sc]=[a,b,c].map(source);
+              const det=(sb.x-sa.x)*(sc.y-sa.y)-(sc.x-sa.x)*(sb.y-sa.y);
+              const xx=((B.x-A.x)*(sc.y-sa.y)-(C.x-A.x)*(sb.y-sa.y))/det;
+              const xy=((C.x-A.x)*(sb.x-sa.x)-(B.x-A.x)*(sc.x-sa.x))/det;
+              const yx=((B.y-A.y)*(sc.y-sa.y)-(C.y-A.y)*(sb.y-sa.y))/det;
+              const yy=((C.y-A.y)*(sb.x-sa.x)-(B.y-A.y)*(sc.x-sa.x))/det;
+              ctx.save();path(expanded);ctx.clip();
+              ctx.transform(xx,yx,xy,yy,A.x-xx*sa.x-xy*sa.y,A.y-yx*sa.x-yy*sa.y);ctx.drawImage(image,0,0);ctx.restore();
+            }
+            const origin={x:spine+dir*mx,y:top+my},normal={x:dir*nx,y:ny};
+            const low=reverse?-radius*ny:0,high=radius*(1-.5*ny);
+            const gradient=ctx.createLinearGradient(origin.x+normal.x*low,origin.y+normal.y*low,origin.x+normal.x*high,origin.y+normal.y*high);
+            gradient.addColorStop(0,`rgba(18,16,12,${reverse?.12*Math.sin(Math.PI*fold):0})`);
+            gradient.addColorStop(1,'rgba(18,16,12,.42)');ctx.fillStyle=gradient;path(outline);ctx.fill();ctx.restore();
+          }
+        }
+        const shadow=ctx.createLinearGradient(spine-10,0,spine+10,0);
+        shadow.addColorStop(0,'#0000');shadow.addColorStop(.5,'#0003');shadow.addColorStop(1,'#0000');
+        ctx.fillStyle=shadow;ctx.fillRect(spine-10,top,20,h);ctx.restore();
+        surface.dataset.progress = String(p);
+      }
+    };
+    activeCurl = owner;
+    try { owner.paint(0); } catch (error) { owner.close(); throw error; }
+    return owner;
+  }
   async function draw(requested, turn = false, updateHash = true) {
     if (!pdf || disposed) return;
     cancelOutlineSelection();
-    const ownedCanvases = new Set();
+    const ownedCanvases = new Set(), retiredCanvases = new Set();
+    let curl = null;
     let ownedPages = [];
     const oldPage = page, token = ++renderEpoch;
     renders.forEach(task => { try { task.cancel(); } catch (_) {} }); renders = []; stopAnimations();
@@ -328,14 +484,15 @@ async function initialize(root) {
       if (token !== renderEpoch) return;
       if (turn && visiblePages.length && oldPage !== targetPage) {
         const leaf = targetPage > oldPage ? papers[visiblePages.length - 1] : papers[0];
-        await animate(leaf, [{transform: 'rotateY(0deg)', filter:'brightness(1)'}, {transform: `rotateY(${targetPage > oldPage ? -82 : 82}deg)`, filter:'brightness(.65)'}], {duration:190,easing:'ease-in',fill:'none'});
+        curl = startCurl(staged, targetPage > oldPage);
+        await animate(leaf, [{'--manual-turn-progress':'0'}, {'--manual-turn-progress':'.5'}], {duration:190,easing:'ease-in',fill:'none'}, curl ? p => curl.paint(p / 2) : null);
       }
       if (token !== renderEpoch) return;
       papers.forEach((paper, i) => {
         paper.hidden = !staged[i];
         const previous = paper.querySelector('canvas');
         if (staged[i]) { previous.replaceWith(staged[i]); ownedCanvases.delete(staged[i]); paper.querySelector('[data-page-label]').textContent = selected[i]; }
-        releaseCanvas(previous);
+        if (curl) retiredCanvases.add(previous); else releaseCanvas(previous);
       });
       page = targetPage;
       visiblePages = selected;
@@ -351,8 +508,9 @@ async function initialize(root) {
       if (pendingDraw?.token === token) pendingDraw = null;
       if (turn && oldPage !== page) {
         const leaf = page > oldPage ? papers[0] : papers[selected.length - 1];
-        await animate(leaf, [{transform:`rotateY(${page > oldPage ? 82 : -82}deg)`,filter:'brightness(.7)'},{transform:'rotateY(0deg)',filter:'brightness(1)'}], {duration:210,easing:'ease-out',fill:'none'});
+        await animate(leaf, [{'--manual-turn-progress':'.5'},{'--manual-turn-progress':'1'}], {duration:210,easing:'ease-out',fill:'none'}, curl ? p => curl.paint(.5 + p / 2) : null);
       }
+      curl?.close();
       await displayText(selected, token);
     } catch (error) {
       if (token !== renderEpoch || error?.name === 'RenderingCancelledException') return;
@@ -364,6 +522,8 @@ async function initialize(root) {
       // draw settling after supersession cannot clear the newer owner's intent.
       if (pendingDraw?.token === token) pendingDraw = null;
       // Uncommitted canvases include earlier pages when a later page fails or supersedes.
+      curl?.close();
+      retiredCanvases.forEach(releaseCanvas);
       ownedCanvases.forEach(releaseCanvas);
       ownedPages.forEach(proxy => pageResources.release(proxy));
     }
