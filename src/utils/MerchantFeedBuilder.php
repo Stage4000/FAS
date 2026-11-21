@@ -22,48 +22,14 @@ class MerchantFeedBuilder
         6333 => 'FAS-P6333',
     ];
 
-    // Apply only the reviewed offer and image pairs. A changed source photo passes through.
-    private const REVIEWED_PRIMARY_IMAGES = [
-        '10290 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_57.JPG?set_id=8800005007',
-        ],
-        '10292 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/MTAxM1gxNjAw/z/OjYAAeSwyMNq1Dtm/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/MTAxM1gxNjAw/z/OjYAAeSwyMNq1Dtm/$_57.JPG?set_id=8800005007',
-        ],
-        '10293 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/MTU1OFgxNjAw/z/IXUAAeSwY5Zq1Dks/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/MTU1OFgxNjAw/z/IXUAAeSwY5Zq1Dks/$_57.JPG?set_id=8800005007',
-        ],
-        '10294 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/NzE2WDEyMDM=/z/qu4AAeSwkvdq1NrD/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/NzE2WDEyMDM=/z/qu4AAeSwkvdq1NrD/$_57.JPG?set_id=8800005007',
-        ],
-        '10232 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/MTMxM1gxNjAw/z/SK8AAeSwQ1tqsyHf/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/MTMxM1gxNjAw/z/SK8AAeSwQ1tqsyHf/$_57.JPG?set_id=8800005007',
-        ],
-        '277098931982' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/PCsAAOSwKtlWqmO0/$_1.JPG?set_id=880000500F',
-            'original' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/PCsAAOSwKtlWqmO0/$_57.JPG?set_id=880000500F',
-        ],
-        '276518879676' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/cMoAAOSwZQxW6KeE/$_1.JPG?set_id=880000500F',
-            'original' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/cMoAAOSwZQxW6KeE/$_57.JPG?set_id=880000500F',
-        ],
-        '10108 FAS' => [
-            'thumbnail' => 'https://i.ebayimg.com/00/s/NTAxWDUwNA==/z/vskAAeSwYHRqpbUn/$_1.JPG?set_id=8800005007',
-            'original' => 'https://i.ebayimg.com/00/s/NTAxWDUwNA==/z/vskAAeSwYHRqpbUn/$_57.JPG?set_id=8800005007',
-        ],
-    ];
-
     private $productModel;
     private $baseUrl;
+    private $reviewedImages;
 
     public function __construct(Product $productModel, array $config = [])
     {
         $this->productModel = $productModel;
+        $this->reviewedImages = require __DIR__ . '/merchant-feed-image-pairs.php';
         $siteUrl = $config['site']['url'] ?? 'https://flipandstrip.com';
         $this->baseUrl = rtrim((string) $siteUrl, '/');
     }
@@ -113,15 +79,15 @@ class MerchantFeedBuilder
             return null;
         }
 
-        $images = $this->collectImageUrls($product);
-        $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
-        // Google Merchant Center supports up to 10 additional images per item.
-        $additionalImages = array_slice($images, 1, 10);
-        $reviewedImage = self::REVIEWED_PRIMARY_IMAGES[$id] ?? null;
-        if ($reviewedImage !== null && $mainImage === $reviewedImage['thumbnail']
-            && !in_array($reviewedImage['original'], $additionalImages, true)) {
-            $mainImage = $reviewedImage['original'];
+        // Publish one primary image followed by up to ten additional images.
+        $images = array_slice($this->collectImageUrls($product), 0, 11);
+        foreach ($this->reviewedImages[$id] ?? [] as $position => [$source, $replacement]) {
+            if (($images[$position] ?? null) === $source && !in_array($replacement, $images, true)) {
+                $images[$position] = $replacement;
+            }
         }
+        $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
+        $additionalImages = array_slice($images, 1);
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
         $mpn = ProductCondition::identifier($product['model'] ?? '');
