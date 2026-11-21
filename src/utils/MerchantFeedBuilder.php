@@ -22,11 +22,41 @@ class MerchantFeedBuilder
         6333 => 'FAS-P6333',
     ];
 
-    // Feed-only pilot pinned to a reviewed offer and exact public image pair.
-    // The same photo was measured at 400x234 (thumbnail) and 1600x934 (replacement).
-    private const PILOT_OFFER_ID = '10290 FAS';
-    private const PILOT_THUMBNAIL = 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_1.JPG?set_id=8800005007';
-    private const PILOT_ORIGINAL = 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_57.JPG?set_id=8800005007';
+    // Apply only the reviewed offer and image pairs. A changed source photo passes through.
+    private const REVIEWED_PRIMARY_IMAGES = [
+        '10290 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_57.JPG?set_id=8800005007',
+        ],
+        '10292 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/MTAxM1gxNjAw/z/OjYAAeSwyMNq1Dtm/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/MTAxM1gxNjAw/z/OjYAAeSwyMNq1Dtm/$_57.JPG?set_id=8800005007',
+        ],
+        '10293 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/MTU1OFgxNjAw/z/IXUAAeSwY5Zq1Dks/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/MTU1OFgxNjAw/z/IXUAAeSwY5Zq1Dks/$_57.JPG?set_id=8800005007',
+        ],
+        '10294 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/NzE2WDEyMDM=/z/qu4AAeSwkvdq1NrD/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/NzE2WDEyMDM=/z/qu4AAeSwkvdq1NrD/$_57.JPG?set_id=8800005007',
+        ],
+        '10232 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/MTMxM1gxNjAw/z/SK8AAeSwQ1tqsyHf/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/MTMxM1gxNjAw/z/SK8AAeSwQ1tqsyHf/$_57.JPG?set_id=8800005007',
+        ],
+        '277098931982' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/PCsAAOSwKtlWqmO0/$_1.JPG?set_id=880000500F',
+            'original' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/PCsAAOSwKtlWqmO0/$_57.JPG?set_id=880000500F',
+        ],
+        '276518879676' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/cMoAAOSwZQxW6KeE/$_1.JPG?set_id=880000500F',
+            'original' => 'https://i.ebayimg.com/00/s/OTAwWDE2MDA=/z/cMoAAOSwZQxW6KeE/$_57.JPG?set_id=880000500F',
+        ],
+        '10108 FAS' => [
+            'thumbnail' => 'https://i.ebayimg.com/00/s/NTAxWDUwNA==/z/vskAAeSwYHRqpbUn/$_1.JPG?set_id=8800005007',
+            'original' => 'https://i.ebayimg.com/00/s/NTAxWDUwNA==/z/vskAAeSwYHRqpbUn/$_57.JPG?set_id=8800005007',
+        ],
+    ];
 
     private $productModel;
     private $baseUrl;
@@ -87,9 +117,10 @@ class MerchantFeedBuilder
         $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
         // Google Merchant Center supports up to 10 additional images per item.
         $additionalImages = array_slice($images, 1, 10);
-        if ($id === self::PILOT_OFFER_ID && $mainImage === self::PILOT_THUMBNAIL
-            && !in_array(self::PILOT_ORIGINAL, $additionalImages, true)) {
-            $mainImage = self::PILOT_ORIGINAL;
+        $reviewedImage = self::REVIEWED_PRIMARY_IMAGES[$id] ?? null;
+        if ($reviewedImage !== null && $mainImage === $reviewedImage['thumbnail']
+            && !in_array($reviewedImage['original'], $additionalImages, true)) {
+            $mainImage = $reviewedImage['original'];
         }
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
