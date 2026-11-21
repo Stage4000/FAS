@@ -609,11 +609,11 @@ function currentSavedSearch() {
     };
 }
 
-function renderSavedSearches() {
+function renderSavedSearches(searches) {
     const container = document.getElementById('savedSearches');
     if (!container) return;
 
-    const searches = getSavedSearches();
+    searches ??= getSavedSearches();
     container.textContent = '';
 
     if (searches.length === 0) {
@@ -643,6 +643,45 @@ function renderSavedSearches() {
         container.appendChild(wrapper);
     });
 }
+
+const pendingSavedSearchRefresh = new WeakSet();
+function refreshSavedSearches() {
+    const container = document.getElementById('savedSearches');
+    if (!container) return;
+    if (container.contains(document.activeElement)) {
+        pendingSavedSearchRefresh.add(container);
+        return;
+    }
+    pendingSavedSearchRefresh.delete(container);
+    const searches = getSavedSearches(true);
+    if (searches !== null) renderSavedSearches(searches);
+}
+
+window.addEventListener('storage', event => {
+    if (event.key !== null && event.key !== savedSearchStorageKey) return;
+    try {
+        if (event.storageArea !== localStorage) return;
+    } catch {
+        return;
+    }
+    refreshSavedSearches();
+});
+
+window.addEventListener('pageshow', event => {
+    if (event.persisted) refreshSavedSearches();
+});
+
+document.addEventListener('focusout', event => {
+    const container = document.getElementById('savedSearches');
+    if (!container || !pendingSavedSearchRefresh.has(container) ||
+        !container.contains(event.target) || container.contains(event.relatedTarget)) return;
+    // Let focus settle, then discard work for a list replaced by an AJAX response.
+    setTimeout(() => {
+        if (container === document.getElementById('savedSearches') && pendingSavedSearchRefresh.has(container)) {
+            refreshSavedSearches();
+        }
+    }, 0);
+});
 
 document.addEventListener('click', event => {
     const saveButton = event.target.closest('.saved-search-save');
