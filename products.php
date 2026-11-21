@@ -694,6 +694,17 @@ document.addEventListener('click', event => {
     }
 });
 
+let savedSearchNotifyReady = false;
+function enableSavedSearchNotifyForms(root = document) {
+    if (!savedSearchNotifyReady) return;
+    root.querySelectorAll('[data-saved-search-notify]').forEach(form => {
+        const fields = form.querySelector('[data-saved-search-fields]');
+        const notice = form.querySelector('.saved-search-notify-unavailable');
+        if (fields) fields.disabled = false;
+        if (notice) notice.hidden = true;
+    });
+}
+
 document.addEventListener('submit', async event => {
     const form = event.target.closest('[data-saved-search-notify]');
     if (!form) {
@@ -766,6 +777,10 @@ document.addEventListener('submit', async event => {
         }
     }
 });
+
+// The delegated submit handler must exist before either entry path is enabled.
+savedSearchNotifyReady = true;
+enableSavedSearchNotifyForms();
 
 // AJAX category filtering
 function attachCategoryHandlers() {
@@ -849,6 +864,7 @@ async function loadProductsAndSidebar(params, focusId = null) {
         if (!data.success || !data.html) throw new Error('Catalog response incomplete');
         if (controller !== catalogRequestController) return;
         content.innerHTML = data.html;
+        enableSavedSearchNotifyForms(content);
         content.querySelectorAll('[data-aos]').forEach(el => {
             ['data-aos','data-aos-delay','data-aos-duration','data-aos-offset'].forEach(attr => el.removeAttribute(attr));
             el.classList.remove('aos-init', 'aos-animate');
