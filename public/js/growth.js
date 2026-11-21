@@ -39,11 +39,14 @@
     function track(name) { window.fasAnalytics?.track(name,{}); } // Never send email addresses to analytics.
     document.addEventListener('DOMContentLoaded',()=>{
         document.querySelectorAll('[data-newsletter-signup],[data-email-cart]').forEach(form=>{
+            const button=form.querySelector('[type=submit]');
+            const feedback=form.querySelector('[data-growth-status]');
+            const controls=form.querySelector('[data-growth-controls]');
+            const unavailable=form.querySelector('[data-growth-unavailable]');
+            if(!button || !feedback || !form.elements.email || !form.elements.consent)return;
             form.addEventListener('submit',async event=>{
                 event.preventDefault();
-                if(!form.reportValidity())return;
-                const button=form.querySelector('[type=submit]');
-                const feedback=form.querySelector('[data-growth-status]');
+                if((controls && controls.disabled) || button.disabled || !form.reportValidity())return;
                 const cart=form.hasAttribute('data-email-cart');
                 const newsletterSnapshot=cart?null:{email:form.elements.email.value,consent:form.elements.consent.checked};
                 button.disabled=true;status(feedback,'Saving…');
@@ -58,6 +61,8 @@
                 } catch(error) {status(feedback,error.message,true);}
                 finally {button.disabled=false;}
             });
+            if(controls)controls.disabled=false;
+            if(unavailable)unavailable.hidden=true;
         });
         const opt=document.getElementById('cart-reminder-optin');
         const checkout=document.getElementById('checkout-form');
