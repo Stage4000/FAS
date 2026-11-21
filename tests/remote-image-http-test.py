@@ -46,8 +46,16 @@ try:
     check(build.returncode == 0 and '"status":"ready"' in build.stdout, 'CLI imports approved offline manifest')
     rows = [json.loads(line) for line in build.stdout.splitlines()]
     check(len(rows) == 3, 'Every requested product/photo receives a receipt')
-    status = subprocess.run(['php', str(site / 'scripts/build-responsive-images.php'), '--remote-status'], env=env, text=True, capture_output=True)
-    check(status.returncode == 2 and len(status.stdout.splitlines()) == 3 and all(json.loads(line)['status']=='expiring' for line in status.stdout.splitlines()), 'Status command warns seven days before explicit verification expiry')
+
+    def remote_status():
+        result = subprocess.run(['php', str(site / 'scripts/build-responsive-images.php'), '--remote-status'],
+                                env=env, text=True, capture_output=True)
+        entries = [json.loads(line) for line in result.stdout.splitlines()]
+        return result.returncode, {(entry['product_id'], entry['source']): entry for entry in entries}
+
+    code, audit = remote_status()
+    check(code == 2 and len(audit) == 3 and all(row['status'] == 'expiring' for row in audit.values()),
+          'Status command warns within seven days of verification expiry')
     pending = dict(record, product_id='3', provenance=dict(record['provenance'], excluded=True))
     manifest.write_text(json.dumps({'version': 1, 'images': [pending]}))
     skipped = subprocess.run(['php', str(site / 'scripts/build-responsive-images.php'), '--remote-manifest='+str(manifest)], env=env, text=True, capture_output=True)
@@ -90,8 +98,69 @@ try:
         candidate=re.search(r'/gallery/responsive/remote-[a-f0-9]+-320.webp',main)[0]
         with urllib.request.urlopen(origin+candidate) as response:
             data=response.read();check(response.headers.get_content_type()=='image/webp' and len(data)<image.stat().st_size, 'Derivative is served as smaller image/webp')
-        for receipt in (site/'gallery/responsive').glob('remote-*.json'):
-            obj=json.loads(receipt.read_text());obj['valid_until']=1;receipt.write_text(json.dumps(obj))
+
+        output = site / 'gallery/responsive'
+        active = {}
+        for receipt in output.glob('remote-*.json'):
+            obj = json.loads(receipt.read_text())
+            if not obj.get('excluded'):
+                obj['valid_until'] = obj['verified_at'] + 14 * 86400
+                receipt.write_text(json.dumps(obj))
+                active[(obj['product_id'], obj['source_url'])] = receipt
+        key = ('1', url)
+        receipt = active[key]
+        complete = json.loads(receipt.read_text())
+        code, audit = remote_status()
+        check(code == 0 and all(audit[k]['status'] == 'ready' for k in active)
+              and audit[('3', url)]['status'] == 'excluded', 'Complete recorded inventories and exclusions pass the audit')
+
+        variant = site / candidate.lstrip('/')
+        variant.unlink()
+        code, audit = remote_status()
+        check(code == 2 and all(audit[k]['status'] == 'partial' and '5 of 6' in audit[k]['reason'] for k in active)
+              and audit[('3', url)]['status'] == 'excluded', 'Missing shared size warns for each affected receipt')
+        partial_page = request('/product/1/synthetic-test-part')
+        partial_main = re.search(r'<img [^>]*id="main-product-image"[^>]*>', partial_page, re.S)[0]
+        check(' 320w' not in partial_main and ' 640w' in partial_main and html.escape(url, quote=True)+' 1600w' in partial_main
+              and 'src="'+html.escape(url, quote=True)+'"' in partial_main, 'A shopper retains the verified sizes and the original')
+
+        receipt.write_text(json.dumps(dict(complete, valid_until=complete['verified_at'] + 86400)))
+        code, audit = remote_status()
+        check(code == 2 and audit[key]['status'] == 'expiring' and '5 of 6' in audit[key]['reason'],
+              'An expiring partial receipt reports both issues')
+        subset = dict(complete['variants'])
+        del subset['320']
+        receipt.write_text(json.dumps(dict(complete, variants=subset)))
+        code, audit = remote_status()
+        check(audit[key]['status'] == 'ready' and audit[('2', url)]['status'] == 'partial',
+              'Only the sizes declared for that product and photo are required')
+        receipt.write_text(json.dumps(complete))
+        variant.write_bytes(bytes([data[0] ^ 1]) + data[1:])
+        code, audit = remote_status()
+        check(code == 2 and audit[key]['status'] == 'partial' and '5 of 6' in audit[key]['reason'],
+              'A damaged size with the original byte count fails verification')
+        variant.write_bytes(data)
+        code, audit = remote_status()
+        check(code == 0 and audit[key]['status'] == 'ready' and json.loads(receipt.read_text()) == complete,
+              'Restoring the verified bytes clears the warning without renewing the receipt')
+
+        for webp in output.glob('remote-*.webp'):
+            webp.unlink()
+        code, audit = remote_status()
+        check(code == 2 and all(audit[k]['status'] == 'fallback' for k in active)
+              and audit[('3', url)]['status'] == 'excluded', 'An active receipt with no usable files reports fallback')
+        missing_page = request('/product/1/synthetic-test-part')
+        missing_main = re.search(r'<img [^>]*id="main-product-image"[^>]*>', missing_page, re.S)[0]
+        check('srcset=' not in missing_main and 'src="'+html.escape(url, quote=True)+'"' in missing_main,
+              'A shopper receives the original when every recorded size is missing')
+        variant.write_bytes(data)
+        for receipt in active.values():
+            obj = json.loads(receipt.read_text())
+            obj['valid_until'] = 1
+            receipt.write_text(json.dumps(obj))
+        code, audit = remote_status()
+        check(code == 2 and all(audit[k]['status'] == 'fallback' for k in active),
+              'Expiry requires original-only delivery even when a verified file is still present')
         expired=request('/product/1/synthetic-test-part')
         expired_main=re.search(r'<img [^>]*id="main-product-image"[^>]*>', expired, re.S)[0]
         check('srcset=' not in expired_main and html.escape(url, quote=True) in expired_main, 'Expired receipt restores original on next HTTP request')

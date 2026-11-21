@@ -24,15 +24,15 @@ final class ImportedImage
 
     private static function directory(string $root, bool $create): ?string
     {
-        $root = realpath($root);
-        if (!$root) return null;
-        foreach (['/gallery', '/gallery/responsive'] as $suffix) {
-            $dir = $root.$suffix;
+        $dir = realpath($root);
+        if (!$dir) return null;
+        foreach (['gallery', 'responsive'] as $component) {
+            $dir = rtrim($dir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$component;
             if (is_link($dir)) return null;
             if (!is_dir($dir) && (!$create || !@mkdir($dir, 0755))) return null;
             if (realpath($dir) !== $dir) return null;
         }
-        return $root.'/gallery/responsive';
+        return $dir;
     }
 
     private static function validPeriod($verified, $until): bool
@@ -60,24 +60,24 @@ final class ImportedImage
         return $size && $size[2] === IMAGETYPE_WEBP && $size[0] === $width && $size[1] === $height;
     }
 
-    /** Only a matching, current receipt and individually verified files affect markup. */
-    public static function attributes(string $source, string $sizes, int $maxWidth, string $root, string $productId): ?string
+    private static function readReceipt(string $file): array
     {
-        if (!self::productId($productId) || !self::allowedSource($source)) return null;
-        $dir = self::directory($root, false);
-        if (!$dir) return null;
-        $file = $dir.'/'.self::receiptName($productId, $source);
-        if (is_link($file) || !is_file($file)) return null;
+        if (is_link($file) || !is_file($file)) return [];
         $json = @file_get_contents($file, false, null, 0, 16385);
-        if ($json === false || strlen($json) > 16384) return null;
+        if ($json === false || strlen($json) > 16384) return [];
         $r = json_decode($json, true);
-        if (!is_array($r) || ($r['version'] ?? null) !== 1 || ($r['product_id'] ?? null) !== $productId
+        return is_array($r) ? $r : [];
+    }
+
+    private static function verifiedCandidates(array $r, string $dir, string $source, string $productId, int $maxWidth): array
+    {
+        if (($r['version'] ?? null) !== 1 || ($r['product_id'] ?? null) !== $productId
             || ($r['source_url'] ?? null) !== $source || ($r['excluded'] ?? false) === true || ($r['optimization_authorized'] ?? null) !== true || ($r['provenance_basis'] ?? null) !== 'existing_catalog'
             || !self::hashValue($r['source_sha256'] ?? null) || !self::validPeriod($r['verified_at'] ?? null, $r['valid_until'] ?? null)
             || !is_int($r['width'] ?? null) || !is_int($r['height'] ?? null) || $r['width'] < 1 || $r['height'] < 1
             || $r['width'] > 20000000 || $r['height'] > 20000000 || $r['width'] * $r['height'] > 20000000
             || !is_int($r['original_bytes'] ?? null) || $r['original_bytes'] < 1 || $r['original_bytes'] > self::MAX_BYTES
-            || !is_array($r['variants'] ?? null)) return null;
+            || !is_array($r['variants'] ?? null)) return [];
         $candidates = [];
         foreach (ResponsiveImage::WIDTHS as $width) {
             if ($width >= $r['width'] || ($maxWidth > 0 && $width > $maxWidth)) continue;
@@ -87,6 +87,17 @@ final class ImportedImage
             if (is_array($meta) && ($meta['bytes'] ?? self::MAX_BYTES) < $r['original_bytes']
                 && self::verifiedVariant($dir.'/'.$name, $width, $height, $meta)) $candidates[] = '/gallery/responsive/'.$name.' '.$width.'w';
         }
+        return $candidates;
+    }
+
+    /** Only a matching, current receipt and individually verified files affect markup. */
+    public static function attributes(string $source, string $sizes, int $maxWidth, string $root, string $productId): ?string
+    {
+        if (!self::productId($productId) || !self::allowedSource($source)) return null;
+        $dir = self::directory($root, false);
+        if (!$dir) return null;
+        $r = self::readReceipt($dir.'/'.self::receiptName($productId, $source));
+        $candidates = self::verifiedCandidates($r, $dir, $source, $productId, $maxWidth);
         if (!$candidates) return null;
         // Preserve the measured native-resolution choice. Internal URL commas are valid srcset URL characters; trailing commas are rejected.
         if (!$maxWidth || $r['width'] <= $maxWidth) $candidates[] = $source.' '.$r['width'].'w';
@@ -101,17 +112,34 @@ final class ImportedImage
         if (!$dir) return [];
         $rows = [];
         foreach (array_slice(glob($dir.'/remote-*.json'), max(0, $offset), max(1, min(500, $limit))) as $file) {
-            $r = is_link($file) ? null : json_decode((string)@file_get_contents($file, false, null, 0, 16385), true);
-            $source = is_array($r) && is_string($r['source_url'] ?? null) ? $r['source_url'] : '';
-            $id = is_array($r) && is_string($r['product_id'] ?? null) ? $r['product_id'] : '';
-            $until = is_array($r) && is_int($r['valid_until'] ?? null) ? $r['valid_until'] : 0;
-            $attrs = basename($file) === self::receiptName($id, $source) ? self::attributes($source, '100vw', 0, $root, $id) : null;
-            $excluded = is_array($r) && ($r['excluded'] ?? null) === true && basename($file) === self::receiptName($id, $source);
-            $state = $excluded ? 'excluded' : ($attrs === null ? 'fallback' : ($until <= time() + 7 * 86400 ? 'expiring' : 'ready'));
+            $r = self::readReceipt($file);
+            $source = is_string($r['source_url'] ?? null) ? $r['source_url'] : '';
+            $id = is_string($r['product_id'] ?? null) ? $r['product_id'] : '';
+            $until = is_int($r['valid_until'] ?? null) ? $r['valid_until'] : 0;
+            $matches = self::productId($id) && self::allowedSource($source) && basename($file) === self::receiptName($id, $source);
+            $verified = $matches ? count(self::verifiedCandidates($r, $dir, $source, $id, 0)) : 0;
+            if ($matches && ($r['excluded'] ?? null) === true) {
+                $state = 'excluded';
+                $reason = 'Explicitly excluded; original remains in use.';
+            } elseif ($verified === 0) {
+                $state = 'fallback';
+                $reason = 'Missing, expired, or invalid receipt/derivatives; original remains in use.';
+            } else {
+                $recorded = count($r['variants']);
+                if ($verified < $recorded) {
+                    $state = 'partial';
+                    $reason = "$verified of $recorded recorded sizes verified. Rebuild missing or invalid sizes.";
+                } else {
+                    $state = 'ready';
+                    $reason = 'Verified derivative delivery is available.';
+                }
+                if ($until <= time() + 7 * 86400) {
+                    $reason = ($state === 'partial' ? $reason.' ' : '').'Re-verify original and re-import before valid_until.';
+                    $state = 'expiring';
+                }
+            }
             $rows[] = ['product_id' => $id, 'source' => $source, 'status' => $state,
-                'valid_until' => $until > 0 ? gmdate('c', $until) : null,
-                'reason' => $state === 'excluded' ? 'Explicitly excluded; original remains in use.' : ($state === 'fallback' ? 'Missing, expired, or invalid receipt/derivatives; original remains in use.'
-                    : ($state === 'expiring' ? 'Re-verify original and re-import before valid_until.' : 'Verified derivative delivery is available.'))];
+                'valid_until' => $until > 0 ? gmdate('c', $until) : null, 'reason' => $reason];
         }
         return $rows;
     }
