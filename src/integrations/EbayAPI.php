@@ -586,9 +586,7 @@ class EbayAPI
  if ($retryCount === 0) {
  $this->lastApiError = null;
  }
-        // Log the request
-        SyncLogger::logRequest($url . ' (Trading API ' . $callName . ')');
-        SyncLogger::log('Request body (XML): ' . substr($xmlRequest, 0, 500) . '...');
+        // Do not forward credential-bearing XML to diagnostics.
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -609,15 +607,13 @@ class EbayAPI
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        // Log the response
-        SyncLogger::logResponse($response, $httpCode);
-        
-        if (curl_errno($ch)) {
-            $curlError = curl_error($ch);
-            error_log('eBay Trading API cURL Error: ' . $curlError);
-            SyncLogger::logError('cURL Error: ' . $curlError);
-            $this->rememberApiError($callName, 'cURL Error: ' . $curlError, null, [
-                'url' => $url,
+        $curlError = curl_errno($ch);
+        if ($curlError !== 0) {
+            $message = 'eBay Trading API transport error (cURL ' . $curlError . ')';
+            error_log($message);
+            SyncLogger::logError($message);
+            $this->rememberApiError($callName, $message, null, [
+                'curl_errno' => $curlError,
                 'retry_count' => $retryCount,
             ]);
             curl_close($ch);
@@ -635,49 +631,37 @@ class EbayAPI
                 SyncLogger::logError('Failed to parse XML response');
                 $this->rememberApiError($callName, 'Failed to parse XML response', null, [
                     'http_code' => $httpCode,
-                    'response_preview' => substr((string)$response, 0, 500),
+                    'retry_count' => $retryCount,
                 ]);
                 return null;
             }
             
             // Check for API errors
             if (isset($data['Ack']) && ($data['Ack'] === 'Failure' || $data['Ack'] === 'PartialFailure')) {
-                // Extract error message(s) - handle both single error and array of errors
-                $errorMsg = 'Unknown error';
-                $errorCode = null;
-                
-                if (isset($data['Errors'])) {
-                    $errors = $data['Errors'];
-                    
-                    // Handle array of errors (multiple errors)
-                    if (isset($errors[0])) {
-                        $firstError = $errors[0];
-                        $errorMsg = $firstError['LongMessage'] ?? $firstError['ShortMessage'] ?? 'Unknown error';
-                        $errorCode = $firstError['ErrorCode'] ?? null;
-                        
-                        // If multiple errors, include count
-                        if (count($errors) > 1) {
-                            $errorMsg .= ' (and ' . (count($errors) - 1) . ' more errors)';
-                        }
-                    } else {
-                        // Single error object
-                        $errorMsg = $errors['LongMessage'] ?? $errors['ShortMessage'] ?? 'Unknown error';
-                        $errorCode = $errors['ErrorCode'] ?? null;
-                    }
-                    
-                    // If still unknown, log the full error structure for debugging
-                    if ($errorMsg === 'Unknown error') {
-                        SyncLogger::log('DEBUG - Full error structure: ' . print_r($errors, true));
-                    }
-                }
-                
-                error_log('eBay Trading API Error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
-                SyncLogger::logError('Trading API returned error: ' . $errorMsg . ($errorCode ? " (Code: $errorCode)" : ''));
-                $this->rememberApiError($callName, $errorMsg, $errorCode, [
+                // Only bounded, typed response metadata enters logs or health records.
+                $context = [
                     'http_code' => $httpCode,
                     'retry_count' => $retryCount,
-                    'ack' => $data['Ack'] ?? null,
-                ]);
+                    'ack' => $data['Ack'],
+                ];
+                $version = $data['Version'] ?? null;
+                if (is_string($version) && preg_match('/\A[0-9]{1,6}\z/', $version)) {
+                    $context['version'] = $version;
+                }
+                $build = $data['Build'] ?? null;
+                if (is_string($build) && preg_match('/\AE[0-9]{1,6}_[A-Z0-9_]{1,40}_R[0-9]{1,4}\z/', $build)) {
+                    $context['build'] = $build;
+                }
+
+                $errors = $data['Errors'] ?? [];
+                $firstError = is_array($errors) ? ($errors[0] ?? $errors) : [];
+                $rawCode = is_array($firstError) ? ($firstError['ErrorCode'] ?? null) : null;
+                $errorCode = is_string($rawCode) && preg_match('/\A[0-9]{1,12}\z/', $rawCode) ? $rawCode : null;
+                $errorMsg = 'eBay Trading API returned ' . $data['Ack'];
+                $logMessage = $errorMsg . ($errorCode !== null ? ' (Code: ' . $errorCode . ')' : '');
+                error_log($logMessage);
+                SyncLogger::logError($logMessage);
+                $this->rememberApiError($callName, $errorMsg, $errorCode, $context);
                 
                 // Check for rate limit (error code 21919300)
                 if ($errorCode === '21919300') {
@@ -700,8 +684,8 @@ class EbayAPI
         error_log('eBay Trading API HTTP Error: ' . $httpCode);
         SyncLogger::logError('eBay Trading API HTTP Error: ' . $httpCode);
         $this->rememberApiError($callName, 'eBay Trading API HTTP Error: ' . $httpCode, (string)$httpCode, [
-            'url' => $url,
-            'response_preview' => substr((string)$response, 0, 500),
+            'http_code' => $httpCode,
+            'retry_count' => $retryCount,
         ]);
         return null;
     }
@@ -712,15 +696,18 @@ class EbayAPI
     private function parseXmlResponse($xmlString)
     {
         try {
-            $xml = simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
+            // Parser warnings can include response text; report only the fixed failure message.
+            $xml = simplexml_load_string(
+                $xmlString,
+                'SimpleXMLElement',
+                LIBXML_NOCDATA | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET
+            );
             if ($xml === false) {
                 return null;
             }
             $json = json_encode($xml);
             return json_decode($json, true);
         } catch (\Exception $e) {
-            error_log('XML parsing error: ' . $e->getMessage());
-            SyncLogger::logError('XML parsing error', $e);
             return null;
         }
     }
