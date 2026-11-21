@@ -22,6 +22,12 @@ class MerchantFeedBuilder
         6333 => 'FAS-P6333',
     ];
 
+    // Feed-only pilot pinned to a reviewed offer and exact public image pair.
+    // The same photo was measured at 400x234 (thumbnail) and 1600x934 (replacement).
+    private const PILOT_OFFER_ID = '10290 FAS';
+    private const PILOT_THUMBNAIL = 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_1.JPG?set_id=8800005007';
+    private const PILOT_ORIGINAL = 'https://i.ebayimg.com/00/s/OTM0WDE2MDA=/z/PMkAAeSwR4Bq1D5O/$_57.JPG?set_id=8800005007';
+
     private $productModel;
     private $baseUrl;
 
@@ -81,6 +87,10 @@ class MerchantFeedBuilder
         $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
         // Google Merchant Center supports up to 10 additional images per item.
         $additionalImages = array_slice($images, 1, 10);
+        if ($id === self::PILOT_OFFER_ID && $mainImage === self::PILOT_THUMBNAIL
+            && !in_array(self::PILOT_ORIGINAL, $additionalImages, true)) {
+            $mainImage = self::PILOT_ORIGINAL;
+        }
 
         $brand = $this->normalizeText($product['manufacturer'] ?? '');
         $mpn = ProductCondition::identifier($product['model'] ?? '');
