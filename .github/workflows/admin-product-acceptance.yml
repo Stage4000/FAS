@@ -9,6 +9,8 @@ on:
       - 'api/saved-search.php'
       - 'products.php'
       - 'tests/catalog-heading-identity-test.py'
+      - 'tests/catalog-focus-restoration-test.cjs'
+      - 'tests/catalog-loader-lifecycle-test.cjs'
       - 'tests/form-input-shape-test.php'
       - 'tests/saved-search-capture-test.php'
       - 'checkout.php'
@@ -76,6 +78,8 @@ jobs:
             /api/saved-search.php
             /products.php
             /tests/catalog-heading-identity-test.py
+            /tests/catalog-focus-restoration-test.cjs
+            /tests/catalog-loader-lifecycle-test.cjs
             /tests/form-input-shape-test.php
             /tests/saved-search-capture-test.php
             /tests/sale-schedule-http-test.py

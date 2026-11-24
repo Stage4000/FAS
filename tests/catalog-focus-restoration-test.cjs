@@ -59,6 +59,7 @@ function fixture(options = {}, code = source) {
     const context = {window: win, document: doc,
         AbortController: class { constructor() { this.signal = {aborted: false}; } abort() { this.signal.aborted = true; } },
         fetch(url, init) { const response = deferred(), data = deferred(); requests.push({url, init, response, data}); return response.promise; },
+        enableSavedSearchNotifyForms(root) { assert.equal(root, content); calls.push(['enable-notification-forms']); },
         fasApplyCatalogMetadata() {}, attachCategoryHandlers() {}, attachPaginationHandlers() {},
         attachManufacturerFilterHandler() { controls.manufacturerFilter = control('manufacturerFilter'); calls.push(['clone', 'manufacturerFilter']); },
         attachModelFilterHandler() { controls.modelFilter = control('modelFilter'); calls.push(['clone', 'modelFilter']); },
@@ -90,6 +91,7 @@ async function suite(code) {
         const f = fixture({active: id}, code); f.run(id);
         assert.equal(f.doc.activeElement, f.body); assert.equal(f.focused.length, 0);
         const pendingListeners = f.listenerCount(); await f.complete(0);
+        assert.equal(f.calls.filter(c => c[0] === 'enable-notification-forms').length, 1);
         assert.equal(f.focused.length, 1, id + ' should regain focus after a successful load');
         assert.equal(pendingListeners, 4);
         assert.equal(f.doc.activeElement, f.controls()[id], 'focus final cloned control, not replaced node');

@@ -49,6 +49,8 @@ jobs:
             /products.php
             /src/utils/SavedSearchCapture.php
             /tests/catalog-heading-identity-test.py
+            /tests/catalog-focus-restoration-test.cjs
+            /tests/catalog-loader-lifecycle-test.cjs
             /tests/form-input-shape-test.php
             /tests/saved-search-capture-test.php
             /admin/sale.php

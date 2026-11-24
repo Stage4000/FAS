@@ -56,6 +56,8 @@ COMPATIBILITY = {
     'products.php': 'M',
     'src/utils/SavedSearchCapture.php': 'M',
     'tests/catalog-heading-identity-test.py': 'A',
+    'tests/catalog-focus-restoration-test.cjs': 'A',
+    'tests/catalog-loader-lifecycle-test.cjs': 'M',
     'tests/form-input-shape-test.php': 'M',
     'tests/saved-search-capture-test.php': 'A',
     'admin/sale.php': 'M',

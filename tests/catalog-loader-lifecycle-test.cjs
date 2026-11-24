@@ -53,6 +53,9 @@ function fixture(code, options = {}) {
       calls.push(['fetch',requests.length-1,url]);
       return fetch.promise;
     },
+    enableSavedSearchNotifyForms(root) {
+      assert.equal(root,content); effects.push(['enable-notification-forms']);
+    },
     fasApplyCatalogMetadata: data => effects.push(['metadata',data]),
   };
   for (const name of ['attachCategoryHandlers','attachPaginationHandlers','attachManufacturerFilterHandler','attachModelFilterHandler','renderSavedSearches']) {
@@ -74,6 +77,7 @@ function fixture(code, options = {}) {
 function committed(f, tag) {
   assert.equal(f.content.innerHTML,'HTML-'+tag);
   assert.equal(f.sidebar.innerHTML,'SIDE-'+tag);
+  assert.equal(f.effects.filter(e=>e[0]==='enable-notification-forms').length,1);
   assert.equal(JSON.stringify(f.window.FAS_PRODUCTS_PAGE_DATA),JSON.stringify({tag}));
   assert.deepEqual(f.effects.filter(e=>e[0]==='metadata'),[['metadata',{tag}]]);
   assert.equal(f.effects.filter(e=>e[0]==='analytics').length,1);
