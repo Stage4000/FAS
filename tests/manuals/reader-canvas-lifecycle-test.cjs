@@ -10,29 +10,77 @@ const addWindowListener=(t,f)=>listeners.set(t,f);
 function el(tag='DIV'){const e={tagName:tag,style:{},dataset:{},children:[],attributes:{},listeners:{},clientWidth:900,hidden:false,disabled:true,value:'',textContent:'',width:300,height:150,addEventListener(t,f){this.listeners[t]=f},setAttribute(k,v){this.attributes[k]=v},removeAttribute(k){delete this.attributes[k]},append(...x){this.children.push(...x)},replaceChildren(...x){this.children=x},replaceWith(x){if(this.parent)this.parent.nodes.set('canvas',x);x.parent=this.parent},focus(){context.document.activeElement=this;},getContext(){return{canvas:this}},querySelector(s){if(!this.nodes)this.nodes=new Map();if(!this.nodes.has(s)){const x=el(s==='canvas'?'CANVAS':'DIV');x.parent=this;this.nodes.set(s,x)}return this.nodes.get(s)}};if(tag==='CANVAS')canvases.push(e);return e;}
 const media={matches:motionCase?motionCase.startsReduced:false,listeners:[],addEventListener(type,fn){if(type==='change')this.listeners.push(fn);}};
 if(!motionCase)media.matches=true;
-const animationRecords=[];
+const animationRecords=[], paintCalls=[], textPlans=new Map();
 const nodes=new Map(),root=el();root.dataset.pdfUrl='/manuals/file.php?id=1';root.querySelector=s=>{if(!nodes.has(s))nodes.set(s,el());return nodes.get(s)};const papers=[el(),el()];root.querySelectorAll=s=>s==='[data-paper]'?papers:[];
+const stage=root.querySelector('[data-stage]');
+const canvasBox=canvas=>{
+  const visible=papers.filter(paper=>!paper.hidden).map(paper=>paper.querySelector('canvas'));
+  const widthOf=image=>parseFloat(image.style.width);
+  const totalWidth=visible.reduce((sum,image)=>sum+widthOf(image),0);
+  const index=visible.indexOf(canvas), width=widthOf(canvas), height=parseFloat(canvas.style.height);
+  const left=(stage.clientWidth-totalWidth)/2+(index===1?widthOf(visible[0]):0);
+  return {left,right:left+width,top:0,width,height};
+};
+function makeElement(tag) {
+  const element=el(tag.toUpperCase());
+  if (tag==='canvas' && motionCase?.curl) {
+    const noop=()=>{};
+    element.getBoundingClientRect=()=>canvasBox(element);
+    element.remove=()=>{stage.children=stage.children.filter(child=>child!==element);};
+    element.getContext=()=>({
+      canvas:element, drawImage:(image,...args)=>paintCalls.push({image,args}),
+      clearRect:()=>{paintCalls.length=0;}, createLinearGradient:()=>({addColorStop:noop}),
+      save:noop,restore:noop,setTransform:noop,transform:noop,beginPath:noop,
+      rect:noop,clip:noop,moveTo:noop,lineTo:noop,closePath:noop,fill:noop,fillRect:noop
+    });
+  }
+  return element;
+}
 root.requestFullscreen=async()=>{};
 root.querySelector('[data-motion]').disabled=false;
 if(motionCase)for(const paper of papers)paper.animate=(frames,options)=>{
  let resolve,reject;const record={paper,frames,options,cancelled:false,settled:false,cancelCalls:0,
+  effect:{getComputedTiming:()=>({progress:0})},
   finished:new Promise((a,b)=>{resolve=a;reject=b}),
   finish(){if(!this.settled){this.settled=true;resolve();}},
   cancel(){this.cancelCalls++;if(!this.settled){this.cancelled=true;this.settled=true;const error=new Error('Synthetic animation cancelled');error.name='AbortError';reject(error);}}};
  animationRecords.push(record);return record;
 };
 function pending(n){let resolve,reject;const plan={promise:new Promise((a,b)=>{resolve=a;reject=b}),cancelled:false,resolve:()=>resolve(),reject:(name='Error')=>{const error=new Error('synthetic render failure');error.name=name;reject(error)}};plans.set(n,plan);return plan;}
-const pdf={numPages:8,async getPage(n){return{getViewport({scale}){return{width:300*scale,height:400*scale}},render({canvasContext}){const p=plans.get(n);if(p){plans.delete(n);p.canvas=canvasContext.canvas;return{promise:p.promise,cancel(){p.cancelled=true}}}return{promise:Promise.resolve(),cancel(){}}},async getTextContent(){return{items:[{str:'Page '+n}]}}}}};
-  const context={console,URL,URLSearchParams,setTimeout:schedule,clearTimeout:unschedule,history:{replaceState(...v){context.hash=v[2];context.location.hash=v[2];hashWrites.push(v[2]);}},location:{href:'https://example.test/manuals/view.php?id=1',origin:'https://example.test',hash:motionCase?.initialHash||''},getComputedStyle(){return{paddingLeft:'0',paddingRight:'0'}},ResizeObserver:class{constructor(fn){resizeCallback=fn;}observe(){}disconnect(){disconnectCount++}},document:{querySelector:()=>root,createElement:tag=>el(tag.toUpperCase()),createDocumentFragment:()=>el(),addEventListener:(t,f)=>documentListeners.set(t,f),fullscreenEnabled:true},window:{matchMedia:()=>media,addEventListener:addWindowListener,devicePixelRatio:1},pdfjs:{GlobalWorkerOptions:{},AnnotationMode:{DISABLE:0},getDocument:()=>({promise:Promise.resolve(pdf),destroy(){destroyCount++}})}};
+function pendingText(n) {
+  let resolve;
+  const plan={started:false,promise:new Promise(done=>{resolve=done;}),resolve:()=>resolve()};
+  textPlans.set(n,plan);
+  return plan;
+}
+const pdf={numPages:motionCase?.pages??8,async getPage(n){
+  const [width,height]=motionCase?.pageSizes?.[n]??[300,400];
+  return {
+    getViewport({scale}){return {width:width*scale,height:height*scale};},
+    render({canvasContext}){const p=plans.get(n);if(p){plans.delete(n);p.canvas=canvasContext.canvas;return{promise:p.promise,cancel(){p.cancelled=true}}}return{promise:Promise.resolve(),cancel(){}}},
+    async getTextContent(){
+      const plan=textPlans.get(n);
+      if(plan){plan.started=true;await plan.promise;}
+      return {items:[{str:'Page '+n}]};
+    }
+  };
+}};
+  const context={console,URL,URLSearchParams,setTimeout:schedule,clearTimeout:unschedule,history:{replaceState(...v){context.hash=v[2];context.location.hash=v[2];hashWrites.push(v[2]);}},location:{href:'https://example.test/manuals/view.php?id=1',origin:'https://example.test',hash:motionCase?.initialHash||''},getComputedStyle(){return{paddingLeft:'0',paddingRight:'0'}},ResizeObserver:class{constructor(fn){resizeCallback=fn;}observe(){}disconnect(){disconnectCount++}},document:{querySelector:()=>root,createElement:makeElement,createDocumentFragment:()=>el(),addEventListener:(t,f)=>documentListeners.set(t,f),fullscreenEnabled:true},window:{matchMedia:()=>media,addEventListener:addWindowListener,devicePixelRatio:1},pdfjs:{GlobalWorkerOptions:{},AnnotationMode:{DISABLE:0},getDocument:()=>({promise:Promise.resolve(pdf),destroy(){destroyCount++}})}};
+if(motionCase?.curl) {
+  Object.assign(stage,{clientHeight:800,clientTop:0,clientLeft:0,scrollLeft:0,scrollTop:0,getBoundingClientRect:()=>({left:0,top:0})});
+  root.querySelector('[data-book]').getBoundingClientRect=stage.getBoundingClientRect;
+  context.window.requestAnimationFrame=()=>1;
+  context.window.cancelAnimationFrame=()=>{};
+}
 vm.createContext(context);
-let source=fs.readFileSync(__dirname+'/../../public/js/manual-reader.mjs','utf8').replace(/^import .*;\n/,'').replace("const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;","const vendor = 'https://example.test/public/vendor/pdfjs-6.5.438/';").replaceAll('export ','').replace('if (root) initialize(root);','if (root) globalThis.initialized=initialize(root);').replace('  const navigate =','  globalThis.draw = draw;\n  const navigate =');
+let source=fs.readFileSync(__dirname+'/../../public/js/manual-reader.mjs','utf8').replace(/^import .*;\r?\n/,'').replace("const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;","const vendor = 'https://example.test/public/vendor/pdfjs-6.5.438/';").replaceAll('export ','').replace('if (root) initialize(root);','if (root) globalThis.initialized=initialize(root);').replace('  const navigate =','  globalThis.draw = draw;\n  globalThis.paintCurl = progress => activeCurl.paint(progress);\n  const navigate =');
 const initial=initialDeparture?pending(1):motionCase?.initialPending?pending(motionCase.initialPending):null;
 vm.runInContext(source,context);
 if(initialDeparture){await tick();listeners.get('pagehide')({persisted:false});check(initial.cancelled&&initial.canvas.width>0,'initial pending render is cancelled without premature clearing');initial.resolve();await context.initialized;check(initial.canvas.width===0&&destroyCount===1,'initial pending render backing cleared after departure settles');return;}
 if(!initial)await context.initialized;
 if(motionCase){
  const get=selector=>root.querySelector(selector);
- await motionCase.exercise({get,papers,context,animationRecords,pending,
+ await motionCase.exercise({get,papers,context,animationRecords,pending,pendingText,paintCalls,
   draw:(n)=>context.draw(n,true),tick,
   resize:width=>{get('[data-stage]').clientWidth=width;resizeCallback();},
   flushResize:()=>{const callbacks=[...resizeTimers.values()];resizeTimers.clear();return Promise.all(callbacks.map(fn=>fn()));},
@@ -283,6 +331,47 @@ async function resizeChecks(){
   await automatic(t,'resize');settled(t,[1],command+' remains an explicit committed-page redraw');
  }});
 }
+async function curlRegressions() {
+  const pageSizes={1:[390,720],4:[300,420],5:[600,650],6:[400,720]};
+  const describe=(t,image)=>t.paintCalls.find(call=>call.image===image && call.args.length===4)?.args;
+  const sameBox=(actual,expected)=>actual?.length===expected.length && actual.every((value,index)=>Math.abs(value-expected[index])<.001);
+  await run(false,{startsReduced:false,curl:true,pages:6,pageSizes,initialHash:'#page=4',exercise:async t=>{
+    const [left,right]=t.papers.map(paper=>paper.querySelector('canvas'));
+    const leftBounds=left.getBoundingClientRect(), rightBounds=right.getBoundingClientRect();
+    const text=t.pendingText(6), draw=t.draw(6);
+    await t.tick();
+    check(sameBox(describe(t,left),[leftBounds.left,0,leftBounds.width,leftBounds.height]),'curl starts with the mixed-size stationary page in its own rectangle');
+    t.context.paintCurl(.25);
+    const hinge=rightBounds.left+(650-rightBounds.left)*.25;
+    check(sameBox(describe(t,left),[hinge-leftBounds.width,0,leftBounds.width,leftBounds.height]),'stationary left page keeps the same size and meets the moving hinge');
+    t.active()[0].finish();
+    await t.tick();
+    const finalPage=t.papers[0].querySelector('canvas');
+    check(left.width>0 && right.width>0 && finalPage!==left,'incoming curl can still read retired page canvases');
+    t.context.paintCurl(1);
+    check(sameBox(describe(t,finalPage),[250,0,400,720]),'forward curl lands on the centered final singleton');
+    t.active()[0].finish();
+    await t.tick();
+    check(text.started && !t.get('[data-stage]').children.some(child=>child.dataset.cornerCurl),'page text remains pending after the compositor closes');
+    check(left.width===0 && right.width===0 && finalPage.width>0,'retired textures are released before text extraction settles');
+    text.resolve();
+    await draw;
+    check(t.text().includes('Page 6'),'released textures do not change the readable text of the final page');
+  }});
+  await run(false,{startsReduced:false,curl:true,pages:6,pageSizes,initialHash:'#page=4',exercise:async t=>{
+    const right=t.papers[1].querySelector('canvas');
+    const bounds=right.getBoundingClientRect(), draw=t.draw(1);
+    await t.tick();
+    check(sameBox(describe(t,right),[bounds.left,0,bounds.width,bounds.height]),'backward curl keeps the old right page in its own rectangle');
+    t.active()[0].finish();
+    await t.tick();
+    const cover=t.papers[0].querySelector('canvas');
+    t.context.paintCurl(1);
+    check(sameBox(describe(t,cover),[255,0,390,720]),'backward curl lands on the centered cover');
+    t.active()[0].finish();
+    await draw;
+  }});
+}
 async function probeResize(){
  const observations=[];
  for(const event of ['resize','fullscreen'])await run(false,{startsReduced:false,exercise:async t=>{
@@ -310,4 +399,4 @@ async function probeResize(){
  check(geometry.cornerFold(560,720,-1,560,720).x===560&&geometry.cornerFold(560,720,2,560,720).x===-560,'fold progress clamps to exact flat endpoints');
  check(geometry.cornerFold(560,720,1,560,720).back,'completed fold exposes the opposite paper face');
 }
-(async()=>{if(process.argv.includes('--probe-motion'))return probeMotion();if(process.argv.includes('--probe-resize'))return probeResize();if(process.argv.includes('--resize-only')){await resizeChecks();console.log(checks+' resize-navigation checks passed with DOM/PDF stubs, not a browser.');return;}await run();await run(true);await motionChecks();await resizeChecks();console.log(checks+' canvas lifecycle checks passed with deterministic DOM/PDF stubs; not browser heap measurements.');})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>clearTimeout(watchdog));
+(async()=>{if(process.argv.includes('--probe-motion'))return probeMotion();if(process.argv.includes('--probe-resize'))return probeResize();if(process.argv.includes('--resize-only')){await resizeChecks();console.log(checks+' resize-navigation checks passed with DOM/PDF stubs, not a browser.');return;}await run();await run(true);await motionChecks();await resizeChecks();await curlRegressions();console.log(checks+' canvas lifecycle checks passed with deterministic DOM/PDF stubs; not browser heap measurements.');})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>clearTimeout(watchdog));

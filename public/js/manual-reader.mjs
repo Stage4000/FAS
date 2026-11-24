@@ -318,22 +318,29 @@ async function initialize(root) {
   // One bounded compositor reads the already rendered PDF canvases. It does
   // not render another PDF page or retain a second document/texture cache.
   function startCurl(staged, forward) {
-    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !book.getBoundingClientRect) return null;
+    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !book.getBoundingClientRect || !papers[0].animate) return null;
     const old = papers.filter(p => !p.hidden).map(p => p.querySelector('canvas'));
     if (!old.length || !old[0].getContext('2d')?.drawImage) return null;
-    if (manualMotionOff || reducedMotion.matches || !window.requestAnimationFrame || !papers[0].animate) return null;
     const surface = document.createElement('canvas'), ctx = surface.getContext('2d');
     if (!ctx) return null;
-    const box = stage.getBoundingClientRect(), frontRect = old[forward ? old.length-1 : 0].getBoundingClientRect();
+    const box = stage.getBoundingClientRect(), width = stage.clientWidth, height = stage.clientHeight;
+    const oldRects = old.map(canvas => canvas.getBoundingClientRect());
+    const nextSizes = staged.map(canvas => ({width:parseFloat(canvas.style.width), height:parseFloat(canvas.style.height)}));
     const single = old.length === 1 && staged.length === 1;
     const dir = single || forward ? 1 : -1;
-    const front = single && !forward ? staged[0] : old[forward ? old.length-1 : 0];
-    const back = single ? (forward ? staged[0] : old[0]) : staged[forward ? 0 : staged.length-1];
+    const frontIndex = forward ? old.length - 1 : 0, backIndex = forward ? 0 : staged.length - 1;
+    const front = single && !forward ? staged[0] : old[frontIndex];
+    const back = single && !forward ? old[0] : staged[backIndex];
+    const frontRect = oldRects[frontIndex], {width:endWidth,height:endHeight} = nextSizes[backIndex];
     const startSpine = (dir === 1 ? frontRect.left : frontRect.right) - box.left - stage.clientLeft;
-    const endWidth = parseFloat(back.style.width), endHeight = parseFloat(back.style.height);
-    const endSpine = staged.length === 2 ? stage.clientWidth / 2 : (stage.clientWidth - endWidth) / 2;
+    const padding = getComputedStyle(stage);
+    const leftPadding = parseFloat(padding.paddingLeft), rightPadding = parseFloat(padding.paddingRight);
+    const paperWidths = nextSizes.map((size, index) => Math.max(size.width, parseFloat(getComputedStyle(papers[index]).minWidth) || 0));
+    const bookWidth = paperWidths.reduce((sum, size) => sum + size, 0);
+    const endLeft = leftPadding + Math.max(0, (width - leftPadding - rightPadding - bookWidth) / 2);
+    // A forward curl lands to the left of its hinge, including on the final singleton.
+    const endSpine = endLeft + (staged.length === 2 ? paperWidths[0] : forward && !single ? endWidth : 0);
     const top = frontRect.top - box.top - stage.clientTop;
-    const width = stage.clientWidth, height = stage.clientHeight;
     const scale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / (width * height)));
     surface.width = Math.max(1, Math.floor(width * scale)); surface.height = Math.max(1, Math.floor(height * scale));
     Object.assign(surface.style, {position:'absolute', pointerEvents:'none', zIndex:'2', width:`${width}px`, height:`${height}px`});
@@ -356,11 +363,19 @@ async function initialize(root) {
         ctx.setTransform(surface.width/width,0,0,surface.height/height,0,0); ctx.clearRect(0,0,width,height);
         ctx.save();
         if (single) { ctx.beginPath(); ctx.rect(spine,top,w,h); ctx.clip(); }
-        const pageImage = (image,x) => { if (image?.width && image.height) ctx.drawImage(image,x,top,w,h); };
+        const pageImage = (image,x,drawWidth=w,drawHeight=h) => {
+          if (image?.width && image.height) ctx.drawImage(image,x,top,drawWidth,drawHeight);
+        };
         if (single) pageImage(forward ? staged[0] : old[0],spine);
         else {
-          pageImage(forward ? (old.length===2 ? old[0] : null) : (staged.length===2 ? staged[0] : null),spine-w);
-          pageImage(forward ? (staged.length===2 ? staged[1] : null) : (old.length===2 ? old[1] : null),spine);
+          const left = forward ? oldRects[0] : nextSizes[0];
+          const right = forward ? nextSizes[1] : oldRects[1];
+          if (forward ? old.length === 2 && p < 1 : staged.length === 2) {
+            pageImage(forward ? old[0] : staged[0],spine-left.width,left.width,left.height);
+          }
+          if (forward ? staged.length === 2 : old.length === 2 && p < 1) {
+            pageImage(forward ? staged[1] : old[1],spine,right.width,right.height);
+          }
         }
         if (fold === 0 || fold === 1) {
           pageImage(fold === 0 ? front : back, (fold === 0 ? dir === 1 : dir === -1) ? spine : spine-w);
@@ -511,6 +526,8 @@ async function initialize(root) {
         await animate(leaf, [{'--manual-turn-progress':'.5'},{'--manual-turn-progress':'1'}], {duration:210,easing:'ease-out',fill:'none'}, curl ? p => curl.paint(.5 + p / 2) : null);
       }
       curl?.close();
+      retiredCanvases.forEach(releaseCanvas);
+      retiredCanvases.clear();
       await displayText(selected, token);
     } catch (error) {
       if (token !== renderEpoch || error?.name === 'RenderingCancelledException') return;
