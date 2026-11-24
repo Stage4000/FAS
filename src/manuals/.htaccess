@@ -1,0 +1,2 @@
+# Keep application internals behind the manuals entry points.
+Require all denied
