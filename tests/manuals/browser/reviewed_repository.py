@@ -33,6 +33,7 @@ GALLERY_FOCUS_BLOB = 'f0261fb7c43544d14881b7cc952e28d7176267f3'
 COMPATIBILITY = {
     'product.php': 'M',
     'tests/keyboard-browser/heading-unit-test.py': 'M',
+    'tests/keyboard-browser/email-restore.cjs': 'M',
     'tests/keyboard-browser/shipping_identity.py': 'A',
     'tests/keyboard-browser/shipping-identity-test.py': 'A',
     'tests/keyboard-browser/storage-unavailable.cjs': 'M',

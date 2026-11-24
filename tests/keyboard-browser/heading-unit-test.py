@@ -42,6 +42,25 @@ for bad_footer in [pre_gbp, footer+b'changed', footer+h.GBP_FOOTER_LINE,
                    footer.replace(b'noopener noreferrer',b'noopener',1)]:
     rejected(lambda:h.restore_pre_gbp_footer(bad_footer))
 
+# All historical controls retain heading/copy differences, but render the
+# exact reviewed forms with the same readiness as the candidate.
+runtime = {p: (suite.parents[1]/p).read_bytes() for p in h.EXPECTED_PATHS}
+candidate = {p: h.storage_identity.restore(p, data) for p, data in runtime.items()}
+controls = {p: h.shipping_identity.later_heading_preimage(p, data) for p, data in candidate.items()}
+for variant, source in {
+        'baseline': h.browser_notification_baseline(baseline),
+        'cart-parent-restored': h.cart_restoration(controls, baseline),
+        'residual-restored': h.residual_restoration(controls),
+}.items():
+    rendered = h.browser_form_readiness(variant, source)
+    check({p for p in source if rendered[p] != source[p]} == set(h.FORM_READINESS_ANCHORS))
+    check(b'enableSavedSearchNotifyForms(content);' in rendered['products.php'])
+    check(b'20261121-form-ready' in rendered['includes/footer.php'])
+    check((h.GBP_FOOTER_LINE in rendered['includes/footer.php']) == (variant == 'cart-parent-restored'))
+    for path in h.FORM_READINESS_ANCHORS:
+        for bad in [source[path]+b'changed', rendered[path]]:
+            rejected(lambda: h.browser_form_readiness(variant, dict(source, **{path: bad})))
+
 # Quantity overlay pins precede the generic integration-file exception.
 main_bytes=(suite.parents[1]/'public/js/main.js').read_bytes()
 pre_storage=h.storage_identity.restore("public/js/main.js",main_bytes,strict=True)
