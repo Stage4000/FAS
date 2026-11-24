@@ -57,4 +57,42 @@ foreach ($manifest as $offer => $pairs) {
         $checks += 4;
     }
 }
+$galleries = require __DIR__ . '/../src/utils/merchant-feed-gallery-rules.php';
+foreach ($galleries as $offer => $gallery) {
+    $input = array_slice($photos, 0, 11);
+    $expected = $input;
+    foreach ($gallery['omit'] ?? [] as $slot => $source) {
+        if ($slot < 1 || $slot > 10) {
+            throw new RuntimeException("Invalid additional image position for $offer");
+        }
+        $input[$slot] = $source;
+        unset($expected[$slot]);
+
+        $moved = $photos;
+        $moved[0] = $source;
+        expectFeedImages(feedImages($builder, (string)$offer, $moved), array_slice($moved, 0, 11), "Keep moved photo for $offer, position $slot");
+        $checks++;
+    }
+    if (isset($gallery['primary'])) {
+        [$old, $slot, $alternate] = $gallery['primary'];
+        if ($slot < 1 || $slot > 10 || isset($gallery['omit'][$slot]) || $old === $alternate) {
+            throw new RuntimeException("Invalid primary promotion for $offer");
+        }
+        $input[0] = $old;
+        $input[$slot] = $alternate;
+        $expected[0] = $alternate;
+        unset($expected[$slot]);
+
+        $drift = $photos;
+        $drift[0] = $old;
+        expectFeedImages(feedImages($builder, (string)$offer, $drift), array_slice($drift, 0, 11), "Missing alternate for $offer");
+        $drift[0] = $photos[0];
+        $drift[$slot] = $alternate;
+        expectFeedImages(feedImages($builder, (string)$offer, $drift), array_slice($drift, 0, 11), "Keep newer primary for $offer");
+        $checks += 2;
+    }
+    expectFeedImages(feedImages($builder, (string)$offer, $input), array_values($expected), "Reviewed gallery for $offer");
+    expectFeedImages(feedImages($builder, 'unreviewed-offer', $input), $input, "Keep the other offer's gallery for $offer");
+    $checks += 2;
+}
 echo "PASS $checks Merchant feed image checks.\n";
