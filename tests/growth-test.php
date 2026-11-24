@@ -90,4 +90,23 @@ $g->signup('failure@example.invalid');
 $g->sendBatch(function(){throw new RuntimeException('uncertain transport');});
 growthCheck($g->run('SELECT status FROM growth_messages')->fetchColumn()==='uncertain','Unknown mail outcome retained for review');
 $sent=[];$g->sendBatch($send);growthCheck(count($sent)===0,'Uncertain transport is never automatically resent');
+
+[$g,$db,$clock]=growthFixture();
+growthCheck(!$g->confirmationReady(),'Dedicated confirmations default off');
+$g->saveConfirmationSettings(['confirmation_from'=>'noreply@example.invalid','confirmation_reply_to'=>'reply@example.invalid','confirmation_enabled'=>'1']);
+growthCheck($g->confirmationReady() && !$g->ready(),'Dedicated confirmation setup leaves marketing disabled');
+$g->signup('older@example.invalid');
+$g->signup('previous-claim@example.invalid');
+$g->run("UPDATE growth_messages SET status='sending',claimed_at=? WHERE email=?",[$clock->now-601,'previous-claim@example.invalid']);
+$cutoff=(int)$g->run('SELECT MAX(id) FROM growth_messages')->fetchColumn();
+$g->saveCart($owner,'cart@example.invalid',[['id'=>1,'quantity'=>1]],true);
+$g->signup('fresh@example.invalid');
+$sent=[];
+$result=$g->sendConfirmationBatch($send,20,null,$cutoff);
+growthCheck($result['sent']===1 && array_column($sent,'to')===['fresh@example.invalid'],'The scheduler sends only opted-in confirmation rows after the cutover ID');
+growthCheck($g->run("SELECT status FROM growth_messages WHERE email='older@example.invalid'")->fetchColumn()==='queued','A viable older confirmation stays queued');
+growthCheck($g->run("SELECT status FROM growth_messages WHERE email='previous-claim@example.invalid'")->fetchColumn()==='sending','Old interrupted claims stay unchanged');
+growthCheck((int)$g->run("SELECT COUNT(*) FROM growth_messages WHERE email='cart@example.invalid' AND status='queued'")->fetchColumn()===2,'Newer cart email stays queued');
+growthCheck($g->sendConfirmationBatch($send,20,null,$cutoff)['sent']===0 && count($sent)===1,'A rerun never resends the confirmation');
+
 echo "PASS $checks growth assertions; all mail transports mocked.\n";
