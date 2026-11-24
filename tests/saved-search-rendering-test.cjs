@@ -24,6 +24,7 @@ function test(name, callback) { callback(); cases++; console.log('PASS ' + name)
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
 function fixture(options = {}) {
     const htmlWrites = [], writes = [], timers = [], analytics = [], listeners = {};
+    const windowListeners = {};
     let stored = options.raw === undefined ? JSON.stringify(options.records || []) : options.raw;
     class Element {
         constructor(tagName) {
@@ -40,13 +41,14 @@ function fixture(options = {}) {
         get innerHTML() { return this._html || ''; }
         setAttribute(name, value) { this.attrs[name] = String(value); }
         appendChild(child) { child.parentElement = this; this.children.push(child); return child; }
+        contains(node) { return node === this || this.children.some(child => child.contains(node)); }
         closest(selector) {
             return this.className.split(/\s+/).includes(selector.slice(1))
                 ? this : this.parentElement?.closest(selector) || null;
         }
         blur() { this.blurred = true; }
     }
-    const container = new Element('div');
+    let container = new Element('div');
     const heading = new Element('h1'); heading.textContent = options.title || '  Motorcycle\n parts  ';
     const save = new Element('button'); save.className = 'saved-search-save';
     const localStorage = {
@@ -59,12 +61,14 @@ function fixture(options = {}) {
     const context = {
         URL, URLSearchParams,
         window: {location: {origin, href: new URL(options.href || '/products?search=rotor', origin).href},
+            addEventListener(type, callback) { windowListeners[type] = callback; },
             fasAnalytics: {track: (...args) => analytics.push(args)}},
         document: {
+            activeElement: null,
             getElementById(id) { assert.equal(id, 'savedSearches'); return options.noContainer ? null : container; },
             querySelector(selector) { assert.equal(selector, '#productsContent h1'); return options.noHeading ? null : heading; },
             createElement(tag) { return new Element(tag); },
-            addEventListener(type, callback) { assert.equal(type, 'click'); listeners[type] = callback; }
+            addEventListener(type, callback) { listeners[type] = callback; }
         },
         setTimeout(callback, delay) { timers.push({callback, delay}); }
     };
@@ -73,8 +77,18 @@ function fixture(options = {}) {
     } else if (!options.noStorage) context.localStorage = localStorage;
     vm.createContext(context);
     vm.runInContext(navigation + '\n' + source, context, {filename: sourcePath});
-    return {context, container, save, Element, htmlWrites, writes, timers, analytics,
+    return {context, get container() { return container; }, save, Element, htmlWrites, writes, timers, analytics,
         stored: () => stored, records: () => JSON.parse(stored),
+        setExternal(value) { stored = value; },
+        storage(key = storageKey, area = localStorage) { windowListeners.storage({key, storageArea: area}); },
+        pageshow(persisted) { windowListeners.pageshow({persisted}); },
+        focus(target) {
+            const previous = context.document.activeElement;
+            context.document.activeElement = target;
+            if (previous) listeners.focusout({target: previous, relatedTarget: target});
+        },
+        replaceContainer() { container = new Element('div'); },
+        flush() { while (timers.length) timers.shift().callback(); },
         click: target => listeners.click({target})};
 }
 
@@ -288,6 +302,82 @@ test('missing or malformed remove URL cannot delete a record', () => {
         f.click(remove);
     }
     assert.equal(f.writes.length,0); assert.equal(f.records().length,1);
+});
+
+function syncFixture() {
+    const f = fixture({records: [{label: 'Rotor', url: '/products?search=rotor'}]});
+    f.context.renderSavedSearches();
+    f.setExternal(JSON.stringify([{label: 'Wheel', url: '/products?search=wheel'}]));
+    return f;
+}
+test('another tab changes the saved-search list without writing back or emitting analytics', () => {
+    const f = syncFixture(); f.storage();
+    assert.match(f.container.textContent, /Wheel/);
+    assert.equal(f.writes.length, 0); assert.equal(f.analytics.length, 0);
+});
+test('a storage clear or removed saved-search key renders the empty list', () => {
+    for (const key of [null, storageKey]) {
+        const f = syncFixture(); f.setExternal(null); f.storage(key);
+        assert.match(f.container.textContent, /No saved searches/);
+    }
+});
+test('unrelated keys and foreign storage areas leave the rendered nodes alone', () => {
+    const f = syncFixture(); const first = f.container.children[0];
+    f.storage('other'); f.storage(storageKey, {}); f.storage(null, null);
+    assert.equal(f.container.children[0], first);
+});
+test('inaccessible storage and malformed external values leave the rendered nodes alone', () => {
+    const options = {records:[{label:'A',url:'/products'}]};
+    const f = fixture(options); f.context.renderSavedSearches();
+    const first = f.container.children[0]; options.readFails = true; f.storage();
+    assert.equal(f.container.children[0], first);
+    options.readFails = false; f.setExternal('{'); f.storage();
+    assert.equal(f.container.children[0], first);
+    assert.doesNotThrow(() => fixture({storageGetterFails:true}).storage());
+});
+test('a focused list keeps its nodes while refreshed saved searches are pending', () => {
+    const f = syncFixture(); const link = f.container.children[0].children[0];
+    f.focus(link); f.storage();
+    assert.equal(f.container.children[0].children[0], link); assert.equal(f.timers.length, 0);
+});
+test('moving within a list preserves focus and moving outside applies the latest data', () => {
+    const f = syncFixture(); const [link, remove] = f.container.children[0].children;
+    f.focus(link); f.storage(); f.focus(remove); f.flush();
+    assert.equal(f.container.children[0].children[1], remove);
+    f.setExternal(JSON.stringify([{label:'Tire',url:'/products?search=tire'}])); f.storage();
+    f.focus(f.save); f.flush(); assert.match(f.container.textContent, /Tire/);
+    assert.equal(f.context.document.activeElement, f.save); assert.equal(f.writes.length, 0);
+});
+test('a focus return before the queued refresh keeps the active control intact', () => {
+    const f = syncFixture(); const link = f.container.children[0].children[0];
+    f.focus(link); f.storage(); f.focus(null); f.focus(link); f.flush();
+    assert.equal(f.container.children[0].children[0], link);
+    f.focus(null); f.flush(); assert.match(f.container.textContent, /Wheel/);
+});
+test('queued refreshes for obsolete AJAX lists cannot overwrite a fresh container', () => {
+    const f = syncFixture(); f.focus(f.container.children[0].children[0]); f.storage();
+    f.focus(null); f.replaceContainer(); f.flush();
+    assert.equal(f.container.children.length, 0);
+    f.storage(); assert.match(f.container.textContent, /Wheel/);
+});
+test('ordinary pageshow leaves the saved-search list untouched', () => {
+    const f = syncFixture(); const first = f.container.children[0];
+    f.pageshow(false); assert.equal(f.container.children[0], first);
+});
+test('a restored page reads current saved searches without storage or analytics writes', () => {
+    const f = syncFixture(); f.pageshow(true); assert.match(f.container.textContent, /Wheel/);
+    assert.equal(f.analytics.length, 0); assert.equal(f.writes.length, 0);
+});
+test('history restoration keeps keyboard focus until it leaves the saved-search list', () => {
+    const f = syncFixture(); const remove = f.container.children[0].children[1];
+    f.focus(remove); f.pageshow(true); assert.equal(f.container.children[0].children[1], remove);
+    f.focus(f.save); f.flush(); assert.match(f.container.textContent, /Wheel/);
+    assert.equal(f.context.document.activeElement, f.save);
+});
+test('a pending restored-page refresh ignores an obsolete AJAX container', () => {
+    const f = syncFixture(); f.focus(f.container.children[0].children[0]); f.pageshow(true);
+    f.focus(null); f.replaceContainer(); f.flush(); assert.equal(f.container.children.length, 0);
+    f.pageshow(true); assert.match(f.container.textContent, /Wheel/);
 });
 
 console.log(`PASS ${cases} saved-search regression groups (offline DOM/storage doubles, not browser acceptance)`);

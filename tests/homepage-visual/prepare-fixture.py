@@ -13,6 +13,7 @@ BASELINE_FILES = ['index.php', 'includes/header.php', 'src/utils/Seo.php', 'gall
 GALLERY = ['gallery/hero-image.png', 'gallery/FLIPANDSTRIP.COM_d00a_018a.jpg',
            'gallery/aaron-huber-KxeFuXta4SE-unsplash-ts1669126250.jpg',
            'gallery/favicons/favicon.png']
+HERO_VARIANTS = [f'public/images/hero-image-{width}.webp' for width in (300, 600, 900)]
 
 
 def git(*args):
@@ -40,10 +41,12 @@ def materialize(cache):
         target = current / path
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
-    for relative in GALLERY:
+    for relative in GALLERY + HERO_VARIANTS:
         target = current / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(git('show', 'HEAD:' + relative))
+        if relative in HERO_VARIANTS:
+            assert target.read_bytes() == (ROOT / relative).read_bytes(), 'Uncommitted hero derivative differs'
     nav_logo = (current / 'public/images/navbar-logo.png').read_bytes()
     assert hashlib.sha256(nav_logo).hexdigest() == 'ae9d70ced20a198e39196d0ffc5440471a6578682b09226ce1d20834a7713154', 'Unexpected navbar logo'
     approved = (current / 'gallery/hero-image.png').read_bytes()

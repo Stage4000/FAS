@@ -609,11 +609,11 @@ function currentSavedSearch() {
     };
 }
 
-function renderSavedSearches() {
+function renderSavedSearches(searches) {
     const container = document.getElementById('savedSearches');
     if (!container) return;
 
-    const searches = getSavedSearches();
+    searches ??= getSavedSearches();
     container.textContent = '';
 
     if (searches.length === 0) {
@@ -643,6 +643,45 @@ function renderSavedSearches() {
         container.appendChild(wrapper);
     });
 }
+
+const pendingSavedSearchRefresh = new WeakSet();
+function refreshSavedSearches() {
+    const container = document.getElementById('savedSearches');
+    if (!container) return;
+    if (container.contains(document.activeElement)) {
+        pendingSavedSearchRefresh.add(container);
+        return;
+    }
+    pendingSavedSearchRefresh.delete(container);
+    const searches = getSavedSearches(true);
+    if (searches !== null) renderSavedSearches(searches);
+}
+
+window.addEventListener('storage', event => {
+    if (event.key !== null && event.key !== savedSearchStorageKey) return;
+    try {
+        if (event.storageArea !== localStorage) return;
+    } catch {
+        return;
+    }
+    refreshSavedSearches();
+});
+
+window.addEventListener('pageshow', event => {
+    if (event.persisted) refreshSavedSearches();
+});
+
+document.addEventListener('focusout', event => {
+    const container = document.getElementById('savedSearches');
+    if (!container || !pendingSavedSearchRefresh.has(container) ||
+        !container.contains(event.target) || container.contains(event.relatedTarget)) return;
+    // Let focus settle, then discard work for a list replaced by an AJAX response.
+    setTimeout(() => {
+        if (container === document.getElementById('savedSearches') && pendingSavedSearchRefresh.has(container)) {
+            refreshSavedSearches();
+        }
+    }, 0);
+});
 
 document.addEventListener('click', event => {
     const saveButton = event.target.closest('.saved-search-save');
@@ -693,6 +732,17 @@ document.addEventListener('click', event => {
         }
     }
 });
+
+let savedSearchNotifyReady = false;
+function enableSavedSearchNotifyForms(root = document) {
+    if (!savedSearchNotifyReady) return;
+    root.querySelectorAll('[data-saved-search-notify]').forEach(form => {
+        const fields = form.querySelector('[data-saved-search-fields]');
+        const notice = form.querySelector('.saved-search-notify-unavailable');
+        if (fields) fields.disabled = false;
+        if (notice) notice.hidden = true;
+    });
+}
 
 document.addEventListener('submit', async event => {
     const form = event.target.closest('[data-saved-search-notify]');
@@ -766,6 +816,10 @@ document.addEventListener('submit', async event => {
         }
     }
 });
+
+// The delegated submit handler must exist before either entry path is enabled.
+savedSearchNotifyReady = true;
+enableSavedSearchNotifyForms();
 
 // AJAX category filtering
 function attachCategoryHandlers() {
@@ -849,6 +903,7 @@ async function loadProductsAndSidebar(params, focusId = null) {
         if (!data.success || !data.html) throw new Error('Catalog response incomplete');
         if (controller !== catalogRequestController) return;
         content.innerHTML = data.html;
+        enableSavedSearchNotifyForms(content);
         content.querySelectorAll('[data-aos]').forEach(el => {
             ['data-aos','data-aos-delay','data-aos-duration','data-aos-offset'].forEach(attr => el.removeAttribute(attr));
             el.classList.remove('aos-init', 'aos-animate');

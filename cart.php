@@ -120,11 +120,14 @@ require_once __DIR__ . '/includes/header.php';
                     <section class="border rounded-3 p-3 mt-4" aria-labelledby="email-cart-heading">
                         <h2 id="email-cart-heading" class="h6 fw-bold">Not ready to check out?</h2>
                         <p class="small text-muted">Save a link to these parts so you can return later.</p>
-                        <form data-email-cart>
+                        <form data-email-cart method="post">
+                            <p data-growth-unavailable class="small text-muted">This form requires JavaScript. If it stays unavailable, reload the page.</p>
+                            <fieldset data-growth-controls disabled class="border-0 p-0 m-0 w-100">
                             <label class="form-label small" for="cart-save-email">Email address</label>
                             <input id="cart-save-email" name="email" type="email" autocomplete="email" maxlength="254" required class="form-control mb-2">
                             <div class="form-check mb-3"><input id="cart-save-consent" name="consent" type="checkbox" required class="form-check-input"><label for="cart-save-consent" class="form-check-label small">Email me this cart and one reminder if I don’t check out. This does not sign me up for marketing emails.</label></div>
                             <button type="submit" class="btn btn-outline-danger w-100">Email my cart</button>
+                            </fieldset>
                             <p data-growth-status class="small mt-2 mb-0" role="status" aria-live="polite"></p>
                         </form>
                     </section>

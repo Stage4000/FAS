@@ -9,11 +9,14 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
         <div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4 p-lg-5">
             <div class="row g-4 align-items-center">
                 <div class="col-lg-5"><h2 id="newsletter-heading" class="h4 fw-bold">Find your next part.</h2><p class="text-muted mb-0">Get new arrivals and offers from Flip and Strip in your inbox.</p></div>
-                <div class="col-lg-7"><form data-newsletter-signup>
+                <div class="col-lg-7"><form data-newsletter-signup method="post">
+                            <p data-growth-unavailable class="small text-muted">This form requires JavaScript. If it stays unavailable, reload the page.</p>
+                            <fieldset data-growth-controls disabled class="border-0 p-0 m-0 w-100">
                     <label for="newsletter-email" class="form-label">Email address</label>
                     <div class="d-flex flex-column flex-sm-row gap-2"><input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" required class="form-control"><button type="submit" class="btn btn-danger text-nowrap">Sign up</button></div>
                     <div class="form-check mt-3"><input id="newsletter-consent" name="consent" type="checkbox" class="form-check-input" required><label for="newsletter-consent" class="form-check-label small">Email me new arrivals and offers from Flip and Strip. I can unsubscribe anytime.</label></div>
-                    <p data-growth-status class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                    </fieldset>
+                            <p data-growth-status class="small mt-2 mb-0" role="status" aria-live="polite"></p>
                 </form></div>
             </div>
         </div></div>
@@ -134,7 +137,7 @@ $sellerRatingConfig = fasGetSellerRatingConfig();
 <script src="/public/js/analytics.js?v=<?php echo filemtime(__DIR__ . '/../public/js/analytics.js'); ?>"></script>
 <script src="/public/js/address-autofill.js?v=<?php echo filemtime(__DIR__ . '/../public/js/address-autofill.js'); ?>"></script>
 <script src="/public/js/main.js?v=<?php echo filemtime(__DIR__ . '/../public/js/main.js'); ?>"></script>
-<script src="/public/js/growth.js?v=20260930-1"></script>
+<script src="/public/js/growth.js?v=20261121-form-ready"></script>
     <!-- Animation & UX Enhancement JS -->
     <script src="/public/js/animations.js?v=<?php echo filemtime(__DIR__ . '/../public/js/animations.js'); ?>"></script>
     

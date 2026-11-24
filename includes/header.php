@@ -373,8 +373,7 @@ data-analytics-target-url="<?php echo htmlspecialchars($banner['link_url']); ?>"
 
         navbar.addEventListener('focusout', ({relatedTarget}) => {
             if (!collapsedLayout.matches || !menu.classList.contains('show')
-                || !relatedTarget || navbar.contains(relatedTarget)
-                || menu.scrollHeight <= menu.clientHeight) return;
+                || !relatedTarget || navbar.contains(relatedTarget)) return;
 
             const collapse = window.bootstrap?.Collapse?.getInstance(menu);
             if (!collapse) return;

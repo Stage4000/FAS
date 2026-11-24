@@ -1,5 +1,5 @@
 """Pure fixture/identity/report helpers only. Never starts PHP, Node, browser or network."""
-import copy, hashlib, json, sqlite3, tempfile
+import copy, hashlib, json, tempfile
 from pathlib import Path
 import heading_runner as h
 
@@ -49,6 +49,22 @@ for bad_main in [pre_quantity, pre_storage+b'changed', pre_storage+h.QUANTITY_GU
                  pre_storage.replace(b'Number.isFinite(newQuantity)',b'Number.isNaN(newQuantity)')]:
     rejected(lambda:h.restore_pre_quantity_main(bad_main))
 
+# The historical heading identity admits only the exact menu palette change.
+navbar_css = (suite.parents[1] / 'public/css/style.css').read_bytes()
+prior_css = h.restore_pre_navbar_palette(navbar_css)
+check(h.sha256(prior_css) == h.CATALOG_SCROLL_AFTER_SHA256)
+check(h.sha256(h.heading_identity_bytes('public/css/style.css', navbar_css)) == h.CATALOG_SCROLL_BEFORE_SHA256)
+for changed_css in [prior_css, navbar_css + b'\n', navbar_css.replace(b'border-color: ButtonText', b'border-color: Canvas', 1)]:
+    rejected(lambda: h.restore_pre_navbar_palette(changed_css))
+
+# The historical heading identity admits only the exact responsive markup.
+home = (suite.parents[1] / 'index.php').read_bytes()
+prior_home = h.restore_pre_responsive_hero(home)
+check(h.sha256(prior_home) == h.HERO_BEFORE_SHA256)
+check(h.heading_identity_bytes('index.php', home) == prior_home)
+for changed_home in [prior_home, home + b'\n', home.replace(b'900w', b'800w', 1)]:
+    rejected(lambda: h.restore_pre_responsive_hero(changed_home))
+
 # One valid synthetic mapping, then exactly one changed path per negative test.
 synthetic={path:('synthetic candidate '+path).encode() for path in baseline}
 synthetic_manifest=copy.deepcopy(manifest)
@@ -74,8 +90,9 @@ bad=dict(cart_candidate);bad['cart.php']+=b'changed';rejected(lambda:h.cart_rest
 
 # Exact clipboard delta is normalized for historical heading identity only.
 product=(suite.parents[1]/'product.php').read_bytes()
-check(h.sha256(product)==h.shipping_identity.HASHES['product.php'][0])
-check(h.sha256(h.shipping_identity.restore('product.php',product))==h.GALLERY_FIXED_SHA256)
+previous_product=h.restore_pre_gallery_focus(product)
+check(h.sha256(previous_product)==h.shipping_identity.HASHES['product.php'][0])
+check(h.sha256(h.shipping_identity.restore('product.php',previous_product))==h.GALLERY_FIXED_SHA256)
 check(h.sha256(h.restore_pre_gallery_selection(product))==h.SHARE_FIXED_SHA256)
 restored_product=h.heading_identity_bytes('product.php',product)
 check(h.sha256(restored_product)==h.SHARE_PREIMAGE_SHA256)
@@ -139,26 +156,26 @@ bad=copy.deepcopy(tree);bad[next(iter(h.INTEGRATION_PATHS))]['mode']='120000';re
 # Own temporary synthetic SQLite only; no application source is executed.
 with tempfile.TemporaryDirectory(prefix='heading-helper-unit-') as tmp:
     site=Path(tmp);(site/'database').mkdir();database=site/'database/flipandstrip.db'
-    with sqlite3.connect(database) as db:
+    with h.fixture_database(database) as db:
         db.execute('CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,sku TEXT,created_at TEXT,updated_at TEXT,ebay_item_id TEXT)')
         db.execute('CREATE TABLE orders(id INTEGER PRIMARY KEY)')
         db.execute("INSERT INTO products VALUES(1,'Synthetic test part','TEST-1','2026-09-30','2026-09-30',NULL)")
     h.seed_seller(site)
-    with sqlite3.connect(database) as db:
+    with h.fixture_database(database) as db:
         seller=db.execute('SELECT seller_name,feedback_score,positive_feedback_percent FROM ebay_seller_rating_cache WHERE store_name=?',('synthetic-heading-store',)).fetchone()
         check(seller==('Synthetic Heading Seller',123,99.8))
     rejected(lambda:h.seed_seller(site))
     h.seed_recommendations(site)
-    with sqlite3.connect(database) as db:
+    with h.fixture_database(database) as db:
         check(db.execute('SELECT count(*) FROM products').fetchone()[0]==40)
         check('created_at' in {row[1] for row in db.execute('PRAGMA table_info(orders)')})
     rejected(lambda:h.seed_recommendations(site))
     seed=site/'seed.sqlite'
-    with sqlite3.connect(database) as source,sqlite3.connect(seed) as target:source.backup(target)
-    with sqlite3.connect(database) as db:
+    with h.fixture_database(database) as source,h.fixture_database(seed) as target:source.backup(target)
+    with h.fixture_database(database) as db:
         db.execute('PRAGMA journal_mode=WAL');db.execute('DELETE FROM products WHERE id>1')
     h.restore_database(seed,database)
-    with sqlite3.connect(database) as db:check(db.execute('SELECT count(*) FROM products').fetchone()[0]==40)
+    with h.fixture_database(database) as db:check(db.execute('SELECT count(*) FROM products').fetchone()[0]==40)
     (site/'sessions').mkdir();(site/'sessions/sess_synthetic').write_text('synthetic')
     (site/'security.sqlite').write_text('synthetic');(site/'growth.sqlite-wal').write_text('synthetic')
     h.reset_ephemeral_state(site)

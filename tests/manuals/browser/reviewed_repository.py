@@ -29,7 +29,20 @@ INVENTORY = 'tests/manuals/browser/reviewed-repository.json'
 # Exact finite names. A/M is relative to main, not the b99 snapshot.
 ANALYTICS_BLOB = 'ab6e86db443145db471f7297cb7c9d86c91e8838'
 ANALYTICS_TEST_BLOB = 'f667e88ea1b2ebd9340fdc2ef6a831606a9663eb'
+GALLERY_FOCUS_BLOB = 'f0261fb7c43544d14881b7cc952e28d7176267f3'
 COMPATIBILITY = {
+    'product.php': 'M',
+    'tests/keyboard-browser/heading-unit-test.py': 'M',
+    # Menu visibility and keyboard focus after leaving the compact navigation.
+    'public/css/style.css': 'M',
+    'tests/keyboard-browser/navbar.cjs': 'M',
+    # Responsive homepage branding and the offline browser fixture that renders it.
+    'index.php': 'M',
+    'public/images/hero-image-300.webp': 'A',
+    'public/images/hero-image-600.webp': 'A',
+    'public/images/hero-image-900.webp': 'A',
+    'tests/homepage-visual/prepare-fixture.py': 'M',
+    'tests/homepage-visual/check-layout.cjs': 'M',
     'tests/analytics-link-classification-test.cjs': 'A',
     'public/js/analytics.js': 'M',
     # Saved-search capture and the two catalog notification renderers.
@@ -276,6 +289,19 @@ def load_policy(root):
             'Integrated main must preserve originals and not overlap manuals')
     main_delta = {p: e for p, e in integrated.items() if main.get(p) != e}
     reviewed.update(integrated)
+    # Pin the contact form readiness change and its matching offline fixtures.
+    reviewed_postimages = {
+        'contact.php': '5ec0eb84bd8a42334d71913430daca20e88e5043',
+        'tests/contact-pending-edits-test.cjs': 'd6c9fa0f2d43ae2de34e79c961e1f06f53b44717',
+        'tests/contact-retry-test.cjs': '4ced3041b3ba9c66e7b39453bbd7996ceeacd76f',
+        # Exact catalog scroll controls retain the new menu colors.
+        'tests/keyboard-browser/catalog-scroll-identity.cjs': '4e4907a7268cacc2e582a749b7086bc26ddf60a6',
+        'tests/keyboard-browser/catalog-scroll-policy-test.cjs': 'cfdaf9e84f597edafa61040468c82c475b1edb9b',
+        'tests/keyboard-browser/catalog-scroll.cjs': '818a94719167a1e0fb7773f9403f4c75d2ca4726',
+    }
+    for path, oid in reviewed_postimages.items():
+        main_delta[path] = dict(integrated[path], sha=oid)
+    reviewed.update(main_delta)
     require(len(SHOWCASE_ADDITIONS) == 91 and not (set(SHOWCASE_ADDITIONS) & set(reviewed)),
             'Showcase additions must be exactly additive')
     old_bytes = inventory['baseline_manifest'].encode()
@@ -307,6 +333,7 @@ def load_policy(root):
                     'Immutable source pin changed: ' + path)
     require(sources['tests/analytics-link-classification-test.cjs'] == ANALYTICS_TEST_BLOB, 'Exact analytics regression pin mismatch')
     require(sources['public/js/analytics.js'] == ANALYTICS_BLOB, 'Exact analytics source pin mismatch')
+    require(sources['product.php'] == GALLERY_FOCUS_BLOB, 'Exact thumbnail focus source required')
     for path in COMPATIBILITY:
         data = read_regular(root, path)
         oid = blob(data)
