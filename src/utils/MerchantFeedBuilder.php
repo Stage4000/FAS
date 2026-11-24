@@ -25,11 +25,13 @@ class MerchantFeedBuilder
     private $productModel;
     private $baseUrl;
     private $reviewedImages;
+    private $reviewedGalleries;
 
     public function __construct(Product $productModel, array $config = [])
     {
         $this->productModel = $productModel;
         $this->reviewedImages = require __DIR__ . '/merchant-feed-image-pairs.php';
+        $this->reviewedGalleries = require __DIR__ . '/merchant-feed-gallery-rules.php';
         $siteUrl = $config['site']['url'] ?? 'https://flipandstrip.com';
         $this->baseUrl = rtrim((string) $siteUrl, '/');
     }
@@ -84,6 +86,21 @@ class MerchantFeedBuilder
         foreach ($this->reviewedImages[$id] ?? [] as $position => [$source, $replacement]) {
             if (($images[$position] ?? null) === $source && !in_array($replacement, $images, true)) {
                 $images[$position] = $replacement;
+            }
+        }
+
+        // Match the published slots before removing the promoted or undersized views.
+        $gallery = $this->reviewedGalleries[$id] ?? [];
+        if (isset($gallery['primary'])) {
+            [$oldPrimary, $position, $newPrimary] = $gallery['primary'];
+            if ($images[0] === $oldPrimary && ($images[$position] ?? null) === $newPrimary) {
+                $images[0] = $newPrimary;
+                unset($images[$position]);
+            }
+        }
+        foreach ($gallery['omit'] ?? [] as $position => $undersized) {
+            if (($images[$position] ?? null) === $undersized) {
+                unset($images[$position]);
             }
         }
         $mainImage = $images[0] ?? $this->toAbsoluteUrl('/gallery/default.jpg');
