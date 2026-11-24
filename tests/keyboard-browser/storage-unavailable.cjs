@@ -6,7 +6,7 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const {restoreMain}=require('./malformed-identity.cjs');
 const BASE='cc932f5f15e3dc0e0825ba326bae26273a404091a3d81a90249ccc78f4d06167';
 const FIX='3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2';
-const CART='25a6ab74534ce92ddceeb49343024c845f4f940c9322a9be46a00f51aea888fd';
+const CART='3a0582b94aced2bae6000b3de9ca713efda19ab8abc217e6fdd819116211c46f';
 const seed=[{id:'1',name:'Synthetic cart part',sku:'SYN-1',price:10,quantity:2,stock:5,custom:{retained:true}},{id:'2',name:'Other synthetic part',price:7,quantity:1,stock:8}];
 const RAW=' '+JSON.stringify(seed)+'\n'; // Deliberately retain insignificant raw formatting.
 function install({mode,theme,raw}){

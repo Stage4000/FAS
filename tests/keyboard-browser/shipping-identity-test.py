@@ -29,7 +29,7 @@ for mutation in [product_before_focus, raw['product.php'].replace(b'gap-2 p-2"',
                  raw['product.php'].replace(b".product-thumbnail:focus-visible", b".product-thumbnail")]:
     reject(lambda b=mutation:h.verify_candidate(manifest,dict(raw,**{'product.php':b})))
 for path in s.HASHES:
-    current = product_before_focus if path == 'product.php' else raw[path]
+    current = product_before_focus if path == 'product.php' else s.later_heading_preimage(path,raw[path])
     prior = s.restore(path,current)
     check(h.sha256(current) == s.HASHES[path][0])
     check(h.sha256(prior) == s.HASHES[path][1] and prior != current)
@@ -50,7 +50,7 @@ for path in s.HASHES:
     finally:
         s.HASHES[path] = pins
 check(s.restore('other.php',b'unchanged') == b'unchanged')
-fixture = {p:h.storage_identity.restore(p,b) for p,b in raw.items()}
+fixture = {p:h.storage_identity.restore(p,s.later_heading_preimage(p,b)) for p,b in raw.items()}
 h.verify_candidate(manifest,fixture); check(True)
 h.cart_restoration(fixture,h.decode_manifest(manifest)); check(True)
 h.residual_restoration(fixture); check(True)

@@ -16,6 +16,9 @@ on:
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/keyboard-browser/shipping-identity-test.py'
+      - 'tests/keyboard-browser/shipping_identity.py'
+      - 'tests/keyboard-browser/malformed-hydration.cjs'
+      - 'tests/keyboard-browser/storage-unavailable.cjs'
       - 'tests/keyboard-browser/heading-unit-test.py'
       - 'tests/keyboard-browser/navbar.cjs'
       - 'index.php'
@@ -80,6 +83,9 @@ jobs:
             /tests/cart-malformed-hydration-test.cjs
             /tests/checkout-coupon-lifecycle-test.cjs
             /tests/keyboard-browser/shipping-identity-test.py
+            /tests/keyboard-browser/storage-unavailable.cjs
+            /tests/keyboard-browser/malformed-hydration.cjs
+            /tests/keyboard-browser/shipping_identity.py
             /src/marketing/Growth.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php

@@ -459,7 +459,7 @@ def decode_manifest(manifest):
 def verify_candidate(manifest, candidate):
     # Bind actual reviewed sources before historical copy normalization.
     historical = {'product.php': 'e0283b86a81c7c5631f556f7671abe5ae838e7e475772990ea39b437dae8af03', 'cart.php': '31408066a41b8b31820f059059ff07e5647ede30083c3d7bbdec612bcda37b70'}
-    candidate = dict(candidate)
+    candidate = {p: shipping_identity.later_heading_preimage(p,b) for p,b in candidate.items()}
     for entry in manifest['files']:
         path = entry['path']
         if path in historical and entry['candidate_sha256'] == historical[path]:
@@ -520,6 +520,7 @@ GBP_FOOTER_AFTER_SHA256 = '6033339dccfe08e4117c25df9b567923c8baa3822285d1b65dd1a
 GBP_FOOTER_LINE = b'            <p><a href="https://www.google.com/maps/place/Flip+and+Strip+Parts/data=!4m2!3m1!1s0x0:0xacc822ae250ccdb1" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">Find us on Google</a></p>\n'
 
 def restore_pre_gbp_footer(data):
+    data = shipping_identity.later_heading_preimage('includes/footer.php', data)
     if sha256(data) != GBP_FOOTER_AFTER_SHA256 or data.count(GBP_FOOTER_LINE) != 1:
         raise ValueError('Exact GBP footer candidate required')
     restored = data.replace(GBP_FOOTER_LINE, b'', 1)
@@ -533,7 +534,7 @@ def residual_restoration(candidate, verify=True):
     changes_map=manifest['residual_changes']
     if set(changes_map) != {'cart.php','includes/ebay-seller-rating.php'} or [len(changes_map[p]) for p in ['cart.php','includes/ebay-seller-rating.php']] != [5,1] or {c[2] for cs in changes_map.values() for c in cs} != RESIDUAL_CODES:
         raise ValueError('Exact six residual codes and two paths required')
-    restored = dict(candidate)
+    restored = {p:shipping_identity.later_heading_preimage(p,b) for p,b in candidate.items()}
     for path, changes in changes_map.items():
         for old,new,code in changes:
             if restored[path].count(new.encode()) != 1:
@@ -681,8 +682,9 @@ def run_heading_variants(root, site, origin, assets, output):
     baseline = decode_manifest(manifest)
     runtime_candidate = {p: (site / p).read_bytes() for p in EXPECTED_PATHS}
     candidate = {p: storage_identity.restore(p, data) for p, data in runtime_candidate.items()}
-    verify_candidate(manifest, candidate)  # Fail closed before any heading browser starts.
-    restored = cart_restoration(candidate, baseline)
+    controls = {p: shipping_identity.later_heading_preimage(p,b) for p,b in candidate.items()}
+    verify_candidate(manifest, controls)  # Fail closed before any heading browser starts.
+    restored = cart_restoration(controls, baseline)
     browser_baseline = browser_notification_baseline(baseline)
     heading_output = output / 'headings'
     heading_output.mkdir()
@@ -711,8 +713,9 @@ def run_heading_variants(root, site, origin, assets, output):
                 'presentation_manifest_sha256':sha256((assets/'manifest.json').read_bytes()),
                 'state_reset':'Identical inventory via SQLite backup; fresh synthetic security/growth stores and isolated PHP sessions for each variant; no active browser between variants.',
                 'scope': 'synthetic local PHP rendering only; no deployment/provider acceptance'}
+    actual = {p:(runtime_candidate[p] if p in shipping_identity.LATER_HEADING_BYTES else b) for p,b in candidate.items()}
     try:
-        for variant, source in [('candidate', candidate), ('baseline', browser_baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(candidate))]:
+        for variant, source in [('candidate', actual), ('baseline', browser_baseline), ('cart-parent-restored', restored), ('residual-restored', residual_restoration(controls))]:
             for path, data in source.items():
                 (site / path).write_bytes(data)
             # SQLite backup API handles journal/WAL state; never copy only a live main DB.

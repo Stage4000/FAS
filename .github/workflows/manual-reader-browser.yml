@@ -57,6 +57,9 @@ jobs:
             /tests/cart-malformed-hydration-test.cjs
             /tests/checkout-coupon-lifecycle-test.cjs
             /tests/keyboard-browser/shipping-identity-test.py
+            /tests/keyboard-browser/storage-unavailable.cjs
+            /tests/keyboard-browser/malformed-hydration.cjs
+            /tests/keyboard-browser/shipping_identity.py
             /.github/workflows/showcase-browser-acceptance.yml
             /admin/showcase-detail.php
             /admin/showcase-moderate.php

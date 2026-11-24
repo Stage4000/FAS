@@ -150,6 +150,8 @@ def verify_candidate(*, compatibility=None) -> dict:
         if compatibility is not None:
             if path in {"contact.php", "product.php"}:
                 expected_after = compatibility["overlay"][path]["sha"]
+            elif path in {'admin/purgestore.php','cart.php','products.php','public/js/growth.js','src/integrations/EbayAPI.php'}:
+                expected_after = compatibility["overlay"][path]["sha"]
             else:
                 expected_after = reviewed_navbar.get(path, expected_after)
         require(git("rev-parse", "HEAD:" + path) == expected_after,

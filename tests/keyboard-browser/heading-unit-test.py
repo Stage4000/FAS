@@ -32,6 +32,8 @@ bad=copy.deepcopy(manifest);bad['files'].append(bad['files'][0]);rejected(lambda
 bad=copy.deepcopy(manifest);bad['files'][0]['path']='../config.php';rejected(lambda:h.decode_manifest(bad))
 # GBP source is exact, reversible, and cannot mask unrelated footer edits.
 footer = (suite.parents[1]/'includes/footer.php').read_bytes()
+check(h.restore_pre_gbp_footer(footer) == h.restore_pre_gbp_footer(h.shipping_identity.later_heading_preimage('includes/footer.php',footer)))
+footer = h.shipping_identity.later_heading_preimage('includes/footer.php',footer)
 pre_gbp = h.restore_pre_gbp_footer(footer)
 check(h.sha256(pre_gbp)==h.GBP_FOOTER_BEFORE_SHA256)
 check(pre_gbp + b'' != footer and len(footer)-len(pre_gbp)==230)

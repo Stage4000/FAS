@@ -33,6 +33,10 @@ GALLERY_FOCUS_BLOB = 'f0261fb7c43544d14881b7cc952e28d7176267f3'
 COMPATIBILITY = {
     'product.php': 'M',
     'tests/keyboard-browser/heading-unit-test.py': 'M',
+    'tests/keyboard-browser/shipping_identity.py': 'A',
+    'tests/keyboard-browser/shipping-identity-test.py': 'A',
+    'tests/keyboard-browser/storage-unavailable.cjs': 'M',
+    'tests/keyboard-browser/malformed-hydration.cjs': 'M',
     # Menu visibility and keyboard focus after leaving the compact navigation.
     'public/css/style.css': 'M',
     'tests/keyboard-browser/navbar.cjs': 'M',
@@ -96,6 +100,32 @@ COMPATIBILITY = {
     'tests/manuals/browser/check.cjs': 'A',
     'docs/manuals-motion-interruption.md': 'A',
     'docs/manuals-resize-navigation.md': 'A',
+}
+
+
+# Exact already-merged main drift from 10fe895 through f9a9a2c.
+# Bind preimages and postimages without admitting other repository changes.
+LATER_MAIN = {
+    'admin/growth.php': ('8f88313f57559cf42dd9d7d24f97add0a96f4266', '4012d5ca71266c99012dceaa97f3aa2e92275c2c'),
+    'admin/merchant-feed-health.php': ('e3e6ec6ac3b9fb9f5945c65b3c69744ffa4e4bc8', 'acf76cfa8c3f77b18b9a1188bd15238129e0572d'),
+    'admin/product-content.php': ('c162e2c4d39e9b04ec0a9876e15006a3ff341e22', 'ff517418713a330c9ff72db3c8094e4d645f16ff'),
+    'admin/purgestore.php': ('36f6d450157a9f68ceee971cb5e9da705bd0dbac', 'fff83e6f5ccc4b5cc1d892c036812d8696f757c5'),
+    'admin/pwa-test.php': ('e6cc7d43f6cda322c605dc4717ff2d49d8d900db', '01ac9c3bd11fdcc32af588c0cc7cecadc2c0309a'),
+    'cart.php': ('badbd6ca9a53fef9672b0cf8b0ec6a2122c46aac', 'd78ea31930a80ba5ca0550615455b36a6ebeb5b7'),
+    'docs/responsive-images.md': ('545e71d7f86cfbae1c8782f029fa4432c36d2924', 'f70d4da75f076c9ffd158dc088ac7f5701414f66'),
+    'docs/showcase-admin-entry.md': ('2865f31d095f572767209c97361afc8f4e5518a1', 'c806bb09e6d44d7895032e7cbba020eaa3ef4b44'),
+    'includes/footer.php': ('2ad0d3cb8581fc09e71d307650606149c6dc7009', '06466de2889887556465ac5cf97b269bb11b645e'),
+    'includes/saved-search-notify-form.php': ('75a773af8dc82988be07246c5da2e30f98d49cdf', 'a36c9668efb799afc58ac17a2788ab8132dec522'),
+    'products.php': ('655e3bca25ad5e8ef5b28a357c1c40dabef68ca6', '8e66e1bbfd33ebb7de23566de02de128c9bdb2d8'),
+    'public/js/growth.js': ('1c84708e8cc8cf021f943f8c6f17b537d2eb2692', '4d9012c4bb69c23c370f29ffc6f4b3a737ec0882'),
+    'src/integrations/EbayAPI.php': ('0fcf9c088e4ed6c12c98b2021273a1f66de47cf7', 'cbde6d9aca411165911509008e0225823aab680f'),
+    'src/utils/ImportedImage.php': ('802a203112acd7caaa2fc0a7ef13d051fb843fb4', 'a8a5a33cc6e57936a4a642335f66bb3442f74b7a'),
+    'src/utils/MerchantFeedBuilder.php': ('96f08ce3b940bae904326eacd4318040ff551804', '0753b18332f4333439cd467589e65befdd562493'),
+    'src/utils/merchant-feed-gallery-rules.php': (None, 'e25b59fea01ecee296929a91ac680578e899e8ac'),
+    'src/utils/merchant-feed-image-pairs.php': (None, 'aac488d12c30073bbb3ef99f3e998d4a1a3c7899'),
+    'tests/merchant-feed-image-test.php': (None, 'e96d11ee161a9220f9e170564fdd1c3daa84c0b2'),
+    'tests/remote-image-http-test.py': ('9cab467c5e8a0967a68f18a1c34bd097a5ec9ac3', '29064df9d14db377e54f62f0b547d6041f5f7b5c'),
+    'tests/saved-search-rendering-test.cjs': ('afb8575f7ed86101a96f510526863c210622941d', 'a8e6b7b54e07400dae94cbba56c82eb35108d3c0'),
 }
 
 
@@ -319,13 +349,21 @@ def load_policy(root):
         require(status == ('M' if path in main else 'A'), 'Compatibility status differs')
         changes[path] = status
     changes.update({p: 'A' for p in SHOWCASE_ADDITIONS})
+    for path, (before, after) in LATER_MAIN.items():
+        require(re.search(r'^[0-9a-f]{40}$', after) is not None, 'Invalid later main postimage')
+        if path not in COMPATIBILITY:
+            historical = SHOWCASE_ADDITIONS.get(path, reviewed.get(path, {}).get('sha'))
+            require(historical == before, 'Later main preimage mismatch: ' + path)
+        changes[path] = 'M' if path in main else 'A'
     require(manifest['allowed_changes'] == changes, 'Exact changed path/status map required')
     sources = manifest['source_blobs']
     require(set(sources) == (set(original['source_blobs']) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS)) - {MANIFEST},
             'Exact source pin keys required')
     for path, oid in sources.items():
         require(isinstance(oid, str) and re.fullmatch('[0-9a-f]{40}', oid), 'Invalid source pin')
-        if path in SHOWCASE_ADDITIONS:
+        if path in LATER_MAIN:
+            require(oid == LATER_MAIN[path][1], 'Exact later main source pin mismatch: ' + path)
+        elif path in SHOWCASE_ADDITIONS:
             require(oid == SHOWCASE_ADDITIONS[path], 'Exact showcase source pin mismatch: ' + path)
         elif path not in COMPATIBILITY:
             expected = integrated[path]['sha'] if path in main_delta else original['source_blobs'][path]
@@ -341,10 +379,12 @@ def load_policy(root):
         reviewed[path] = {'mode': '100644', 'type': 'blob', 'sha': oid}
     reviewed.update({p: {'mode': '100644', 'type': 'blob', 'sha': oid}
                      for p, oid in SHOWCASE_ADDITIONS.items()})
+    reviewed.update({p: {'mode': '100644', 'type': 'blob', 'sha': after}
+                     for p, (_, after) in LATER_MAIN.items()})
     return {'expected': reviewed, 'changes': changes, 'main': main,
             'historical_main': {p: {'before': before, 'after': main[p]['sha']}
                                 for p, before in HISTORICAL_MAIN.items()},
-            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS) | set(HISTORICAL_MAIN) | set(main_delta)}}
+            'overlay': {p: reviewed[p] for p in set(additions) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS) | set(HISTORICAL_MAIN) | set(main_delta) | set(LATER_MAIN)}}
 
 
 def git(root, *args):
