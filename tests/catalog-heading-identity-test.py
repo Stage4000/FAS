@@ -17,7 +17,11 @@ def reject(callback):
  try:callback()
  except (ValueError,KeyError):return
  raise AssertionError('Unexpected source was accepted')
-new=candidate['products.php'];prior=h.restore_pre_notification_form('products.php',new);published=h.restore_pre_zero_search('products.php',prior);old=h.restore_pre_catalog_review(published)
+new=candidate['products.php'];catalog_preimage=h.shipping_identity.later_heading_preimage('products.php',new)
+check(catalog_preimage != new)
+check(h.sha256(new)==h.shipping_identity.LATER_HEADING_BYTES['products.php'][1])
+check(h.sha256(catalog_preimage)==h.shipping_identity.LATER_HEADING_BYTES['products.php'][0])
+prior=h.restore_pre_notification_form('products.php',catalog_preimage);published=h.restore_pre_zero_search('products.php',prior);old=h.restore_pre_catalog_review(published)
 check(hashlib.sha256(published).hexdigest()=='60885c5aa58f3e343f94528e7d8c4fab06b8bc3b2b09400acc5fa19936578c33')
 check(hashlib.sha256(old).hexdigest()=='70eaceb74c05cf1d73bd4af201653cdc9692cce99daee2e36832fb0820706d23')
 check(next(e for e in manifest['files'] if e['path']=='products.php')['candidate_sha256']==h.CATALOG_PREIMAGE_SHA256)
@@ -34,7 +38,7 @@ finally:h.CATALOG_PREIMAGE_SHA256=original
 print(json.dumps({'checks':checks,'passed':True,'scope':'Pure source identity; no hosted/browser acceptance'}))
 
 for path in ('products.php','api/products.php'):
- data=h.restore_pre_notification_form(path,candidate[path]);before=h.restore_pre_zero_search(path,data)
+ source=h.shipping_identity.later_heading_preimage(path,candidate[path]);data=h.restore_pre_notification_form(path,source);before=h.restore_pre_zero_search(path,data)
  for bad in (data, candidate[path]+b'changed', candidate[path].replace(b'saved-search-notify-form.php', b'other.php', 1)):
   reject(lambda p=path,b=bad:h.restore_pre_notification_form(p,b))
   reject(lambda p=path,b=bad:h.verify_candidate(manifest,dict(candidate,**{p:b})))

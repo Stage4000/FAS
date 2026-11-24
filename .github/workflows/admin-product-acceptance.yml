@@ -9,6 +9,8 @@ on:
       - 'api/saved-search.php'
       - 'products.php'
       - 'tests/catalog-heading-identity-test.py'
+      - 'tests/catalog-focus-restoration-test.cjs'
+      - 'tests/catalog-loader-lifecycle-test.cjs'
       - 'tests/form-input-shape-test.php'
       - 'tests/saved-search-capture-test.php'
       - 'checkout.php'
@@ -16,6 +18,9 @@ on:
       - 'tests/cart-malformed-hydration-test.cjs'
       - 'tests/checkout-coupon-lifecycle-test.cjs'
       - 'tests/keyboard-browser/shipping-identity-test.py'
+      - 'tests/keyboard-browser/shipping_identity.py'
+      - 'tests/keyboard-browser/malformed-hydration.cjs'
+      - 'tests/keyboard-browser/storage-unavailable.cjs'
       - 'tests/keyboard-browser/heading-unit-test.py'
       - 'tests/keyboard-browser/navbar.cjs'
       - 'index.php'
@@ -36,6 +41,7 @@ on:
       - '.github/workflows/keyboard-browser.yml'
       - '.github/workflows/manual-reader-browser.yml'
       - 'tests/keyboard-browser/heading_runner.py'
+      - 'tests/keyboard-browser/email-restore.cjs'
       - 'tests/keyboard-browser/catalog-scroll-guard-test.py'
       - 'tests/manuals/browser/source-manifest.json'
       - 'tests/manuals/browser/fullsite-pins.json'
@@ -73,6 +79,8 @@ jobs:
             /api/saved-search.php
             /products.php
             /tests/catalog-heading-identity-test.py
+            /tests/catalog-focus-restoration-test.cjs
+            /tests/catalog-loader-lifecycle-test.cjs
             /tests/form-input-shape-test.php
             /tests/saved-search-capture-test.php
             /tests/sale-schedule-http-test.py
@@ -80,6 +88,9 @@ jobs:
             /tests/cart-malformed-hydration-test.cjs
             /tests/checkout-coupon-lifecycle-test.cjs
             /tests/keyboard-browser/shipping-identity-test.py
+            /tests/keyboard-browser/storage-unavailable.cjs
+            /tests/keyboard-browser/malformed-hydration.cjs
+            /tests/keyboard-browser/shipping_identity.py
             /src/marketing/Growth.php
             /tests/growth-generation-test.py
             /tests/fixtures/growth-generation/race.php
@@ -106,6 +117,7 @@ jobs:
             /.github/workflows/keyboard-browser.yml
             /.github/workflows/manual-reader-browser.yml
             /tests/keyboard-browser/heading_runner.py
+            /tests/keyboard-browser/email-restore.cjs
             /tests/keyboard-browser/navbar.cjs
             /tests/keyboard-browser/catalog-scroll-guard-test.py
             /tests/manuals/browser/source-manifest.json

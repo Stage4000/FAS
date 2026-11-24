@@ -8,7 +8,7 @@ const manifest=JSON.parse(fs.readFileSync(path.join(root,'tests/keyboard-browser
 const before=zlib.gunzipSync(Buffer.from(manifest.files['public/js/main.js'].baseline_gzip_b64,'base64')).toString('utf8');assert.equal(digest(before),'3a38e022e228f573c06f5272fe80f56754a438fb40e2ed699f59990d2817abf2');
 const capBlock="                const cappedQuantity = Number(stockLimit);\n                if (!Number.isInteger(cappedQuantity) || cappedQuantity < 1) {\n                    return;\n                }\n                item.quantity = cappedQuantity;";assert.equal(source.split(capBlock).length,2);const guardOnly=source.replace(capBlock,'                item.quantity = stockLimit;');assert.equal(digest(guardOnly),'f2a8bb3dc24e98bedf2eeb1cbadcf27f58ff5ab946e80afdc4b974317f969458');
 const sources={baseline:before,candidate:source,'hydration-only':guardOnly};
-const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'25a6ab74534ce92ddceeb49343024c845f4f940c9322a9be46a00f51aea888fd');
+const cartSource=fs.readFileSync(path.join(root,'cart.php'),'utf8');assert.equal(digest(cartSource),'3a0582b94aced2bae6000b3de9ca713efda19ab8abc217e6fdd819116211c46f');
 const checkoutSource=fs.readFileSync(path.join(root,'checkout.php'),'utf8');assert.equal(digest(checkoutSource),'c9c7a961a6638ff509748bac7ec4a8fdf0acbc18501ab301a1a313bb6c807c1f');
 const shippingSource=fs.readFileSync(path.join(root,'public/js/shipping-estimator.js'),'utf8');assert.equal(digest(shippingSource),'d8ec6212b70eeed09692f08b55fbb9e0c6c74c7c06a63f438903c503da8a6884');
 let malformedReport,stockReport;

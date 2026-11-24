@@ -1,6 +1,6 @@
 {
   "includes/header.php": "e847d822770ad8b58985ed203f63f72348380a7d",
-  "includes/footer.php": "2ad0d3cb8581fc09e71d307650606149c6dc7009",
+  "includes/footer.php": "06466de2889887556465ac5cf97b269bb11b645e",
   "includes/banner-html.php": "57d06bf2b5100a6aad308e56f9f8fd9b57647d5d",
   "includes/ebay-seller-rating.php": "ed862631680f1b8fd1feb59edfb071097c57adc3",
   "src/utils/Seo.php": "2f01a3eec77b112f998dafcb1ca09e5447ff9fc4",
@@ -20,7 +20,7 @@
   "public/js/analytics.js": "ab6e86db443145db471f7297cb7c9d86c91e8838",
   "public/js/address-autofill.js": "ba64493f647f701942ef90f9148408654aa272a4",
   "public/js/main.js": "b88352baedbd514f2cc8241ea74a17d02fa38c7e",
-  "public/js/growth.js": "1c84708e8cc8cf021f943f8c6f17b537d2eb2692",
+  "public/js/growth.js": "4d9012c4bb69c23c370f29ffc6f4b3a737ec0882",
   "public/js/animations.js": "05466ef96483b75b64362567f306af37f1b12f6d",
   "public/js/theme-toggle.js": "34430acbe4b431f680c686cd40f52be41a1484bc",
   "gallery/favicons/favicon.png": "c33ccd1994cdf3c5af0b1319b0bfa4d8cf4eb5a5",

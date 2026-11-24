@@ -55,7 +55,7 @@ def showcase_fixture_bytes(root, rel):
         g.require(g.git(root,'ls-files','-t','-z','--',rel)==b'S '+rel.encode()+b'\0',
                   'Absent disposable source is not a sparse exclusion: '+rel)
         data=g.git(root,'show','HEAD:'+rel)
-    g.require(g.blob(data)==g.SHOWCASE_ADDITIONS[rel], 'Disposable showcase source differs: '+rel)
+    g.require(g.blob(data)==g.LATER_MAIN.get(rel,(None,g.SHOWCASE_ADDITIONS[rel]))[1], 'Disposable showcase source differs: '+rel)
     return data
 
 
@@ -130,7 +130,7 @@ def main():
     b99 = dict(policy['main'], **g.entries_map(inventory['additions']))
     check('legacy keyboard rejects exact 309 manuals additions', lambda: h['verify_tree'](base, b99, candidate), False)
     check('keyboard accepts only verified exact overlay', lambda: h['verify_tree'](base, policy['expected'], candidate, policy['overlay']))
-    for rel in [e['path'] for e in inventory['additions']] + list(g.SHOWCASE_ADDITIONS) + list(g.HISTORICAL_MAIN) + ['admin/products.php', 'includes/header.php']:
+    for rel in [e['path'] for e in inventory['additions']] + list(g.SHOWCASE_ADDITIONS) + list(g.HISTORICAL_MAIN) + list(g.LATER_MAIN) + ['admin/products.php', 'includes/header.php']:
         for kind in ['modified', 'missing', 'mode', 'type']:
             tree = copy.deepcopy(policy['expected'])
             if kind == 'modified': tree[rel]['sha'] = '1'*40
@@ -245,7 +245,7 @@ def main():
         rel = 'includes/footer.php'
         assert rel not in g.COMPATIBILITY
         target = repo.root/rel;target.parent.mkdir(parents=True,exist_ok=True)
-        data=g.read_regular(ROOT,rel);assert g.blob(data)==policy['main'][rel]['sha']
+        data=g.read_regular(ROOT,rel);assert g.blob(data)==policy['expected'][rel]['sha']
         target.write_bytes(data);repo.git('hash-object','-w','--',rel)
         repo.git('update-index','--no-skip-worktree','--',rel)
         check('materialized exact main bytes',lambda:g.verify_checkout(repo.root))
