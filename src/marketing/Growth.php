@@ -52,7 +52,7 @@ final class Growth
         catch (\Throwable $e) {$this->db->exec('ROLLBACK');throw $e;}
     }
     public function settings(): array {
-        $s=['mail_enabled'=>'0','postal_address'=>'','from_email'=>'noreply@flipandstrip.com','reply_to'=>$this->site['reply_to_email']??'noreply@flipandstrip.com'];
+        $s=['confirmation_enabled'=>'0','confirmation_from'=>'noreply@flipandstrip.com','confirmation_reply_to'=>$this->site['reply_to_email']??'noreply@flipandstrip.com','mail_enabled'=>'0','postal_address'=>'','from_email'=>'noreply@flipandstrip.com','reply_to'=>$this->site['reply_to_email']??'noreply@flipandstrip.com'];
         foreach($this->run('SELECT * FROM growth_settings')->fetchAll() as $r) if(array_key_exists($r['name'],$s)) $s[$r['name']]=$r['value'];
         return $s;
     }
@@ -71,6 +71,37 @@ final class Growth
         $s=$this->settings();
         return $s['mail_enabled']==='1' && $s['postal_address']!=='' && (bool)filter_var($s['from_email'],FILTER_VALIDATE_EMAIL)
             && (bool)filter_var($s['reply_to'],FILTER_VALIDATE_EMAIL);
+    }
+    /** Independent, default-off neutral confirmation delivery; never enables cart/marketing mail. */
+    public function saveConfirmationSettings(array $s): void {
+        $from=self::email($s['confirmation_from']??'');
+        $reply=self::email($s['confirmation_reply_to']??'');
+        $enabled=($s['confirmation_enabled']??'0')==='1';
+        $this->transaction(function()use($from,$reply,$enabled){
+            foreach(['confirmation_from'=>$from,'confirmation_reply_to'=>$reply,'confirmation_enabled'=>$enabled?'1':'0'] as $k=>$v)
+                $this->run('INSERT OR REPLACE INTO growth_settings VALUES(?,?)',[$k,$v]);
+        });
+    }
+    public function confirmationReady(): bool {
+        $s=$this->settings();
+        return $s['confirmation_enabled']==='1' && (bool)filter_var($s['confirmation_from'],FILTER_VALIDATE_EMAIL)
+            && (bool)filter_var($s['confirmation_reply_to'],FILTER_VALIDATE_EMAIL);
+    }
+    private function confirmationMessage(array $m): array {
+        $s=$this->settings();$p=json_decode($m['payload'],true);
+        $token=$p['confirm']??null;
+        if(!is_string($token) || !preg_match('/^[a-f0-9]{64}$/D',$token))throw new \RuntimeException('Invalid confirmation payload.');
+        $base=rtrim((string)($this->site['url']??'https://flipandstrip.com'),'/');
+        if(!preg_match('~^https://[a-z0-9.-]+(?::[0-9]+)?$~i',$base))throw new \RuntimeException('Configure a valid HTTPS site URL.');
+        return ['to'=>$m['email'],'subject'=>'Confirm your email request',
+            'body'=>"Please verify that you requested email updates from Flip and Strip.\n\nConfirm your request:\n".$base.'/email-preferences.php#confirm='.rawurlencode($token).
+                "\n\nThis link expires 48 hours after your request. If you did not request this, ignore this email. You will not be subscribed unless you confirm.",
+            'from'=>$s['confirmation_from'],'reply_to'=>$s['confirmation_reply_to']];
+    }
+    public function sendConfirmationBatch(callable $sender,int $limit=20,?string $onlyRecipient=null,?int $afterId=null): array {
+        if(!$this->confirmationReady())throw new \RuntimeException('Confirmation delivery is disabled or sender details are incomplete.');
+        if($afterId!==null && $afterId<0)throw new \InvalidArgumentException('Invalid confirmation queue cutover ID.');
+        return $this->dispatchBatch($sender,$limit,true,$onlyRecipient===null?null:self::email($onlyRecipient),$afterId);
     }
     public static function email($value): string {
         if(!is_string($value) || strlen($value)>254 || preg_match('/[\r\n]/',$value) || !filter_var($value,FILTER_VALIDATE_EMAIL))
@@ -259,11 +290,18 @@ final class Growth
     /** A claim is never automatically retried after an uncertain transport outcome. */
     public function sendBatch(callable $sender,int $limit=20): array {
         if(!$this->ready())throw new \RuntimeException('Email sending is disabled or sender details are incomplete.');
+        return $this->dispatchBatch($sender,$limit,false);
+    }
+    private function dispatchBatch(callable $sender,int $limit,bool $confirmationOnly,?string $onlyRecipient=null,?int $afterId=null): array {
         $result=['sent'=>0,'failed'=>0,'cancelled'=>0,'deferred'=>0];
-        $this->run("UPDATE growth_messages SET status='uncertain',error='worker_interrupted' WHERE status='sending' AND claimed_at<?",[$this->now()-600]);
+        $scope=$confirmationOnly?" AND kind='confirmation'":'';
+        $scopeParams=[];
+        if($confirmationOnly && $onlyRecipient!==null){$scope.=' AND email=?';$scopeParams[]=$onlyRecipient;}
+        if($confirmationOnly && $afterId!==null){$scope.=' AND id>?';$scopeParams[]=$afterId;}
+        $this->run("UPDATE growth_messages SET status='uncertain',error='worker_interrupted' WHERE status='sending' AND claimed_at<?".$scope,array_merge([$this->now()-600],$scopeParams));
         for($i=0;$i<min(100,max(1,$limit));$i++) {
-            $m=$this->transaction(function(){
-                $m=$this->run("SELECT * FROM growth_messages WHERE status='queued' AND due<=? ORDER BY id LIMIT 1",[$this->now()])->fetch();
+            $m=$this->transaction(function()use($scope,$scopeParams){
+                $m=$this->run("SELECT * FROM growth_messages WHERE status='queued' AND due<=?".$scope." ORDER BY id LIMIT 1",array_merge([$this->now()],$scopeParams))->fetch();
                 if($m)$this->run("UPDATE growth_messages SET status='sending',claimed_at=? WHERE id=?",[$this->now(),$m['id']]);
                 return $m;
             });
@@ -273,7 +311,7 @@ final class Growth
                     $cancelled=$this->run("UPDATE growth_messages SET status='cancelled',payload='{}' WHERE id=? AND status='sending'",[$m['id']])->rowCount();
                     $result[$cancelled?'cancelled':'deferred']++;continue;
                 }
-                $ok=$sender($this->message($m));
+                $ok=$sender($confirmationOnly?$this->confirmationMessage($m):$this->message($m));
                 $this->run("UPDATE growth_messages SET status=?,sent_at=?,error=?,payload='{}' WHERE id=?",
                     [$ok?'sent':'failed',$ok?$this->now():null,$ok?null:'transport_rejected',$m['id']]);
                 $result[$ok?'sent':'failed']++;
