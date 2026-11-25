@@ -5,7 +5,10 @@ namespace FAS\Manuals;
 /** Immutable PDF originals live outside every configured web root. No URL imports. */
 final class ManualStorage
 {
-    public const MAX_BYTES = 52428800;
+    // Preserve the HTTP upload policy; large originals are staged privately
+    // and imported by the operator through the controlled CLI path.
+    public const MAX_BROWSER_UPLOAD_BYTES = 50 * 1024 * 1024;
+    public const MAX_BYTES = 400 * 1024 * 1024;
     private $root;
     /** Open descriptors prove ownership of files exclusively created by this instance. */
     private $newFiles = [];
@@ -41,11 +44,11 @@ final class ManualStorage
     {
         $bytes = static function (string $value): int {
             $value = trim($value);
-            if ($value === '' || $value === '0' || $value === '-1') return self::MAX_BYTES + 65536;
+            if ($value === '' || $value === '0' || $value === '-1') return self::MAX_BROWSER_UPLOAD_BYTES + 65536;
             if (!preg_match('/\A([0-9]+)([KMG]?)\z/iD', $value, $m)) return 0;
             return (int) min(PHP_INT_MAX, (float) $m[1] * (1024 ** ([''=>0,'K'=>1,'M'=>2,'G'=>3][strtoupper($m[2])])));
         };
-        return max(0, min(self::MAX_BYTES, $bytes((string) ini_get('upload_max_filesize')), $bytes((string) ini_get('post_max_size')) - 65536));
+        return max(0, min(self::MAX_BROWSER_UPLOAD_BYTES, $bytes((string) ini_get('upload_max_filesize')), $bytes((string) ini_get('post_max_size')) - 65536));
     }
     /** Track fresh HTTP copies; the caller must settle against the same catalog in a finally block. */
     public function acceptUpload(array $upload): array
@@ -64,7 +67,7 @@ final class ManualStorage
     {
         if (is_link($path) || !is_file($path)) throw new \InvalidArgumentException('The PDF is not a regular file.');
         $size = filesize($path);
-        if (!$size || $size > self::MAX_BYTES) throw new \InvalidArgumentException('PDFs must be no larger than 50 MiB.');
+        if (!$size || $size > self::MAX_BYTES) throw new \InvalidArgumentException('PDFs must be no larger than 400 MiB.');
         $input = fopen($path,'rb');
         if (!$input) throw new \RuntimeException('The uploaded PDF could not be read.');
         try {
@@ -80,7 +83,7 @@ final class ManualStorage
             // A replacement path cannot impersonate a file owned by this request.
             if ($trackForCreate) $this->newFiles[$key] = $output;
             try {
-                $written = stream_copy_to_stream($input,$output,self::MAX_BYTES+1);
+                $written = stream_copy_to_stream($input,$output,$size+1);
                 if ($written !== $size || !fflush($output)) throw new \RuntimeException('The PDF upload was incomplete.');
             } finally { if (!$trackForCreate) fclose($output); }
             if (filesize($target) !== $size) throw new \RuntimeException('The PDF upload was incomplete.');

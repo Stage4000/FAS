@@ -1,6 +1,6 @@
 # Manual PDF byte-range delivery candidate
 
-This is an isolated, undeployed server change for the manual book reader. It does
+The original candidate was an isolated server change for the manual book reader. It does
 not change PDF.js flags, release/publication settings, hosting configuration, the
 database schema, or the existing **50 MiB** intake ceiling. It includes no actual
 manuals or production accounts.
@@ -153,3 +153,16 @@ The fixture layout is an adapter, not a full storefront integration. No browser
 was launched, no PDF.js range mode was enabled, and no proxy/deployment/browser
 acceptance is claimed. Integrate these seven files by review, not by deploying
 the copied source snapshot wholesale.
+
+
+## Large original acceptance
+
+The controlled CLI and stored-file limit is now 400 MiB. Browser uploads,
+the download URL, full SHA-256 verification, and publication gates are unchanged.
+The reader requests ranges on demand above 50 MiB. Before production release,
+verify exact identity-encoded 206 responses end to end, first-page latency,
+and disk/CPU impact when requests hash the full original concurrently.
+
+Run the synthetic large-original check with PHP, ReportLab, Chromium and
+Playwright: FAS_TEST_PHP=/path/to/php python tests/manuals/large-original-test.py
+(Add --http-only to test CLI and HTTP without Chromium.)

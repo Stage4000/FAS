@@ -1,5 +1,5 @@
-<?php /* $manualMetadata, $manualFileUrl, $manualBackUrl, $manualPreview are supplied by verified entry points. */ ?>
-<section class="manual-reader" data-manual-reader data-pdf-url="<?=manualsH($manualFileUrl)?>" aria-label="PDF book reader">
+<?php /* $manualMetadata, $manualFileUrl, $manualBackUrl, $manualPreview, $manualFileBytes are supplied by verified entry points. */ ?>
+<section class="manual-reader" data-manual-reader data-pdf-url="<?=manualsH($manualFileUrl)?>" data-pdf-ranges="<?=isset($manualFileBytes) && $manualFileBytes > \FAS\Manuals\ManualStorage::MAX_BROWSER_UPLOAD_BYTES ? 'on' : 'off'?>" aria-label="PDF book reader">
 <div class="manual-reader-top"><a href="<?=manualsH($manualBackUrl)?>" class="manual-back">← <?=$manualPreview?'Back to editor':'All manuals'?></a><span class="manual-kicker">FLIP <span>&</span> STRIP / THE WORKSHOP LIBRARY</span><?php if($manualPreview):?><strong class="manual-preview-tag">Private preview</strong><?php endif;?></div>
 <header class="manual-reader-heading"><div><p class="manual-eyebrow"><?=manualsH($manualMetadata['manufacturer'])?> · <?=manualsH($manualMetadata['years'])?></p><h1><?=manualsH($manualMetadata['title'])?></h1><p><?=manualsH($manualMetadata['model'])?><?= $manualMetadata['language']?' / '.manualsH($manualMetadata['language']):''?></p></div><a class="manual-download" href="<?=manualsH($manualFileUrl)?>" download>Download PDF ↗</a></header>
 <div class="manual-toolbar" aria-label="Reader controls">
@@ -13,4 +13,4 @@
 <details class="manual-search"><summary>Find a word or part number in this PDF</summary><form data-search-form><label for="manual-search-term">Search document text</label><div><input id="manual-search-term" data-search-input type="search" maxlength="100" placeholder="Try a component or part number"><button type="submit" data-search-submit disabled>Find</button><button type="button" data-search-cancel hidden>Stop</button></div></form><p data-search-status role="status" tabindex="-1"></p><ol data-search-results></ol></details>
 <details class="manual-text"><summary>Read text from the current page</summary><div data-page-text><p>Page text will appear when the PDF loads. Scanned pages may not contain selectable text.</p></div></details>
 <noscript><p class="manual-notice">The animated reader needs JavaScript. <a href="<?=manualsH($manualFileUrl)?>">Download the PDF</a> to read it in your preferred PDF application.</p></noscript>
-</section><script type="module" src="/public/js/manual-reader-loader.mjs?v=20261124a"></script>
+</section><script type="module" src="/public/js/manual-reader-loader.mjs?v=20261125a"></script>

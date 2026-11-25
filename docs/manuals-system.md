@@ -66,18 +66,17 @@ import method exists for controlled tests/imports). Intake checks size, PDF magi
 and MIME type, stores a random immutable filename, and records its length and
 SHA-256. Every file response checks containment, regular-file identity, length and
 full hash against the exact opened descriptor. Single byte ranges are supported
-with bounded 64 KiB streaming; see manuals-range-delivery.md. PDF.js still uses
-full-file loading until the separate browser/performance gate is complete. This is integrity/type validation, **not antivirus or deep PDF validation**.
+with bounded 64 KiB streaming; see manuals-range-delivery.md. The reader uses on-demand 1 MiB ranges for originals over 50 MiB; smaller PDFs retain their existing load path. This is integrity/type validation, **not antivirus or deep PDF validation**.
 Use trusted/scanned originals, inspect the saved preview, and verify that the PDF
 is usable before publishing. Do not turn on automatic publication of supplied files.
 
-The absolute file ceiling is 50 MiB. The web form and server enforcement use the
-smaller effective PHP upload/post limit, reserving 64 KiB for multipart overhead.
-The existing root `.htaccess` specifies 10M/10M where mod_php honors those values,
-so it permits less than 10 MiB per file, not 50 MiB. No global host setting was
-changed. Larger manuals require an explicitly reviewed hosting-limit change or
-controlled private import. Also verify reverse-proxy body/time limits and storage
-capacity before acceptance.
+The controlled CLI and stored-file ceiling is 400 MiB (419,430,400 bytes).
+Browser uploads retain their 50 MiB policy limit or the lower effective PHP
+upload/post limit, reserving 64 KiB for multipart overhead. Stage larger
+originals privately and budget space for the staged and the catalog copies.
+Verify exact identity-encoded 206 responses through the production proxy
+before importing the larger backlog. Range loading reduces network traffic,
+not the complete SHA-256 verification performed on the server for each request.
 
 Only after backup and deployment approval, initialize the two new tables using
 CLI against the verified application configuration:

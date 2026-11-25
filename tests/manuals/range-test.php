@@ -96,5 +96,5 @@ file_put_contents($path,substr($original,0,-1).'X');rejects(fn()=>$storage->open
 file_put_contents($path,$original);$bad=$file;$bad['bytes']++;
 rejects(fn()=>$storage->openVerified($bad),'Recorded byte length must match opened file');
 $bad=$file;$bad['sha256']=str_repeat('0',64);rejects(fn()=>$storage->openVerified($bad),'Recorded full hash must match opened file');
-check(ManualStorage::MAX_BYTES===52428800,'Existing 50 MiB intake ceiling unchanged');
+check(ManualStorage::MAX_BYTES===419430400 && ManualStorage::MAX_BROWSER_UPLOAD_BYTES===52428800,'400 MiB local intake; 50 MiB browser upload ceiling unchanged');
 echo "\n$checks range and descriptor checks passed. Synthetic fixture only: $tmp\n";

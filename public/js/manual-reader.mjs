@@ -635,13 +635,18 @@ async function initialize(root) {
   try{
     const url=new URL(root.dataset.pdfUrl,location.href);
     if(url.origin!==location.origin)throw new Error('Only this site’s manual files can be read.');
-    const task=loadingTask=pdfjs.getDocument({url:url.href,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:true,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
+    // Large originals use range delivery without background prefetch so the
+    // first page need not wait for the whole PDF. Small files are unchanged.
+    const rangeLoading=root.dataset.pdfRanges==='on';
+    const task=loadingTask=pdfjs.getDocument({url:url.href,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:!rangeLoading,rangeChunkSize:1024*1024,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
     if (loadCancel) loadCancel.hidden = false;
     task.onProgress=progress=>{
       if (disposed || !loadPending || loadError || !progress || !Number.isSafeInteger(progress.loaded) || progress.loaded < 0) return;
       const total = progress.total;
       let message;
-      if (Number.isSafeInteger(total) && total > 0) {
+      if (rangeLoading) {
+        message = 'Opening the manual…';
+      } else if (Number.isSafeInteger(total) && total > 0) {
         const percent = Math.min(100, Math.floor(progress.loaded / total * 20) * 5);
         message = percent >= 100 ? 'Download received. Preparing the manual…' : `Downloading manual… ${percent}%`;
       } else {

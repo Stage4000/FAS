@@ -155,7 +155,7 @@ $store->settleNewFiles($db);check(!is_file($root.'/private/'.$key),'Owned partia
 $property=new ReflectionProperty(ManualStorage::class,'newFiles');$property->setAccessible(true);
 check($property->getValue($store)===[],'Legacy CLI imports do not retain ownership descriptors unless explicitly opted in');
 $store->settleNewFiles($db);check(is_file($root.'/private/'.$file['key']),'Legacy CLI import semantics are preserved; cleanup requires explicit ownership tracking');
-check(ManualStorage::MAX_BYTES===52428800,'50 MiB intake ceiling unchanged');
+check(ManualStorage::MAX_BROWSER_UPLOAD_BYTES===52428800,'50 MiB browser intake ceiling unchanged');
 
 // Emulate old PDO SQLite tracking on the available real PDO driver. This does
 // not substitute for running the final candidate on the actual hosted PHP 8.3.
