@@ -65,41 +65,56 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                         <span>Review activity <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></span>
                     </div>
                 </a>
-                <div class="row mb-4">
-                    <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
-                        <div class="card border-0 shadow-sm">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+                    <div class="col" data-aos="fade-up" data-aos-delay="100">
+                        <div class="card h-100 border-0 shadow-sm">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
                                     <div>
                                         <h6 class="text-muted">Total Products</h6>
                                         <h3 class="mb-0" id="dashboard-active-products"><?php echo number_format($activeProducts); ?></h3>
                                     </div>
                                     <div class="text-primary">
-                                        <i class="fas fa-box display-4"></i>
+                                        <i class="fas fa-box fs-2" aria-hidden="true"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
-                        <div class="card border-0 shadow-sm">
+                    <div class="col" data-aos="fade-up" data-aos-delay="200">
+                        <div class="card h-100 border-0 shadow-sm">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
                                     <div>
                                         <h6 class="text-muted">Visible Products</h6>
                                         <h3 class="mb-0 text-success" id="dashboard-visible-products"><?php echo number_format($visibleProducts); ?></h3>
                                     </div>
                                     <div class="text-warning">
-                                        <i class="fas fa-eye display-4"></i>
+                                        <i class="fas fa-eye fs-2" aria-hidden="true"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3" data-aos="fade-up" data-aos-delay="400">
-                        <div class="card border-0 shadow-sm">
+                    <div class="col" data-aos="fade-up" data-aos-delay="300">
+                        <div class="card h-100 border-0 shadow-sm">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <h6 class="text-muted">Hidden Products</h6>
+                                        <h3 class="mb-0" id="dashboard-hidden-products"><?php echo number_format($hiddenProducts); ?></h3>
+                                    </div>
+                                    <div class="text-secondary">
+                                        <i class="fas fa-eye-slash fs-2" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col" data-aos="fade-up" data-aos-delay="400">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
                                     <div>
                                         <h6 class="text-muted">Last Sync</h6>
                                         <h6 class="mb-0" id="last-sync-time" data-timestamp="<?php echo htmlspecialchars($lastSyncTimestamp ?? ''); ?>">
@@ -107,7 +122,7 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
                                         </h6>
                                     </div>
                                     <div class="text-info">
-                                        <i class="fas fa-sync-alt display-4"></i>
+                                        <i class="fas fa-sync-alt fs-2" aria-hidden="true"></i>
                                     </div>
                                 </div>
                             </div>
@@ -218,6 +233,7 @@ $lastSyncTimestamp = $lastSyncRow && $lastSyncRow['last_sync_timestamp']
             const summary = await response.json();
             document.getElementById('dashboard-active-products').textContent = Number(summary.active_products || 0).toLocaleString();
             document.getElementById('dashboard-visible-products').textContent = Number(summary.visible_products || 0).toLocaleString();
+            document.getElementById('dashboard-hidden-products').textContent = Number(summary.hidden_products || 0).toLocaleString();
             const timestamp = summary.last_sync_timestamp;
             lastSyncElement.dataset.timestamp = timestamp || '';
             lastSyncElement.textContent = timestamp
