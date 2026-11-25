@@ -106,7 +106,7 @@ COMPATIBILITY = {
 }
 
 
-# Exact already-merged main drift from 10fe895 through f9a9a2c.
+# Exact already-merged main drift and finite large-original changes.
 # Bind preimages and postimages without admitting other repository changes.
 LATER_MAIN = {
     'admin/growth.php': ('8f88313f57559cf42dd9d7d24f97add0a96f4266', '4012d5ca71266c99012dceaa97f3aa2e92275c2c'),
@@ -129,6 +129,30 @@ LATER_MAIN = {
     'tests/merchant-feed-image-test.php': (None, 'e96d11ee161a9220f9e170564fdd1c3daa84c0b2'),
     'tests/remote-image-http-test.py': ('9cab467c5e8a0967a68f18a1c34bd097a5ec9ac3', '29064df9d14db377e54f62f0b547d6041f5f7b5c'),
     'tests/saved-search-rendering-test.cjs': ('afb8575f7ed86101a96f510526863c210622941d', 'a8e6b7b54e07400dae94cbba56c82eb35108d3c0'),
+    # Large-original work and already-merged #201/#202 paths.
+    'admin/manuals-preview.php': ('ba32474c66f5eb089b10d01db6a49a7af5ed8f22', 'b1d65c5660da729469fb04b6f0c092a5e3326185'),
+    'docs/manuals-range-delivery.md': ('649d61ac090e1b6da026bc08e5952d2309875c21', '100741ab90d3fb409577619da86fadf5e27a347a'),
+    'docs/manuals-system.md': ('c5803c876228c960da9c86211ec5271982f28bfc', 'e326599281796ed1d182ed8abf07291f50def790'),
+    'includes/manual-reader.php': ('b95a0f122c019bc55ad0f1cf0eb428c21a914dc4', 'fcbf4341cd72a986830ce96a6c518d249d9b748d'),
+    'manuals/view.php': ('b83035ef391273a900307a866b6dc565a5615922', 'c0f0790aff779f92b2abbb76ecb439cc9f5d6012'),
+    'public/js/manual-reader-loader.mjs': ('ea718a243941705dc65021b03e9c3474fd33593d', '3dca18151aedc829c568b90f91479cfc8e763749'),
+    'public/js/manual-reader.mjs': ('fbc1c8c880c2d999304995cdcdf86f885eb91be0', '40435f11d0f7fbd4c19a347c3b4c641171f1d32a'),
+    'scripts/confirmation-scheduler.php': (None, '0772696f4f1e75d5201e9c089dfb60663e9b07cb'),
+    'src/manuals/.htaccess': (None, '187c2bd4dbefc0582fe860cd45a0756c6965adf7'),
+    'src/manuals/ManualLibrary.php': ('165487299dd7d6b5685897bc3ca9e26b6d124556', '088bcaba868d4de83f3cfe7ce790e32974bb4e3e'),
+    'src/marketing/Growth.php': ('11b42ad23954ae8033b5e855776cb6f04c7b0e59', '00def8c10b170a4634b64d4ddae96f85b71795bc'),
+    'tests/growth-test.php': ('eb5a5e7adb9a882b8e3e65a502932cff6e565739', '3837bf9f975079a2e138fa5e40d46f60dad6b1bb'),
+    'tests/manuals/browser/run.py': ('237538ca151de6aa4c5a15e13e87a440cc7f3d39', 'f9db72a28833273077e4bb834a93a311621c79c4'),
+    'tests/manuals/large-original-browser-test.cjs': (None, '983e50b52b2983a5dba038a1cd1a079173d92716'),
+    'tests/manuals/large-original-test.py': (None, '545799f6b8dcc66ac0ea585f4b58e40f8d0b01a3'),
+    'tests/manuals/range-test.php': ('3c00defd330a8182c2aad84de2d60eba89826111', 'f43aef715ad3427bd89fafc3b33f87a518c2b85a'),
+    'tests/manuals/upload-storage-test.php': ('27cecd0cba20de878b2aff7cae45959131c863e0', 'b7972750034798783f49cc7e65bfda5af133e23a'),
+}
+
+
+LARGE_MANUAL_TEST_SOURCES = {
+    'tests/manuals/large-original-browser-test.cjs',
+    'tests/manuals/large-original-test.py',
 }
 
 
@@ -360,7 +384,7 @@ def load_policy(root):
         changes[path] = 'M' if path in main else 'A'
     require(manifest['allowed_changes'] == changes, 'Exact changed path/status map required')
     sources = manifest['source_blobs']
-    require(set(sources) == (set(original['source_blobs']) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS)) - {MANIFEST},
+    require(set(sources) == (set(original['source_blobs']) | set(COMPATIBILITY) | set(SHOWCASE_ADDITIONS) | LARGE_MANUAL_TEST_SOURCES) - {MANIFEST},
             'Exact source pin keys required')
     for path, oid in sources.items():
         require(isinstance(oid, str) and re.fullmatch('[0-9a-f]{40}', oid), 'Invalid source pin')

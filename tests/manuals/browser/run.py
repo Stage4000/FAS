@@ -95,6 +95,8 @@ def main():
         stage('feature-contrast',[sys.executable,'tests/manuals/contrast-source-test.py'],env,30)
         stage('hash-bound',[php,'tests/manuals/hash-bound-test.php'],env,30)
         stage('range-backend-http',[sys.executable,'tests/manuals/run-range-tests.py'],env,180)
+        if not args.fullsite:
+            stage('large-original',[sys.executable,'tests/manuals/large-original-test.py'],env,180)
         stage('upload-storage',[sys.executable,'tests/manuals/run-upload-storage-tests.py'],env,240)
         stage('strict-open-basedir',[sys.executable,'tests/manuals/open-basedir-test.py'],env,180)
         stage('fixture-build',[sys.executable,str(Path(__file__).with_name('prepare-fullsite.py' if args.fullsite else 'prepare.py')),str(fixture)],env)
