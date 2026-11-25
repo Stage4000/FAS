@@ -650,9 +650,11 @@ async function initialize(root) {
     searchStatus.textContent='Search stopped. Results found so far are below.';
     finishSearch();
   });
+  const normalizeSearchWhitespace = text => text.replace(/\s+/g, ' ').trim();
   $('[data-search-form]').addEventListener('submit',async event=>{
     event.preventDefault();if(!pdf||disposed)return;
-    const term=$('[data-search-input]').value.trim().toLocaleLowerCase(), token=++searchEpoch;
+    const term = normalizeSearchWhitespace($('[data-search-input]').value).toLocaleLowerCase();
+    const token = ++searchEpoch;
     $('[data-search-results]').replaceChildren();
     if(!term){searchStatus.textContent='Enter a word or part number.';finishSearch();return;}
     $('[data-search-cancel]').hidden=false;let hits=0,hasText=false;
@@ -662,9 +664,25 @@ async function initialize(root) {
         // Cached/quick text resolves in microtasks; let Stop, replacement and teardown run.
         if(n>1&&(n-1)%8===0){await new Promise(resolve=>setTimeout(resolve,0));if(token!==searchEpoch)return;}
         $('[data-search-status]').textContent=`Searching page ${n} of ${pdf.numPages}…`;
-        const text=await textFor(n);if(token!==searchEpoch)return;hasText=hasText||!!text.trim();
-        const pos=text.toLocaleLowerCase().indexOf(term);
-        if(pos>=0){hits++;const li=document.createElement('li'),button=document.createElement('button'),strong=document.createElement('strong'),excerpt=document.createElement('span');button.type='button';strong.textContent=`Page ${n}`;excerpt.textContent=(pos>45?'…':'')+text.slice(Math.max(0,pos-45),pos+term.length+90).replace(/\s+/g,' ');button.append(strong,excerpt);button.addEventListener('click',()=>{navigate(n);stage.focus();});li.append(button);$('[data-search-results]').append(li);}
+        const rawText = await textFor(n);
+        if (token !== searchEpoch) return;
+        const text = normalizeSearchWhitespace(rawText);
+        hasText ||= text.length > 0;
+        const position = text.toLocaleLowerCase().indexOf(term);
+        if (position >= 0) {
+          hits++;
+          const item = document.createElement('li');
+          const button = document.createElement('button');
+          const label = document.createElement('strong');
+          const excerpt = document.createElement('span');
+          button.type = 'button';
+          label.textContent = `Page ${n}`;
+          excerpt.textContent = (position > 45 ? '…' : '') + text.slice(Math.max(0, position - 45), position + term.length + 90);
+          button.append(label, excerpt);
+          button.addEventListener('click', () => { navigate(n); stage.focus(); });
+          item.append(button);
+          $('[data-search-results]').append(item);
+        }
         if(hits>=50){$('[data-search-status]').textContent='First 50 matching pages shown. Narrow your search for more specific results.';break;}
         if(n===pdf.numPages)$('[data-search-status]').textContent=hits?`${hits} matching page${hits===1?'':'s'}.`:hasText?'No matching document text found.':'This PDF has no extractable text. Scanned manuals need OCR before text search can find their contents.';
       }
