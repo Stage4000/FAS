@@ -2,6 +2,63 @@ import * as pdfjs from '../vendor/pdfjs-6.5.438/pdf.mjs';
 
 // This is an original reader, not a port of a proprietary flipbook library.
 // No annotation layer, embedded actions, form widgets, or PDF JavaScript runs here.
+// Use explicit ranges for large files even when a proxy removes Content-Length.
+const manualRangeChunkSize = 1024 * 1024;
+export async function openManualRange(url, controller, onFailure, fetchRange = fetch) {
+  const {signal} = controller;
+  const read = async (begin, end, original) => {
+    const response = await fetchRange(url, {headers: {Range: `bytes=${begin}-${end - 1}`}, credentials: 'same-origin', redirect: 'error', cache: 'no-store', signal});
+    const match = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(response.headers.get('Content-Range') || '');
+    const encoding = response.headers.get('Content-Encoding');
+    const etag = response.headers.get('ETag');
+    const length = match ? Number(match[3]) : 0;
+    const limit = Math.min(end, length);
+    if (response.status !== 206 || (encoding && encoding !== 'identity') ||
+        response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/pdf' ||
+        !match || !Number.isSafeInteger(length) || length <= begin || length > 400 * 1024 * 1024 ||
+        Number(match[1]) !== begin || Number(match[2]) !== limit - 1 ||
+        !/^"[a-f0-9]{64}"$/.test(etag || '') ||
+        (original && (original.length !== length || original.etag !== etag)) || !response.body) {
+      response.body?.cancel().catch(() => {});
+      throw new Error('The server did not return the requested PDF bytes.');
+    }
+    const reader = response.body.getReader();
+    const bytes = new Uint8Array(limit - begin);
+    let received = 0;
+    try {
+      for (;;) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        if (value.byteLength > bytes.byteLength - received) throw new Error('The PDF byte range is too long.');
+        bytes.set(value, received);
+        received += value.byteLength;
+      }
+      if (received !== bytes.byteLength) throw new Error('The PDF byte range was incomplete.');
+    } catch (error) {
+      reader.cancel().catch(() => {});
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    return {length, etag, bytes};
+  };
+  const initial = await read(0, manualRangeChunkSize);
+  signal.throwIfAborted();
+  // Do not retain or reuse the initial buffer after handing ownership to PDF.js.
+  const original = {length: initial.length, etag: initial.etag};
+  return new class extends pdfjs.PDFDataRangeTransport {
+    constructor() { super(initial.length, initial.bytes, true); }
+    requestDataRange(begin, end) {
+      read(begin, end, original).then(({bytes}) => {
+        if (!signal.aborted) this.onDataRange(begin, bytes);
+      }).catch(error => {
+        if (!signal.aborted) { this.abort(); onFailure(error); }
+      });
+    }
+    abort() { controller.abort(); }
+  };
+}
+
 const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;
 pdfjs.GlobalWorkerOptions.workerSrc = `${vendor}pdf.worker.mjs`;
 // Retain a bounded navigation index, never PDF links, actions or raw outline trees.
@@ -146,7 +203,7 @@ async function initialize(root) {
   const status = $('[data-status]'), stage = $('[data-stage]'), book = $('[data-book]');
   const papers = [...root.querySelectorAll('[data-paper]')];
   const controls = ['[data-prev]', '[data-next]', '[data-page]', '[data-go]', '[data-layout]', '[data-zoom-in]', '[data-zoom-out]', '[data-fit]', '[data-search-submit]'];
-  let loadingTask = null, loadError = null, disposed = false, loadPending = true;
+  let rangeController = null, loadingTask = null, loadError = null, disposed = false, loadPending = true;
   const loadCancel = $('[data-load-cancel]');
   let progressMessage = '';
   const finishLoading = () => {
@@ -623,11 +680,12 @@ async function initialize(root) {
     papers.forEach(p=>releaseCanvas(p.querySelector('canvas')));
     observer.disconnect(); stopAnimations(); textCache.close(); pendingText.clear(); pageResources.close();
     // Teardown owns late outcomes; a rejected destroy must not revive the view.
+    rangeController?.abort();
     destroyLoadingTask();
   };
   window.addEventListener('pagehide',event=>{touch=null;if(event.persisted)return;disposeReader();});
   loadCancel?.addEventListener('click',()=>{
-    if (disposed || !loadPending || !loadingTask) return;
+    if (disposed || !loadPending || (!loadingTask && !rangeController)) return;
     disposeReader();
     say('Reader loading stopped. Reload this page to try again, or download the original PDF.');
     status.focus?.();
@@ -638,8 +696,15 @@ async function initialize(root) {
     // Large originals use range delivery without background prefetch so the
     // first page need not wait for the whole PDF. Small files are unchanged.
     const rangeLoading=root.dataset.pdfRanges==='on';
-    const task=loadingTask=pdfjs.getDocument({url:url.href,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:!rangeLoading,rangeChunkSize:1024*1024,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
     if (loadCancel) loadCancel.hidden = false;
+    const source = rangeLoading ? {range: await openManualRange(url.href, rangeController = new AbortController(), () => {
+      finishLoading();
+      disposeReader();
+      controls.forEach(selector=>{$(selector).disabled=true;});
+      say('The connection stopped supplying the manual. Reload to try again, or download the original PDF.');
+    })} : {url:url.href};
+    if (disposed) return;
+    const task=loadingTask=pdfjs.getDocument({...source,cMapUrl:`${vendor}cmaps/`,cMapPacked:true,standardFontDataUrl:`${vendor}standard_fonts/`,wasmUrl:`${vendor}wasm/`,isEvalSupported:false,enableXfa:false,disableAutoFetch:true,disableStream:true,disableRange:!rangeLoading,rangeChunkSize:manualRangeChunkSize,disableWorkerRendering:true,maxImageSize:16000000,canvasMaxAreaInBytes:32000000});
     task.onProgress=progress=>{
       if (disposed || !loadPending || loadError || !progress || !Number.isSafeInteger(progress.loaded) || progress.loaded < 0) return;
       const total = progress.total;
@@ -664,5 +729,5 @@ async function initialize(root) {
     loadOutline();
     controls.forEach(selector=>{$(selector).disabled=false;});
     await draw(queryPage(location.hash,pdf.numPages),false,false);
-  }catch(error){if(disposed)return;finishLoading();say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
+  }catch(error){if(disposed)return;rangeController?.abort();destroyLoadingTask();finishLoading();say(loadError || 'The book reader could not open this PDF. Download the original to continue, or try again later.');}
 }
