@@ -15,7 +15,16 @@ async function scenario(action){
   const root=element();root.dataset.pdfUrl='/manuals/file.php?id=1';
   root.querySelector=s=>{if(!nodes.has(s))nodes.set(s,element());return nodes.get(s);};
   const papers=[element(),element()];root.querySelectorAll=()=>papers;
-  const pdf={numPages:3,async getPage(n){return{getViewport({scale}){return{width:300*scale,height:400*scale};},render(){return{promise:Promise.resolve(),cancel(){}};},async getTextContent(){if(n===2){requestedText();await held;}return{items:[{str:'synthetic page '+n}]};}};}};
+  const pdf={numPages:3,async getPage(n){return{getViewport({scale}){return{width:300*scale,height:400*scale};},render(){return{promise:Promise.resolve(),cancel(){}};},async getTextContent(){
+    if(n===2){requestedText();await held;}
+    if(action==='phrase'&&n===2){
+      return {items:[
+        {str:'  Workshop notes.  Torque\u00a0\tspecification',hasEOL:true},
+        {str:'value  25 N·m'},
+      ]};
+    }
+    return {items:[{str:'synthetic page '+n}]};
+  }};}};
   const context={console,URL,URLSearchParams,setTimeout,clearTimeout,history:{replaceState(){}},location:{href:'https://example.test/manuals/view.php?id=1',origin:'https://example.test',hash:''},
     getComputedStyle:()=>({paddingLeft:'0',paddingRight:'0'}),ResizeObserver:class{observe(){}disconnect(){}},
     document:{querySelector:()=>root,createElement:tag=>element(tag.toUpperCase()),createDocumentFragment:()=>element(),addEventListener(){}},
@@ -25,6 +34,19 @@ async function scenario(action){
   const source=fs.readFileSync(sourcePath,'utf8').replace(/^import .*;\n/,'').replace("const vendor = new URL('../vendor/pdfjs-6.5.438/', import.meta.url).href;","const vendor = 'https://example.test/public/vendor/pdfjs-6.5.438/';").replaceAll('export ','').replace('if (root) initialize(root);','if (root) globalThis.initialized=initialize(root);');
   vm.runInContext(source,context);await context.initialized;
   const input=root.querySelector('[data-search-input]'),submit=nodes.get('[data-search-form]').listeners.submit,cancel=nodes.get('[data-search-cancel]'),status=root.querySelector('[data-search-status]'),results=root.querySelector('[data-search-results]');
+  if(action==='phrase'){
+    releaseText();
+    input.value='  TORQUE  specification\tvalue  ';
+    await submit({preventDefault(){}});
+    check(status.textContent==='1 matching page.','finds the phrase across PDF text items, line breaks and nonbreaking spaces');
+    const [page,excerpt]=results.children[0].children[0].children;
+    check(page.textContent==='Page 2','the normalized phrase links to the matching page');
+    check(excerpt.textContent==='Workshop notes. Torque specification value 25 N·m','the excerpt retains the normalized phrase');
+    input.value='specificationvalue';
+    await submit({preventDefault(){}});
+    check(results.children.length===0,'normalization preserves word boundaries');
+    return;
+  }
   input.value='synthetic';const pending=submit({preventDefault(){}});await seen;
   check(cancel.hidden===false,'active search exposes Stop: '+action);
   if(action==='empty'){
@@ -42,4 +64,4 @@ async function scenario(action){
     check(results.children.length===count,'canceled search cannot append late results');
   }
 }
-(async()=>{await scenario('empty');await scenario('stop');console.log(checks+' search cancellation checks passed with DOM/PDF stubs, not a browser.');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{await scenario('empty');await scenario('stop');await scenario('phrase');console.log(checks+' manual search checks passed with DOM/PDF stubs.');})().catch(e=>{console.error(e);process.exitCode=1;});

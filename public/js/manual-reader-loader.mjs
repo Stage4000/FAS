@@ -1,1 +1,1 @@
-import('./manual-reader.mjs?v=20261125c').catch(() => { const status = document.querySelector('[data-status]'); if (status) status.textContent = 'This browser could not load the book reader. Use Download PDF to continue.'; });
+import('./manual-reader.mjs?v=20261125d').catch(() => { const status = document.querySelector('[data-status]'); if (status) status.textContent = 'This browser could not load the book reader. Use Download PDF to continue.'; });
