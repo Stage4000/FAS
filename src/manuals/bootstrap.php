@@ -43,6 +43,8 @@ function manualsStream(array $file,string $title): void {
         http_response_code($plan['status']);
         // Never hand an uploaded PDF to a browser's inline executable document context.
         header('Content-Type: application/pdf');header('Content-Disposition: attachment; filename="manual.pdf"');
+        // Pin all range responses to the same verified original, independent of proxy framing.
+        header('ETag: "'.$file['sha256'].'"');
         header('Accept-Ranges: bytes');header('Content-Length: '.$plan['length']);
         if($plan['content_range']!==null)header('Content-Range: '.$plan['content_range']);
         header('X-Content-Type-Options: nosniff');
