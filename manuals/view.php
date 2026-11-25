@@ -8,5 +8,5 @@ try {
 }catch(Throwable $e){error_log('Manual reader unavailable: '.$e->getMessage());http_response_code(503);exit('The manual is temporarily unavailable.');}
 $manualMetadata=$manual['metadata'];$manualFileBytes=$manual['file']['bytes'];$manualFileUrl='/manuals/file.php?id='.$manual['id'];$manualBackUrl='/manuals/';$manualPreview=false;
 $pageTitle=$manualMetadata['title'];$pageDescription=$manualMetadata['description'];$canonicalUrl='/manuals/view.php?id='.$manual['id'];
-$extraHeadMeta='<link rel="stylesheet" href="/public/css/manuals.css?v=20261112a">';
+$extraHeadMeta='<link rel="stylesheet" href="/public/css/manuals.css?v=20261125b">';
 header('Cache-Control: no-store');include __DIR__.'/../includes/header.php';include __DIR__.'/../includes/manual-reader.php';include __DIR__.'/../includes/footer.php';
